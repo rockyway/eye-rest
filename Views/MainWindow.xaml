@@ -1,0 +1,387 @@
+<Window x:Class="EyeRest.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:EyeRest.Converters"
+        Title="{Binding WindowTitle}" 
+        Height="810" 
+        Width="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanMinimize">
+    <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <!-- Exit Button on the top left -->
+            <Button Content="✕ Exit" 
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Width="59"
+                    Height="30"
+                    Background="#FFF3EFEF"
+                    Foreground="Black"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Cursor="Hand"
+                    Command="{Binding ExitApplicationCommand}"
+                    ToolTip="Exit application">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            
+            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                <TextBlock Text="Eye-rest Settings" 
+                           FontSize="24" 
+                           FontWeight="Bold" 
+                           HorizontalAlignment="Center"
+                           Foreground="#2196F3"/>
+            
+            <!-- Status and Countdown -->
+            <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="0,10,0,0">
+                <!-- Status Indicator -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Ellipse Width="12" Height="12" 
+                             Fill="{Binding TimerStatusColor}" 
+                             Margin="0,0,8,0"
+                             VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TimerStatusText}" 
+                               FontSize="14" 
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <!-- Countdown Timers -->
+                <TextBlock Text="{Binding DualCountdownText}" 
+                           FontSize="13" 
+                           HorizontalAlignment="Center"
+                           Margin="0,5,0,0"
+                           Foreground="#666666"
+                           Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Tabbed Settings Content -->
+        <!-- Tabbed Settings Content -->
+        <TabControl Grid.Row="1" Margin="0,0,0,15">
+            
+            <!-- Eye Rest Tab -->
+            <TabItem Header="👁️ Eye Rest" FontSize="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <StackPanel>
+                        <!-- Basic Settings -->
+                        <GroupBox Header="Basic Settings" Margin="0,0,0,15" Padding="15">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Remind every:" VerticalAlignment="Center" Margin="0,5"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EyeRestIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="minutes" VerticalAlignment="Center" Margin="5"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Rest for:" VerticalAlignment="Center" Margin="0,5"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EyeRestDurationSeconds, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="seconds" VerticalAlignment="Center" Margin="5"/>
+
+                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" 
+                                          Content="Play sound at start" 
+                                          IsChecked="{Binding EyeRestStartSoundEnabled}" 
+                                          Margin="0,15,0,5"/>
+
+                                <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" 
+                                          Content="Play sound at end" 
+                                          IsChecked="{Binding EyeRestEndSoundEnabled}" 
+                                          Margin="0,5"/>
+                            </Grid>
+                        </GroupBox>
+
+                        <!-- Warning Settings -->
+                        <GroupBox Header="Warning Settings" Margin="0,0,0,15" Padding="15">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <CheckBox Grid.Row="0" 
+                                          Content="Show warning before eye rest" 
+                                          IsChecked="{Binding EyeRestWarningEnabled}" 
+                                          Margin="0,0,0,15"/>
+
+                                <StackPanel Grid.Row="1" 
+                                            Orientation="Horizontal" 
+                                            IsEnabled="{Binding EyeRestWarningEnabled}"
+                                            Margin="20,0,0,0">
+                                    <TextBlock Text="Warning time:" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding EyeRestWarningSeconds, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="10,0"/>
+                                    <TextBlock Text="seconds" VerticalAlignment="Center" Margin="5,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <!-- Test Controls -->
+                        <GroupBox Header="Test Controls" Padding="15">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Content="Test Eye Warning" 
+                                        Command="{Binding TestWarningCommand}" 
+                                        Background="#FF9800"
+                                        Foreground="White"
+                                        Width="130"
+                                        Margin="0,0,10,0"/>
+                                
+                                <Button Content="Test Eye Rest" 
+                                        Command="{Binding TestPopupCommand}" 
+                                        Background="#9C27B0"
+                                        Foreground="White"
+                                        Width="130"
+                                        Margin="0"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Time Break Tab -->
+            <TabItem Header="⏰ Time Break" FontSize="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <StackPanel>
+                        <!-- Basic Settings -->
+                        <GroupBox Header="Basic Settings" Margin="0,0,0,15" Padding="15">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Work for:" VerticalAlignment="Center" Margin="0,5"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BreakIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="minutes" VerticalAlignment="Center" Margin="5"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Break for:" VerticalAlignment="Center" Margin="0,5"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BreakDurationMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="minutes" VerticalAlignment="Center" Margin="5"/>
+                            </Grid>
+                        </GroupBox>
+
+                        <!-- Warning Settings -->
+                        <GroupBox Header="Warning Settings" Margin="0,0,0,15" Padding="15">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <CheckBox Grid.Row="0" 
+                                          Content="Show warning before break" 
+                                          IsChecked="{Binding BreakWarningEnabled}" 
+                                          Margin="0,0,0,15"/>
+
+                                <StackPanel Grid.Row="1" 
+                                            Orientation="Horizontal" 
+                                            IsEnabled="{Binding BreakWarningEnabled}"
+                                            Margin="20,0,0,0">
+                                    <TextBlock Text="Warning time:" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding BreakWarningSeconds, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="10,0"/>
+                                    <TextBlock Text="seconds" VerticalAlignment="Center" Margin="5,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <!-- Overlay Settings -->
+                        <GroupBox Header="Overlay Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Screen overlay opacity:" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                <Slider Value="{Binding OverlayOpacityPercent}" 
+                                        Minimum="0" 
+                                        Maximum="100" 
+                                        Width="200" 
+                                        TickFrequency="10" 
+                                        IsSnapToTickEnabled="True"/>
+                                <TextBlock Text="{Binding OverlayOpacityPercent}" 
+                                           VerticalAlignment="Center" 
+                                           Margin="15,0,5,0" 
+                                           Width="30"/>
+                                <TextBlock Text="%" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Test Controls -->
+                        <GroupBox Header="Test Controls" Padding="15">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Content="Test Break Warning" 
+                                        Command="{Binding TestBreakWarningCommand}" 
+                                        Background="#FF5722"
+                                        Foreground="White"
+                                        Width="130"
+                                        Margin="0,0,10,0"/>
+                                
+                                <Button Content="Test Break" 
+                                        Command="{Binding TestBreakCommand}" 
+                                        Background="#E91E63"
+                                        Foreground="White"
+                                        Width="130"
+                                        Margin="0"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Other Settings Tab -->
+            <TabItem Header="⚙️ Other Settings" FontSize="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <StackPanel>
+                        <!-- Audio Settings -->
+                        <GroupBox Header="Audio Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel>
+                                <CheckBox Content="Enable audio notifications" 
+                                          IsChecked="{Binding AudioEnabled}" 
+                                          Margin="0,0,0,15"/>
+
+                                <StackPanel IsEnabled="{Binding AudioEnabled}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                        <TextBlock Text="Volume:" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                        <Slider Value="{Binding AudioVolume}" 
+                                                Minimum="0" 
+                                                Maximum="100" 
+                                                Width="250" 
+                                                TickFrequency="10" 
+                                                IsSnapToTickEnabled="True"/>
+                                        <TextBlock Text="{Binding AudioVolume}" 
+                                                   VerticalAlignment="Center" 
+                                                   Margin="15,0,0,0" 
+                                                   Width="30"/>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Custom sound:" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                        <TextBox Text="{Binding CustomSoundPath}" Width="250" Margin="0,0,10,0"/>
+                                        <Button Content="Browse..." Width="80"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Application Settings -->
+                        <GroupBox Header="Application Settings" Padding="15">
+                            <StackPanel>
+                                <CheckBox Content="Start with Windows" 
+                                          IsChecked="{Binding StartWithWindows}" 
+                                          Margin="0,0,0,10"/>
+
+                                <CheckBox Content="Minimize to system tray" 
+                                          IsChecked="{Binding MinimizeToTray}" 
+                                          Margin="0,0,0,10"/>
+
+                                <CheckBox Content="Show in taskbar" 
+                                          IsChecked="{Binding ShowInTaskbar}" 
+                                          Margin="0,0,0,0"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Timer Controls -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
+            <Button Content="Start Timers" 
+                    Command="{Binding StartTimersCommand}" 
+                    Style="{StaticResource AccentButtonStyle}"
+                    Width="120"
+                    Height="35"
+                    Margin="10,0"/>
+            
+            <Button Content="Stop Timers" 
+                    Command="{Binding StopTimersCommand}" 
+                    Style="{StaticResource ErrorButtonStyle}"
+                    Width="120"
+                    Height="35"
+                    Margin="10,0"/>
+        </StackPanel>
+
+        <!-- Error Message -->
+        <StackPanel Grid.Row="3" 
+                    Orientation="Vertical" 
+                    HorizontalAlignment="Center" 
+                    Margin="0,10,0,10"
+                    Visibility="{Binding HasValidationErrors, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border Background="#FFEBEE" 
+                    BorderBrush="#F44336" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="10"
+                    MaxWidth="600">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⚠️" 
+                               FontSize="16" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding ErrorMessage}" 
+                               Foreground="#C62828" 
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
+            <Button Content="Save" 
+                    Command="{Binding SaveCommand}" 
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Width="120"
+                    Height="35"
+                    Margin="10,0"/>
+            
+            <Button Content="Cancel" 
+                    Command="{Binding CancelCommand}" 
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Background="#9E9E9E"
+                    Width="120"
+                    Height="35"
+                    Margin="10,0"/>
+            
+            <Button Content="Restore Defaults" 
+                    Command="{Binding RestoreDefaultsCommand}" 
+                    Style="{StaticResource WarningButtonStyle}"
+                    Width="120"
+                    Height="35"
+                    Margin="10,0"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

@@ -1,0 +1,98 @@
+<UserControl x:Class="EyeRest.Views.EyeRestWarningPopup"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Border Background="#E8F5E8" 
+                CornerRadius="15" 
+                Padding="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+        <Border.Effect>
+            <DropShadowEffect Color="Gray" Direction="315" ShadowDepth="8" Opacity="0.4"/>
+        </Border.Effect>
+        
+        <StackPanel>
+            <!-- Warning Icon -->
+            <TextBlock Text="👁" 
+                       FontSize="32" 
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,15"/>
+            
+            <!-- Warning Message -->
+            <TextBlock Text="Eye Rest Starting Soon" 
+                       FontSize="18" 
+                       FontWeight="Bold" 
+                       Foreground="#2E7D32"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,10"/>
+            
+            <!-- Countdown -->
+            <TextBlock x:Name="CountdownText" 
+                       Text="30 seconds" 
+                       FontSize="16" 
+                       Foreground="#1B5E20"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,15"/>
+            
+            <!-- Vertical Progress Bar with smooth animation (starts at 100, falls to 0) -->
+            <ProgressBar x:Name="ProgressBar" 
+                         Width="8" 
+                         Height="100" 
+                         Minimum="0" 
+                         Maximum="100" 
+                         Value="100"
+                         IsIndeterminate="False"
+                         Foreground="#4CAF50"
+                         Background="#E0E0E0"
+                         Orientation="Vertical"
+                         HorizontalAlignment="Center">
+                <!-- Add gentle pulse animation -->
+                <ProgressBar.Triggers>
+                    <EventTrigger RoutedEvent="ProgressBar.ValueChanged">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                               From="0.7" To="1.0" Duration="0:0:0.2"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </ProgressBar.Triggers>
+            </ProgressBar>
+            
+            <!-- Skip hint -->
+            <TextBlock Text="Press ESC to dismiss" 
+                       FontSize="10" 
+                       Foreground="#888888"
+                       HorizontalAlignment="Center"
+                       Margin="0,8,0,0"/>
+        </StackPanel>
+    </Border>
+        
+        <!-- Close button -->
+        <Button Content="✕" 
+                Width="20" 
+                Height="20"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,5,5,0"
+                Background="Transparent"
+                BorderBrush="#4CAF50"
+                BorderThickness="1"
+                Foreground="#4CAF50"
+                FontSize="12"
+                Cursor="Hand"
+                Click="CloseButton_Click"
+                ToolTip="Dismiss (ESC)">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="10">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+    </Grid>
+</UserControl>
