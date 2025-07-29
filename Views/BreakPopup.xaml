@@ -1,0 +1,151 @@
+<UserControl x:Class="EyeRest.Views.BreakPopup"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="#E8F5E8" 
+            Padding="30"
+            MaxWidth="700"
+            MaxHeight="650">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <!-- Break Icon -->
+            <Ellipse Width="80" Height="80" 
+                     Fill="#4CAF50" 
+                     Margin="0,0,0,20">
+                <Ellipse.Effect>
+                    <DropShadowEffect Color="Gray" Direction="315" ShadowDepth="5" Opacity="0.3"/>
+                </Ellipse.Effect>
+            </Ellipse>
+
+            <!-- Break icon inside circle -->
+            <TextBlock Text="☕" 
+                       FontSize="40" 
+                       HorizontalAlignment="Center"
+                       Margin="0,-65,0,45"
+                       Foreground="White"/>
+
+            <!-- Main Message -->
+            <TextBlock Text="Time for a Break!" 
+                       FontSize="28" 
+                       FontWeight="Bold" 
+                       Foreground="#2E7D32"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,15"/>
+
+            <!-- Instructions -->
+            <TextBlock Text="Stand up, stretch, and move around to stay healthy" 
+                       FontSize="16" 
+                       Foreground="#424242"
+                       HorizontalAlignment="Center"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Margin="0,0,0,15"/>
+
+            <!-- Progress Bar with smooth animation -->
+            <ProgressBar x:Name="ProgressBar" 
+                         Width="400" 
+                         Height="12" 
+                         Minimum="0" 
+                         Maximum="100" 
+                         Value="0"
+                         IsIndeterminate="False"
+                         Foreground="#4CAF50"
+                         Background="#E0E0E0"
+                         Margin="0,0,0,15">
+                <!-- Add subtle glow effect during progress -->
+                <ProgressBar.Effect>
+                    <DropShadowEffect x:Name="ProgressGlow"
+                                      Color="#4CAF50" 
+                                      Direction="0" 
+                                      ShadowDepth="0" 
+                                      BlurRadius="0"
+                                      Opacity="0"/>
+                </ProgressBar.Effect>
+                <ProgressBar.Triggers>
+                    <!-- Animate glow when progress is active -->
+                    <EventTrigger RoutedEvent="ProgressBar.ValueChanged">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="ProgressGlow"
+                                               Storyboard.TargetProperty="BlurRadius"
+                                               From="0" To="8" Duration="0:0:0.3"
+                                               AutoReverse="True"/>
+                                <DoubleAnimation Storyboard.TargetName="ProgressGlow"
+                                               Storyboard.TargetProperty="Opacity"
+                                               From="0" To="0.4" Duration="0:0:0.3"
+                                               AutoReverse="True"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </ProgressBar.Triggers>
+            </ProgressBar>
+
+            <!-- Time Remaining -->
+            <TextBlock x:Name="TimeRemainingText" 
+                       Text="5 minutes remaining" 
+                       FontSize="16" 
+                       Foreground="#666666"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,15"/>
+
+            <!-- Stretching Resources -->
+            <TextBlock Text="Stretching Resources:" 
+                       FontSize="14" 
+                       FontWeight="SemiBold"
+                       Foreground="#2E7D32"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,8"/>
+
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,15">
+                <Button x:Name="StretchingResource1" 
+                        Content="Deskercise Guide" 
+                        Padding="12,6"
+                        Margin="3"
+                        Background="#4CAF50"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="StretchingResource_Click"
+                        Tag="https://www.healthline.com/health/deskercise"/>
+            </StackPanel>
+
+            <!-- Action Buttons -->
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,8">
+                <Button x:Name="DelayOneMinuteButton" 
+                        Content="Delay 1 Minute" 
+                        Padding="15,8"
+                        Margin="8"
+                        Background="#FF9800"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="DelayOneMinute_Click"/>
+
+                <Button x:Name="DelayFiveMinutesButton" 
+                        Content="Delay 5 Minutes" 
+                        Padding="15,8"
+                        Margin="8"
+                        Background="#FF9800"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="DelayFiveMinutes_Click"/>
+
+                <Button x:Name="SkipButton" 
+                        Content="Skip Break" 
+                        Padding="15,8"
+                        Margin="8"
+                        Background="#F44336"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="Skip_Click"/>
+            </StackPanel>
+
+            <!-- Click hint -->
+            <TextBlock Text="Click anywhere to close" 
+                       FontSize="12" 
+                       Foreground="#888888"
+                       HorizontalAlignment="Center"
+                       Margin="0,5,0,0"/>
+        </StackPanel>
+    </Border>
+</UserControl>

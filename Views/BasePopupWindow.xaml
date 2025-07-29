@@ -1,0 +1,15 @@
+<Window x:Class="EyeRest.Views.BasePopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        WindowState="Normal"
+        Topmost="True"
+        ShowInTaskbar="False"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Grid Background="Transparent">
+        <ContentPresenter x:Name="ContentArea" 
+                         HorizontalAlignment="Center" 
+                         VerticalAlignment="Center"/>
+    </Grid>
+</Window>
