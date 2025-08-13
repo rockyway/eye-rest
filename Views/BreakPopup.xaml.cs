@@ -87,13 +87,14 @@ namespace EyeRest.Views
             ProgressBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, animation);
             _progress?.Report(progressPercent / 100.0);
             
-            // Update time display
-            var remainingMinutes = (int)Math.Ceiling(remaining.TotalMinutes);
-            var remainingSeconds = (int)Math.Ceiling(remaining.TotalSeconds);
+            // ENHANCED: Update time display to show both minutes and seconds throughout duration
+            var remainingMinutes = (int)remaining.Minutes;
+            var remainingSeconds = (int)remaining.Seconds;
             
-            if (remainingMinutes > 1)
+            // Always show minutes and seconds for better user experience
+            if (remaining.TotalMinutes >= 1)
             {
-                TimeRemainingText.Text = $"{remainingMinutes} minute{(remainingMinutes != 1 ? "s" : "")} remaining";
+                TimeRemainingText.Text = $"{remainingMinutes}m {remainingSeconds}s remaining";
             }
             else
             {
@@ -134,8 +135,18 @@ namespace EyeRest.Views
 
         private void UpdateTimeDisplay()
         {
-            var totalMinutes = (int)_duration.TotalMinutes;
-            TimeRemainingText.Text = $"{totalMinutes} minute{(totalMinutes != 1 ? "s" : "")} remaining";
+            // ENHANCED: Show both minutes and seconds from the start
+            var totalMinutes = (int)_duration.Minutes;
+            var totalSeconds = (int)_duration.Seconds;
+            
+            if (_duration.TotalMinutes >= 1)
+            {
+                TimeRemainingText.Text = $"{totalMinutes}m {totalSeconds}s remaining";
+            }
+            else
+            {
+                TimeRemainingText.Text = $"{totalSeconds} second{(totalSeconds != 1 ? "s" : "")} remaining";
+            }
         }
 
         public void StopCountdown()
