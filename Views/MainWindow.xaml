@@ -339,6 +339,156 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- Advanced Settings Tab -->
+            <TabItem Header="🔧 Advanced" FontSize="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <StackPanel>
+                        <!-- Meeting Detection Settings -->
+                        <GroupBox Header="Meeting Detection Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="Choose how the application detects when you're in meetings to automatically pause break timers:" 
+                                           TextWrapping="Wrap" 
+                                           Margin="0,0,0,15"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                                <RadioButton Content="Window-based detection (Default)" 
+                                             IsChecked="{Binding IsWindowBasedDetection}" 
+                                             GroupName="MeetingDetection"
+                                             Margin="0,0,0,10"/>
+                                <TextBlock Text="   • Monitors running processes and window titles"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,10"/>
+                                <TextBlock Text="   • Fast and lightweight detection method"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,10"/>
+                                <TextBlock Text="   • Works with Teams, Zoom, Webex, and Google Meet"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,15"/>
+
+                                <RadioButton Content="Network-based detection (Advanced)" 
+                                             IsChecked="{Binding IsNetworkBasedDetection}" 
+                                             GroupName="MeetingDetection"
+                                             Margin="0,0,0,10"/>
+                                <TextBlock Text="   • Monitors UDP network connections for meeting activity"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,10"/>
+                                <TextBlock Text="   • More accurate detection of active calls"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,10"/>
+                                <TextBlock Text="   • Higher CPU usage, requires elevated permissions"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource WarningBrush}"
+                                           Margin="20,-5,0,15"/>
+
+                                <RadioButton Content="Hybrid detection (Best of both)" 
+                                             IsChecked="{Binding IsHybridDetection}" 
+                                             GroupName="MeetingDetection"
+                                             Margin="0,0,0,10"/>
+                                <TextBlock Text="   • Combines window and network-based detection"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,10"/>
+                                <TextBlock Text="   • Most accurate but highest resource usage"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,10"/>
+                                <TextBlock Text="   • Falls back gracefully if one method fails"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="20,-5,0,15"/>
+
+                                <!-- Detection Status -->
+                                <Border Background="{DynamicResource InfoBackgroundBrush}" 
+                                        BorderBrush="{DynamicResource InfoBorderBrush}" 
+                                        BorderThickness="1" 
+                                        CornerRadius="4" 
+                                        Padding="10" 
+                                        Margin="0,10,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Detection Status:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                        <TextBlock Text="{Binding MeetingDetectionStatus}" 
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                            <Ellipse Width="8" Height="8" 
+                                                     Fill="{Binding MeetingDetectionStatusColor}" 
+                                                     VerticalAlignment="Center" 
+                                                     Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding MeetingDetectionStatusText}" 
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Additional Settings -->
+                                <CheckBox Content="Enable debug logging for meeting detection" 
+                                          IsChecked="{Binding LogDetectionActivity}" 
+                                          Margin="0,15,0,5"
+                                          ToolTip="Log detailed information about meeting detection (may impact performance)"/>
+                                
+                                <CheckBox Content="Enable fallback detection methods" 
+                                          IsChecked="{Binding EnableFallbackDetection}" 
+                                          Margin="0,5,0,0"
+                                          ToolTip="Automatically switch to backup detection methods if primary method fails"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- User Presence Settings -->
+                        <GroupBox Header="Smart Pause Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="Automatically pause timers when you're away from your computer:" 
+                                           TextWrapping="Wrap" 
+                                           Margin="0,0,0,15"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                
+                                <CheckBox Content="Pause when screen is locked" 
+                                          IsChecked="{Binding PauseOnScreenLock}" 
+                                          Margin="0,0,0,10"/>
+                                
+                                <CheckBox Content="Pause when monitor turns off" 
+                                          IsChecked="{Binding PauseOnMonitorOff}" 
+                                          Margin="0,0,0,10"/>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <CheckBox Content="Pause when idle for:" 
+                                              IsChecked="{Binding PauseOnIdle}" 
+                                              VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding IdleTimeoutMinutes, UpdateSourceTrigger=PropertyChanged}" 
+                                             Width="60" 
+                                             Margin="10,0"
+                                             IsEnabled="{Binding PauseOnIdle}"/>
+                                    <TextBlock Text="minutes" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <!-- Test Controls -->
+                        <GroupBox Header="Test Advanced Features" Padding="15">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Content="Test Meeting Detection" 
+                                        Command="{Binding TestMeetingDetectionCommand}" 
+                                        Style="{DynamicResource InfoButtonStyle}"
+                                        Width="150"
+                                        Margin="0,0,10,0"
+                                        ToolTip="Test the current meeting detection method"/>
+                                
+                                <Button Content="Switch Detection Method" 
+                                        Command="{Binding SwitchDetectionMethodCommand}" 
+                                        Style="{DynamicResource AccentButtonStyle}"
+                                        Width="150"
+                                        Margin="0"
+                                        ToolTip="Apply the selected detection method immediately"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- Analytics Tab -->
             <TabItem Header="📊 Analytics" FontSize="14">
                 <Grid>

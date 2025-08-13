@@ -109,10 +109,22 @@ namespace EyeRest
             
             // Advanced Services (Phase 2+)
             services.AddSingleton<IUserPresenceService, UserPresenceService>();
-            services.AddSingleton<IMeetingDetectionService, MeetingDetectionService>();
             services.AddSingleton<IAnalyticsService, AnalyticsService>();
             services.AddSingleton<IReportingService, ReportingService>();
             services.AddSingleton<IPauseReminderService, PauseReminderService>();
+            
+            // Network monitoring services
+            services.AddSingleton<INetworkEndpointMonitor, WindowsNetworkEndpointMonitor>();
+            services.AddSingleton<IProcessMonitor, WindowsProcessMonitor>();
+            
+            // Meeting detection services (transient for factory pattern)
+            services.AddTransient<WindowBasedMeetingDetectionService>();
+            services.AddTransient<NetworkBasedMeetingDetectionService>();
+            services.AddTransient<HybridMeetingDetectionService>();
+            
+            // Meeting detection factory and manager
+            services.AddSingleton<IMeetingDetectionServiceFactory, MeetingDetectionServiceFactory>();
+            services.AddSingleton<IMeetingDetectionManager, MeetingDetectionManager>();
             
             // Orchestration
             services.AddSingleton<IApplicationOrchestrator, ApplicationOrchestrator>();
