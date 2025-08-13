@@ -129,7 +129,8 @@ namespace EyeRest.Services
                     IntervalMinutes = 10,
                     DurationMinutes = 2,
                     WarningEnabled = true,
-                    WarningSeconds = 30
+                    WarningSeconds = 30,
+                    OverlayOpacityPercent = 50
                 },
                 Audio = new AudioSettings
                 {
@@ -141,8 +142,26 @@ namespace EyeRest.Services
                 {
                     StartWithWindows = false,
                     MinimizeToTray = true,
-                    ShowInTaskbar = false
-                }
+                    ShowInTaskbar = false,
+                    IsDarkMode = false
+                },
+                Analytics = new AnalyticsSettings
+                {
+                    Enabled = true,
+                    AutoOpenDashboard = false,
+                    DataRetentionDays = 90,
+                    TrackBreakEvents = true,
+                    TrackPresenceChanges = true,
+                    TrackMeetingEvents = true,
+                    TrackUserSessions = true,
+                    AllowDataExport = true,
+                    ExportFormat = "JSON",
+                    AutoCleanupOldData = true,
+                    DatabaseMaintenanceIntervalDays = 7
+                },
+                UserPresence = new UserPresenceSettings(),
+                MeetingDetection = new Models.MeetingDetectionSettings(),
+                TimerControls = new TimerControlSettings()
             };
 
             return Task.FromResult(defaultConfig);
@@ -188,6 +207,13 @@ namespace EyeRest.Services
             {
                 _logger.LogWarning($"Invalid warning seconds: {config.Break.WarningSeconds}, using default");
                 config.Break.WarningSeconds = 30;
+            }
+
+            // Validate overlay opacity
+            if (config.Break.OverlayOpacityPercent < 0 || config.Break.OverlayOpacityPercent > 100)
+            {
+                _logger.LogWarning($"Invalid overlay opacity: {config.Break.OverlayOpacityPercent}, using default");
+                config.Break.OverlayOpacityPercent = 50;
             }
 
             // Audio validation

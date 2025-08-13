@@ -1,11 +1,26 @@
+using System.Collections.Generic;
+using System.ComponentModel;
+using EyeRest.Services;
+
 namespace EyeRest.Models
 {
-    public class AppConfiguration
+    public class AppConfiguration : INotifyPropertyChanged
     {
         public EyeRestSettings EyeRest { get; set; } = new();
         public BreakSettings Break { get; set; } = new();
         public AudioSettings Audio { get; set; } = new();
         public ApplicationSettings Application { get; set; } = new();
+        public UserPresenceSettings UserPresence { get; set; } = new();
+        public MeetingDetectionSettings MeetingDetection { get; set; } = new();
+        public AnalyticsSettings Analytics { get; set; } = new();
+        public TimerControlSettings TimerControls { get; set; } = new();
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        
+        protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 
     public class EyeRestSettings
@@ -39,5 +54,59 @@ namespace EyeRest.Models
         public bool StartWithWindows { get; set; } = false;
         public bool MinimizeToTray { get; set; } = true;
         public bool ShowInTaskbar { get; set; } = false;
+        public bool IsDarkMode { get; set; } = false;
+    }
+
+    public class UserPresenceSettings
+    {
+        public bool Enabled { get; set; } = true;
+        public int IdleThresholdMinutes { get; set; } = 5;
+        public int AwayGracePeriodSeconds { get; set; } = 30;
+        public bool AutoPauseOnAway { get; set; } = true;
+        public bool AutoResumeOnReturn { get; set; } = true;
+        public bool MonitorSessionChanges { get; set; } = true;
+        public bool MonitorPowerEvents { get; set; } = true;
+        public int MonitoringIntervalSeconds { get; set; } = 15;
+    }
+
+    public class TimerControlSettings
+    {
+        public bool AllowManualPause { get; set; } = true;
+        public bool ShowPauseReminders { get; set; } = true;
+        public int PauseReminderIntervalHours { get; set; } = 1;
+        public int MaxPauseHours { get; set; } = 8;
+        public bool ShowPauseInSystemTray { get; set; } = true;
+        public bool ConfirmManualPause { get; set; } = true;
+        public bool PreserveTimerProgress { get; set; } = true;
+    }
+
+    public class AnalyticsSettings
+    {
+        public bool Enabled { get; set; } = true;
+        public int DataRetentionDays { get; set; } = 90;
+        public bool TrackBreakEvents { get; set; } = true;
+        public bool TrackPresenceChanges { get; set; } = true;
+        public bool TrackMeetingEvents { get; set; } = true;
+        public bool TrackUserSessions { get; set; } = true;
+        public bool AllowDataExport { get; set; } = true;
+        public string ExportFormat { get; set; } = "JSON";
+        public bool AutoCleanupOldData { get; set; } = true;
+        public int DatabaseMaintenanceIntervalDays { get; set; } = 7;
+        public bool AutoOpenDashboard { get; set; } = false;
+    }
+
+    public class MeetingDetectionSettings
+    {
+        public bool Enabled { get; set; } = true;
+        public bool EnableTeamsDetection { get; set; } = true;
+        public bool EnableZoomDetection { get; set; } = true;
+        public bool EnableWebexDetection { get; set; } = true;
+        public bool EnableGoogleMeetDetection { get; set; } = true;
+        public bool EnableSkypeDetection { get; set; } = true;
+        public bool AutoPauseTimers { get; set; } = true;
+        public bool ShowMeetingModeIndicator { get; set; } = true;
+        public int MonitoringIntervalSeconds { get; set; } = 10;
+        public List<string> CustomProcessNames { get; set; } = new();
+        public List<string> ExcludedWindowTitles { get; set; } = new();
     }
 }

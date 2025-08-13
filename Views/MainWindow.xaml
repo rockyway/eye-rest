@@ -2,15 +2,18 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:EyeRest.Converters"
+        xmlns:local="clr-namespace:EyeRest.Views"
         Title="{Binding WindowTitle}" 
         Height="810" 
         Width="600"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanMinimize">
+        ResizeMode="CanMinimize"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}">
     <Window.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Window.Resources>
-    <Grid Margin="20">
+    <Grid Margin="20" Background="{DynamicResource BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -27,10 +30,7 @@
                     VerticalAlignment="Top"
                     Width="59"
                     Height="30"
-                    Background="#FFF3EFEF"
-                    Foreground="Black"
-                    BorderBrush="White"
-                    BorderThickness="1"
+                    Style="{DynamicResource ErrorButtonStyle}"
                     FontSize="12"
                     FontWeight="SemiBold"
                     Cursor="Hand"
@@ -48,17 +48,34 @@
                 </Button.Template>
             </Button>
             
+            <!-- Dark Mode Toggle on the top right -->
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Right" 
+                        VerticalAlignment="Top"
+                        Margin="0,5,0,0">
+                <TextBlock Text="🌙" 
+                           FontSize="16" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,8,0"/>
+                <CheckBox Content="Dark Mode" 
+                          IsChecked="{Binding IsDarkMode}" 
+                          VerticalAlignment="Center"
+                          FontSize="12"
+                          FontWeight="SemiBold"
+                          ToolTip="Toggle between light and dark theme for all windows"/>
+            </StackPanel>
+            
             <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                 <TextBlock Text="Eye-rest Settings" 
                            FontSize="24" 
                            FontWeight="Bold" 
                            HorizontalAlignment="Center"
-                           Foreground="#2196F3"/>
+                           Foreground="{DynamicResource PrimaryBrush}"/>
             
             <!-- Status and Countdown -->
-            <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="0,10,0,0">
+            <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="0,10,0,0" Height="55">
                 <!-- Status Indicator -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Height="20">
                     <Ellipse Width="12" Height="12" 
                              Fill="{Binding TimerStatusColor}" 
                              Margin="0,0,8,0"
@@ -74,7 +91,8 @@
                            FontSize="13" 
                            HorizontalAlignment="Center"
                            Margin="0,5,0,0"
-                           Foreground="#666666"
+                           Height="20"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
             </StackPanel>
@@ -82,7 +100,7 @@
 
         <!-- Tabbed Settings Content -->
         <!-- Tabbed Settings Content -->
-        <TabControl Grid.Row="1" Margin="0,0,0,15">
+        <TabControl Grid.Row="1" Margin="0,0,0,15" SelectedIndex="{Binding SelectedTabIndex}">
             
             <!-- Eye Rest Tab -->
             <TabItem Header="👁️ Eye Rest" FontSize="14">
@@ -152,15 +170,13 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                 <Button Content="Test Eye Warning" 
                                         Command="{Binding TestWarningCommand}" 
-                                        Background="#FF9800"
-                                        Foreground="White"
+                                        Style="{DynamicResource TestWarningButtonStyle}"
                                         Width="130"
                                         Margin="0,0,10,0"/>
                                 
                                 <Button Content="Test Eye Rest" 
                                         Command="{Binding TestPopupCommand}" 
-                                        Background="#9C27B0"
-                                        Foreground="White"
+                                        Style="{DynamicResource TestEyeRestButtonStyle}"
                                         Width="130"
                                         Margin="0"/>
                             </StackPanel>
@@ -243,15 +259,13 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                 <Button Content="Test Break Warning" 
                                         Command="{Binding TestBreakWarningCommand}" 
-                                        Background="#FF5722"
-                                        Foreground="White"
+                                        Style="{DynamicResource TestBreakWarningButtonStyle}"
                                         Width="130"
                                         Margin="0,0,10,0"/>
                                 
                                 <Button Content="Test Break" 
                                         Command="{Binding TestBreakCommand}" 
-                                        Background="#E91E63"
-                                        Foreground="White"
+                                        Style="{DynamicResource TestBreakButtonStyle}"
                                         Width="130"
                                         Margin="0"/>
                             </StackPanel>
@@ -286,10 +300,20 @@
                                                    Width="30"/>
                                     </StackPanel>
 
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <TextBlock Text="Custom sound:" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                                        <TextBox Text="{Binding CustomSoundPath}" Width="250" Margin="0,0,10,0"/>
-                                        <Button Content="Browse..." Width="80"/>
+                                        <TextBox Text="{Binding CustomSoundPath}" Width="200" Margin="0,0,10,0" 
+                                                 ToolTip="Full path to custom audio file"/>
+                                        <Button Content="Browse..." 
+                                                Command="{Binding BrowseCustomAudioCommand}"
+                                                Width="80" 
+                                                Margin="0,0,10,0"
+                                                ToolTip="Browse for custom audio file (WAV, MP3, WMA)"/>
+                                        <Button Content="🔊 Test" 
+                                                Command="{Binding TestCustomAudioCommand}"
+                                                Width="80" 
+                                                Style="{DynamicResource SuccessButtonStyle}"
+                                                ToolTip="Test play the selected custom audio file"/>
                                     </StackPanel>
                                 </StackPanel>
                             </StackPanel>
@@ -308,11 +332,51 @@
 
                                 <CheckBox Content="Show in taskbar" 
                                           IsChecked="{Binding ShowInTaskbar}" 
-                                          Margin="0,0,0,0"/>
+                                          Margin="0,0,0,10"/>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
                 </ScrollViewer>
+            </TabItem>
+
+            <!-- Analytics Tab -->
+            <TabItem Header="📊 Analytics" FontSize="14">
+                <Grid>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20">
+                        <TextBlock Text="📊" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20" Foreground="{DynamicResource PrimaryBrush}"/>
+                        <TextBlock Text="Analytics Dashboard" 
+                                   FontSize="24" 
+                                   FontWeight="Bold" 
+                                   HorizontalAlignment="Center" 
+                                   Margin="0,0,0,10"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="View detailed break compliance metrics and performance analytics in a dedicated dashboard window." 
+                                   FontSize="14" 
+                                   HorizontalAlignment="Center" 
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,30"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   MaxWidth="400"/>
+                        
+                        <Button Content="📊 Open Analytics Dashboard" 
+                                Command="{Binding ShowAnalyticsCommand}" 
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Width="220"
+                                Height="50"
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Cursor="Hand"
+                                ToolTip="Open the analytics dashboard in a larger, dedicated window"/>
+                        
+                        <CheckBox Content="Auto-open dashboard when clicking Analytics tab" 
+                                  IsChecked="{Binding AutoOpenDashboard}" 
+                                  HorizontalAlignment="Center"
+                                  Margin="0,20,0,0"
+                                  FontSize="14"
+                                  ToolTip="Automatically open the Analytics Dashboard whenever you click on the Analytics tab"/>
+                    </StackPanel>
+                </Grid>
             </TabItem>
         </TabControl>
 
@@ -320,14 +384,14 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
             <Button Content="Start Timers" 
                     Command="{Binding StartTimersCommand}" 
-                    Style="{StaticResource AccentButtonStyle}"
+                    Style="{DynamicResource AccentButtonStyle}"
                     Width="120"
                     Height="35"
                     Margin="10,0"/>
             
             <Button Content="Stop Timers" 
                     Command="{Binding StopTimersCommand}" 
-                    Style="{StaticResource ErrorButtonStyle}"
+                    Style="{DynamicResource ErrorButtonStyle}"
                     Width="120"
                     Height="35"
                     Margin="10,0"/>
@@ -339,11 +403,7 @@
                     HorizontalAlignment="Center" 
                     Margin="0,10,0,10"
                     Visibility="{Binding HasValidationErrors, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Border Background="#FFEBEE" 
-                    BorderBrush="#F44336" 
-                    BorderThickness="1" 
-                    CornerRadius="4" 
-                    Padding="10"
+            <Border Style="{DynamicResource ErrorBorderStyle}"
                     MaxWidth="600">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="⚠️" 
@@ -351,9 +411,7 @@
                                VerticalAlignment="Center" 
                                Margin="0,0,8,0"/>
                     <TextBlock Text="{Binding ErrorMessage}" 
-                               Foreground="#C62828" 
-                               TextWrapping="Wrap"
-                               VerticalAlignment="Center"/>
+                               Style="{DynamicResource ErrorTextStyle}"/>
                 </StackPanel>
             </Border>
         </StackPanel>
@@ -362,22 +420,21 @@
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
             <Button Content="Save" 
                     Command="{Binding SaveCommand}" 
-                    Style="{StaticResource PrimaryButtonStyle}"
+                    Style="{DynamicResource PrimaryButtonStyle}"
                     Width="120"
                     Height="35"
                     Margin="10,0"/>
             
             <Button Content="Cancel" 
                     Command="{Binding CancelCommand}" 
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Background="#9E9E9E"
+                    Style="{DynamicResource CancelButtonStyle}"
                     Width="120"
                     Height="35"
                     Margin="10,0"/>
             
             <Button Content="Restore Defaults" 
                     Command="{Binding RestoreDefaultsCommand}" 
-                    Style="{StaticResource WarningButtonStyle}"
+                    Style="{DynamicResource WarningButtonStyle}"
                     Width="120"
                     Height="35"
                     Margin="10,0"/>

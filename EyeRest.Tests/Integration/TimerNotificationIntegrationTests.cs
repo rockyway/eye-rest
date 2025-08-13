@@ -13,6 +13,8 @@ namespace EyeRest.Tests.Integration
         private readonly Mock<ILogger<TimerService>> _mockTimerLogger;
         private readonly Mock<ILogger<NotificationService>> _mockNotificationLogger;
         private readonly Mock<IConfigurationService> _mockConfigService;
+        private readonly Mock<IScreenOverlayService> _mockScreenOverlayService;
+        private readonly Mock<IAnalyticsService> _mockAnalyticsService;
         private readonly TimerService _timerService;
         private readonly NotificationService _notificationService;
         private readonly AppConfiguration _testConfig;
@@ -22,6 +24,8 @@ namespace EyeRest.Tests.Integration
             _mockTimerLogger = new Mock<ILogger<TimerService>>();
             _mockNotificationLogger = new Mock<ILogger<NotificationService>>();
             _mockConfigService = new Mock<IConfigurationService>();
+            _mockScreenOverlayService = new Mock<IScreenOverlayService>();
+            _mockAnalyticsService = new Mock<IAnalyticsService>();
 
             _testConfig = new AppConfiguration
             {
@@ -42,8 +46,8 @@ namespace EyeRest.Tests.Integration
             _mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(_testConfig);
 
-            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object);
-            _notificationService = new NotificationService(_mockNotificationLogger.Object, System.Windows.Threading.Dispatcher.CurrentDispatcher);
+            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object);
+            _notificationService = new NotificationService(_mockNotificationLogger.Object, System.Windows.Threading.Dispatcher.CurrentDispatcher, _mockScreenOverlayService.Object, _mockConfigService.Object);
         }
 
         [Fact]

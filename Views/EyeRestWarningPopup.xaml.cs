@@ -9,9 +9,7 @@ namespace EyeRest.Views
 {
     public partial class EyeRestWarningPopup : UserControl
     {
-        private DispatcherTimer? _countdownTimer;
-        private int _remainingSeconds;
-        private int _totalSeconds;
+        private TimeSpan _totalDuration;
 
         public event EventHandler? WarningCompleted;
 
@@ -32,96 +30,72 @@ namespace EyeRest.Views
 
         public void StartCountdown(int seconds)
         {
-            // CRITICAL FIX: Clean up existing timer before creating new one
-            StopCountdown();
-            
-            _totalSeconds = seconds;
-            _remainingSeconds = seconds;
             _totalDuration = TimeSpan.FromSeconds(seconds);
-            _startTime = DateTime.Now;
             
-            System.Diagnostics.Debug.WriteLine($"👁 EyeRestWarningPopup.StartCountdown: Starting {seconds} second warning");
+            System.Diagnostics.Debug.WriteLine($"👁 EyeRestWarningPopup: Starting display-only countdown for {seconds} seconds");
             
-            UpdateDisplay();
-            
-            _countdownTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(100) // Update 10 times per second for smooth animation
-            };
-            
-            _countdownTimer.Tick += OnCountdownTick;
-            _countdownTimer.Start();
+            // Initialize display - no internal timer
+            UpdateDisplay(TimeSpan.FromSeconds(seconds));
+            ProgressBar.Value = 100; // Start at 100%
         }
 
-        private DateTime _startTime;
-        private TimeSpan _totalDuration;
-
-        private void OnCountdownTick(object? sender, EventArgs e)
+        /// <summary>
+        /// Update the countdown display externally (called by TimerService)
+        /// </summary>
+        public void UpdateCountdown(TimeSpan remaining)
         {
-            var elapsed = DateTime.Now - _startTime;
-            var remaining = _totalDuration - elapsed;
+            System.Diagnostics.Debug.WriteLine($"👁 EyeRestWarningPopup: UpdateCountdown called with {remaining.TotalSeconds} seconds remaining");
             
             if (remaining <= TimeSpan.Zero)
             {
-                // Warning period complete
-                System.Diagnostics.Debug.WriteLine($"👁 EyeRestWarningPopup: Warning period complete, stopping timer");
-                _countdownTimer?.Stop();
-                if (_countdownTimer != null)
-                {
-                    _countdownTimer.Tick -= OnCountdownTick; // Prevent memory leaks
-                }
-                _countdownTimer = null;
-                
+                // Final state - animate completion
                 var completionAnimation = new DoubleAnimation
                 {
                     From = ProgressBar.Value,
-                    To = 0, // Warning bar goes to 0% when complete (falling down effect)
+                    To = 0, // Warning bar goes to 0% when complete
                     Duration = TimeSpan.FromMilliseconds(200),
                     EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
                 };
                 ProgressBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, completionAnimation);
                 CountdownText.Text = "Eye rest starting now!";
                 
-                System.Diagnostics.Debug.WriteLine($"👁 EyeRestWarningPopup: Firing WarningCompleted event");
+                System.Diagnostics.Debug.WriteLine($"👁 EyeRestWarningPopup: Countdown complete - firing WarningCompleted event");
                 WarningCompleted?.Invoke(this, EventArgs.Empty);
                 return;
             }
-            
-            // Update display with smooth progress
+
+            UpdateDisplay(remaining);
+        }
+
+        private void UpdateDisplay(TimeSpan remaining)
+        {
+            // Update countdown text
             var remainingSeconds = (int)Math.Ceiling(remaining.TotalSeconds);
             CountdownText.Text = $"{remainingSeconds} second{(remainingSeconds != 1 ? "s" : "")}";
             
-            // Update progress bar with smooth animation (100% to 0% as time progresses - falling down effect)
-            var progressPercent = 100 - ((elapsed.TotalMilliseconds / _totalDuration.TotalMilliseconds) * 100);
-            var targetValue = Math.Max(progressPercent, 0);
-            
-            // Animate the progress bar value for smooth visual feedback
-            var animation = new DoubleAnimation
+            // Update progress bar - calculate percentage based on total duration
+            if (_totalDuration.TotalSeconds > 0)
             {
-                From = ProgressBar.Value,
-                To = targetValue,
-                Duration = TimeSpan.FromMilliseconds(100),
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-            };
-            
-            ProgressBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, animation);
-        }
-
-        private void UpdateDisplay()
-        {
-            var totalSeconds = (int)_totalDuration.TotalSeconds;
-            CountdownText.Text = $"{totalSeconds} second{(totalSeconds != 1 ? "s" : "")}";
-            ProgressBar.Value = 100; // Start at 100% and will fall down to 0%
+                var progressPercent = (remaining.TotalSeconds / _totalDuration.TotalSeconds) * 100;
+                var targetValue = Math.Max(progressPercent, 0);
+                
+                // Smooth animation to new progress value
+                var animation = new DoubleAnimation
+                {
+                    From = ProgressBar.Value,
+                    To = targetValue,
+                    Duration = TimeSpan.FromMilliseconds(100),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                };
+                
+                ProgressBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, animation);
+            }
         }
 
         public void StopCountdown()
         {
-            if (_countdownTimer != null)
-            {
-                _countdownTimer.Stop();
-                _countdownTimer.Tick -= OnCountdownTick; // CRITICAL FIX: Remove event handler to prevent memory leaks
-                _countdownTimer = null; // CRITICAL FIX: Null the timer to prevent reuse
-            }
+            // No internal timer to stop - this is now display-only
+            System.Diagnostics.Debug.WriteLine($"👁 EyeRestWarningPopup: StopCountdown called");
         }
 
         private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)

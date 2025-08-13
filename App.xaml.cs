@@ -20,6 +20,7 @@ namespace EyeRest
 
         private ILogger<App>? _logger;
         private DispatcherTimer? _countdownTimer;
+        public static IServiceProvider? ServiceProvider { get; private set; }
 
         public App()
         {
@@ -43,6 +44,8 @@ namespace EyeRest
                 })
                 .UseSerilog()
                 .Build();
+            // Make DI ServiceProvider available via App
+            ServiceProvider = _host.Services;
         }
 
         private void InitializeSerilog()
@@ -89,7 +92,12 @@ namespace EyeRest
             // Register Dispatcher for NotificationService
             services.AddSingleton<Dispatcher>(_ => Dispatcher.CurrentDispatcher);
 
+            // Core Services
             services.AddSingleton<IConfigurationService, ConfigurationService>();
+            
+            // Dual Configuration Services
+            services.AddSingleton<ITimerConfigurationService, TimerConfigurationService>();
+            services.AddSingleton<IUIConfigurationService, UIConfigurationService>();
             services.AddSingleton<ITimerService, TimerService>();
             services.AddSingleton<INotificationService, NotificationService>();
             services.AddSingleton<IAudioService, AudioService>();
@@ -98,7 +106,19 @@ namespace EyeRest
             services.AddSingleton<ILoggingService, LoggingService>();
             services.AddSingleton<IPerformanceMonitor, PerformanceMonitor>();
             services.AddSingleton<IScreenOverlayService, ScreenOverlayService>();
+            
+            // Advanced Services (Phase 2+)
+            services.AddSingleton<IUserPresenceService, UserPresenceService>();
+            services.AddSingleton<IMeetingDetectionService, MeetingDetectionService>();
+            services.AddSingleton<IAnalyticsService, AnalyticsService>();
+            services.AddSingleton<IReportingService, ReportingService>();
+            services.AddSingleton<IPauseReminderService, PauseReminderService>();
+            
+            // Orchestration
             services.AddSingleton<IApplicationOrchestrator, ApplicationOrchestrator>();
+            
+            // UI Components
+            services.AddTransient<AnalyticsDashboardViewModel>();
             services.AddTransient<MainWindowViewModel>();
             services.AddTransient<MainWindow>();
         }
@@ -203,8 +223,6 @@ namespace EyeRest
             }
         }
 
-
-
         private async void OnExitRequested(object? sender, EventArgs e)
         {
             // Show confirmation dialog for system tray exit
@@ -281,9 +299,20 @@ namespace EyeRest
             // Mark as handled to prevent application crash
             e.Handled = true;
             
+            // Enhanced error message with more details for debugging
+            var errorDetails = $"Exception Type: {e.Exception?.GetType().Name}\n" +
+                              $"Message: {e.Exception?.Message}\n" +
+                              $"Source: {e.Exception?.Source}";
+            
+            if (e.Exception?.InnerException != null)
+            {
+                errorDetails += $"\nInner Exception: {e.Exception.InnerException.Message}";
+            }
+            
             // Show user-friendly error message
             MessageBox.Show(
-                "An unexpected error occurred. The application will continue running, but some features may not work correctly.",
+                "An unexpected error occurred. The application will continue running, but some features may not work correctly.\n\n" +
+                $"Technical details:\n{errorDetails}",
                 "Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
