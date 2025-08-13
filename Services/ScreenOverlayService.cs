@@ -213,7 +213,42 @@ namespace EyeRest.Services
             
             // Ensure window can receive focus for keyboard input
             Focusable = true;
-            Loaded += (s, e) => Focus();
+            Loaded += (s, e) => 
+            {
+                Focus();
+                
+                // Force overlay to show even when main app is minimized
+                try
+                {
+                    var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        SetForegroundWindow(hwnd);
+                        ShowWindow(hwnd, SW_SHOW);
+                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Warning: Failed to force overlay activation: {ex.Message}");
+                }
+            };
         }
+        
+        #region Win32 API for forcing overlay to foreground
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+        
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private const int SW_SHOW = 5;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOSIZE = 0x0001;
+        #endregion
     }
 }

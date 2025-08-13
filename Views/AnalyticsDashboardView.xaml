@@ -1,0 +1,1325 @@
+<UserControl x:Class="EyeRest.Views.AnalyticsDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:EyeRest.Converters"
+             Background="{DynamicResource BackgroundBrush}">
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        
+        <!-- Local theme resources removed - using global application theme system -->
+        
+        <!-- Enhanced Header Style -->
+        <Style x:Key="HeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <!-- Professional Chart Title Style -->
+        <Style x:Key="ChartTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+        
+        <!-- Enhanced Metric Card Style -->
+        <Style x:Key="MetricCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="24,20"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect ShadowDepth="2" Direction="270" Color="#00000008" Opacity="0.16" BlurRadius="8"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect ShadowDepth="4" Direction="270" Color="#00000012" Opacity="0.24" BlurRadius="16"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Professional Metric Value Style -->
+        <Style x:Key="MetricValueStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        
+        <!-- Enhanced Metric Label Style -->
+        <Style x:Key="MetricLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        
+        <!-- Modern Tab Style -->
+        <Style x:Key="ModernTabStyle" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        
+        <!-- Tab Item Style -->
+        <Style x:Key="TabItemStyle" TargetType="TabItem">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Border" 
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8,8,0,0"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter x:Name="ContentSite"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center"
+                                            ContentSource="Header"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Primary Button Style -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Export Button Style -->
+        <Style x:Key="ExportButtonStyle" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Section Header Style -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+        
+        <!-- Privacy Notice Style -->
+        <Style x:Key="PrivacyNoticeStyle" TargetType="Border">
+            <Setter Property="Background" Value="#E8F5E8"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Margin" Value="24,16"/>
+        </Style>
+        
+        <!-- Professional DataGrid Style -->
+        <Style x:Key="ModernDataGridStyle" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+            <Setter Property="RowBackground" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource ControlBackgroundBrush}"/>
+            <Setter Property="RowHeight" Value="40"/>
+            <Setter Property="ColumnHeaderHeight" Value="45"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="CanUserResizeColumns" Value="True"/>
+            <Setter Property="CanUserSortColumns" Value="True"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        <Setter Property="Padding" Value="8,4"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="CellStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="RowStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                        <Style.Triggers>
+                            <Trigger Property="AlternationIndex" Value="1">
+                                <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Remove the local DataGrid Header Style - will use theme style instead -->
+        
+        <!-- Error Button Style -->
+        <Style x:Key="ErrorButtonStyle" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#B71C1C"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Theme Toggle Button Style -->
+        <Style x:Key="ThemeToggleButtonStyle" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="MinWidth" Value="80"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="18"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Analytics ComboBox Style -->
+        <Style x:Key="AnalyticsComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                    Content="{TemplateBinding SelectionBoxItem}"
+                                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                    ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Left"
+                                                    IsHitTestVisible="False"
+                                                    TextElement.Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    <ToggleButton Grid.Column="1"
+                                                Width="20"
+                                                Background="Transparent"
+                                                BorderBrush="Transparent"
+                                                IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                                Focusable="False">
+                                        <Path Data="M 0 0 L 4 4 L 8 0 Z"
+                                              Fill="{DynamicResource TextSecondaryBrush}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                                    </ToggleButton>
+                                </Grid>
+                            </Border>
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   Focusable="False">
+                                <Border Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource ControlBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <ScrollViewer MaxHeight="150">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Loading Overlay -->
+        <Grid Grid.RowSpan="3" 
+              Background="#80FFFFFF" 
+              Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"
+              Panel.ZIndex="1000">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="6" Margin="0,0,0,10"/>
+                <TextBlock Text="Loading analytics data..." FontSize="14" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Enhanced Professional Header -->
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" 
+                BorderBrush="{DynamicResource ControlBorderBrush}" 
+                BorderThickness="0,0,0,1"
+                Padding="32,24">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Title Section -->
+                <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="📊" FontSize="32" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                        <TextBlock Text="Eye-rest Analytics Dashboard" Style="{StaticResource HeaderStyle}"/>
+                    </StackPanel>
+                    
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Text="💡 Use the Dark Mode toggle in the main window to switch themes" 
+                                   FontSize="12" 
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,16,0"/>
+                        
+                        <Button Content="🔄 Refresh Data" 
+                                Command="{Binding RefreshDataCommand}" 
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Width="140" 
+                                Height="40" 
+                                Margin="8,0"/>
+                        
+                        <Button Content="📋 Generate Report" 
+                                Command="{Binding GenerateReportCommand}" 
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Width="140" 
+                                Height="40" 
+                                Margin="8,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Controls Section -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Date Range Controls -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Date Range:" 
+                                   FontFamily="Segoe UI" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" 
+                                   Margin="0,0,16,0"/>
+                        
+                        <Border Background="{DynamicResource ControlBackgroundBrush}" 
+                                CornerRadius="6" 
+                                Padding="16,8"
+                                BorderBrush="{DynamicResource ControlBorderBrush}"
+                                BorderThickness="1">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="From:" 
+                                           FontFamily="Segoe UI"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" 
+                                           Margin="0,0,8,0"/>
+                                <DatePicker SelectedDate="{Binding SelectedStartDate}" 
+                                            Width="130" 
+                                            Margin="0,0,16,0"/>
+                                <TextBlock Text="To:" 
+                                           FontFamily="Segoe UI"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" 
+                                           Margin="0,0,8,0"/>
+                                <DatePicker SelectedDate="{Binding SelectedEndDate}" 
+                                            Width="130" 
+                                            Margin="0,0,16,0"/>
+                                
+                                <ComboBox ItemsSource="{Binding PeriodOptions}" 
+                                          SelectedValue="{Binding SelectedPeriodDays}" 
+                                          SelectedValuePath="Days"
+                                          DisplayMemberPath="DisplayName"
+                                          Width="160" 
+                                          VerticalAlignment="Center"
+                                          Style="{StaticResource AnalyticsComboBoxStyle}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Export Options -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Export:" 
+                                   FontFamily="Segoe UI" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" 
+                                   Margin="0,0,16,0"/>
+                        
+                        <Button Content="📄 JSON" 
+                                Command="{Binding ExportDataCommand}" 
+                                CommandParameter="JSON"
+                                Style="{StaticResource ExportButtonStyle}"
+                                Width="100" 
+                                Height="36"
+                                ToolTip="Export structured data as JSON format"/>
+                        <Button Content="📊 CSV" 
+                                Command="{Binding ExportDataCommand}" 
+                                CommandParameter="CSV"
+                                Style="{StaticResource ExportButtonStyle}"
+                                Width="100" 
+                                Height="36"
+                                ToolTip="Export data for spreadsheet analysis"/>
+                        <Button Content="🌐 HTML" 
+                                Command="{Binding ExportDataCommand}" 
+                                CommandParameter="HTML"
+                                Style="{StaticResource ExportButtonStyle}"
+                                Width="100" 
+                                Height="36"
+                                ToolTip="Export formatted HTML report"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Enhanced Key Metrics Cards -->
+        <Grid Grid.Row="1" Margin="32,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Section Header -->
+            <TextBlock Grid.Row="0" 
+                       Text="Key Performance Metrics" 
+                       Style="{StaticResource SectionHeaderStyle}"
+                       Margin="0,0,0,24"/>
+
+            <!-- Metrics Cards Grid -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Compliance Rate Card -->
+                <Border Grid.Column="0" Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🎯" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding ComplianceRateText}" 
+                                   Style="{StaticResource MetricValueStyle}"
+                                   Foreground="{Binding HealthStatusColor}"/>
+                        <TextBlock Text="Compliance Rate" Style="{StaticResource MetricLabelStyle}"/>
+                        <ProgressBar Value="{Binding ComplianceRateValue}" 
+                                     Maximum="100" 
+                                     Height="4" 
+                                     Margin="0,8,0,0"
+                                     Background="{DynamicResource ControlBorderBrush}"
+                                     Foreground="{Binding HealthStatusColor}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Breaks Completed Card -->
+                <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="✅" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding TotalBreaksCompleted}" 
+                                   Style="{StaticResource MetricValueStyle}"
+                                   Foreground="{DynamicResource AccentBrush}"/>
+                        <TextBlock Text="Breaks Completed" Style="{StaticResource MetricLabelStyle}"/>
+                        <TextBlock Text="{Binding CompletedBreaksPercentageText}" 
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Breaks Skipped Card -->
+                <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="⏭️" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding TotalBreaksSkipped}" 
+                                   Style="{StaticResource MetricValueStyle}"
+                                   Foreground="{DynamicResource ErrorBrush}"/>
+                        <TextBlock Text="Breaks Skipped" Style="{StaticResource MetricLabelStyle}"/>
+                        <TextBlock Text="{Binding SkippedBreaksPercentageText}" 
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Active Time Card -->
+                <Border Grid.Column="3" Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="⏱️" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding TotalActiveTimeText}" 
+                                   Style="{StaticResource MetricValueStyle}"
+                                   Foreground="{DynamicResource PrimaryBrush}"/>
+                        <TextBlock Text="Total Active Time" Style="{StaticResource MetricLabelStyle}"/>
+                        <TextBlock Text="{Binding DailyAverageActiveTimeText}" 
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Health Score Card -->
+                <Border Grid.Column="4" Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🏥" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding HealthScoreText}" 
+                                   Style="{StaticResource MetricValueStyle}"
+                                   Foreground="{Binding HealthStatusColor}"/>
+                        <TextBlock Text="Eye Health Score" Style="{StaticResource MetricLabelStyle}"/>
+                        <Border Background="{Binding HealthStatusColor}" 
+                                CornerRadius="12" 
+                                Padding="8,2" 
+                                HorizontalAlignment="Center"
+                                Margin="0,6,0,0">
+                            <TextBlock Text="{Binding HealthStatusText}" 
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BackgroundBrush}"
+                                       HorizontalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Modern Analytics Tab System -->
+        <TabControl Grid.Row="2" 
+                    Margin="32,0,32,32"
+                    Style="{StaticResource ModernTabStyle}">
+            
+            <!-- Daily Overview Tab -->
+            <TabItem Header="📅 Daily Overview" 
+                     Style="{StaticResource TabItemStyle}">
+                <Grid Margin="24">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Enhanced Compliance Trend Chart -->
+                    <Border Grid.Row="0" Grid.Column="0" 
+                            Style="{StaticResource MetricCardStyle}"
+                            MinHeight="280">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <TextBlock Text="📈" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="Compliance Trend" Style="{StaticResource ChartTitleStyle}"/>
+                            </StackPanel>
+                            
+                            <!-- Professional Chart Container -->
+                            <Border Background="{DynamicResource SurfaceBrush}" 
+                                    CornerRadius="4" 
+                                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                                    BorderThickness="1"
+                                    Height="220">
+                                <Canvas Background="Transparent">
+                                    <!-- Chart Grid Lines -->
+                                    <Line X1="20" Y1="20" X2="20" Y2="200" 
+                                          Stroke="{DynamicResource ControlBorderBrush}" 
+                                          StrokeThickness="1"/>
+                                    <Line X1="20" Y1="200" X2="400" Y2="200" 
+                                          Stroke="{DynamicResource ControlBorderBrush}" 
+                                          StrokeThickness="1"/>
+                                    
+                                    <!-- Chart Title -->
+                                    <TextBlock Text="Daily Compliance Percentage" 
+                                               Canvas.Left="120" 
+                                               Canvas.Top="100" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="14" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               HorizontalAlignment="Center"/>
+                                    
+                                    <!-- Data Points -->
+                                    <ItemsControl ItemsSource="{Binding ComplianceChartData}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Ellipse Width="6" Height="6" Fill="{DynamicResource PrimaryBrush}">
+                                                    <Canvas.Left>
+                                                        <MultiBinding Converter="{x:Static converters:ScaleConverter.Instance}">
+                                                            <Binding Path="X"/>
+                                                            <Binding RelativeSource="{RelativeSource AncestorType=Canvas}" Path="ActualWidth"/>
+                                                        </MultiBinding>
+                                                    </Canvas.Left>
+                                                    <Canvas.Top>
+                                                        <MultiBinding Converter="{x:Static converters:InverseScaleConverter.Instance}">
+                                                            <Binding Path="Y"/>
+                                                            <Binding RelativeSource="{RelativeSource AncestorType=Canvas}" Path="ActualHeight"/>
+                                                        </MultiBinding>
+                                                    </Canvas.Top>
+                                                </Ellipse>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Canvas>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Enhanced Break Patterns Chart -->
+                    <Border Grid.Row="0" Grid.Column="1" 
+                            Style="{StaticResource MetricCardStyle}"
+                            MinHeight="280">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <TextBlock Text="🥧" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="Break Patterns" Style="{StaticResource ChartTitleStyle}"/>
+                            </StackPanel>
+                            
+                            <!-- Professional Pie Chart Container -->
+                            <Border Background="{DynamicResource SurfaceBrush}" 
+                                    CornerRadius="4" 
+                                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                                    BorderThickness="1"
+                                    Height="160">
+                                <Canvas>
+                                    <!-- Simplified Pie Chart Representation -->
+                                    <Ellipse Width="100" Height="100" 
+                                             Canvas.Left="130" Canvas.Top="30"
+                                             Fill="{DynamicResource AccentBrush}" 
+                                             Opacity="0.8"/>
+                                    <TextBlock Text="Break Distribution" 
+                                               Canvas.Left="140" 
+                                               Canvas.Top="75" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="12" 
+                                               Foreground="{DynamicResource BackgroundBrush}"
+                                               FontWeight="SemiBold"/>
+                                </Canvas>
+                            </Border>
+                            
+                            <!-- Professional Legend -->
+                            <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Ellipse Width="12" Height="12" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Completed" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="12"
+                                               Margin="8,0,16,0" 
+                                               VerticalAlignment="Center"/>
+                                    <Ellipse Width="12" Height="12" Fill="{DynamicResource ErrorBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Skipped" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="12"
+                                               Margin="8,0,16,0" 
+                                               VerticalAlignment="Center"/>
+                                    <Ellipse Width="12" Height="12" Fill="{DynamicResource WarningBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Delayed" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="12"
+                                               Margin="8,0,0,0" 
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Enhanced Weekly Trends Chart -->
+                    <Border Grid.Row="1" Grid.Column="0" 
+                            Style="{StaticResource MetricCardStyle}"
+                            MinHeight="280">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <TextBlock Text="📊" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="Weekly Trends" Style="{StaticResource ChartTitleStyle}"/>
+                            </StackPanel>
+                            
+                            <!-- Professional Bar Chart Container -->
+                            <Border Background="{DynamicResource SurfaceBrush}" 
+                                    CornerRadius="4" 
+                                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                                    BorderThickness="1"
+                                    Height="220">
+                                <Canvas>
+                                    <!-- Chart Axes -->
+                                    <Line X1="30" Y1="20" X2="30" Y2="180" 
+                                          Stroke="{DynamicResource ControlBorderBrush}" 
+                                          StrokeThickness="2"/>
+                                    <Line X1="30" Y1="180" X2="350" Y2="180" 
+                                          Stroke="{DynamicResource ControlBorderBrush}" 
+                                          StrokeThickness="2"/>
+                                    
+                                    <!-- Sample Bars -->
+                                    <Rectangle Canvas.Left="50" Canvas.Top="140" Width="30" Height="40" 
+                                               Fill="{DynamicResource PrimaryBrush}" Opacity="0.8"/>
+                                    <Rectangle Canvas.Left="100" Canvas.Top="120" Width="30" Height="60" 
+                                               Fill="{DynamicResource PrimaryBrush}" Opacity="0.8"/>
+                                    <Rectangle Canvas.Left="150" Canvas.Top="100" Width="30" Height="80" 
+                                               Fill="{DynamicResource PrimaryBrush}" Opacity="0.8"/>
+                                    
+                                    <TextBlock Text="7-Day Performance Comparison" 
+                                               Canvas.Left="120" 
+                                               Canvas.Top="100" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="12" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Canvas>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Enhanced Time Analysis Chart -->
+                    <Border Grid.Row="1" Grid.Column="1" 
+                            Style="{StaticResource MetricCardStyle}"
+                            MinHeight="280">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <TextBlock Text="🌅" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="Peak Activity Hours" Style="{StaticResource ChartTitleStyle}"/>
+                            </StackPanel>
+                            
+                            <!-- Professional Heatmap Container -->
+                            <Border Background="{DynamicResource SurfaceBrush}" 
+                                    CornerRadius="4" 
+                                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                                    BorderThickness="1"
+                                    Height="220">
+                                <Canvas>
+                                    <!-- Heatmap Grid Simulation -->
+                                    <Rectangle Canvas.Left="40" Canvas.Top="40" Width="20" Height="20" 
+                                               Fill="{DynamicResource AccentBrush}" Opacity="0.3"/>
+                                    <Rectangle Canvas.Left="70" Canvas.Top="40" Width="20" Height="20" 
+                                               Fill="{DynamicResource AccentBrush}" Opacity="0.6"/>
+                                    <Rectangle Canvas.Left="100" Canvas.Top="40" Width="20" Height="20" 
+                                               Fill="{DynamicResource AccentBrush}" Opacity="0.9"/>
+                                    <Rectangle Canvas.Left="130" Canvas.Top="40" Width="20" Height="20" 
+                                               Fill="{DynamicResource WarningBrush}" Opacity="0.7"/>
+                                    
+                                    <TextBlock Text="Hourly Activity Intensity" 
+                                               Canvas.Left="110" 
+                                               Canvas.Top="100" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="12" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    
+                                    <!-- Time Labels -->
+                                    <TextBlock Text="9AM" Canvas.Left="42" Canvas.Top="70" FontSize="10"/>
+                                    <TextBlock Text="12PM" Canvas.Left="70" Canvas.Top="70" FontSize="10"/>
+                                    <TextBlock Text="3PM" Canvas.Left="102" Canvas.Top="70" FontSize="10"/>
+                                    <TextBlock Text="6PM" Canvas.Left="132" Canvas.Top="70" FontSize="10"/>
+                                </Canvas>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Weekly Analysis Tab -->
+            <TabItem Header="📆 Weekly Analysis" 
+                     Style="{StaticResource TabItemStyle}">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Weekly Metrics Summary -->
+                    <TextBlock Grid.Row="0" 
+                               Text="Weekly Compliance Trends" 
+                               FontSize="18" 
+                               FontWeight="SemiBold" 
+                               Margin="0,0,0,15"/>
+                    
+                    <!-- Weekly Metrics Cards -->
+                    <Grid Grid.Row="1" Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- This Week Card -->
+                        <Border Grid.Column="0" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding CurrentWeekComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="{Binding CurrentWeekStatusColor}"/>
+                                <TextBlock Text="This Week" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Last Week Card -->
+                        <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding LastWeekComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="#666666"/>
+                                <TextBlock Text="Last Week" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Best Week Card -->
+                        <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding BestWeekComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="#4CAF50"/>
+                                <TextBlock Text="Best Week" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Weekly Average Card -->
+                        <Border Grid.Column="3" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding WeeklyAverageComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="#2196F3"/>
+                                <TextBlock Text="12-Week Average" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Enhanced Weekly Data Grid -->
+                    <Border Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource ControlBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="0">
+                        <DataGrid Grid.Row="2" 
+                                  ItemsSource="{Binding WeeklyMetrics}"
+                                  Style="{StaticResource ModernDataGridStyle}"
+                                  AlternationCount="2"
+                                  ClipToBounds="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Week" Binding="{Binding WeekText}" Width="120"/>
+                            <DataGridTextColumn Header="Days Active" Binding="{Binding DaysActive}" Width="100"/>
+                            <DataGridTextColumn Header="Total Breaks" Binding="{Binding TotalBreaks}" Width="100"/>
+                            <DataGridTextColumn Header="Completed" Binding="{Binding CompletedBreaks}" Width="100"/>
+                            <DataGridTextColumn Header="Compliance" Binding="{Binding ComplianceRateText}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Foreground" Value="{Binding ComplianceStatusColor}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Avg Break Time" Binding="{Binding AverageBreakTimeText}" Width="120"/>
+                            <DataGridTextColumn Header="Total Active Time" Binding="{Binding TotalActiveTimeText}" Width="140"/>
+                        </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- Monthly Analysis Tab -->
+            <TabItem Header="📅 Monthly Analysis" 
+                     Style="{StaticResource TabItemStyle}">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Monthly Metrics Summary -->
+                    <TextBlock Grid.Row="0" 
+                               Text="Monthly Performance Overview" 
+                               FontSize="18" 
+                               FontWeight="SemiBold" 
+                               Margin="0,0,0,15"/>
+                    
+                    <!-- Monthly Metrics Cards -->
+                    <Grid Grid.Row="1" Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- This Month Card -->
+                        <Border Grid.Column="0" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding CurrentMonthComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="{Binding CurrentMonthStatusColor}"/>
+                                <TextBlock Text="This Month" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Last Month Card -->
+                        <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding LastMonthComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="#666666"/>
+                                <TextBlock Text="Last Month" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Best Month Card -->
+                        <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding BestMonthComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="#4CAF50"/>
+                                <TextBlock Text="Best Month" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Monthly Average Card -->
+                        <Border Grid.Column="3" Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding MonthlyAverageComplianceText}" 
+                                           Style="{StaticResource MetricValueStyle}"
+                                           Foreground="#2196F3"/>
+                                <TextBlock Text="6-Month Average" Style="{StaticResource MetricLabelStyle}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Monthly Data Grid -->
+                    <Border Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource ControlBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="0">
+                        <DataGrid Grid.Row="2" 
+                                  ItemsSource="{Binding MonthlyMetrics}"
+                                  Style="{StaticResource ModernDataGridStyle}"
+                                  AlternationCount="2"
+                                  ClipToBounds="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Month" Binding="{Binding MonthText}" Width="120"/>
+                            <DataGridTextColumn Header="Days Active" Binding="{Binding DaysActive}" Width="100"/>
+                            <DataGridTextColumn Header="Total Breaks" Binding="{Binding TotalBreaks}" Width="100"/>
+                            <DataGridTextColumn Header="Completed" Binding="{Binding CompletedBreaks}" Width="100"/>
+                            <DataGridTextColumn Header="Compliance" Binding="{Binding ComplianceRateText}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Foreground" Value="{Binding ComplianceStatusColor}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Avg Break Time" Binding="{Binding AverageBreakTimeText}" Width="120"/>
+                            <DataGridTextColumn Header="Total Active Time" Binding="{Binding TotalActiveTimeText}" Width="140"/>
+                        </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- Daily Metrics Tab -->
+            <TabItem Header="📅 Daily Details" 
+                     Style="{StaticResource TabItemStyle}">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Daily Metrics Header -->
+                    <TextBlock Grid.Row="0" 
+                               Text="Daily Break Metrics (Detailed View)" 
+                               FontSize="18" 
+                               FontWeight="SemiBold" 
+                               Margin="0,0,0,15"/>
+
+                    <!-- Daily Metrics Data Grid -->
+                    <Border Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource ControlBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="0">
+                        <DataGrid Grid.Row="1" 
+                                  ItemsSource="{Binding DailyMetrics}"
+                                  Style="{StaticResource ModernDataGridStyle}"
+                                  AlternationCount="2"
+                                  ClipToBounds="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Date" Binding="{Binding DateText}" Width="100"/>
+                            <DataGridTextColumn Header="Breaks Due" Binding="{Binding BreaksDue}" Width="90"/>
+                            <DataGridTextColumn Header="Completed" Binding="{Binding BreaksCompleted}" Width="90"/>
+                            <DataGridTextColumn Header="Skipped" Binding="{Binding BreaksSkipped}" Width="80"/>
+                            <DataGridTextColumn Header="Eye Rests" Binding="{Binding EyeRestsCompleted}" Width="90"/>
+                            <DataGridTextColumn Header="Compliance" Binding="{Binding ComplianceRateText}" Width="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Foreground" Value="{Binding ComplianceStatusColor}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Break Time" Binding="{Binding TotalBreakTimeText}" Width="100"/>
+                        </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Data Privacy & Settings Tab -->
+            <TabItem Header="🔒 Data Privacy" 
+                     Style="{StaticResource TabItemStyle}">
+                <ScrollViewer Margin="20" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        
+                        <!-- Enhanced Privacy Notice -->
+                        <Border Style="{StaticResource PrivacyNoticeStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="🔒" FontSize="24" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Your Data Privacy Guarantee" 
+                                               FontFamily="Segoe UI"
+                                               FontSize="20" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource AccentBrush}" 
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="All analytics data is stored locally on your device only. No information is transmitted to cloud services, external servers, or third parties. Your privacy and data security are completely protected." 
+                                           TextWrapping="Wrap" 
+                                           FontFamily="Segoe UI"
+                                           FontSize="16" 
+                                           Foreground="{DynamicResource AccentBrush}" 
+                                           LineHeight="24"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- Privacy Settings -->
+                        <GroupBox Header="Privacy Settings" Margin="0,0,0,20" Padding="15">
+                            <StackPanel>
+                                <CheckBox Content="Enable analytics data collection" 
+                                          IsChecked="{Binding EnableAnalytics}" 
+                                          Margin="0,0,0,15"/>
+
+                                <CheckBox Content="Allow data export" 
+                                          IsChecked="{Binding AllowDataExport}" 
+                                          Margin="0,0,0,15"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <TextBlock Text="Data retention period:" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                    <TextBox Text="{Binding DataRetentionDays}" Width="80" Margin="0,0,10,0"/>
+                                    <TextBlock Text="days" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Text="Analytics data helps improve your break compliance and overall eye health. All data is stored locally and never shared." 
+                                           TextWrapping="Wrap" 
+                                           Foreground="#666666" 
+                                           FontSize="12" 
+                                           Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Data Management -->
+                        <GroupBox Header="Data Management" Padding="15">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <TextBlock Text="Database size: " VerticalAlignment="Center"/>
+                                    <TextBlock Text="~2.3 MB" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <Button Content="🗑️ Clear All Data" 
+                                        Command="{Binding ClearDataCommand}" 
+                                        Style="{StaticResource ErrorButtonStyle}"
+                                        Width="150" 
+                                        Height="35" 
+                                        HorizontalAlignment="Left"
+                                        Margin="0,0,0,10"/>
+
+                                <TextBlock Text="⚠️ Warning: This will permanently delete all analytics data and cannot be undone." 
+                                           TextWrapping="Wrap" 
+                                           Foreground="#D32F2F" 
+                                           FontSize="12"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Data Location Information -->
+                        <GroupBox Header="Data Storage Location" Margin="0,0,0,20" Padding="15">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Database Location:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="{Binding DatabasePath}" 
+                                               FontFamily="Consolas" 
+                                               Background="{DynamicResource ControlBackgroundBrush}" 
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Padding="5,2" 
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Current Size:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="{Binding DatabaseSizeText}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="This database contains all your analytics data and is never synchronized or uploaded anywhere." 
+                                           TextWrapping="Wrap" 
+                                           Foreground="#666666" 
+                                           FontSize="12" 
+                                           Margin="0,5,0,0"/>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <!-- Error/Status Message Display -->
+                        <Border Background="#FFEBEE" 
+                                BorderBrush="#F44336" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Padding="15"
+                                Margin="0,20,0,0"
+                                Visibility="{Binding ErrorMessage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="ℹ️" 
+                                           FontSize="16" 
+                                           VerticalAlignment="Center" 
+                                           Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding ErrorMessage}" 
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

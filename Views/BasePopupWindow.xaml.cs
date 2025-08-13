@@ -126,10 +126,57 @@ namespace EyeRest.Views
             var stackTrace = new StackTrace(true);
             Debug.WriteLine($"🟡 Show() called from:\n{stackTrace}");
             
+            // Critical fix: Ensure popup shows even when main window is minimized/hidden
+            // Set Owner to null to make popup independent of main window state
+            Owner = null;
+            
+            // Ensure window is topmost and can be activated
+            Topmost = true;
+            ShowInTaskbar = false;
+            WindowState = WindowState.Normal;
+            
             base.Show();
+            
+            // Force activation and bring to foreground
+            try
+            {
+                Activate();
+                Focus();
+                
+                // Use Win32 API to force foreground window (for cases where main app is minimized)
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                if (hwnd != IntPtr.Zero)
+                {
+                    SetForegroundWindow(hwnd);
+                    ShowWindow(hwnd, SW_SHOW);
+                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+                }
+                
+                Debug.WriteLine($"🟡 Popup forced to foreground and activated");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"🟡 Warning: Failed to force popup activation: {ex.Message}");
+            }
             
             Debug.WriteLine($"🟡 Show() completed - IsVisible: {IsVisible}, WindowState: {WindowState}");
         }
+        
+        #region Win32 API for forcing popup to foreground
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+        
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private const int SW_SHOW = 5;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOSIZE = 0x0001;
+        #endregion
         
         public new void Close()
         {

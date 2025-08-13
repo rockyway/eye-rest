@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using EyeRest.Models;
 using EyeRest.Services;
+using EyeRest.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -288,13 +289,18 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<ViewModels.MainWindowViewModel>>();
             
             // Act
             var viewModel = new ViewModels.MainWindowViewModel(
-                configService, timerService, startupManager, logger);
+                configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             
             // Assert
             Assert.Equal(20, viewModel.EyeRestIntervalMinutes);

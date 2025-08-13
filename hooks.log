@@ -1,0 +1,659 @@
+[2025-07-27T14:12:07.119Z] [INFO] Processing Stop hook
+[2025-07-27T14:12:07.120Z] [INFO] Stop: Response completed
+[2025-07-27T14:12:07.120Z] [INFO] Hook data received: {"session_id":"a084665b-e216-429f-be55-3fb5aed106c7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\a084665b-e216-429f-be55-3fb5aed106c7.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T14:12:07.399Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:11:06.011Z] [INFO] Processing Stop hook
+[2025-07-27T15:11:06.012Z] [INFO] Stop: Response completed
+[2025-07-27T15:11:06.012Z] [INFO] Hook data received: {"session_id":"a084665b-e216-429f-be55-3fb5aed106c7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\a084665b-e216-429f-be55-3fb5aed106c7.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:11:06.293Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:13:28.784Z] [INFO] Processing Stop hook
+[2025-07-27T15:13:28.784Z] [INFO] Stop: Response completed
+[2025-07-27T15:13:28.785Z] [INFO] Hook data received: {"session_id":"a084665b-e216-429f-be55-3fb5aed106c7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\a084665b-e216-429f-be55-3fb5aed106c7.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:13:29.026Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:16:21.055Z] [INFO] Processing Stop hook
+[2025-07-27T15:16:21.056Z] [INFO] Stop: Response completed
+[2025-07-27T15:16:21.056Z] [INFO] Hook data received: {"session_id":"a084665b-e216-429f-be55-3fb5aed106c7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\a084665b-e216-429f-be55-3fb5aed106c7.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:16:21.269Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:17:12.411Z] [INFO] Processing Stop hook
+[2025-07-27T15:17:12.412Z] [INFO] Stop: Response completed
+[2025-07-27T15:17:12.412Z] [INFO] Hook data received: {"session_id":"a084665b-e216-429f-be55-3fb5aed106c7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\a084665b-e216-429f-be55-3fb5aed106c7.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:17:12.901Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:19:16.797Z] [INFO] Processing Stop hook
+[2025-07-27T15:19:16.797Z] [INFO] Stop: Response completed
+[2025-07-27T15:19:16.797Z] [INFO] Hook data received: {"session_id":"cb9663d8-1170-46e7-afe8-58debb2787b9","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\cb9663d8-1170-46e7-afe8-58debb2787b9.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:19:17.000Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:19:17.001Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:20:35.434Z] [INFO] Processing Stop hook
+[2025-07-27T15:20:35.434Z] [INFO] Stop: Response completed
+[2025-07-27T15:20:35.435Z] [INFO] Hook data received: {"session_id":"cb9663d8-1170-46e7-afe8-58debb2787b9","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\cb9663d8-1170-46e7-afe8-58debb2787b9.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:20:35.696Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:21:32.885Z] [INFO] Processing Stop hook
+[2025-07-27T15:21:32.886Z] [INFO] Stop: Response completed
+[2025-07-27T15:21:32.886Z] [INFO] Hook data received: {"session_id":"cb9663d8-1170-46e7-afe8-58debb2787b9","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\cb9663d8-1170-46e7-afe8-58debb2787b9.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:21:33.193Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:21:33.193Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:21:45.052Z] [INFO] Processing Stop hook
+[2025-07-27T15:21:45.053Z] [INFO] Stop: Response completed
+[2025-07-27T15:21:45.053Z] [INFO] Hook data received: {"session_id":"cb9663d8-1170-46e7-afe8-58debb2787b9","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\d--sources-demo-eye-rest\\cb9663d8-1170-46e7-afe8-58debb2787b9.jsonl","cwd":"d:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:21:45.328Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:23:47.793Z] [INFO] Processing Stop hook
+[2025-07-27T15:23:47.793Z] [INFO] Stop: Response completed
+[2025-07-27T15:23:47.793Z] [INFO] Hook data received: {"session_id":"a4c56694-1828-4323-843d-0dbff43672c4","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\a4c56694-1828-4323-843d-0dbff43672c4.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:23:48.038Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:30:52.247Z] [INFO] Processing Stop hook
+[2025-07-27T15:30:52.247Z] [INFO] Stop: Response completed
+[2025-07-27T15:30:52.247Z] [INFO] Hook data received: {"session_id":"3dcf0438-8ba4-4ce7-b762-eafc484116b1","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\3dcf0438-8ba4-4ce7-b762-eafc484116b1.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:30:52.477Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:34:30.384Z] [INFO] Processing Stop hook
+[2025-07-27T15:34:30.385Z] [INFO] Stop: Response completed
+[2025-07-27T15:34:30.385Z] [INFO] Hook data received: {"session_id":"3b4a544e-ed11-468a-9c12-a00365dd7c07","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\3b4a544e-ed11-468a-9c12-a00365dd7c07.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:34:30.577Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:34:30.577Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:35:27.264Z] [INFO] Processing Stop hook
+[2025-07-27T15:35:27.264Z] [INFO] Stop: Response completed
+[2025-07-27T15:35:27.264Z] [INFO] Hook data received: {"session_id":"3b4a544e-ed11-468a-9c12-a00365dd7c07","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\3b4a544e-ed11-468a-9c12-a00365dd7c07.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:35:27.502Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:35:27.502Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:35:44.950Z] [INFO] Processing Stop hook
+[2025-07-27T15:35:44.951Z] [INFO] Stop: Response completed
+[2025-07-27T15:35:44.951Z] [INFO] Hook data received: {"session_id":"3b4a544e-ed11-468a-9c12-a00365dd7c07","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\3b4a544e-ed11-468a-9c12-a00365dd7c07.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:35:45.221Z] [INFO] Discord notification sent successfully
+[2025-07-27T15:36:39.050Z] [INFO] Processing Stop hook
+[2025-07-27T15:36:39.051Z] [INFO] Stop: Response completed
+[2025-07-27T15:36:39.051Z] [INFO] Hook data received: {"session_id":"b4392b2b-2f37-41cb-9eb4-0aa821eefed7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b4392b2b-2f37-41cb-9eb4-0aa821eefed7.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:36:39.259Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:36:39.259Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:37:07.742Z] [INFO] Processing Stop hook
+[2025-07-27T15:37:07.742Z] [INFO] Stop: Response completed
+[2025-07-27T15:37:07.742Z] [INFO] Hook data received: {"session_id":"b4392b2b-2f37-41cb-9eb4-0aa821eefed7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b4392b2b-2f37-41cb-9eb4-0aa821eefed7.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:37:07.940Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:37:07.941Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:37:35.935Z] [INFO] Processing Stop hook
+[2025-07-27T15:37:35.935Z] [INFO] Stop: Response completed
+[2025-07-27T15:37:35.936Z] [INFO] Hook data received: {"session_id":"b4392b2b-2f37-41cb-9eb4-0aa821eefed7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b4392b2b-2f37-41cb-9eb4-0aa821eefed7.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:37:36.119Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:37:36.119Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:37:53.095Z] [INFO] Processing Stop hook
+[2025-07-27T15:37:53.095Z] [INFO] Stop: Response completed
+[2025-07-27T15:37:53.095Z] [INFO] Hook data received: {"session_id":"b4392b2b-2f37-41cb-9eb4-0aa821eefed7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b4392b2b-2f37-41cb-9eb4-0aa821eefed7.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:37:53.319Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:37:53.319Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T15:38:08.745Z] [INFO] Processing Stop hook
+[2025-07-27T15:38:08.746Z] [INFO] Stop: Response completed
+[2025-07-27T15:38:08.746Z] [INFO] Hook data received: {"session_id":"b4392b2b-2f37-41cb-9eb4-0aa821eefed7","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b4392b2b-2f37-41cb-9eb4-0aa821eefed7.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T15:38:08.974Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T15:38:08.975Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T18:39:02.564Z] [INFO] Processing Stop hook
+[2025-07-27T18:39:02.564Z] [INFO] Stop: Response completed
+[2025-07-27T18:39:02.564Z] [INFO] Hook data received: {"session_id":"6d894c86-d3dd-450f-8f74-bf1103db1fb0","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\6d894c86-d3dd-450f-8f74-bf1103db1fb0.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T18:39:02.884Z] [INFO] Discord notification sent successfully
+[2025-07-27T18:40:22.078Z] [INFO] Processing Stop hook
+[2025-07-27T18:40:22.079Z] [INFO] Stop: Response completed
+[2025-07-27T18:40:22.079Z] [INFO] Hook data received: {"session_id":"6d894c86-d3dd-450f-8f74-bf1103db1fb0","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\6d894c86-d3dd-450f-8f74-bf1103db1fb0.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T18:40:22.347Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T18:40:22.347Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T18:41:04.458Z] [INFO] Processing Stop hook
+[2025-07-27T18:41:04.458Z] [INFO] Stop: Response completed
+[2025-07-27T18:41:04.459Z] [INFO] Hook data received: {"session_id":"6d894c86-d3dd-450f-8f74-bf1103db1fb0","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\6d894c86-d3dd-450f-8f74-bf1103db1fb0.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T18:41:04.672Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T18:41:04.672Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T21:23:40.184Z] [INFO] Processing Stop hook
+[2025-07-27T21:23:40.185Z] [INFO] Stop: Response completed
+[2025-07-27T21:23:40.185Z] [INFO] Hook data received: {"session_id":"6d894c86-d3dd-450f-8f74-bf1103db1fb0","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\6d894c86-d3dd-450f-8f74-bf1103db1fb0.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T21:23:40.466Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T21:23:40.466Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T21:30:30.295Z] [INFO] Processing Stop hook
+[2025-07-27T21:30:30.295Z] [INFO] Stop: Response completed
+[2025-07-27T21:30:30.295Z] [INFO] Hook data received: {"session_id":"0b4fbd42-f9f8-4295-9700-5ef4c966d849","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\0b4fbd42-f9f8-4295-9700-5ef4c966d849.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T21:30:30.537Z] [INFO] Discord notification sent successfully
+[2025-07-27T21:34:20.111Z] [INFO] Processing Stop hook
+[2025-07-27T21:34:20.112Z] [INFO] Stop: Response completed
+[2025-07-27T21:34:20.112Z] [INFO] Hook data received: {"session_id":"461fe501-a818-4f55-871d-d26af724bbd2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\461fe501-a818-4f55-871d-d26af724bbd2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T21:34:20.372Z] [INFO] Discord notification sent successfully
+[2025-07-27T21:35:53.844Z] [INFO] Processing Stop hook
+[2025-07-27T21:35:53.844Z] [INFO] Stop: Response completed
+[2025-07-27T21:35:53.844Z] [INFO] Hook data received: {"session_id":"56ca8142-bcea-4da6-8bac-9cc31722ea4d","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\56ca8142-bcea-4da6-8bac-9cc31722ea4d.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T21:35:54.094Z] [INFO] Discord notification sent successfully
+[2025-07-27T22:05:13.677Z] [INFO] Processing Stop hook
+[2025-07-27T22:05:13.677Z] [INFO] Stop: Response completed
+[2025-07-27T22:05:13.678Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T22:05:13.923Z] [ERROR] Discord notification failed: Discord API error 400: {"embeds": ["0"]}
+[2025-07-27T22:05:13.924Z] [ERROR] Error stack: Error: Discord API error 400: {"embeds": ["0"]}
+    at IncomingMessage.<anonymous> (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:852:32)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-07-27T22:32:00.713Z] [INFO] Processing Stop hook
+[2025-07-27T22:32:00.714Z] [INFO] Stop: Response completed
+[2025-07-27T22:32:00.714Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T22:32:00.738Z] [ERROR] Discord notification failed: Cannot read properties of undefined (reading 'length')
+[2025-07-27T22:32:00.738Z] [ERROR] Error stack: TypeError: Cannot read properties of undefined (reading 'length')
+    at DiscordNotifier.truncateForDiscord (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:722:56)
+    at DiscordNotifier.sendNotification (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:776:39)
+    at ClaudeHookHandler.sendDiscordNotification (d:\sources\demo\claude-hooks\claude-hook-handler.js:425:28)
+    at ClaudeHookHandler.handleStop (d:\sources\demo\claude-hooks\claude-hook-handler.js:397:24)
+    at ClaudeHookHandler.processHook (d:\sources\demo\claude-hooks\claude-hook-handler.js:463:39)
+    at ClaudeHookHandler.run (d:\sources\demo\claude-hooks\claude-hook-handler.js:504:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-07-27T22:51:59.432Z] [INFO] Processing Stop hook
+[2025-07-27T22:51:59.432Z] [INFO] Stop: Response completed
+[2025-07-27T22:51:59.432Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T22:51:59.469Z] [ERROR] Discord notification failed: Cannot read properties of undefined (reading 'length')
+[2025-07-27T22:51:59.470Z] [ERROR] Error stack: TypeError: Cannot read properties of undefined (reading 'length')
+    at DiscordNotifier.truncateForDiscord (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:727:56)
+    at DiscordNotifier.sendNotification (d:\sources\demo\claude-hooks\discord-pure-nodejs.js:830:29)
+    at ClaudeHookHandler.sendDiscordNotification (d:\sources\demo\claude-hooks\claude-hook-handler.js:425:28)
+    at ClaudeHookHandler.handleStop (d:\sources\demo\claude-hooks\claude-hook-handler.js:397:24)
+    at ClaudeHookHandler.processHook (d:\sources\demo\claude-hooks\claude-hook-handler.js:463:39)
+    at ClaudeHookHandler.run (d:\sources\demo\claude-hooks\claude-hook-handler.js:504:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-07-27T23:36:59.984Z] [INFO] Processing Stop hook
+[2025-07-27T23:36:59.985Z] [INFO] Stop: Response completed
+[2025-07-27T23:36:59.985Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T23:37:00.252Z] [INFO] Discord notification sent successfully
+[2025-07-27T23:49:43.071Z] [INFO] Processing Stop hook
+[2025-07-27T23:49:43.071Z] [INFO] Stop: Response completed
+[2025-07-27T23:49:43.071Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-27T23:49:43.324Z] [INFO] Discord notification sent successfully
+[2025-07-28T00:00:25.002Z] [INFO] Processing Stop hook
+[2025-07-28T00:00:25.002Z] [INFO] Stop: Response completed
+[2025-07-28T00:00:25.003Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:00:25.337Z] [INFO] Discord notification sent successfully
+[2025-07-28T00:04:42.825Z] [INFO] Processing Stop hook
+[2025-07-28T00:04:42.826Z] [INFO] Stop: Response completed
+[2025-07-28T00:04:42.826Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:04:42.827Z] [ERROR] Discord notification failed: Invalid or unexpected token
+[2025-07-28T00:04:42.827Z] [ERROR] Error stack: d:\sources\demo\claude-hooks\discord-pure-nodejs.js:872
+                const fileName = file.includes('/') || file.includes('\') ? 
+                                                                     ^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1486:18)
+    at Module._compile (node:internal/modules/cjs/loader:1528:20)
+    at Object..js (node:internal/modules/cjs/loader:1706:10)
+    at Module.load (node:internal/modules/cjs/loader:1289:32)
+    at Function._load (node:internal/modules/cjs/loader:1108:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+    at Module.require (node:internal/modules/cjs/loader:1311:12)
+    at require (node:internal/modules/helpers:136:16)
+    at ClaudeHookHandler.sendDiscordNotification (d:\sources\demo\claude-hooks\claude-hook-handler.js:423:37)
+[2025-07-28T00:09:00.094Z] [INFO] Processing Stop hook
+[2025-07-28T00:09:00.094Z] [INFO] Stop: Response completed
+[2025-07-28T00:09:00.094Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:09:00.096Z] [ERROR] Discord notification failed: Invalid or unexpected token
+[2025-07-28T00:09:00.096Z] [ERROR] Error stack: d:\sources\demo\claude-hooks\discord-pure-nodejs.js:872
+                const fileName = file.includes('/') || file.includes('\') ? 
+                                                                     ^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1486:18)
+    at Module._compile (node:internal/modules/cjs/loader:1528:20)
+    at Object..js (node:internal/modules/cjs/loader:1706:10)
+    at Module.load (node:internal/modules/cjs/loader:1289:32)
+    at Function._load (node:internal/modules/cjs/loader:1108:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+    at Module.require (node:internal/modules/cjs/loader:1311:12)
+    at require (node:internal/modules/helpers:136:16)
+    at ClaudeHookHandler.sendDiscordNotification (d:\sources\demo\claude-hooks\claude-hook-handler.js:423:37)
+[2025-07-28T00:15:16.879Z] [INFO] Processing Stop hook
+[2025-07-28T00:15:16.879Z] [INFO] Stop: Response completed
+[2025-07-28T00:15:16.880Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:15:17.128Z] [INFO] Discord notification sent successfully
+[2025-07-28T00:35:52.704Z] [INFO] Processing Stop hook
+[2025-07-28T00:35:52.705Z] [INFO] Stop: Response completed
+[2025-07-28T00:35:52.705Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:35:52.966Z] [INFO] Discord notification sent successfully
+[2025-07-28T00:41:58.865Z] [INFO] Processing Stop hook
+[2025-07-28T00:41:58.865Z] [INFO] Stop: Response completed
+[2025-07-28T00:41:58.866Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:41:59.229Z] [INFO] Discord notification sent successfully
+[2025-07-28T00:48:59.015Z] [INFO] Processing Stop hook
+[2025-07-28T00:48:59.015Z] [INFO] Stop: Response completed
+[2025-07-28T00:48:59.015Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:48:59.285Z] [INFO] Discord notification sent successfully
+[2025-07-28T00:51:58.848Z] [INFO] Processing Stop hook
+[2025-07-28T00:51:58.848Z] [INFO] Stop: Response completed
+[2025-07-28T00:51:58.848Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:51:59.103Z] [INFO] Discord notification sent successfully
+[2025-07-28T00:55:09.148Z] [INFO] Processing Stop hook
+[2025-07-28T00:55:09.148Z] [INFO] Stop: Response completed
+[2025-07-28T00:55:09.148Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T00:55:09.456Z] [INFO] Discord notification sent successfully
+[2025-07-28T01:02:18.069Z] [INFO] Processing Stop hook
+[2025-07-28T01:02:18.070Z] [INFO] Stop: Response completed
+[2025-07-28T01:02:18.070Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T01:02:18.364Z] [INFO] Discord notification sent successfully
+[2025-07-28T01:06:11.127Z] [INFO] Processing Stop hook
+[2025-07-28T01:06:11.128Z] [INFO] Stop: Response completed
+[2025-07-28T01:06:11.128Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T01:06:11.545Z] [INFO] Discord notification sent successfully
+[2025-07-28T01:11:16.796Z] [INFO] Processing Stop hook
+[2025-07-28T01:11:16.797Z] [INFO] Stop: Response completed
+[2025-07-28T01:11:16.797Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T01:11:17.063Z] [INFO] Discord notification sent successfully
+[2025-07-28T01:17:10.951Z] [INFO] Processing Stop hook
+[2025-07-28T01:17:10.951Z] [INFO] Stop: Response completed
+[2025-07-28T01:17:10.952Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T01:17:11.287Z] [INFO] Discord notification sent successfully
+[2025-07-28T01:33:36.710Z] [INFO] Processing Stop hook
+[2025-07-28T01:33:36.710Z] [INFO] Stop: Response completed
+[2025-07-28T01:33:36.710Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T01:33:36.999Z] [INFO] Discord notification sent successfully
+[2025-07-28T01:44:52.846Z] [INFO] Processing Stop hook
+[2025-07-28T01:44:52.846Z] [INFO] Stop: Response completed
+[2025-07-28T01:44:52.846Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T01:44:53.144Z] [INFO] Discord notification sent successfully
+[2025-07-28T01:56:28.157Z] [INFO] Processing Stop hook
+[2025-07-28T01:56:28.158Z] [INFO] Stop: Response completed
+[2025-07-28T01:56:28.158Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T01:56:28.435Z] [INFO] Discord notification sent successfully
+[2025-07-28T02:28:45.178Z] [INFO] Processing Stop hook
+[2025-07-28T02:28:45.178Z] [INFO] Stop: Response completed
+[2025-07-28T02:28:45.179Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T02:28:45.435Z] [INFO] Discord notification sent successfully
+[2025-07-28T02:39:31.083Z] [INFO] Processing Stop hook
+[2025-07-28T02:39:31.083Z] [INFO] Stop: Response completed
+[2025-07-28T02:39:31.084Z] [INFO] Hook data received: {"session_id":"be28c907-912d-47ca-958b-733d8a5c14c2","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\be28c907-912d-47ca-958b-733d8a5c14c2.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T02:39:31.347Z] [INFO] Discord notification sent successfully
+[2025-07-28T15:03:12.350Z] [INFO] Processing Stop hook
+[2025-07-28T15:03:12.351Z] [INFO] Stop: Response completed
+[2025-07-28T15:03:12.351Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T15:03:12.664Z] [INFO] Discord notification sent successfully
+[2025-07-28T15:08:07.758Z] [INFO] Processing Stop hook
+[2025-07-28T15:08:07.758Z] [INFO] Stop: Response completed
+[2025-07-28T15:08:07.758Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T15:08:08.000Z] [INFO] Discord notification sent successfully
+[2025-07-28T15:24:53.083Z] [INFO] Processing Stop hook
+[2025-07-28T15:24:53.083Z] [INFO] Stop: Response completed
+[2025-07-28T15:24:53.084Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T15:24:53.351Z] [INFO] Discord notification sent successfully
+[2025-07-28T15:39:07.129Z] [INFO] Processing Stop hook
+[2025-07-28T15:39:07.130Z] [INFO] Stop: Response completed
+[2025-07-28T15:39:07.130Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T15:39:07.441Z] [INFO] Discord notification sent successfully
+[2025-07-28T16:57:36.350Z] [INFO] Processing Stop hook
+[2025-07-28T16:57:36.350Z] [INFO] Stop: Response completed
+[2025-07-28T16:57:36.350Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T16:57:36.608Z] [INFO] Discord notification sent successfully
+[2025-07-28T19:00:38.223Z] [INFO] Processing Stop hook
+[2025-07-28T19:00:38.224Z] [INFO] Stop: Response completed
+[2025-07-28T19:00:38.224Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T19:00:38.551Z] [INFO] Discord notification sent successfully
+[2025-07-28T19:04:55.649Z] [INFO] Processing Stop hook
+[2025-07-28T19:04:55.649Z] [INFO] Stop: Response completed
+[2025-07-28T19:04:55.650Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T19:04:55.902Z] [INFO] Discord notification sent successfully
+[2025-07-28T19:11:56.657Z] [INFO] Processing Stop hook
+[2025-07-28T19:11:56.658Z] [INFO] Stop: Response completed
+[2025-07-28T19:11:56.658Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T19:11:57.997Z] [INFO] Discord notification sent successfully
+[2025-07-28T19:18:30.421Z] [INFO] Processing Stop hook
+[2025-07-28T19:18:30.421Z] [INFO] Stop: Response completed
+[2025-07-28T19:18:30.421Z] [INFO] Hook data received: {"session_id":"8e3ba481-044c-41f7-ba6e-65dc78b05c74","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\8e3ba481-044c-41f7-ba6e-65dc78b05c74.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T19:18:30.672Z] [INFO] Discord notification sent successfully
+[2025-07-28T19:41:26.580Z] [INFO] Processing Stop hook
+[2025-07-28T19:41:26.581Z] [INFO] Stop: Response completed
+[2025-07-28T19:41:26.581Z] [INFO] Hook data received: {"session_id":"50f67635-a804-4ffc-8e89-5ab0d7f9f00d","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\50f67635-a804-4ffc-8e89-5ab0d7f9f00d.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-28T19:41:26.922Z] [INFO] Discord notification sent successfully
+[2025-07-29T00:01:07.039Z] [INFO] Processing Stop hook
+[2025-07-29T00:01:07.040Z] [INFO] Stop: Response completed
+[2025-07-29T00:01:07.040Z] [INFO] Hook data received: {"session_id":"ace5dde7-f4b1-477c-b858-d7fa5200676a","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\ace5dde7-f4b1-477c-b858-d7fa5200676a.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T00:01:07.339Z] [INFO] Discord notification sent successfully
+[2025-07-29T02:43:25.269Z] [INFO] Processing Stop hook
+[2025-07-29T02:43:25.269Z] [INFO] Stop: Response completed
+[2025-07-29T02:43:25.270Z] [INFO] Hook data received: {"session_id":"cf819353-e867-453b-9ae5-50696448504b","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\cf819353-e867-453b-9ae5-50696448504b.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T02:43:25.502Z] [INFO] Discord notification sent successfully
+[2025-07-29T02:50:10.686Z] [INFO] Processing Stop hook
+[2025-07-29T02:50:10.687Z] [INFO] Stop: Response completed
+[2025-07-29T02:50:10.688Z] [INFO] Hook data received: {"session_id":"cf819353-e867-453b-9ae5-50696448504b","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\cf819353-e867-453b-9ae5-50696448504b.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T02:50:10.935Z] [INFO] Discord notification sent successfully
+[2025-07-29T14:09:32.505Z] [INFO] Processing Stop hook
+[2025-07-29T14:09:32.505Z] [INFO] Stop: Response completed
+[2025-07-29T14:09:32.506Z] [INFO] Hook data received: {"session_id":"cf819353-e867-453b-9ae5-50696448504b","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\cf819353-e867-453b-9ae5-50696448504b.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T14:09:32.827Z] [INFO] Discord notification sent successfully
+[2025-07-29T14:22:07.887Z] [INFO] Processing Stop hook
+[2025-07-29T14:22:07.888Z] [INFO] Stop: Response completed
+[2025-07-29T14:22:07.888Z] [INFO] Hook data received: {"session_id":"cf819353-e867-453b-9ae5-50696448504b","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\cf819353-e867-453b-9ae5-50696448504b.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T14:22:08.122Z] [INFO] Discord notification sent successfully
+[2025-07-29T14:30:12.128Z] [INFO] Processing Stop hook
+[2025-07-29T14:30:12.128Z] [INFO] Stop: Response completed
+[2025-07-29T14:30:12.129Z] [INFO] Hook data received: {"session_id":"cf819353-e867-453b-9ae5-50696448504b","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\cf819353-e867-453b-9ae5-50696448504b.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T14:30:12.377Z] [INFO] Discord notification sent successfully
+[2025-07-29T14:35:11.221Z] [INFO] Processing Stop hook
+[2025-07-29T14:35:11.221Z] [INFO] Stop: Response completed
+[2025-07-29T14:35:11.221Z] [INFO] Hook data received: {"session_id":"cf819353-e867-453b-9ae5-50696448504b","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\cf819353-e867-453b-9ae5-50696448504b.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T14:35:11.579Z] [INFO] Discord notification sent successfully
+[2025-07-29T14:48:31.053Z] [INFO] Processing Stop hook
+[2025-07-29T14:48:31.054Z] [INFO] Stop: Response completed
+[2025-07-29T14:48:31.054Z] [INFO] Hook data received: {"session_id":"cf819353-e867-453b-9ae5-50696448504b","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\cf819353-e867-453b-9ae5-50696448504b.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T14:48:31.368Z] [INFO] Discord notification sent successfully
+[2025-07-29T15:06:12.023Z] [INFO] Processing Stop hook
+[2025-07-29T15:06:12.024Z] [INFO] Stop: Response completed
+[2025-07-29T15:06:12.024Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T15:06:12.371Z] [INFO] Discord notification sent successfully
+[2025-07-29T15:21:47.024Z] [INFO] Processing Stop hook
+[2025-07-29T15:21:47.025Z] [INFO] Stop: Response completed
+[2025-07-29T15:21:47.025Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T15:21:47.278Z] [INFO] Discord notification sent successfully
+[2025-07-29T15:42:30.587Z] [INFO] Processing Stop hook
+[2025-07-29T15:42:30.588Z] [INFO] Stop: Response completed
+[2025-07-29T15:42:30.588Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T15:42:30.857Z] [INFO] Discord notification sent successfully
+[2025-07-29T15:53:18.304Z] [INFO] Processing Stop hook
+[2025-07-29T15:53:18.305Z] [INFO] Stop: Response completed
+[2025-07-29T15:53:18.305Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T15:53:18.630Z] [INFO] Discord notification sent successfully
+[2025-07-29T17:07:46.000Z] [INFO] Processing Stop hook
+[2025-07-29T17:07:46.000Z] [INFO] Stop: Response completed
+[2025-07-29T17:07:46.000Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T17:07:46.272Z] [INFO] Discord notification sent successfully
+[2025-07-29T17:12:35.138Z] [INFO] Processing Stop hook
+[2025-07-29T17:12:35.138Z] [INFO] Stop: Response completed
+[2025-07-29T17:12:35.139Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T17:12:35.431Z] [INFO] Discord notification sent successfully
+[2025-07-29T17:19:04.200Z] [INFO] Processing Stop hook
+[2025-07-29T17:19:04.201Z] [INFO] Stop: Response completed
+[2025-07-29T17:19:04.201Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T17:19:04.528Z] [INFO] Discord notification sent successfully
+[2025-07-29T17:28:58.641Z] [INFO] Processing Stop hook
+[2025-07-29T17:28:58.641Z] [INFO] Stop: Response completed
+[2025-07-29T17:28:58.642Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T17:28:58.979Z] [INFO] Discord notification sent successfully
+[2025-07-29T18:13:18.867Z] [INFO] Processing Stop hook
+[2025-07-29T18:13:18.867Z] [INFO] Stop: Response completed
+[2025-07-29T18:13:18.868Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T18:13:19.159Z] [INFO] Discord notification sent successfully
+[2025-07-29T18:45:46.604Z] [INFO] Processing Stop hook
+[2025-07-29T18:45:46.605Z] [INFO] Stop: Response completed
+[2025-07-29T18:45:46.605Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T18:45:46.959Z] [INFO] Discord notification sent successfully
+[2025-07-29T19:19:46.624Z] [INFO] Processing Stop hook
+[2025-07-29T19:19:46.625Z] [INFO] Stop: Response completed
+[2025-07-29T19:19:46.625Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T19:19:46.909Z] [INFO] Discord notification sent successfully
+[2025-07-29T20:05:13.259Z] [INFO] Processing Stop hook
+[2025-07-29T20:05:13.259Z] [INFO] Stop: Response completed
+[2025-07-29T20:05:13.259Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T20:05:13.621Z] [INFO] Discord notification sent successfully
+[2025-07-29T20:37:15.674Z] [INFO] Processing Stop hook
+[2025-07-29T20:37:15.674Z] [INFO] Stop: Response completed
+[2025-07-29T20:37:15.674Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T20:37:16.007Z] [INFO] Discord notification sent successfully
+[2025-07-29T20:51:45.852Z] [INFO] Processing Stop hook
+[2025-07-29T20:51:45.852Z] [INFO] Stop: Response completed
+[2025-07-29T20:51:45.853Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T20:51:46.128Z] [INFO] Discord notification sent successfully
+[2025-07-29T21:05:41.571Z] [INFO] Processing Stop hook
+[2025-07-29T21:05:41.572Z] [INFO] Stop: Response completed
+[2025-07-29T21:05:41.572Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T21:05:41.941Z] [INFO] Discord notification sent successfully
+[2025-07-29T21:22:01.238Z] [INFO] Processing Stop hook
+[2025-07-29T21:22:01.239Z] [INFO] Stop: Response completed
+[2025-07-29T21:22:01.239Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T21:22:01.545Z] [INFO] Discord notification sent successfully
+[2025-07-29T21:42:22.204Z] [INFO] Processing Stop hook
+[2025-07-29T21:42:22.205Z] [INFO] Stop: Response completed
+[2025-07-29T21:42:22.205Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T21:42:22.554Z] [INFO] Discord notification sent successfully
+[2025-07-29T22:03:54.277Z] [INFO] Processing Stop hook
+[2025-07-29T22:03:54.278Z] [INFO] Stop: Response completed
+[2025-07-29T22:03:54.278Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T22:03:54.717Z] [INFO] Discord notification sent successfully
+[2025-07-29T22:32:26.069Z] [INFO] Processing Stop hook
+[2025-07-29T22:32:26.069Z] [INFO] Stop: Response completed
+[2025-07-29T22:32:26.070Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T22:32:26.411Z] [INFO] Discord notification sent successfully
+[2025-07-29T23:07:25.964Z] [INFO] Processing Stop hook
+[2025-07-29T23:07:25.965Z] [INFO] Stop: Response completed
+[2025-07-29T23:07:25.965Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T23:07:26.293Z] [INFO] Discord notification sent successfully
+[2025-07-29T23:45:41.951Z] [INFO] Processing Stop hook
+[2025-07-29T23:45:41.952Z] [INFO] Stop: Response completed
+[2025-07-29T23:45:41.953Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T23:45:42.328Z] [INFO] Discord notification sent successfully
+[2025-07-29T23:59:41.663Z] [INFO] Processing Stop hook
+[2025-07-29T23:59:41.664Z] [INFO] Stop: Response completed
+[2025-07-29T23:59:41.664Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-29T23:59:42.035Z] [INFO] Discord notification sent successfully
+[2025-07-30T02:09:19.995Z] [INFO] Processing Stop hook
+[2025-07-30T02:09:19.995Z] [INFO] Stop: Response completed
+[2025-07-30T02:09:19.996Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T02:09:20.341Z] [INFO] Discord notification sent successfully
+[2025-07-30T02:20:39.094Z] [INFO] Processing Stop hook
+[2025-07-30T02:20:39.095Z] [INFO] Stop: Response completed
+[2025-07-30T02:20:39.095Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T02:20:39.529Z] [INFO] Discord notification sent successfully
+[2025-07-30T02:31:52.544Z] [INFO] Processing Stop hook
+[2025-07-30T02:31:52.544Z] [INFO] Stop: Response completed
+[2025-07-30T02:31:52.545Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T02:31:52.873Z] [INFO] Discord notification sent successfully
+[2025-07-30T03:17:48.535Z] [INFO] Processing Stop hook
+[2025-07-30T03:17:48.536Z] [INFO] Stop: Response completed
+[2025-07-30T03:17:48.536Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T03:17:48.889Z] [INFO] Discord notification sent successfully
+[2025-07-30T03:31:12.605Z] [INFO] Processing Stop hook
+[2025-07-30T03:31:12.606Z] [INFO] Stop: Response completed
+[2025-07-30T03:31:12.606Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T03:31:12.977Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:00:03.656Z] [INFO] Processing Stop hook
+[2025-07-30T04:00:03.657Z] [INFO] Stop: Response completed
+[2025-07-30T04:00:03.657Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:00:04.122Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:03:20.358Z] [INFO] Processing Stop hook
+[2025-07-30T04:03:20.359Z] [INFO] Stop: Response completed
+[2025-07-30T04:03:20.359Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:03:20.692Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:12:09.717Z] [INFO] Processing Stop hook
+[2025-07-30T04:12:09.717Z] [INFO] Stop: Response completed
+[2025-07-30T04:12:09.718Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:12:10.073Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:15:24.373Z] [INFO] Processing Stop hook
+[2025-07-30T04:15:24.374Z] [INFO] Stop: Response completed
+[2025-07-30T04:15:24.374Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:15:24.810Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:28:01.602Z] [INFO] Processing Stop hook
+[2025-07-30T04:28:01.603Z] [INFO] Stop: Response completed
+[2025-07-30T04:28:01.603Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:28:01.976Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:33:45.665Z] [INFO] Processing Stop hook
+[2025-07-30T04:33:45.666Z] [INFO] Stop: Response completed
+[2025-07-30T04:33:45.666Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:33:46.028Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:41:40.023Z] [INFO] Processing Stop hook
+[2025-07-30T04:41:40.023Z] [INFO] Stop: Response completed
+[2025-07-30T04:41:40.024Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:41:40.389Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:47:22.411Z] [INFO] Processing Stop hook
+[2025-07-30T04:47:22.411Z] [INFO] Stop: Response completed
+[2025-07-30T04:47:22.411Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:47:22.778Z] [INFO] Discord notification sent successfully
+[2025-07-30T04:55:45.565Z] [INFO] Processing Stop hook
+[2025-07-30T04:55:45.565Z] [INFO] Stop: Response completed
+[2025-07-30T04:55:45.566Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T04:55:45.999Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:01:11.427Z] [INFO] Processing Stop hook
+[2025-07-30T05:01:11.428Z] [INFO] Stop: Response completed
+[2025-07-30T05:01:11.428Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:01:11.845Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:09:06.639Z] [INFO] Processing Stop hook
+[2025-07-30T05:09:06.639Z] [INFO] Stop: Response completed
+[2025-07-30T05:09:06.640Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:09:07.031Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:11:53.878Z] [INFO] Processing Stop hook
+[2025-07-30T05:11:53.879Z] [INFO] Stop: Response completed
+[2025-07-30T05:11:53.879Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:11:54.223Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:14:24.378Z] [INFO] Processing Stop hook
+[2025-07-30T05:14:24.379Z] [INFO] Stop: Response completed
+[2025-07-30T05:14:24.379Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:14:24.741Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:21:06.299Z] [INFO] Processing Stop hook
+[2025-07-30T05:21:06.299Z] [INFO] Stop: Response completed
+[2025-07-30T05:21:06.300Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:21:06.671Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:23:53.410Z] [INFO] Processing Stop hook
+[2025-07-30T05:23:53.410Z] [INFO] Stop: Response completed
+[2025-07-30T05:23:53.411Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:23:53.769Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:26:59.444Z] [INFO] Processing Stop hook
+[2025-07-30T05:26:59.445Z] [INFO] Stop: Response completed
+[2025-07-30T05:26:59.445Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:26:59.830Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:28:58.239Z] [INFO] Processing Stop hook
+[2025-07-30T05:28:58.240Z] [INFO] Stop: Response completed
+[2025-07-30T05:28:58.240Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:28:58.611Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:32:14.550Z] [INFO] Processing Stop hook
+[2025-07-30T05:32:14.551Z] [INFO] Stop: Response completed
+[2025-07-30T05:32:14.551Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:32:14.964Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:36:13.815Z] [INFO] Processing Stop hook
+[2025-07-30T05:36:13.815Z] [INFO] Stop: Response completed
+[2025-07-30T05:36:13.816Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:36:14.230Z] [INFO] Discord notification sent successfully
+[2025-07-30T05:52:38.544Z] [INFO] Processing Stop hook
+[2025-07-30T05:52:38.544Z] [INFO] Stop: Response completed
+[2025-07-30T05:52:38.545Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T05:52:38.952Z] [INFO] Discord notification sent successfully
+[2025-07-30T06:03:18.046Z] [INFO] Processing Stop hook
+[2025-07-30T06:03:18.046Z] [INFO] Stop: Response completed
+[2025-07-30T06:03:18.047Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T06:03:18.418Z] [INFO] Discord notification sent successfully
+[2025-07-30T06:11:50.626Z] [INFO] Processing Stop hook
+[2025-07-30T06:11:50.626Z] [INFO] Stop: Response completed
+[2025-07-30T06:11:50.627Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T06:11:51.077Z] [INFO] Discord notification sent successfully
+[2025-07-30T06:17:27.182Z] [INFO] Processing Stop hook
+[2025-07-30T06:17:27.183Z] [INFO] Stop: Response completed
+[2025-07-30T06:17:27.183Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T06:17:27.645Z] [INFO] Discord notification sent successfully
+[2025-07-30T06:21:51.118Z] [INFO] Processing Stop hook
+[2025-07-30T06:21:51.119Z] [INFO] Stop: Response completed
+[2025-07-30T06:21:51.119Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T06:21:51.551Z] [INFO] Discord notification sent successfully
+[2025-07-30T06:25:51.222Z] [INFO] Processing Stop hook
+[2025-07-30T06:25:51.223Z] [INFO] Stop: Response completed
+[2025-07-30T06:25:51.223Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T06:25:51.643Z] [INFO] Discord notification sent successfully
+[2025-07-30T06:33:20.461Z] [INFO] Processing Stop hook
+[2025-07-30T06:33:20.461Z] [INFO] Stop: Response completed
+[2025-07-30T06:33:20.462Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T06:33:20.828Z] [INFO] Discord notification sent successfully
+[2025-07-30T06:54:04.984Z] [INFO] Processing Stop hook
+[2025-07-30T06:54:04.984Z] [INFO] Stop: Response completed
+[2025-07-30T06:54:04.985Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T06:54:05.390Z] [INFO] Discord notification sent successfully
+[2025-07-30T15:18:52.273Z] [INFO] Processing Stop hook
+[2025-07-30T15:18:52.273Z] [INFO] Stop: Response completed
+[2025-07-30T15:18:52.274Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T15:18:52.835Z] [INFO] Discord notification sent successfully
+[2025-07-30T16:05:18.892Z] [INFO] Processing Stop hook
+[2025-07-30T16:05:18.893Z] [INFO] Stop: Response completed
+[2025-07-30T16:05:18.893Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T16:05:19.403Z] [INFO] Discord notification sent successfully
+[2025-07-30T16:51:24.911Z] [INFO] Processing Stop hook
+[2025-07-30T16:51:24.911Z] [INFO] Stop: Response completed
+[2025-07-30T16:51:24.911Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T16:51:25.345Z] [INFO] Discord notification sent successfully
+[2025-07-30T17:33:29.682Z] [INFO] Processing Stop hook
+[2025-07-30T17:33:29.682Z] [INFO] Stop: Response completed
+[2025-07-30T17:33:29.682Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T17:33:30.155Z] [INFO] Discord notification sent successfully
+[2025-07-30T21:47:28.474Z] [INFO] Processing Stop hook
+[2025-07-30T21:47:28.475Z] [INFO] Stop: Response completed
+[2025-07-30T21:47:28.475Z] [INFO] Hook data received: {"session_id":"b903bb41-ca1a-4903-b686-cf179647cb51","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\b903bb41-ca1a-4903-b686-cf179647cb51.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-07-30T21:47:28.993Z] [INFO] Discord notification sent successfully
+[2025-08-12T22:07:02.960Z] [INFO] Processing Stop hook
+[2025-08-12T22:07:02.961Z] [INFO] Stop: Response completed
+[2025-08-12T22:07:02.961Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-12T22:07:04.292Z] [INFO] Discord notification sent successfully
+[2025-08-12T22:11:39.296Z] [INFO] Processing Stop hook
+[2025-08-12T22:11:39.297Z] [INFO] Stop: Response completed
+[2025-08-12T22:11:39.297Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-12T22:11:40.717Z] [INFO] Discord notification sent successfully
+[2025-08-12T22:38:55.223Z] [INFO] Processing Stop hook
+[2025-08-12T22:38:55.223Z] [INFO] Stop: Response completed
+[2025-08-12T22:38:55.223Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-12T22:38:56.493Z] [INFO] Discord notification sent successfully
+[2025-08-12T22:54:42.994Z] [INFO] Processing Stop hook
+[2025-08-12T22:54:42.995Z] [INFO] Stop: Response completed
+[2025-08-12T22:54:42.995Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-12T22:54:44.231Z] [INFO] Discord notification sent successfully
+[2025-08-12T23:56:55.699Z] [INFO] Processing Stop hook
+[2025-08-12T23:56:55.700Z] [INFO] Stop: Response completed
+[2025-08-12T23:56:55.700Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-12T23:56:57.008Z] [INFO] Discord notification sent successfully
+[2025-08-13T00:00:45.774Z] [INFO] Processing Stop hook
+[2025-08-13T00:00:45.775Z] [INFO] Stop: Response completed
+[2025-08-13T00:00:45.775Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-13T00:00:47.180Z] [INFO] Discord notification sent successfully
+[2025-08-13T00:15:55.928Z] [INFO] Processing Stop hook
+[2025-08-13T00:15:55.929Z] [INFO] Stop: Response completed
+[2025-08-13T00:15:55.929Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-13T00:15:56.702Z] [INFO] Discord notification sent successfully
+[2025-08-13T00:21:22.757Z] [INFO] Processing Stop hook
+[2025-08-13T00:21:22.758Z] [INFO] Stop: Response completed
+[2025-08-13T00:21:22.758Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-13T00:21:23.516Z] [INFO] Discord notification sent successfully
+[2025-08-13T00:28:25.320Z] [INFO] Processing Stop hook
+[2025-08-13T00:28:25.321Z] [INFO] Stop: Response completed
+[2025-08-13T00:28:25.321Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-13T00:28:26.108Z] [INFO] Discord notification sent successfully
+[2025-08-13T00:40:41.153Z] [INFO] Processing Stop hook
+[2025-08-13T00:40:41.153Z] [INFO] Stop: Response completed
+[2025-08-13T00:40:41.153Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-13T00:40:45.589Z] [INFO] Discord notification sent successfully
+[2025-08-13T00:44:03.377Z] [INFO] Processing Stop hook
+[2025-08-13T00:44:03.378Z] [INFO] Stop: Response completed
+[2025-08-13T00:44:03.378Z] [INFO] Hook data received: {"session_id":"5366f5ea-763e-441c-854c-847226687e10","transcript_path":"C:\\Users\\tamtr\\.claude\\projects\\D--sources-demo-eye-rest\\5366f5ea-763e-441c-854c-847226687e10.jsonl","cwd":"D:\\sources\\demo\\eye-rest","hook_event_name":"Stop","stop_hook_active":false}
+[2025-08-13T00:44:07.726Z] [INFO] Discord notification sent successfully

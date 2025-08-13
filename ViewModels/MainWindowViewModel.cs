@@ -1,17 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using EyeRest.Models;
 using EyeRest.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection; // For service provider access
 
 namespace EyeRest.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
         private readonly IConfigurationService _configurationService;
+        private readonly ITimerConfigurationService _timerConfigurationService;
+        private readonly IUIConfigurationService _uiConfigurationService;
         private readonly ITimerService _timerService;
         private readonly IStartupManager _startupManager;
         private readonly INotificationService _notificationService;
@@ -46,6 +50,13 @@ namespace EyeRest.ViewModels
         private bool _startWithWindows = false;
         private bool _minimizeToTray = true;
         private bool _showInTaskbar = false;
+        private bool _autoOpenDashboard = false;
+        
+        // UI State
+        private int _selectedTabIndex = 0;
+
+        // Analytics Dashboard
+        private AnalyticsDashboardViewModel? _analyticsDashboardViewModel;
 
         // Timer Status
         private string _timerStatusText = "Stopped";
@@ -67,17 +78,23 @@ namespace EyeRest.ViewModels
 
         public MainWindowViewModel(
             IConfigurationService configurationService,
+            ITimerConfigurationService timerConfigurationService,
+            IUIConfigurationService uiConfigurationService,
             ITimerService timerService,
             IStartupManager startupManager,
             INotificationService notificationService,
             IScreenOverlayService screenOverlayService,
+            AnalyticsDashboardViewModel analyticsDashboardViewModel,
             ILogger<MainWindowViewModel> logger)
         {
             _configurationService = configurationService;
+            _timerConfigurationService = timerConfigurationService;
+            _uiConfigurationService = uiConfigurationService;
             _timerService = timerService;
             _startupManager = startupManager;
             _notificationService = notificationService;
             _screenOverlayService = screenOverlayService;
+            AnalyticsDashboardViewModel = analyticsDashboardViewModel;
             _logger = logger;
             
             _configuration = new AppConfiguration();
@@ -90,6 +107,9 @@ namespace EyeRest.ViewModels
             StartTimersCommand = new RelayCommand(async () => await StartTimers());
             StopTimersCommand = new RelayCommand(async () => await StopTimers());
             ExitApplicationCommand = new RelayCommand(ExitApplication);
+            ShowAnalyticsCommand = new RelayCommand(ShowAnalyticsWindow);
+            BrowseCustomAudioCommand = new RelayCommand(BrowseCustomAudio);
+            TestCustomAudioCommand = new RelayCommand(async () => await TestCustomAudio(), () => !string.IsNullOrEmpty(CustomSoundPath));
             
             // DEBUG: Test commands for popup debugging
             TestWarningCommand = new RelayCommand(async () => await TestWarningPopup());
@@ -121,8 +141,8 @@ namespace EyeRest.ViewModels
 
         public bool HasUnsavedChanges
         {
-            get => _hasUnsavedChanges;
-            private set => SetProperty(ref _hasUnsavedChanges, value);
+            get => false; // Always false since we auto-save everything
+            private set => SetProperty(ref _hasUnsavedChanges, false); // Always force to false
         }
 
         // Eye Rest Properties
@@ -133,7 +153,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestIntervalMinutes, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -145,7 +166,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestDurationSeconds, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -157,7 +179,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestStartSoundEnabled, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -169,7 +192,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestEndSoundEnabled, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -181,7 +205,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestWarningEnabled, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -193,7 +218,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestWarningSeconds, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -206,7 +232,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakIntervalMinutes, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -218,7 +245,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakDurationMinutes, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -230,7 +258,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakWarningEnabled, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -242,7 +271,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakWarningSeconds, value))
                 {
-                    CheckForChanges();
+                    // Auto-save timer settings immediately using TimerConfigurationService
+                    _ = Task.Run(async () => await SaveTimerSettingAsync());
                 }
             }
         }
@@ -269,7 +299,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _audioEnabled, value))
                 {
-                    CheckForChanges();
+                    // Auto-save audio settings immediately
+                    _ = Task.Run(async () => await SaveAudioEnabledAsync(value));
                 }
             }
         }
@@ -282,6 +313,8 @@ namespace EyeRest.ViewModels
                 if (SetProperty(ref _audioVolume, value))
                 {
                     CheckForChanges();
+                    // Auto-save volume immediately using UI configuration service
+                    _ = Task.Run(async () => await SaveAudioVolumeAsync());
                 }
             }
         }
@@ -293,7 +326,10 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _customSoundPath, value))
                 {
-                    CheckForChanges();
+                    // Auto-save custom sound path immediately
+                    _ = Task.Run(async () => await SaveCustomSoundPathAsync(value));
+                    // Refresh all command states through WPF's command manager
+                    System.Windows.Input.CommandManager.InvalidateRequerySuggested();
                 }
             }
         }
@@ -307,6 +343,8 @@ namespace EyeRest.ViewModels
                 if (SetProperty(ref _startWithWindows, value))
                 {
                     CheckForChanges();
+                    // Auto-save startup setting immediately
+                    _ = Task.Run(async () => await SaveStartupSettingAsync(value));
                 }
             }
         }
@@ -319,6 +357,8 @@ namespace EyeRest.ViewModels
                 if (SetProperty(ref _minimizeToTray, value))
                 {
                     CheckForChanges();
+                    // Auto-save minimize to tray setting immediately
+                    _ = Task.Run(async () => await SaveMinimizeToTrayAsync(value));
                 }
             }
         }
@@ -331,6 +371,56 @@ namespace EyeRest.ViewModels
                 if (SetProperty(ref _showInTaskbar, value))
                 {
                     CheckForChanges();
+                    // Auto-save show in taskbar setting immediately
+                    _ = Task.Run(async () => await SaveShowInTaskbarAsync(value));
+                }
+            }
+        }
+
+        private bool _isDarkMode = false;
+        public bool IsDarkMode
+        {
+            get => _isDarkMode;
+            set
+            {
+                if (SetProperty(ref _isDarkMode, value))
+                {
+                    CheckForChanges();
+                    // Apply theme changes globally to all windows
+                    ApplyThemeGlobally(value);
+                    // Auto-save dark mode setting immediately
+                    _ = Task.Run(async () => await SaveDarkModeAsync(value));
+                }
+            }
+        }
+
+        public bool AutoOpenDashboard
+        {
+            get => _autoOpenDashboard;
+            set
+            {
+                if (SetProperty(ref _autoOpenDashboard, value))
+                {
+                    // Update the configuration and trigger change detection
+                    CheckForChanges();
+                    // Save auto-open setting immediately without triggering timer reset
+                    _ = SaveAutoOpenSettingAsync(value);
+                }
+            }
+        }
+        
+        public int SelectedTabIndex
+        {
+            get => _selectedTabIndex;
+            set
+            {
+                if (SetProperty(ref _selectedTabIndex, value))
+                {
+                    // If Analytics tab is selected (index 3) and auto-open is enabled
+                    if (value == 3 && AutoOpenDashboard)
+                    {
+                        ShowAnalyticsWindow();
+                    }
                 }
             }
         }
@@ -398,6 +488,12 @@ namespace EyeRest.ViewModels
             private set => SetProperty(ref _isSaving, value);
         }
 
+        public AnalyticsDashboardViewModel? AnalyticsDashboardViewModel
+        {
+            get => _analyticsDashboardViewModel;
+            private set => SetProperty(ref _analyticsDashboardViewModel, value);
+        }
+
         #endregion
 
         #region Commands
@@ -408,6 +504,9 @@ namespace EyeRest.ViewModels
         public ICommand StartTimersCommand { get; }
         public ICommand StopTimersCommand { get; }
         public ICommand ExitApplicationCommand { get; }
+        public ICommand ShowAnalyticsCommand { get; }
+        public ICommand BrowseCustomAudioCommand { get; }
+        public ICommand TestCustomAudioCommand { get; }
         
         // DEBUG: Test commands for popup debugging
         public ICommand TestWarningCommand { get; }
@@ -515,36 +614,67 @@ namespace EyeRest.ViewModels
             MinimizeToTray = _configuration.Application.MinimizeToTray;
             ShowInTaskbar = _configuration.Application.ShowInTaskbar;
             
+            // Apply dark mode setting and update UI property
+            var isDarkMode = _configuration.Application.IsDarkMode;
+            _isDarkMode = isDarkMode; // Set backing field directly to avoid triggering property setter
+            ApplyThemeGlobally(isDarkMode); // Apply theme immediately
+            OnPropertyChanged(nameof(IsDarkMode)); // Notify UI of the change
+            
+            // Analytics
+            AutoOpenDashboard = _configuration.Analytics.AutoOpenDashboard;
+            
             _logger.LogInformation($"🔧 AFTER UPDATE: UI now shows - EyeRest {EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, Break {BreakIntervalMinutes}min/{BreakDurationMinutes}min");
             _logger.LogInformation($"🔧 ✅ All UI properties updated from configuration - PropertyChanged notifications sent");
         }
 
         private void UpdateConfigurationFromProperties()
         {
+            // Ensure configuration is initialized
+            if (_configuration == null) return;
+
             // Eye Rest
-            _configuration.EyeRest.IntervalMinutes = EyeRestIntervalMinutes;
-            _configuration.EyeRest.DurationSeconds = EyeRestDurationSeconds;
-            _configuration.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
-            _configuration.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
-            _configuration.EyeRest.WarningEnabled = EyeRestWarningEnabled;
-            _configuration.EyeRest.WarningSeconds = EyeRestWarningSeconds;
+            if (_configuration.EyeRest != null)
+            {
+                _configuration.EyeRest.IntervalMinutes = EyeRestIntervalMinutes;
+                _configuration.EyeRest.DurationSeconds = EyeRestDurationSeconds;
+                _configuration.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
+                _configuration.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
+                _configuration.EyeRest.WarningEnabled = EyeRestWarningEnabled;
+                _configuration.EyeRest.WarningSeconds = EyeRestWarningSeconds;
+            }
 
             // Break
-            _configuration.Break.IntervalMinutes = BreakIntervalMinutes;
-            _configuration.Break.DurationMinutes = BreakDurationMinutes;
-            _configuration.Break.WarningEnabled = BreakWarningEnabled;
-            _configuration.Break.WarningSeconds = BreakWarningSeconds;
-            _configuration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
+            if (_configuration.Break != null)
+            {
+                _configuration.Break.IntervalMinutes = BreakIntervalMinutes;
+                _configuration.Break.DurationMinutes = BreakDurationMinutes;
+                _configuration.Break.WarningEnabled = BreakWarningEnabled;
+                _configuration.Break.WarningSeconds = BreakWarningSeconds;
+                _configuration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
+            }
 
             // Audio
-            _configuration.Audio.Enabled = AudioEnabled;
-            _configuration.Audio.Volume = AudioVolume;
-            _configuration.Audio.CustomSoundPath = CustomSoundPath;
+            if (_configuration.Audio != null)
+            {
+                _configuration.Audio.Enabled = AudioEnabled;
+                _configuration.Audio.Volume = AudioVolume;
+                _configuration.Audio.CustomSoundPath = CustomSoundPath;
+            }
 
             // Application
-            _configuration.Application.StartWithWindows = StartWithWindows;
-            _configuration.Application.MinimizeToTray = MinimizeToTray;
-            _configuration.Application.ShowInTaskbar = ShowInTaskbar;
+            if (_configuration.Application != null)
+            {
+                _configuration.Application.StartWithWindows = StartWithWindows;
+                _configuration.Application.MinimizeToTray = MinimizeToTray;
+                _configuration.Application.ShowInTaskbar = ShowInTaskbar;
+                _configuration.Application.IsDarkMode = IsDarkMode;
+            }
+            
+            // Analytics
+            if (_configuration.Analytics != null)
+            {
+                _configuration.Analytics.AutoOpenDashboard = AutoOpenDashboard;
+            }
         }
 
         private async Task SaveSettings()
@@ -595,21 +725,161 @@ namespace EyeRest.ViewModels
             }
         }
 
+        /// <summary>
+        /// Save only the auto-open analytics dashboard setting without timer reset or success popup
+        /// </summary>
+        private async Task SaveAutoOpenSettingAsync(bool value)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveAutoOpenSettingAsync called with value: {value}");
+                
+                // CRITICAL FIX: Update the main configuration and save to config.json
+                // This was saving to ui-config.json but loading from config.json
+                _configuration.Analytics.AutoOpenDashboard = value;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                
+                // Update the original configuration to prevent false unsaved changes
+                _originalConfiguration.Analytics.AutoOpenDashboard = value;
+                
+                // Show light indicator instead of popup
+                ErrorMessage = value ? "✅ Auto-open enabled" : "✅ Auto-open disabled";
+                
+                // Clear message after 2 seconds
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(2000);
+                    if (ErrorMessage.Contains("Auto-open"))
+                    {
+                        ErrorMessage = "";
+                    }
+                });
+                
+                _logger.LogInformation($"Auto-open dashboard setting successfully saved to main config: {value}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save auto-open dashboard setting");
+                ErrorMessage = "❌ Failed to save auto-open setting";
+                
+                // Clear error message after 3 seconds
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    if (ErrorMessage.Contains("Failed to save"))
+                    {
+                        ErrorMessage = "";
+                    }
+                });
+            }
+        }
+
         private async Task SaveOverlayOpacityAsync()
         {
             try
             {
-                // Update only the overlay opacity setting without affecting other settings or timers
+                _logger.LogInformation($"SaveOverlayOpacityAsync called with value: {OverlayOpacityPercent}%");
+                
+                // Update the configuration from current UI properties to ensure we have latest values
+                UpdateConfigurationFromProperties();
+                
+                // Explicitly set the overlay opacity value again to be sure
                 _configuration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
                 
                 // Save configuration without restarting timers
                 await _configurationService.SaveConfigurationAsync(_configuration);
+                
+                // Update the original configuration to prevent false unsaved changes
+                _originalConfiguration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
                 
                 _logger.LogInformation($"Auto-saved overlay opacity to {OverlayOpacityPercent}%");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to auto-save overlay opacity setting");
+                ErrorMessage = "❌ Failed to save overlay opacity";
+                
+                // Clear error message after 3 seconds
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    if (ErrorMessage.Contains("overlay opacity"))
+                    {
+                        ErrorMessage = "";
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// Save only the audio volume setting without timer reset or success popup
+        /// </summary>
+        private async Task SaveAudioVolumeAsync()
+        {
+            try
+            {
+                _logger.LogInformation($"SaveAudioVolumeAsync called with value: {AudioVolume}");
+                
+                // CRITICAL FIX: Update the main configuration and save to config.json
+                // This was saving to ui-config.json but loading from config.json
+                _configuration.Audio.Volume = AudioVolume;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                
+                // Update the original configuration to prevent false unsaved changes
+                _originalConfiguration.Audio.Volume = AudioVolume;
+                
+                _logger.LogInformation($"Auto-saved audio volume to main config: {AudioVolume}%");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save audio volume setting");
+                ErrorMessage = "❌ Failed to save audio volume";
+                
+                // Clear error message after 3 seconds
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    if (ErrorMessage.Contains("audio volume"))
+                    {
+                        ErrorMessage = "";
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// Save only the dark mode setting immediately without timer reset or success popup
+        /// </summary>
+        private async Task SaveDarkModeAsync(bool isDarkMode)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveDarkModeAsync called with value: {isDarkMode}");
+                
+                // CRITICAL FIX: Update the main configuration and save to config.json
+                // This was saving to ui-config.json but loading from config.json
+                _configuration.Application.IsDarkMode = isDarkMode;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                
+                // Update the original configuration to prevent false unsaved changes
+                _originalConfiguration.Application.IsDarkMode = isDarkMode;
+                
+                _logger.LogInformation($"Auto-saved dark mode to main config: {isDarkMode}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save dark mode setting");
+                ErrorMessage = "❌ Failed to save dark mode";
+                
+                // Clear error message after 3 seconds
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    if (ErrorMessage.Contains("dark mode"))
+                    {
+                        ErrorMessage = "";
+                    }
+                });
             }
         }
 
@@ -744,7 +1014,12 @@ namespace EyeRest.ViewModels
         
         private static string FormatTimeSpan(TimeSpan timeSpan)
         {
-            if (timeSpan.TotalMinutes < 1)
+            // ENHANCED: Improved timer display format that never shows 0s
+            if (timeSpan.TotalSeconds <= 1)
+            {
+                return "1s"; // Never show 0s - always show minimum 1s when timer is due
+            }
+            else if (timeSpan.TotalMinutes < 1)
             {
                 return $"{timeSpan.Seconds}s";
             }
@@ -760,8 +1035,10 @@ namespace EyeRest.ViewModels
 
         private void CheckForChanges()
         {
-            UpdateConfigurationFromProperties();
-            HasUnsavedChanges = !ConfigurationsEqual(_configuration, _originalConfiguration);
+            // DISABLED: Auto-save eliminates need for unsaved changes tracking
+            // Since all settings now auto-save immediately, we don't need to track unsaved changes
+            // UpdateConfigurationFromProperties();
+            // HasUnsavedChanges = !ConfigurationsEqual(_configuration, _originalConfiguration);
             ValidateSettings();
         }
 
@@ -803,9 +1080,13 @@ namespace EyeRest.ViewModels
 
         private static AppConfiguration CloneConfiguration(AppConfiguration config)
         {
+            // Handle null configuration safely
+            if (config == null)
+                return new AppConfiguration();
+
             return new AppConfiguration
             {
-                EyeRest = new EyeRestSettings
+                EyeRest = config.EyeRest != null ? new EyeRestSettings
                 {
                     IntervalMinutes = config.EyeRest.IntervalMinutes,
                     DurationSeconds = config.EyeRest.DurationSeconds,
@@ -813,26 +1094,45 @@ namespace EyeRest.ViewModels
                     EndSoundEnabled = config.EyeRest.EndSoundEnabled,
                     WarningEnabled = config.EyeRest.WarningEnabled,
                     WarningSeconds = config.EyeRest.WarningSeconds
-                },
-                Break = new BreakSettings
+                } : new EyeRestSettings(),
+                Break = config.Break != null ? new BreakSettings
                 {
                     IntervalMinutes = config.Break.IntervalMinutes,
                     DurationMinutes = config.Break.DurationMinutes,
                     WarningEnabled = config.Break.WarningEnabled,
-                    WarningSeconds = config.Break.WarningSeconds
-                },
-                Audio = new AudioSettings
+                    WarningSeconds = config.Break.WarningSeconds,
+                    OverlayOpacityPercent = config.Break.OverlayOpacityPercent
+                } : new BreakSettings(),
+                Audio = config.Audio != null ? new AudioSettings
                 {
                     Enabled = config.Audio.Enabled,
                     Volume = config.Audio.Volume,
                     CustomSoundPath = config.Audio.CustomSoundPath
-                },
-                Application = new ApplicationSettings
+                } : new AudioSettings(),
+                Application = config.Application != null ? new ApplicationSettings
                 {
                     StartWithWindows = config.Application.StartWithWindows,
                     MinimizeToTray = config.Application.MinimizeToTray,
-                    ShowInTaskbar = config.Application.ShowInTaskbar
-                }
+                    ShowInTaskbar = config.Application.ShowInTaskbar,
+                    IsDarkMode = config.Application.IsDarkMode
+                } : new ApplicationSettings(),
+                Analytics = config.Analytics != null ? new AnalyticsSettings
+                {
+                    Enabled = config.Analytics.Enabled,
+                    AutoOpenDashboard = config.Analytics.AutoOpenDashboard,
+                    DataRetentionDays = config.Analytics.DataRetentionDays,
+                    TrackBreakEvents = config.Analytics.TrackBreakEvents,
+                    TrackPresenceChanges = config.Analytics.TrackPresenceChanges,
+                    TrackMeetingEvents = config.Analytics.TrackMeetingEvents,
+                    TrackUserSessions = config.Analytics.TrackUserSessions,
+                    AllowDataExport = config.Analytics.AllowDataExport,
+                    ExportFormat = config.Analytics.ExportFormat,
+                    AutoCleanupOldData = config.Analytics.AutoCleanupOldData,
+                    DatabaseMaintenanceIntervalDays = config.Analytics.DatabaseMaintenanceIntervalDays
+                } : new AnalyticsSettings(),
+                UserPresence = config.UserPresence ?? new UserPresenceSettings(),
+                MeetingDetection = config.MeetingDetection ?? new EyeRest.Models.MeetingDetectionSettings(),
+                TimerControls = config.TimerControls ?? new TimerControlSettings()
             };
         }
 
@@ -848,12 +1148,15 @@ namespace EyeRest.ViewModels
                    config1.Break.DurationMinutes == config2.Break.DurationMinutes &&
                    config1.Break.WarningEnabled == config2.Break.WarningEnabled &&
                    config1.Break.WarningSeconds == config2.Break.WarningSeconds &&
+                   config1.Break.OverlayOpacityPercent == config2.Break.OverlayOpacityPercent &&
                    config1.Audio.Enabled == config2.Audio.Enabled &&
                    config1.Audio.Volume == config2.Audio.Volume &&
                    config1.Audio.CustomSoundPath == config2.Audio.CustomSoundPath &&
                    config1.Application.StartWithWindows == config2.Application.StartWithWindows &&
                    config1.Application.MinimizeToTray == config2.Application.MinimizeToTray &&
-                   config1.Application.ShowInTaskbar == config2.Application.ShowInTaskbar;
+                   config1.Application.ShowInTaskbar == config2.Application.ShowInTaskbar &&
+                   config1.Application.IsDarkMode == config2.Application.IsDarkMode &&
+                   config1.Analytics.AutoOpenDashboard == config2.Analytics.AutoOpenDashboard;
         }
 
         #endregion
@@ -964,6 +1267,403 @@ namespace EyeRest.ViewModels
                 _logger.LogError(ex, "Error during application exit");
                 // Force shutdown if there's an error
                 Application.Current.Shutdown();
+            }
+        }
+
+        // Show analytics dashboard in dedicated popup window
+        private void ShowAnalyticsWindow()
+        {
+            try
+            {
+                _logger.LogInformation("📊 Opening analytics dashboard window");
+                
+                if (AnalyticsDashboardViewModel != null)
+                {
+                    // Ensure the dashboard view model has the current theme state
+                    AnalyticsDashboardViewModel.IsDarkMode = IsDarkMode;
+                    
+                    // Create and configure the analytics window
+                    var analyticsWindow = new Views.AnalyticsWindow(AnalyticsDashboardViewModel);
+                    
+                    // Set owner to maintain proper window relationship
+                    if (Application.Current.MainWindow != null)
+                    {
+                        analyticsWindow.Owner = Application.Current.MainWindow;
+                    }
+                    
+                    // Show the window
+                    analyticsWindow.Show();
+                    
+                    _logger.LogInformation("✅ Analytics dashboard window opened successfully");
+                }
+                else
+                {
+                    _logger.LogWarning("❌ Analytics dashboard view model is null - cannot open window");
+                    MessageBox.Show(
+                        "Analytics dashboard is not available at this time.\n\n" +
+                        "This may be due to initialization issues or service configuration problems.\n" +
+                        "Please check the application logs for more details.",
+                        "Analytics Dashboard Unavailable", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to open analytics dashboard window");
+                
+                var errorMessage = "Failed to open analytics dashboard.\n\n" +
+                                 $"Error: {ex.Message}\n\n" +
+                                 "Possible causes:\n" +
+                                 "• Database initialization issues\n" +
+                                 "• Service configuration problems\n" +
+                                 "• Theme system errors\n\n" +
+                                 "Please check the application logs and try again.";
+                
+                MessageBox.Show(errorMessage, "Analytics Dashboard Error", 
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Apply theme changes globally to all windows and UI components
+        /// </summary>
+        private void ApplyThemeGlobally(bool isDarkMode)
+        {
+            try
+            {
+                _logger.LogInformation($"🎨 Applying {(isDarkMode ? "Dark" : "Light")} theme globally to entire application");
+                
+                // Create new resource dictionary for the selected theme
+                var themeDict = new ResourceDictionary();
+                string themeUri = isDarkMode 
+                    ? "pack://application:,,,/Resources/Themes/DarkTheme.xaml" 
+                    : "pack://application:,,,/Resources/Themes/LightTheme.xaml";
+                
+                themeDict.Source = new Uri(themeUri);
+                
+                // Apply theme to main application resources
+                Application.Current.Resources.MergedDictionaries.Clear();
+                Application.Current.Resources.MergedDictionaries.Add(themeDict);
+                
+                // Also add common converters back
+                Application.Current.Resources["BooleanToVisibilityConverter"] = new EyeRest.Converters.BooleanToVisibilityConverter();
+                
+                // Update AnalyticsDashboardViewModel for dashboard UI
+                if (AnalyticsDashboardViewModel != null)
+                {
+                    AnalyticsDashboardViewModel.IsDarkMode = isDarkMode;
+                    _logger.LogInformation($"🎨 Updated AnalyticsDashboardViewModel.IsDarkMode to {isDarkMode}");
+                }
+                
+                // Force complete refresh of all windows and their content
+                foreach (Window window in Application.Current.Windows)
+                {
+                    try
+                    {
+                        // Force the window to re-evaluate all DynamicResource bindings
+                        window.Resources.MergedDictionaries.Clear();
+                        window.InvalidateVisual();
+                        window.UpdateLayout();
+                        
+                        // For AnalyticsWindow specifically, ensure its UserControl refreshes
+                        if (window.GetType().Name == "AnalyticsWindow")
+                        {
+                            _logger.LogInformation("🎨 Forcing refresh of AnalyticsWindow and its content");
+                            
+                            // Find the AnalyticsDashboardView inside the window
+                            if (window.Content?.GetType().Name == "AnalyticsDashboardView")
+                            {
+                                // Clear and re-add resources to force refresh
+                                var dashboardView = window.Content as FrameworkElement;
+                                if (dashboardView != null)
+                                {
+                                    dashboardView.Resources.MergedDictionaries.Clear();
+                                    dashboardView.InvalidateVisual();
+                                    dashboardView.UpdateLayout();
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"⚠️ Failed to refresh window {window.GetType().Name}");
+                    }
+                    try
+                    {
+                        // Clear and reapply resources at window level
+                        var originalTitle = window.Title;
+                        
+                        // Special handling for AnalyticsWindow - reapply theme resources
+                        if (window is EyeRest.Views.AnalyticsWindow analyticsWindow)
+                        {
+                            // Call the window's ApplyCurrentTheme method to properly update theme resources
+                            analyticsWindow.ApplyCurrentTheme();
+                            
+                            _logger.LogInformation($"🎨 Applied theme resources to AnalyticsWindow: {originalTitle}");
+                        }
+                        
+                        // Force complete visual tree refresh for all windows
+                        window.InvalidateVisual();
+                        window.InvalidateMeasure();
+                        window.InvalidateArrange();
+                        window.UpdateLayout();
+                        
+                        // Force style refresh by temporarily changing and restoring a property
+                        var originalOpacity = window.Opacity;
+                        window.Opacity = 0.99;
+                        window.Opacity = originalOpacity;
+                        
+                        _logger.LogInformation($"🎨 Refreshed window: {originalTitle}");
+                    }
+                    catch (Exception windowEx)
+                    {
+                        _logger.LogWarning(windowEx, $"🎨 Failed to refresh individual window: {window.Title}");
+                    }
+                }
+                
+                // Force garbage collection to ensure old theme resources are released
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                
+                _logger.LogInformation($"🎨 ✅ {(isDarkMode ? "Dark" : "Light")} theme applied successfully to entire application including all windows and dashboard UI");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "🎨 ❌ Failed to apply theme globally");
+                
+                // Show user-friendly error message
+                MessageBox.Show($"Failed to apply {(isDarkMode ? "dark" : "light")} theme: {ex.Message}", 
+                    "Theme Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        /// <summary>
+        /// Browse and select a custom audio file for notifications
+        /// </summary>
+        private void BrowseCustomAudio()
+        {
+            try
+            {
+                _logger.LogInformation("Opening file dialog to browse for custom audio file");
+                
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "Select Custom Audio File",
+                    Filter = "Audio Files (*.wav, *.mp3, *.wma)|*.wav;*.mp3;*.wma|WAV Files (*.wav)|*.wav|MP3 Files (*.mp3)|*.mp3|WMA Files (*.wma)|*.wma|All Files (*.*)|*.*",
+                    DefaultExt = ".wav",
+                    CheckFileExists = true,
+                    CheckPathExists = true,
+                    Multiselect = false
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    CustomSoundPath = openFileDialog.FileName;
+                    _logger.LogInformation($"Custom audio file selected: {CustomSoundPath}");
+                    
+                    // Show confirmation message
+                    MessageBox.Show($"Custom audio file selected:\n{System.IO.Path.GetFileName(CustomSoundPath)}\n\nClick 'Test Sound' to preview the audio.", 
+                        "Audio File Selected", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    _logger.LogInformation("User cancelled audio file selection");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to browse for custom audio file");
+                MessageBox.Show("Failed to open file browser. Please try again.", "Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Test play the selected custom audio file using the AudioService
+        /// </summary>
+        private async Task TestCustomAudio()
+        {
+            try
+            {
+                _logger.LogInformation("🔊 Testing custom audio file through AudioService...");
+                
+                // Use the AudioService to test the custom sound (same method used by the app)
+                var audioService = App.ServiceProvider?.GetService(typeof(IAudioService)) as IAudioService;
+                if (audioService == null)
+                {
+                    throw new InvalidOperationException("AudioService not available");
+                }
+                
+                await audioService.PlayCustomSoundTestAsync();
+                
+                // Show success message
+                var fileName = !string.IsNullOrEmpty(CustomSoundPath) ? System.IO.Path.GetFileName(CustomSoundPath) : "Unknown";
+                MessageBox.Show($"✅ Custom audio test successful!\n\nFile: {fileName}\nVolume: {AudioVolume}%\n\nThis is the same sound that will be used for app notifications.", 
+                    "Audio Test Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                _logger.LogInformation("🔊 ✅ Custom audio test completed successfully");
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "🔊 Custom audio test failed - configuration issue");
+                MessageBox.Show($"⚠️ {ex.Message}", "Audio Test Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (FileNotFoundException ex)
+            {
+                _logger.LogError(ex, "🔊 Custom audio test failed - file not found");
+                MessageBox.Show($"❌ {ex.Message}\n\nPlease select a different audio file.", "Audio File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                // Clear the invalid path
+                CustomSoundPath = null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "🔊 Custom audio test failed");
+                MessageBox.Show($"❌ Failed to play the selected audio file:\n{ex.Message}\n\nPlease try a different audio file or check that the file format is supported (WAV, MP3, WMA).", 
+                    "Audio Test Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Auto-save startup setting immediately without timer reset or popup
+        /// </summary>
+        private async Task SaveStartupSettingAsync(bool startWithWindows)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveStartupSettingAsync called with value: {startWithWindows}");
+                
+                // Update configuration and save
+                _configuration.Application.StartWithWindows = startWithWindows;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                
+                // Handle Windows startup registry setting
+                if (startWithWindows)
+                {
+                    _startupManager.EnableStartup();
+                }
+                else
+                {
+                    _startupManager.DisableStartup();
+                }
+                
+                // Update original configuration to prevent false unsaved changes
+                _originalConfiguration.Application.StartWithWindows = startWithWindows;
+                
+                _logger.LogInformation($"Auto-saved startup setting: {startWithWindows}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save startup setting");
+            }
+        }
+
+        /// <summary>
+        /// Auto-save minimize to tray setting immediately
+        /// </summary>
+        private async Task SaveMinimizeToTrayAsync(bool minimizeToTray)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveMinimizeToTrayAsync called with value: {minimizeToTray}");
+                
+                _configuration.Application.MinimizeToTray = minimizeToTray;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                _originalConfiguration.Application.MinimizeToTray = minimizeToTray;
+                
+                _logger.LogInformation($"Auto-saved minimize to tray: {minimizeToTray}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save minimize to tray setting");
+            }
+        }
+
+        /// <summary>
+        /// Auto-save show in taskbar setting immediately
+        /// </summary>
+        private async Task SaveShowInTaskbarAsync(bool showInTaskbar)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveShowInTaskbarAsync called with value: {showInTaskbar}");
+                
+                _configuration.Application.ShowInTaskbar = showInTaskbar;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                _originalConfiguration.Application.ShowInTaskbar = showInTaskbar;
+                
+                _logger.LogInformation($"Auto-saved show in taskbar: {showInTaskbar}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save show in taskbar setting");
+            }
+        }
+
+        /// <summary>
+        /// Auto-save timer settings immediately using TimerConfigurationService
+        /// </summary>
+        private async Task SaveTimerSettingAsync()
+        {
+            try
+            {
+                _logger.LogInformation("SaveTimerSettingAsync called - auto-saving timer configuration");
+                
+                // Update configuration from current UI properties
+                UpdateConfigurationFromProperties();
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                
+                // Update original configuration to prevent false unsaved changes
+                _originalConfiguration = CloneConfiguration(_configuration);
+                
+                _logger.LogInformation("Auto-saved timer settings to main config");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save timer settings");
+            }
+        }
+
+        /// <summary>
+        /// Auto-save audio enabled setting immediately
+        /// </summary>
+        private async Task SaveAudioEnabledAsync(bool audioEnabled)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveAudioEnabledAsync called with value: {audioEnabled}");
+                
+                _configuration.Audio.Enabled = audioEnabled;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                _originalConfiguration.Audio.Enabled = audioEnabled;
+                
+                _logger.LogInformation($"Auto-saved audio enabled: {audioEnabled}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save audio enabled setting");
+            }
+        }
+
+        /// <summary>
+        /// Auto-save custom sound path immediately
+        /// </summary>
+        private async Task SaveCustomSoundPathAsync(string? customSoundPath)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveCustomSoundPathAsync called with value: {customSoundPath}");
+                
+                _configuration.Audio.CustomSoundPath = customSoundPath;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                _originalConfiguration.Audio.CustomSoundPath = customSoundPath;
+                
+                _logger.LogInformation($"Auto-saved custom sound path: {customSoundPath}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save custom sound path");
             }
         }
 

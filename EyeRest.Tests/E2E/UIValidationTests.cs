@@ -32,12 +32,17 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
             // Act - Create ViewModel (simulates UI initialization)
-            var viewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             
             // Wait a moment for async configuration loading
             await Task.Delay(500);
@@ -85,11 +90,16 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
-            var viewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500); // Wait for initial load
             
             // Act - Modify values
@@ -104,7 +114,7 @@ namespace EyeRest.Tests.E2E
             viewModel.SaveCommand.Execute(null);
             
             // Create new ViewModel to test persistence
-            var newViewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var newViewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500); // Wait for configuration load
             
             // Assert - Values should be persisted
@@ -128,11 +138,16 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
-            var viewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
             // Act - Modify values away from defaults
@@ -177,11 +192,16 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
-            var viewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
             // Act & Assert - Test invalid values are corrected when saved
@@ -194,7 +214,7 @@ namespace EyeRest.Tests.E2E
             viewModel.SaveCommand.Execute(null);
             
             // Create new ViewModel to check if validation was applied
-            var newViewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var newViewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
             // Values should be corrected to valid defaults
@@ -217,11 +237,16 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
-            var viewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
             // Act & Assert - Initially no unsaved changes
@@ -256,11 +281,16 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
-            var viewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
             // Act & Assert - Commands should execute without throwing
@@ -283,11 +313,16 @@ namespace EyeRest.Tests.E2E
             await _host.StartAsync();
             
             var configService = _host.Services.GetRequiredService<IConfigurationService>();
+            var timerConfigService = _host.Services.GetRequiredService<ITimerConfigurationService>();
+            var uiConfigService = _host.Services.GetRequiredService<IUIConfigurationService>();
             var timerService = _host.Services.GetRequiredService<ITimerService>();
             var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+            var notificationService = _host.Services.GetRequiredService<INotificationService>();
+            var screenOverlayService = _host.Services.GetRequiredService<IScreenOverlayService>();
+            var analyticsViewModel = _host.Services.GetRequiredService<AnalyticsDashboardViewModel>();
             var logger = _host.Services.GetRequiredService<ILogger<MainWindowViewModel>>();
             
-            var viewModel = new MainWindowViewModel(configService, timerService, startupManager, logger);
+            var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
             // Assert - Requirement 1: Eye Rest Reminder System

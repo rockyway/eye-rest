@@ -17,6 +17,11 @@ namespace EyeRest.Services
         private readonly object _lockObject = new object();
         private bool _isClosing = false; // Track if we're in the process of closing
         private bool _overlayVisible = false; // Track if overlay is currently visible
+        
+        // References to active warning popups for external countdown control
+        private EyeRestWarningPopup? _activeEyeRestWarningPopup;
+        private BreakWarningPopup? _activeBreakWarningPopup;
+        private ITimerService? _timerService; // Injected later to avoid circular dependency
 
         public NotificationService(ILogger<NotificationService> logger, Dispatcher dispatcher, IScreenOverlayService screenOverlayService, IConfigurationService configurationService)
         {
@@ -24,6 +29,12 @@ namespace EyeRest.Services
             _dispatcher = dispatcher;
             _screenOverlayService = screenOverlayService;
             _configurationService = configurationService;
+        }
+
+        // Inject TimerService after construction to avoid circular dependency
+        public void SetTimerService(ITimerService timerService)
+        {
+            _timerService = timerService;
         }
 
         public async Task ShowEyeRestWarningAsync(TimeSpan timeUntilBreak)
@@ -44,7 +55,8 @@ namespace EyeRest.Services
                         // CRITICAL FIX: Always create fresh popup to prevent stale event handlers
                         _logger.LogInformation("Creating fresh EyeRestWarningPopup to prevent stale event handlers");
                         var eyeRestWarningPopup = new EyeRestWarningPopup();
-                        _logger.LogInformation("Fresh EyeRestWarningPopup created");
+                        _activeEyeRestWarningPopup = eyeRestWarningPopup; // Store reference for external countdown control
+                        _logger.LogInformation("Fresh EyeRestWarningPopup created and stored");
                         
                         // Create popup window with error handling
                         BasePopupWindow popupWindow;
@@ -73,6 +85,7 @@ namespace EyeRest.Services
                             _logger.LogInformation("Eye rest warning completed event fired");
                             Application.Current.Dispatcher.Invoke(() =>
                             {
+                                _activeEyeRestWarningPopup = null; // Clear reference
                                 CloseCurrentPopup();
                             });
                         };
@@ -81,6 +94,7 @@ namespace EyeRest.Services
                         popupWindow.PopupClosed += (s, e) =>
                         {
                             _logger.LogInformation("Popup window closed event fired");
+                            _activeEyeRestWarningPopup = null; // Clear reference
                             eyeRestWarningPopup.StopCountdown();
                         };
 
@@ -94,6 +108,13 @@ namespace EyeRest.Services
                             _logger.LogInformation($"Starting countdown for {(int)timeUntilBreak.TotalSeconds} seconds");
                             eyeRestWarningPopup.StartCountdown((int)timeUntilBreak.TotalSeconds);
                             _logger.LogInformation("Countdown started successfully");
+                            
+                            // Start TimerService countdown after popup is created
+                            if (_timerService != null)
+                            {
+                                _timerService.StartEyeRestWarningTimer();
+                                _logger.LogInformation("TimerService countdown timer started");
+                            }
                             
                             _logger.LogInformation($"Eye rest warning shown for {timeUntilBreak.TotalSeconds} seconds");
                         }
@@ -117,6 +138,8 @@ namespace EyeRest.Services
 
         public async Task ShowEyeRestReminderAsync(TimeSpan duration)
         {
+            var tcs = new TaskCompletionSource<bool>();
+            
             try
             {
                 _logger.LogInformation($"ShowEyeRestReminderAsync called with duration: {duration.TotalSeconds} seconds");
@@ -148,13 +171,17 @@ namespace EyeRest.Services
                         
                         _currentPopup = popupWindow;
 
-                        // Handle completion
+                        // Handle completion - this will complete the Task when popup is actually closed
                         eyeRestPopup.Completed += (s, e) =>
                         {
                             _logger.LogInformation("Eye rest popup completed event fired");
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 CloseCurrentPopup();
+                                if (!tcs.Task.IsCompleted)
+                                {
+                                    tcs.SetResult(true); // Signal that the eye rest is actually complete
+                                }
                             });
                         };
 
@@ -163,6 +190,10 @@ namespace EyeRest.Services
                         {
                             _logger.LogInformation("Eye rest popup window closed event fired");
                             eyeRestPopup.StopCountdown();
+                            if (!tcs.Task.IsCompleted)
+                            {
+                                tcs.SetResult(true); // Ensure task completes even if closed by other means
+                            }
                         };
 
                         // Show popup and start countdown
@@ -178,11 +209,17 @@ namespace EyeRest.Services
                     }
                 });
                 
-                _logger.LogInformation("ShowEyeRestReminderAsync completed successfully");
+                // Wait for the popup to be actually completed by the user
+                await tcs.Task;
+                _logger.LogInformation("ShowEyeRestReminderAsync completed - eye rest was actually finished by user");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error showing eye rest reminder");
+                if (!tcs.Task.IsCompleted)
+                {
+                    tcs.SetException(ex);
+                }
                 throw;
             }
         }
@@ -201,7 +238,8 @@ namespace EyeRest.Services
                         // CRITICAL FIX: Always create fresh popup to prevent stale event handlers
                         _logger.LogInformation("Creating fresh BreakWarningPopup to prevent stale event handlers");
                         var breakWarningPopup = new BreakWarningPopup();
-                        _logger.LogInformation("Fresh BreakWarningPopup created");
+                        _activeBreakWarningPopup = breakWarningPopup; // Store reference for external countdown control
+                        _logger.LogInformation("Fresh BreakWarningPopup created and stored");
                         
                         // Create popup window with error handling
                         BasePopupWindow popupWindow;
@@ -223,6 +261,8 @@ namespace EyeRest.Services
                             _logger.LogInformation("🟠 BreakWarningPopup Completed event fired");
                             Application.Current.Dispatcher.Invoke(() =>
                             {
+                                _activeBreakWarningPopup = null; // Clear reference
+                                
                                 // CRITICAL FIX: Only close if this warning popup is still the current popup
                                 // If break popup has already been shown, don't interfere
                                 var currentContent = (_currentPopup as BasePopupWindow)?.ContentArea?.Content;
@@ -241,6 +281,7 @@ namespace EyeRest.Services
                         // Handle window closed
                         popupWindow.PopupClosed += (s, e) =>
                         {
+                            _activeBreakWarningPopup = null; // Clear reference
                             breakWarningPopup.StopCountdown();
                         };
 
@@ -249,6 +290,14 @@ namespace EyeRest.Services
                         {
                             popupWindow.Show();
                             breakWarningPopup.StartCountdown(timeUntilBreak);
+                            
+                            // Start TimerService countdown after popup is created
+                            if (_timerService != null)
+                            {
+                                _timerService.StartBreakWarningTimer();
+                                _logger.LogInformation("TimerService break countdown timer started");
+                            }
+                            
                             _logger.LogInformation($"Break warning shown for {timeUntilBreak.TotalSeconds} seconds");
                         }
                         catch (Exception ex)
@@ -503,6 +552,45 @@ namespace EyeRest.Services
             else
             {
                 _logger.LogInformation($"🔴 CloseCurrentPopup - No popup to close (_currentPopup: {_currentPopup != null}, _isClosing: {_isClosing})");
+            }
+        }
+
+        // External countdown control methods for warning popups
+        public void UpdateEyeRestWarningCountdown(TimeSpan remaining)
+        {
+            if (_activeEyeRestWarningPopup != null)
+            {
+                _dispatcher.InvokeAsync(() =>
+                {
+                    _activeEyeRestWarningPopup?.UpdateCountdown(remaining);
+                });
+            }
+        }
+
+        public void UpdateBreakWarningCountdown(TimeSpan remaining)
+        {
+            if (_activeBreakWarningPopup != null)
+            {
+                _dispatcher.InvokeAsync(() =>
+                {
+                    _activeBreakWarningPopup?.UpdateCountdown(remaining);
+                });
+            }
+        }
+
+        public void StartEyeRestWarningCountdown(TimeSpan duration)
+        {
+            if (_timerService != null)
+            {
+                _timerService.StartEyeRestWarningTimer();
+            }
+        }
+
+        public void StartBreakWarningCountdown(TimeSpan duration)
+        {
+            if (_timerService != null)
+            {
+                _timerService.StartBreakWarningTimer();
             }
         }
     }

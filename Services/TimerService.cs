@@ -10,14 +10,23 @@ namespace EyeRest.Services
     {
         private readonly ILogger<TimerService> _logger;
         private readonly IConfigurationService _configurationService;
+        private readonly IAnalyticsService _analyticsService;
+        private INotificationService? _notificationService; // Injected later to avoid circular dependency
         
         private DispatcherTimer? _eyeRestTimer;
         private DispatcherTimer? _eyeRestWarningTimer;
         private DispatcherTimer? _breakTimer;
         private DispatcherTimer? _breakWarningTimer;
         
+        // ENHANCED: Fallback timers to prevent stuck state
+        private DispatcherTimer? _eyeRestFallbackTimer;
+        private DispatcherTimer? _breakFallbackTimer;
+        
         private AppConfiguration _configuration;
         private bool _isStarted;
+        private bool _isPaused;
+        private bool _isSmartPaused;
+        private string _smartPauseReason = string.Empty;
         private DateTime _eyeRestStartTime;
         private DateTime _breakStartTime;
         private TimeSpan _eyeRestInterval;
@@ -25,6 +34,11 @@ namespace EyeRest.Services
         private bool _isBreakDelayed;
         private DateTime _delayStartTime;
         private TimeSpan _delayDuration;
+        
+        // State preservation for pause/resume
+        private TimeSpan _eyeRestRemainingTime;
+        private TimeSpan _breakRemainingTime;
+        private DateTime _pauseStartTime;
 
         public event EventHandler<TimerEventArgs>? EyeRestWarning;
         public event EventHandler<TimerEventArgs>? EyeRestDue;
@@ -45,6 +59,32 @@ namespace EyeRest.Services
             }
         }
 
+        public bool IsPaused
+        {
+            get => _isPaused;
+            private set
+            {
+                if (_isPaused != value)
+                {
+                    _isPaused = value;
+                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsPaused)));
+                }
+            }
+        }
+
+        public bool IsSmartPaused
+        {
+            get => _isSmartPaused;
+            private set
+            {
+                if (_isSmartPaused != value)
+                {
+                    _isSmartPaused = value;
+                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsSmartPaused)));
+                }
+            }
+        }
+
         public TimeSpan TimeUntilNextEyeRest
         {
             get
@@ -52,7 +92,19 @@ namespace EyeRest.Services
                 if (!IsRunning) return TimeSpan.Zero;
                 var elapsed = DateTime.Now - _eyeRestStartTime;
                 var remaining = _eyeRestInterval - elapsed;
-                return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+                // CRITICAL FIX: Auto-reset timer when it becomes due to prevent stuck state
+                if (remaining <= TimeSpan.Zero)
+                {
+                    // Timer is due - check if we need to auto-restart it
+                    if (remaining.TotalSeconds < -30) // If timer has been due for more than 30 seconds
+                    {
+                        _logger.LogWarning($"👁 Eye rest timer was overdue by {Math.Abs(remaining.TotalSeconds):F1}s - auto-restarting");
+                        _eyeRestStartTime = DateTime.Now; // Reset start time
+                        return _eyeRestInterval; // Return full interval
+                    }
+                    return TimeSpan.FromSeconds(1); // Show "1s" instead of "0s" when eye rest is due
+                }
+                return remaining;
             }
         }
 
@@ -63,7 +115,19 @@ namespace EyeRest.Services
                 if (!IsRunning) return TimeSpan.Zero;
                 var elapsed = DateTime.Now - _breakStartTime;
                 var remaining = _breakInterval - elapsed;
-                return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+                // CRITICAL FIX: Auto-reset timer when it becomes due to prevent stuck state
+                if (remaining <= TimeSpan.Zero)
+                {
+                    // Timer is due - check if we need to auto-restart it
+                    if (remaining.TotalSeconds < -30) // If timer has been due for more than 30 seconds
+                    {
+                        _logger.LogWarning($"🛑 Break timer was overdue by {Math.Abs(remaining.TotalSeconds):F1}s - auto-restarting");
+                        _breakStartTime = DateTime.Now; // Reset start time
+                        return _breakInterval; // Return full interval
+                    }
+                    return TimeSpan.FromSeconds(1); // Show "1s" instead of "0s" when break is due
+                }
+                return remaining;
             }
         }
 
@@ -78,11 +142,11 @@ namespace EyeRest.Services
                 
                 if (eyeRestTime <= breakTime)
                 {
-                    return $"Next eye rest: {FormatTimeSpan(eyeRestTime)}";
+                    return $"Next eye rest: {eyeRestTime:mm\\:ss}";
                 }
                 else
                 {
-                    return $"Next break: {FormatTimeSpan(breakTime)}";
+                    return $"Next break: {breakTime:mm\\:ss}";
                 }
             }
         }
@@ -111,14 +175,32 @@ namespace EyeRest.Services
             }
         }
 
-        public TimerService(ILogger<TimerService> logger, IConfigurationService configurationService)
+        public TimerService(ILogger<TimerService> logger, IConfigurationService configurationService, IAnalyticsService analyticsService)
         {
             _logger = logger;
             _configurationService = configurationService;
+            _analyticsService = analyticsService;
             _configuration = new AppConfiguration(); // Will be loaded on start
             
             // Subscribe to configuration changes
             _configurationService.ConfigurationChanged += OnConfigurationChanged;
+        }
+
+        // Inject NotificationService after construction to avoid circular dependency
+        public void SetNotificationService(INotificationService notificationService)
+        {
+            _notificationService = notificationService;
+        }
+
+        // Public methods for NotificationService to start countdown timers after popup creation
+        public void StartEyeRestWarningTimer()
+        {
+            StartEyeRestWarningTimerInternal();
+        }
+
+        public void StartBreakWarningTimer()
+        {
+            StartBreakWarningTimerInternal();
         }
 
         public async Task StartAsync()
@@ -134,7 +216,10 @@ namespace EyeRest.Services
                 // Load current configuration
                 _configuration = await _configurationService.LoadConfigurationAsync();
                 
-                _logger.LogInformation($"🔄 Starting with configuration: EyeRest={_configuration.EyeRest.IntervalMinutes}min, Break={_configuration.Break.IntervalMinutes}min");
+                // VALIDATION: Ensure popup timing matches configuration
+                ValidateTimerConfiguration();
+                
+                _logger.LogInformation($"🔄 Starting with validated configuration: EyeRest={_configuration.EyeRest.IntervalMinutes}min ({_configuration.EyeRest.DurationSeconds}s duration), Break={_configuration.Break.IntervalMinutes}min ({_configuration.Break.DurationMinutes}min duration)");
                 
                 // Set intervals and start times
                 _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes);
@@ -153,7 +238,7 @@ namespace EyeRest.Services
                 _breakTimer?.Start();
                 
                 IsRunning = true;
-                _logger.LogInformation($"✅ Timer service started successfully");
+                _logger.LogInformation($"✅ Timer service started successfully with validated configuration");
                 _logger.LogInformation($"📊 Eye rest timer: IsEnabled={_eyeRestTimer?.IsEnabled}, Interval={_eyeRestTimer?.Interval}");
                 _logger.LogInformation($"📊 Break timer: IsEnabled={_breakTimer?.IsEnabled}, Interval={_breakTimer?.Interval}");
             }
@@ -184,7 +269,7 @@ namespace EyeRest.Services
                 if (_eyeRestWarningTimer != null)
                 {
                     _eyeRestWarningTimer.Stop();
-                    _eyeRestWarningTimer.Tick -= OnEyeRestWarningTimerTick; // CRITICAL: Prevent memory leak
+                    // Timer handlers are managed inline now
                 }
                 
                 if (_breakTimer != null)
@@ -196,7 +281,7 @@ namespace EyeRest.Services
                 if (_breakWarningTimer != null)
                 {
                     _breakWarningTimer.Stop();
-                    _breakWarningTimer.Tick -= OnBreakWarningTimerTick; // CRITICAL: Prevent memory leak
+                    // Timer handlers are managed inline now
                 }
                 
                 IsRunning = false;
@@ -318,6 +403,9 @@ namespace EyeRest.Services
             {
                 _logger.LogInformation("👁 Restarting eye rest timer after popup completion");
                 
+                // ENHANCED: Stop fallback timer since popup completed successfully
+                _eyeRestFallbackTimer?.Stop();
+                
                 // Reset the eye rest start time for next cycle
                 _eyeRestStartTime = DateTime.Now;
                 
@@ -345,11 +433,17 @@ namespace EyeRest.Services
             {
                 _logger.LogInformation("🔥 Restarting break timer after popup completion");
                 
+                // ENHANCED: Stop fallback timer since popup completed successfully
+                _breakFallbackTimer?.Stop();
+                
                 // Clear delay status since we're starting a fresh break cycle
                 IsBreakDelayed = false;
                 
                 // Reset the break start time for next cycle
                 _breakStartTime = DateTime.Now;
+                
+                // SMART RECALCULATION: After a break, user has fresh eyes - restart eye rest timer too
+                await SmartRecalculateEyeRestAfterBreak();
                 
                 // Reinitialize timer with full interval
                 InitializeBreakTimer();
@@ -396,6 +490,13 @@ namespace EyeRest.Services
 
         private void InitializeEyeRestWarningTimer()
         {
+            // CRITICAL FIX: Cleanup existing timer before creating new one
+            if (_eyeRestWarningTimer != null)
+            {
+                _eyeRestWarningTimer.Stop();
+                _eyeRestWarningTimer = null;
+            }
+            
             _eyeRestWarningTimer = new DispatcherTimer();
             // This timer will be started dynamically before eye rest
         }
@@ -427,6 +528,13 @@ namespace EyeRest.Services
 
         private void InitializeBreakWarningTimer()
         {
+            // CRITICAL FIX: Cleanup existing timer before creating new one
+            if (_breakWarningTimer != null)
+            {
+                _breakWarningTimer.Stop();
+                _breakWarningTimer = null;
+            }
+            
             _breakWarningTimer = new DispatcherTimer();
             // This timer will be started dynamically before breaks
         }
@@ -454,8 +562,7 @@ namespace EyeRest.Services
                     _logger.LogInformation($"🚨 Eye rest WARNING fired! {_configuration.EyeRest.WarningSeconds} seconds until eye rest");
                     EyeRestWarning?.Invoke(this, warningEventArgs);
                     
-                    // Start timer for the remaining warning period
-                    StartEyeRestWarningTimer();
+                    // Timer will be started by NotificationService after popup is created
                 }
                 else
                 {
@@ -481,35 +588,50 @@ namespace EyeRest.Services
             }
         }
 
-        private void StartEyeRestWarningTimer()
+        private void StartEyeRestWarningTimerInternal()
         {
-            if (_eyeRestWarningTimer != null)
+            if (_eyeRestWarningTimer != null && _notificationService != null)
             {
-                _eyeRestWarningTimer.Interval = TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
-                _eyeRestWarningTimer.Tick += OnEyeRestWarningTimerTick;
+                // CRITICAL FIX: Recreate timer to ensure clean state
+                InitializeEyeRestWarningTimer();
+                
+                var warningDuration = TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
+                var startTime = DateTime.Now;
+                var hasTriggered = false; // Prevent multiple triggers
+                
+                _eyeRestWarningTimer.Interval = TimeSpan.FromMilliseconds(100); // Update every 100ms for smooth countdown
+                
+                // Create a new event handler to avoid accumulating handlers
+                EventHandler warningTickHandler = (sender, e) =>
+                {
+                    if (hasTriggered) return; // Prevent multiple executions
+                    
+                    var elapsed = DateTime.Now - startTime;
+                    var remaining = warningDuration - elapsed;
+                    
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        hasTriggered = true; // Mark as triggered
+                        
+                        // Warning period complete - stop timer and trigger eye rest
+                        _eyeRestWarningTimer.Stop();
+                        
+                        _logger.LogInformation("⏰ Eye rest warning period complete - triggering eye rest NOW");
+                        TriggerEyeRest();
+                    }
+                    else
+                    {
+                        // Update warning popup countdown
+                        _notificationService.UpdateEyeRestWarningCountdown(remaining);
+                    }
+                };
+                
+                _eyeRestWarningTimer.Tick += warningTickHandler;
                 _eyeRestWarningTimer.Start();
-
-                _logger.LogInformation($"Eye rest warning timer started - will fire warning in {_configuration.EyeRest.WarningSeconds} seconds");
+                _logger.LogInformation($"Eye rest warning timer started with external countdown control - duration: {warningDuration.TotalSeconds}s");
             }
         }
 
-        private void OnEyeRestWarningTimerTick(object? sender, EventArgs e)
-        {
-            try
-            {
-                _eyeRestWarningTimer?.Stop();
-                _eyeRestWarningTimer!.Tick -= OnEyeRestWarningTimerTick;
-                
-                _logger.LogInformation("⏰ Warning period complete - triggering eye rest NOW");
-                
-                // Warning period is over, trigger the actual eye rest
-                TriggerEyeRest();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in eye rest warning timer tick");
-            }
-        }
 
         private void TriggerEyeRest()
         {
@@ -523,9 +645,10 @@ namespace EyeRest.Services
             _logger.LogInformation("👁 EYE REST DUE - triggering eye rest popup");
             EyeRestDue?.Invoke(this, eventArgs);
             
-            // CRITICAL FIX: Do NOT restart timer here - wait for eye rest completion
-            // The timer should only restart after the eye rest popup is closed
-            _logger.LogInformation("👁 Eye rest triggered - timer will restart after popup closes");
+            // ENHANCED: Add fallback timer to auto-restart if popup doesn't complete
+            StartEyeRestFallbackTimer();
+            
+            _logger.LogInformation("👁 Eye rest triggered - timer will restart after popup closes or fallback timeout");
         }
 
         private void OnBreakTimerTick(object? sender, EventArgs e)
@@ -550,8 +673,7 @@ namespace EyeRest.Services
                     _logger.LogInformation($"🚨 Break WARNING fired! {_configuration.Break.WarningSeconds} seconds until break");
                     BreakWarning?.Invoke(this, warningEventArgs);
                     
-                    // Start timer for the remaining warning period
-                    StartBreakWarningTimer();
+                    // Timer will be started by NotificationService after popup is created
                 }
                 else
                 {
@@ -577,39 +699,50 @@ namespace EyeRest.Services
             }
         }
 
-        private void StartBreakWarningTimer()
+        private void StartBreakWarningTimerInternal()
         {
-            if (_breakWarningTimer != null)
+            if (_breakWarningTimer != null && _notificationService != null)
             {
-                _breakWarningTimer.Interval = TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
-                _breakWarningTimer.Tick += OnBreakWarningTimerTick;
+                // CRITICAL FIX: Recreate timer to ensure clean state
+                InitializeBreakWarningTimer();
+                
+                var warningDuration = TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
+                var startTime = DateTime.Now;
+                var hasTriggered = false; // Prevent multiple triggers
+                
+                _breakWarningTimer.Interval = TimeSpan.FromMilliseconds(100); // Update every 100ms for smooth countdown
+                
+                // Create a new event handler to avoid accumulating handlers
+                EventHandler warningTickHandler = (sender, e) =>
+                {
+                    if (hasTriggered) return; // Prevent multiple executions
+                    
+                    var elapsed = DateTime.Now - startTime;
+                    var remaining = warningDuration - elapsed;
+                    
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        hasTriggered = true; // Mark as triggered
+                        
+                        // Warning period complete - stop timer and trigger break
+                        _breakWarningTimer.Stop();
+                        
+                        _logger.LogInformation("⏰ Break warning period complete - triggering break NOW");
+                        TriggerBreak();
+                    }
+                    else
+                    {
+                        // Update warning popup countdown
+                        _notificationService.UpdateBreakWarningCountdown(remaining);
+                    }
+                };
+                
+                _breakWarningTimer.Tick += warningTickHandler;
                 _breakWarningTimer.Start();
-
-                _logger.LogInformation($"Break warning timer started - will trigger break in {_configuration.Break.WarningSeconds} seconds");
+                _logger.LogInformation($"Break warning timer started with external countdown control - duration: {warningDuration.TotalSeconds}s");
             }
         }
 
-        private void OnBreakWarningTimerTick(object? sender, EventArgs e)
-        {
-            try
-            {
-                _logger.LogInformation("🔥 OnBreakWarningTimerTick STARTED - this should trigger the break popup");
-                
-                _breakWarningTimer?.Stop();
-                _breakWarningTimer!.Tick -= OnBreakWarningTimerTick;
-                
-                _logger.LogInformation("⏰ Break warning period complete - triggering break NOW");
-                
-                // Warning period is over, trigger the actual break
-                TriggerBreak();
-                
-                _logger.LogInformation("🔥 OnBreakWarningTimerTick COMPLETED - TriggerBreak() called");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "🚨 CRITICAL ERROR in break warning timer tick - this prevents break popup from showing");
-            }
-        }
 
         private void TriggerBreak()
         {
@@ -640,9 +773,10 @@ namespace EyeRest.Services
                     _logger.LogError("🚨 CRITICAL: BreakDue event is NULL - no subscribers! Break popup will not show!");
                 }
                 
-                // CRITICAL FIX: Do NOT restart timer here - wait for break completion
-                // The timer should only restart after the break popup is closed
-                _logger.LogInformation("🔥 Break triggered - timer will restart after popup closes");
+                // ENHANCED: Add fallback timer to auto-restart if popup doesn't complete
+                StartBreakFallbackTimer();
+                
+                _logger.LogInformation("🔥 Break triggered - timer will restart after popup closes or fallback timeout");
             }
             catch (Exception ex)
             {
@@ -680,65 +814,340 @@ namespace EyeRest.Services
             }
         }
 
-        public void Dispose()
+        public async Task PauseAsync()
         {
+            if (!IsRunning)
+            {
+                _logger.LogWarning("Cannot pause - timer service is not running");
+                return;
+            }
+            
+            if (IsPaused)
+            {
+                _logger.LogWarning("Timer service is already paused");
+                return;
+            }
+
             try
             {
-                // CRITICAL FIX: Unsubscribe event handlers before disposing timers
-                if (_eyeRestTimer != null)
-                {
-                    _eyeRestTimer.Stop();
-                    _eyeRestTimer.Tick -= OnEyeRestTimerTick; // CRITICAL: Prevent memory leak
-                    _eyeRestTimer = null;
-                }
+                _logger.LogInformation("⏸️ Manually pausing timer service");
                 
-                if (_eyeRestWarningTimer != null)
-                {
-                    _eyeRestWarningTimer.Stop();
-                    _eyeRestWarningTimer.Tick -= OnEyeRestWarningTimerTick; // CRITICAL: Prevent memory leak  
-                    _eyeRestWarningTimer = null;
-                }
+                IsPaused = true;
                 
-                if (_breakTimer != null)
-                {
-                    _breakTimer.Stop();
-                    _breakTimer.Tick -= OnBreakTimerTick; // CRITICAL: Prevent memory leak
-                    _breakTimer = null;
-                }
+                _eyeRestTimer?.Stop();
+                _breakTimer?.Stop();
                 
-                if (_breakWarningTimer != null)
-                {
-                    _breakWarningTimer.Stop();
-                    _breakWarningTimer.Tick -= OnBreakWarningTimerTick; // CRITICAL: Prevent memory leak
-                    _breakWarningTimer = null;
-                }
+                await _analyticsService.RecordPauseEventAsync(PauseReason.Manual);
                 
-                _configurationService.ConfigurationChanged -= OnConfigurationChanged;
-                
-                IsRunning = false;
-                
-                _logger.LogInformation("✅ TimerService disposed properly - all event handlers unsubscribed");
+                _logger.LogInformation("Timer service paused successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error disposing timer service");
+                _logger.LogError(ex, "Error pausing timer service");
+                IsPaused = false;
+                throw;
+            }
+        }
+        
+        public async Task ResumeAsync()
+        {
+            if (!IsRunning)
+            {
+                _logger.LogWarning("Cannot resume - timer service is not running");
+                return;
+            }
+            
+            if (!IsPaused)
+            {
+                _logger.LogWarning("Timer service is not paused");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("▶️ Manually resuming timer service");
+                
+                IsPaused = false;
+                
+                if (!IsSmartPaused)
+                {
+                    _eyeRestTimer?.Start();
+                    _breakTimer?.Start();
+                }
+                
+                await _analyticsService.RecordResumeEventAsync(ResumeReason.Manual);
+                
+                _logger.LogInformation("Timer service resumed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resuming timer service");
+                IsPaused = true;
+                throw;
             }
         }
 
-        private static string FormatTimeSpan(TimeSpan timeSpan)
+        public async Task SmartPauseAsync(string reason)
         {
-            if (timeSpan.TotalMinutes < 1)
+            if (!IsRunning)
             {
-                return $"{timeSpan.Seconds}s";
+                _logger.LogWarning("Cannot smart pause - timer service is not running");
+                return;
             }
-            else if (timeSpan.TotalHours < 1)
+            
+            if (IsSmartPaused)
             {
-                return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+                _logger.LogWarning("Timer service is already smart paused");
+                return;
             }
-            else
+
+            try
             {
-                return $"{timeSpan.Hours}h {timeSpan.Minutes}m";
+                _logger.LogInformation("🧠 Smart pausing timer service - reason: {Reason}", reason);
+                
+                IsSmartPaused = true;
+                
+                _eyeRestTimer?.Stop();
+                _breakTimer?.Stop();
+                
+                await _analyticsService.RecordPauseEventAsync(PauseReason.SmartDetection);
+                
+                _logger.LogInformation("Timer service smart paused successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error smart pausing timer service");
+                IsSmartPaused = false;
+                throw;
             }
         }
+        
+        public async Task SmartResumeAsync()
+        {
+            if (!IsRunning)
+            {
+                _logger.LogWarning("Cannot smart resume - timer service is not running");
+                return;
+            }
+            
+            if (!IsSmartPaused)
+            {
+                _logger.LogWarning("Timer service is not smart paused");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("🧠 Smart resuming timer service");
+                
+                IsSmartPaused = false;
+                
+                if (!IsPaused)
+                {
+                    _eyeRestTimer?.Start();
+                    _breakTimer?.Start();
+                }
+                
+                await _analyticsService.RecordResumeEventAsync(ResumeReason.SmartDetection);
+                
+                _logger.LogInformation("Timer service smart resumed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error smart resuming timer service");
+                IsSmartPaused = true;
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Validates timer configuration to ensure popups show according to configured time settings
+        /// </summary>
+        private void ValidateTimerConfiguration()
+        {
+            try
+            {
+                // Validate eye rest settings
+                if (_configuration.EyeRest.IntervalMinutes < 1 || _configuration.EyeRest.IntervalMinutes > 120)
+                {
+                    throw new InvalidOperationException($"Eye rest interval must be between 1 and 120 minutes, got {_configuration.EyeRest.IntervalMinutes}");
+                }
+                
+                if (_configuration.EyeRest.DurationSeconds < 5 || _configuration.EyeRest.DurationSeconds > 300)
+                {
+                    throw new InvalidOperationException($"Eye rest duration must be between 5 and 300 seconds, got {_configuration.EyeRest.DurationSeconds}");
+                }
+                
+                // Validate break settings
+                if (_configuration.Break.IntervalMinutes < 1 || _configuration.Break.IntervalMinutes > 240)
+                {
+                    throw new InvalidOperationException($"Break interval must be between 1 and 240 minutes, got {_configuration.Break.IntervalMinutes}");
+                }
+                
+                if (_configuration.Break.DurationMinutes < 1 || _configuration.Break.DurationMinutes > 30)
+                {
+                    throw new InvalidOperationException($"Break duration must be between 1 and 30 minutes, got {_configuration.Break.DurationMinutes}");
+                }
+                
+                // Validate warning settings
+                if (_configuration.EyeRest.WarningEnabled && (_configuration.EyeRest.WarningSeconds < 10 || _configuration.EyeRest.WarningSeconds > 120))
+                {
+                    throw new InvalidOperationException($"Eye rest warning must be between 10 and 120 seconds, got {_configuration.EyeRest.WarningSeconds}");
+                }
+                
+                if (_configuration.Break.WarningEnabled && (_configuration.Break.WarningSeconds < 10 || _configuration.Break.WarningSeconds > 120))
+                {
+                    throw new InvalidOperationException($"Break warning must be between 10 and 120 seconds, got {_configuration.Break.WarningSeconds}");
+                }
+                
+                _logger.LogInformation("✅ Timer configuration validated successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Timer configuration validation failed");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Smart recalculation of eye rest timer after break completion.
+        /// When user completes a break, they have fresh eyes so eye rest timer should be reset.
+        /// </summary>
+        private async Task SmartRecalculateEyeRestAfterBreak()
+        {
+            try
+            {
+                _logger.LogInformation("👁 🧠 Smart recalculating eye rest timer after break - user has fresh eyes");
+                
+                // Reset eye rest start time since user has fresh eyes after break
+                _eyeRestStartTime = DateTime.Now;
+                
+                // Reinitialize eye rest timer with full interval
+                if (_eyeRestTimer != null)
+                {
+                    _eyeRestTimer.Stop();
+                    InitializeEyeRestTimer();
+                    
+                    if (IsRunning)
+                    {
+                        _eyeRestTimer.Start();
+                        _logger.LogInformation($"👁 🧠 Eye rest timer smartly recalculated - next eye rest in {_configuration.EyeRest.IntervalMinutes} minutes");
+                    }
+                }
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in smart eye rest recalculation");
+                throw;
+            }
+        }
+
+        #region Fallback Timer Methods
+        
+        /// <summary>
+        /// Start fallback timer for eye rest - auto-restarts if popup doesn't complete within timeout
+        /// </summary>
+        private void StartEyeRestFallbackTimer()
+        {
+            try
+            {
+                // Stop any existing fallback timer
+                _eyeRestFallbackTimer?.Stop();
+                
+                // Create new fallback timer with timeout (eye rest duration + 30 seconds buffer)
+                var fallbackTimeout = TimeSpan.FromSeconds(_configuration.EyeRest.DurationSeconds + 30);
+                
+                _eyeRestFallbackTimer = new DispatcherTimer
+                {
+                    Interval = fallbackTimeout
+                };
+                
+                _eyeRestFallbackTimer.Tick += (sender, e) =>
+                {
+                    _logger.LogWarning($"👁 ⚠️ Eye rest fallback timer triggered after {fallbackTimeout.TotalSeconds}s - auto-restarting timer");
+                    
+                    // Stop fallback timer
+                    _eyeRestFallbackTimer?.Stop();
+                    
+                    // Force restart eye rest timer
+                    _ = Task.Run(async () => await RestartEyeRestTimerAfterCompletion());
+                };
+                
+                _eyeRestFallbackTimer.Start();
+                _logger.LogInformation($"👁 🔧 Eye rest fallback timer started - will auto-restart in {fallbackTimeout.TotalSeconds}s if needed");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting eye rest fallback timer");
+            }
+        }
+        
+        /// <summary>
+        /// Start fallback timer for break - auto-restarts if popup doesn't complete within timeout
+        /// </summary>
+        private void StartBreakFallbackTimer()
+        {
+            try
+            {
+                // Stop any existing fallback timer
+                _breakFallbackTimer?.Stop();
+                
+                // Create new fallback timer with timeout (break duration + 60 seconds buffer)
+                var fallbackTimeout = TimeSpan.FromMinutes(_configuration.Break.DurationMinutes + 1);
+                
+                _breakFallbackTimer = new DispatcherTimer
+                {
+                    Interval = fallbackTimeout
+                };
+                
+                _breakFallbackTimer.Tick += (sender, e) =>
+                {
+                    _logger.LogWarning($"🛑 ⚠️ Break fallback timer triggered after {fallbackTimeout.TotalMinutes}min - auto-restarting timer");
+                    
+                    // Stop fallback timer
+                    _breakFallbackTimer?.Stop();
+                    
+                    // Force restart break timer
+                    _ = Task.Run(async () => await RestartBreakTimerAfterCompletion());
+                };
+                
+                _breakFallbackTimer.Start();
+                _logger.LogInformation($"🛑 🔧 Break fallback timer started - will auto-restart in {fallbackTimeout.TotalMinutes}min if needed");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting break fallback timer");
+            }
+        }
+        
+        #endregion
+
+        public void Dispose()
+        {
+            _logger.LogInformation("Disposing TimerService...");
+            
+            _eyeRestTimer?.Stop();
+            _breakTimer?.Stop();
+            _eyeRestWarningTimer?.Stop();
+            _breakWarningTimer?.Stop();
+            
+            // ENHANCED: Clean up fallback timers
+            _eyeRestFallbackTimer?.Stop();
+            _breakFallbackTimer?.Stop();
+            
+            _eyeRestTimer = null;
+            _breakTimer = null;
+            _eyeRestWarningTimer = null;
+            _breakWarningTimer = null;
+            _eyeRestFallbackTimer = null;
+            _breakFallbackTimer = null;
+            
+            _configurationService.ConfigurationChanged -= OnConfigurationChanged;
+            
+            _logger.LogInformation("🎯 TimerService disposed successfully");
+        }
+
     }
 }

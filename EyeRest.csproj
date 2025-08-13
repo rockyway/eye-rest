@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
@@ -28,10 +29,13 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
 
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+    <PackageReference Include="Microsoft.WindowsAPICodePack-Shell" Version="1.1.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Resources\Themes\**\*" />
+    <Resource Include="Resources\app.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,6 +51,11 @@
     </Compile>
     <EmbeddedResource Remove="EyeRest.Tests\**" />
     <None Remove="EyeRest.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="DiagnosticTeamsDetection.cs" />
+    <Compile Remove="TestIconGeneration.cs" />
   </ItemGroup>
 
 </Project>

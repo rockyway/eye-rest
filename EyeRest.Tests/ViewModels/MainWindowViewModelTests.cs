@@ -12,22 +12,28 @@ namespace EyeRest.Tests.ViewModels
     public class MainWindowViewModelTests : IDisposable
     {
         private readonly Mock<IConfigurationService> _mockConfigService;
+        private readonly Mock<ITimerConfigurationService> _mockTimerConfigService;
+        private readonly Mock<IUIConfigurationService> _mockUIConfigService;
         private readonly Mock<ITimerService> _mockTimerService;
         private readonly Mock<IStartupManager> _mockStartupManager;
         private readonly Mock<ILogger<MainWindowViewModel>> _mockLogger;
         private readonly Mock<INotificationService> _mockNotificationService;
-        private readonly Mock<ISystemTrayService> _mockSystemTrayService;
+        private readonly Mock<IScreenOverlayService> _mockScreenOverlayService;
+        private readonly Mock<AnalyticsDashboardViewModel> _mockAnalyticsDashboard;
         private readonly MainWindowViewModel _viewModel;
         private readonly AppConfiguration _testConfig;
 
         public MainWindowViewModelTests()
         {
             _mockConfigService = new Mock<IConfigurationService>();
+            _mockTimerConfigService = new Mock<ITimerConfigurationService>();
+            _mockUIConfigService = new Mock<IUIConfigurationService>();
             _mockTimerService = new Mock<ITimerService>();
             _mockStartupManager = new Mock<IStartupManager>();
             _mockLogger = new Mock<ILogger<MainWindowViewModel>>();
             _mockNotificationService = new Mock<INotificationService>();
-            _mockSystemTrayService = new Mock<ISystemTrayService>();
+            _mockScreenOverlayService = new Mock<IScreenOverlayService>();
+            _mockAnalyticsDashboard = new Mock<AnalyticsDashboardViewModel>();
 
             _testConfig = new AppConfiguration
             {
@@ -66,12 +72,15 @@ namespace EyeRest.Tests.ViewModels
                 .Returns(false);
 
             _viewModel = new MainWindowViewModel(
-                _mockLogger.Object,
                 _mockConfigService.Object,
+                _mockTimerConfigService.Object,
+                _mockUIConfigService.Object,
                 _mockTimerService.Object,
+                _mockStartupManager.Object,
                 _mockNotificationService.Object,
-                _mockSystemTrayService.Object,
-                _mockStartupManager.Object);
+                _mockScreenOverlayService.Object,
+                _mockAnalyticsDashboard.Object,
+                _mockLogger.Object);
         }
 
         [Fact]
