@@ -21,7 +21,7 @@ namespace EyeRest.Services
         private readonly IPerformanceMonitor _performanceMonitor;
         private readonly IConfigurationService _configurationService;
         private readonly IUserPresenceService _userPresenceService;
-        private readonly IMeetingDetectionService _meetingDetectionService;
+        private readonly IMeetingDetectionManager _meetingDetectionManager;
         private readonly IAnalyticsService _analyticsService;
         private readonly IPauseReminderService _pauseReminderService;
         private readonly ILogger<ApplicationOrchestrator> _logger;
@@ -40,7 +40,7 @@ namespace EyeRest.Services
             IPerformanceMonitor performanceMonitor,
             IConfigurationService configurationService,
             IUserPresenceService userPresenceService,
-            IMeetingDetectionService meetingDetectionService,
+            IMeetingDetectionManager meetingDetectionManager,
             IAnalyticsService analyticsService,
             IPauseReminderService pauseReminderService,
             ILogger<ApplicationOrchestrator> logger)
@@ -52,7 +52,7 @@ namespace EyeRest.Services
             _performanceMonitor = performanceMonitor;
             _configurationService = configurationService;
             _userPresenceService = userPresenceService;
-            _meetingDetectionService = meetingDetectionService;
+            _meetingDetectionManager = meetingDetectionManager;
             _analyticsService = analyticsService;
             _pauseReminderService = pauseReminderService;
             _logger = logger;
@@ -91,7 +91,7 @@ namespace EyeRest.Services
 
                 // Wire up advanced service events
                 _userPresenceService.UserPresenceChanged += OnUserPresenceChanged;
-                _meetingDetectionService.MeetingStateChanged += OnMeetingStateChanged;
+                _meetingDetectionManager.MeetingStateChanged += OnMeetingStateChanged;
                 _pauseReminderService.PauseReminderShown += OnPauseReminderShown;
                 _pauseReminderService.AutoResumeTriggered += OnAutoResumeTriggered;
                 _logger.LogInformation("✅ Advanced service events subscribed");
@@ -105,7 +105,13 @@ namespace EyeRest.Services
 
                 // Start advanced services
                 await _userPresenceService.StartMonitoringAsync();
-                await _meetingDetectionService.StartMonitoringAsync();
+                
+                // Initialize meeting detection manager with configured method
+                var config = await _configurationService.LoadConfigurationAsync();
+                await _meetingDetectionManager.InitializeAsync(
+                    config.MeetingDetection.DetectionMethod, 
+                    config.MeetingDetection);
+                
                 await _pauseReminderService.InitializeAsync();
                 await _pauseReminderService.StartMonitoringAsync();
                 _logger.LogInformation("✅ Advanced monitoring services started");
@@ -151,7 +157,7 @@ namespace EyeRest.Services
 
                 // Unsubscribe from advanced service events
                 _userPresenceService.UserPresenceChanged -= OnUserPresenceChanged;
-                _meetingDetectionService.MeetingStateChanged -= OnMeetingStateChanged;
+                _meetingDetectionManager.MeetingStateChanged -= OnMeetingStateChanged;
                 _pauseReminderService.PauseReminderShown -= OnPauseReminderShown;
                 _pauseReminderService.AutoResumeTriggered -= OnAutoResumeTriggered;
 
@@ -163,7 +169,7 @@ namespace EyeRest.Services
 
                 // Stop advanced services
                 await _userPresenceService.StopMonitoringAsync();
-                await _meetingDetectionService.StopMonitoringAsync();
+                await _meetingDetectionManager.ShutdownAsync();
                 await _pauseReminderService.StopMonitoringAsync();
 
                 // Hide all notifications
@@ -180,7 +186,7 @@ namespace EyeRest.Services
 
                 // Dispose services
                 _userPresenceService.Dispose();
-                _meetingDetectionService.Dispose();
+                _meetingDetectionManager.Dispose();
                 _analyticsService.Dispose();
                 _pauseReminderService.Dispose();
 

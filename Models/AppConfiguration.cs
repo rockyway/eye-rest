@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.ComponentModel;
-using EyeRest.Services;
 
 namespace EyeRest.Models
 {
@@ -67,6 +66,12 @@ namespace EyeRest.Models
         public bool MonitorSessionChanges { get; set; } = true;
         public bool MonitorPowerEvents { get; set; } = true;
         public int MonitoringIntervalSeconds { get; set; } = 15;
+        
+        // UI-specific presence settings
+        public bool PauseOnScreenLock { get; set; } = true;
+        public bool PauseOnMonitorOff { get; set; } = true;
+        public bool PauseOnIdle { get; set; } = true;
+        public int IdleTimeoutMinutes { get; set; } = 15;
     }
 
     public class TimerControlSettings
@@ -98,15 +103,60 @@ namespace EyeRest.Models
     public class MeetingDetectionSettings
     {
         public bool Enabled { get; set; } = true;
+        
+        /// <summary>
+        /// Selected meeting detection method
+        /// </summary>
+        public MeetingDetectionMethod DetectionMethod { get; set; } = MeetingDetectionMethod.WindowBased;
+        
+        /// <summary>
+        /// Enable fallback to alternative detection method if primary fails
+        /// </summary>
+        public bool EnableFallbackDetection { get; set; } = true;
+        
+        /// <summary>
+        /// Enable detailed logging of detection activity for debugging
+        /// </summary>
+        public bool LogDetectionActivity { get; set; } = false;
+        
+        // Application-specific detection settings
         public bool EnableTeamsDetection { get; set; } = true;
         public bool EnableZoomDetection { get; set; } = true;
         public bool EnableWebexDetection { get; set; } = true;
         public bool EnableGoogleMeetDetection { get; set; } = true;
         public bool EnableSkypeDetection { get; set; } = true;
+        
+        // Timer control settings
         public bool AutoPauseTimers { get; set; } = true;
         public bool ShowMeetingModeIndicator { get; set; } = true;
-        public int MonitoringIntervalSeconds { get; set; } = 10;
+        
+        // Window-based detection settings
+        public int WindowPollingIntervalSeconds { get; set; } = 10;
         public List<string> CustomProcessNames { get; set; } = new();
         public List<string> ExcludedWindowTitles { get; set; } = new();
+        
+        // Network-based detection settings
+        public int NetworkPollingIntervalSeconds { get; set; } = 10;
+        public bool IncludeIPv6Monitoring { get; set; } = true;
+        public int MinimumUdpEndpointsForMeeting { get; set; } = 2;
+        public int MeetingDetectionTimeoutSeconds { get; set; } = 30;
+        public bool IncludePrivateNetworkAddresses { get; set; } = false;
+        public List<string> ExcludedNetworkAddresses { get; set; } = new List<string>
+        {
+            "127.0.0.1", "::1", "0.0.0.0", "::"
+        };
+        public List<string> ExcludedPortRanges { get; set; } = new List<string>
+        {
+            "1-1023", "5353", "53"
+        };
+        
+        /// <summary>
+        /// Legacy property for backward compatibility - maps to WindowPollingIntervalSeconds
+        /// </summary>
+        public int MonitoringIntervalSeconds 
+        { 
+            get => WindowPollingIntervalSeconds; 
+            set => WindowPollingIntervalSeconds = value; 
+        }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EyeRest.Models;
 
 namespace EyeRest.Services
 {
@@ -10,9 +11,12 @@ namespace EyeRest.Services
         
         bool IsMeetingActive { get; }
         IReadOnlyList<MeetingApplication> ActiveMeetings { get; }
+        List<MeetingApplication> DetectedMeetings { get; }
+        MeetingDetectionSettings Settings { get; set; }
         
         Task StartMonitoringAsync();
         Task StopMonitoringAsync();
+        Task RefreshMeetingStateAsync();
     }
 
     public class MeetingStateEventArgs : EventArgs

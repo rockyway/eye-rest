@@ -116,6 +116,10 @@ namespace EyeRest.ViewModels
             TestPopupCommand = new RelayCommand(async () => await TestEyeRestPopup());
             TestBreakWarningCommand = new RelayCommand(async () => await TestBreakWarningPopup());
             TestBreakCommand = new RelayCommand(async () => await TestBreakPopup());
+            
+            // Advanced feature commands
+            TestMeetingDetectionCommand = new RelayCommand(async () => await TestMeetingDetection());
+            SwitchDetectionMethodCommand = new RelayCommand(async () => await SwitchDetectionMethod());
 
             // Subscribe to timer service events to update status
             _timerService.PropertyChanged += OnTimerServicePropertyChanged;
@@ -416,8 +420,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _selectedTabIndex, value))
                 {
-                    // If Analytics tab is selected (index 3) and auto-open is enabled
-                    if (value == 3 && AutoOpenDashboard)
+                    // If Analytics tab is selected (index 4) and auto-open is enabled
+                    if (value == 4 && AutoOpenDashboard)
                     {
                         ShowAnalyticsWindow();
                     }
@@ -494,6 +498,161 @@ namespace EyeRest.ViewModels
             private set => SetProperty(ref _analyticsDashboardViewModel, value);
         }
 
+        // Meeting Detection Properties
+        private MeetingDetectionMethod _meetingDetectionMethod = MeetingDetectionMethod.WindowBased;
+        private bool _logDetectionActivity = false;
+        private bool _enableFallbackDetection = true;
+        private string _meetingDetectionStatus = "Initializing...";
+        private string _meetingDetectionStatusColor = "#FFA500";
+        private string _meetingDetectionStatusText = "Loading...";
+
+        // User Presence Properties
+        private bool _pauseOnScreenLock = true;
+        private bool _pauseOnMonitorOff = true;
+        private bool _pauseOnIdle = true;
+        private int _idleTimeoutMinutes = 15;
+
+        public MeetingDetectionMethod MeetingDetectionMethod
+        {
+            get => _meetingDetectionMethod;
+            set
+            {
+                if (SetProperty(ref _meetingDetectionMethod, value))
+                {
+                    OnPropertyChanged(nameof(IsWindowBasedDetection));
+                    OnPropertyChanged(nameof(IsNetworkBasedDetection));
+                    OnPropertyChanged(nameof(IsHybridDetection));
+                    CheckForChanges();
+                }
+            }
+        }
+
+        public bool IsWindowBasedDetection
+        {
+            get => _meetingDetectionMethod == MeetingDetectionMethod.WindowBased;
+            set
+            {
+                if (value && _meetingDetectionMethod != MeetingDetectionMethod.WindowBased)
+                {
+                    MeetingDetectionMethod = MeetingDetectionMethod.WindowBased;
+                }
+            }
+        }
+
+        public bool IsNetworkBasedDetection
+        {
+            get => _meetingDetectionMethod == MeetingDetectionMethod.NetworkBased;
+            set
+            {
+                if (value && _meetingDetectionMethod != MeetingDetectionMethod.NetworkBased)
+                {
+                    MeetingDetectionMethod = MeetingDetectionMethod.NetworkBased;
+                }
+            }
+        }
+
+        public bool IsHybridDetection
+        {
+            get => _meetingDetectionMethod == MeetingDetectionMethod.Hybrid;
+            set
+            {
+                if (value && _meetingDetectionMethod != MeetingDetectionMethod.Hybrid)
+                {
+                    MeetingDetectionMethod = MeetingDetectionMethod.Hybrid;
+                }
+            }
+        }
+
+        public bool LogDetectionActivity
+        {
+            get => _logDetectionActivity;
+            set
+            {
+                if (SetProperty(ref _logDetectionActivity, value))
+                {
+                    CheckForChanges();
+                }
+            }
+        }
+
+        public bool EnableFallbackDetection
+        {
+            get => _enableFallbackDetection;
+            set
+            {
+                if (SetProperty(ref _enableFallbackDetection, value))
+                {
+                    CheckForChanges();
+                }
+            }
+        }
+
+        public string MeetingDetectionStatus
+        {
+            get => _meetingDetectionStatus;
+            private set => SetProperty(ref _meetingDetectionStatus, value);
+        }
+
+        public string MeetingDetectionStatusColor
+        {
+            get => _meetingDetectionStatusColor;
+            private set => SetProperty(ref _meetingDetectionStatusColor, value);
+        }
+
+        public string MeetingDetectionStatusText
+        {
+            get => _meetingDetectionStatusText;
+            private set => SetProperty(ref _meetingDetectionStatusText, value);
+        }
+
+        public bool PauseOnScreenLock
+        {
+            get => _pauseOnScreenLock;
+            set
+            {
+                if (SetProperty(ref _pauseOnScreenLock, value))
+                {
+                    CheckForChanges();
+                }
+            }
+        }
+
+        public bool PauseOnMonitorOff
+        {
+            get => _pauseOnMonitorOff;
+            set
+            {
+                if (SetProperty(ref _pauseOnMonitorOff, value))
+                {
+                    CheckForChanges();
+                }
+            }
+        }
+
+        public bool PauseOnIdle
+        {
+            get => _pauseOnIdle;
+            set
+            {
+                if (SetProperty(ref _pauseOnIdle, value))
+                {
+                    CheckForChanges();
+                }
+            }
+        }
+
+        public int IdleTimeoutMinutes
+        {
+            get => _idleTimeoutMinutes;
+            set
+            {
+                if (SetProperty(ref _idleTimeoutMinutes, value))
+                {
+                    CheckForChanges();
+                }
+            }
+        }
+
         #endregion
 
         #region Commands
@@ -513,6 +672,10 @@ namespace EyeRest.ViewModels
         public ICommand TestPopupCommand { get; }
         public ICommand TestBreakWarningCommand { get; }
         public ICommand TestBreakCommand { get; }
+        
+        // Advanced feature commands
+        public ICommand TestMeetingDetectionCommand { get; }
+        public ICommand SwitchDetectionMethodCommand { get; }
 
         #endregion
 
@@ -623,6 +786,17 @@ namespace EyeRest.ViewModels
             // Analytics
             AutoOpenDashboard = _configuration.Analytics.AutoOpenDashboard;
             
+            // Meeting Detection
+            MeetingDetectionMethod = _configuration.MeetingDetection.DetectionMethod;
+            LogDetectionActivity = _configuration.MeetingDetection.LogDetectionActivity;
+            EnableFallbackDetection = _configuration.MeetingDetection.EnableFallbackDetection;
+            
+            // User Presence - use the actual settings from configuration
+            PauseOnScreenLock = _configuration.UserPresence.PauseOnScreenLock;
+            PauseOnMonitorOff = _configuration.UserPresence.PauseOnMonitorOff;
+            PauseOnIdle = _configuration.UserPresence.PauseOnIdle;
+            IdleTimeoutMinutes = _configuration.UserPresence.IdleTimeoutMinutes;
+            
             _logger.LogInformation($"🔧 AFTER UPDATE: UI now shows - EyeRest {EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, Break {BreakIntervalMinutes}min/{BreakDurationMinutes}min");
             _logger.LogInformation($"🔧 ✅ All UI properties updated from configuration - PropertyChanged notifications sent");
         }
@@ -674,6 +848,23 @@ namespace EyeRest.ViewModels
             if (_configuration.Analytics != null)
             {
                 _configuration.Analytics.AutoOpenDashboard = AutoOpenDashboard;
+            }
+            
+            // Meeting Detection
+            if (_configuration.MeetingDetection != null)
+            {
+                _configuration.MeetingDetection.DetectionMethod = MeetingDetectionMethod;
+                _configuration.MeetingDetection.LogDetectionActivity = LogDetectionActivity;
+                _configuration.MeetingDetection.EnableFallbackDetection = EnableFallbackDetection;
+            }
+            
+            // User Presence
+            if (_configuration.UserPresence != null)
+            {
+                _configuration.UserPresence.PauseOnScreenLock = PauseOnScreenLock;
+                _configuration.UserPresence.PauseOnMonitorOff = PauseOnMonitorOff;
+                _configuration.UserPresence.PauseOnIdle = PauseOnIdle;
+                _configuration.UserPresence.IdleTimeoutMinutes = IdleTimeoutMinutes;
             }
         }
 
@@ -1235,6 +1426,136 @@ namespace EyeRest.ViewModels
                 _logger.LogError(ex, "DEBUG: TestBreakPopup failed");
                 MessageBox.Show($"Break popup test failed: {ex.Message}", "Test Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task TestMeetingDetection()
+        {
+            try
+            {
+                _logger.LogInformation("Testing meeting detection with current method");
+                
+                // Get the meeting detection manager from service provider
+                var serviceProvider = App.ServiceProvider;
+                if (serviceProvider == null)
+                {
+                    MessageBox.Show("Application services not available", "Test Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var meetingDetectionManager = serviceProvider.GetService<IMeetingDetectionManager>();
+                if (meetingDetectionManager == null)
+                {
+                    MessageBox.Show("Meeting detection manager not available", "Test Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var status = meetingDetectionManager.GetStatus();
+                var message = $"Detection Method: {status.CurrentMethod}\n" +
+                             $"Is Monitoring: {status.IsMonitoring}\n" +
+                             $"Meeting Active: {status.IsMeetingActive}\n" +
+                             $"Detected Meetings: {status.DetectedMeetingsCount}\n" +
+                             $"Status: {status.StatusMessage}\n" +
+                             $"Last Change: {status.LastStateChange?.ToString("HH:mm:ss") ?? "Never"}";
+
+                if (status.HasErrors)
+                {
+                    message += $"\nError: {status.ErrorMessage}";
+                }
+
+                MessageBox.Show(message, "Meeting Detection Test", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                _logger.LogInformation("Meeting detection test completed");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Meeting detection test failed");
+                MessageBox.Show($"Meeting detection test failed: {ex.Message}", "Test Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task SwitchDetectionMethod()
+        {
+            try
+            {
+                _logger.LogInformation($"Switching detection method to: {MeetingDetectionMethod}");
+                
+                // Get the meeting detection manager from service provider
+                var serviceProvider = App.ServiceProvider;
+                if (serviceProvider == null)
+                {
+                    MessageBox.Show("Application services not available", "Switch Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var meetingDetectionManager = serviceProvider.GetService<IMeetingDetectionManager>();
+                if (meetingDetectionManager == null)
+                {
+                    MessageBox.Show("Meeting detection manager not available", "Switch Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Check if the method is available
+                var isAvailable = await meetingDetectionManager.ValidateMethodAvailabilityAsync(MeetingDetectionMethod);
+                if (!isAvailable)
+                {
+                    MessageBox.Show($"Detection method '{MeetingDetectionMethod}' is not available on this system", 
+                        "Method Not Available", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Switch to the new method
+                await meetingDetectionManager.SwitchDetectionMethodAsync(MeetingDetectionMethod);
+                
+                // Update configuration
+                UpdateConfigurationFromProperties();
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                
+                // Update status
+                UpdateMeetingDetectionStatus(meetingDetectionManager.GetStatus());
+                
+                MessageBox.Show($"Successfully switched to {MeetingDetectionMethod} detection method", 
+                    "Detection Method Changed", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                _logger.LogInformation($"Successfully switched to {MeetingDetectionMethod} detection method");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to switch detection method");
+                MessageBox.Show($"Failed to switch detection method: {ex.Message}", "Switch Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void UpdateMeetingDetectionStatus(DetectionServiceStatus status)
+        {
+            MeetingDetectionStatus = $"Method: {status.CurrentMethod} | Monitoring: {status.IsMonitoring} | Active: {status.IsMeetingActive}";
+            
+            if (status.HasErrors)
+            {
+                MeetingDetectionStatusColor = "#F44336"; // Red
+                MeetingDetectionStatusText = $"Error: {status.ErrorMessage}";
+            }
+            else if (status.IsMeetingActive)
+            {
+                MeetingDetectionStatusColor = "#FF9800"; // Orange  
+                MeetingDetectionStatusText = $"Meeting detected ({status.DetectedMeetingsCount} active)";
+            }
+            else if (status.IsMonitoring)
+            {
+                MeetingDetectionStatusColor = "#4CAF50"; // Green
+                MeetingDetectionStatusText = "Monitoring active";
+            }
+            else
+            {
+                MeetingDetectionStatusColor = "#9E9E9E"; // Gray
+                MeetingDetectionStatusText = "Not monitoring";
             }
         }
 

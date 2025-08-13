@@ -7,12 +7,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
+using EyeRest.Models;
 
 namespace EyeRest.Services
 {
-    public class MeetingDetectionService : IMeetingDetectionService
+    public class WindowBasedMeetingDetectionService : IMeetingDetectionService
     {
-        private readonly ILogger<MeetingDetectionService> _logger;
+        private readonly ILogger<WindowBasedMeetingDetectionService> _logger;
         private readonly DispatcherTimer _monitoringTimer;
         private readonly object _stateLock = new object();
         
@@ -86,7 +87,7 @@ namespace EyeRest.Services
             }
         }
 
-        public MeetingDetectionService(ILogger<MeetingDetectionService> logger)
+        public WindowBasedMeetingDetectionService(ILogger<WindowBasedMeetingDetectionService> logger)
         {
             _logger = logger;
             
@@ -108,7 +109,7 @@ namespace EyeRest.Services
 
             try
             {
-                _logger.LogInformation("🎥 Starting meeting detection monitoring");
+                _logger.LogInformation("🪟 Starting window-based meeting detection monitoring");
                 
                 _monitoringTimer.Start();
                 _isMonitoring = true;
@@ -116,7 +117,7 @@ namespace EyeRest.Services
                 // Perform initial scan
                 await RefreshMeetingStateAsync();
                 
-                _logger.LogInformation("🎥 Meeting detection monitoring started successfully");
+                _logger.LogInformation("🪟 Window-based meeting detection monitoring started successfully");
             }
             catch (Exception ex)
             {
@@ -184,7 +185,7 @@ namespace EyeRest.Services
                     
                     if (stateChanged)
                     {
-                        _logger.LogInformation($"🎥 Meeting state changed: {_isMeetingActive} → {isMeetingActive} ({activeMeetings.Count} meetings detected)");
+                        _logger.LogInformation($"🪟 Window-based meeting state changed: {_isMeetingActive} → {isMeetingActive} ({activeMeetings.Count} meetings detected)");
                         
                         _isMeetingActive = isMeetingActive;
                         _detectedMeetings = activeMeetings;
