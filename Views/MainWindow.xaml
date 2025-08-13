@@ -352,7 +352,7 @@
                                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                                 <RadioButton Content="Window-based detection (Default)" 
-                                             IsChecked="{Binding IsWindowBasedDetection}" 
+                                             IsChecked="{Binding IsWindowBasedDetection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                              GroupName="MeetingDetection"
                                              Margin="0,0,0,10"/>
                                 <TextBlock Text="   • Monitors running processes and window titles"
@@ -369,7 +369,7 @@
                                            Margin="20,-5,0,15"/>
 
                                 <RadioButton Content="Network-based detection (Advanced)" 
-                                             IsChecked="{Binding IsNetworkBasedDetection}" 
+                                             IsChecked="{Binding IsNetworkBasedDetection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                              GroupName="MeetingDetection"
                                              Margin="0,0,0,10"/>
                                 <TextBlock Text="   • Monitors UDP network connections for meeting activity"
@@ -386,7 +386,7 @@
                                            Margin="20,-5,0,15"/>
 
                                 <RadioButton Content="Hybrid detection (Best of both)" 
-                                             IsChecked="{Binding IsHybridDetection}" 
+                                             IsChecked="{Binding IsHybridDetection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                              GroupName="MeetingDetection"
                                              Margin="0,0,0,10"/>
                                 <TextBlock Text="   • Combines window and network-based detection"
