@@ -39,6 +39,8 @@ namespace EyeRest.Models
         public bool WarningEnabled { get; set; } = true;
         public int WarningSeconds { get; set; } = 30;
         public int OverlayOpacityPercent { get; set; } = 50; // Screen overlay opacity (0-100%)
+        public bool RequireConfirmationAfterBreak { get; set; } = true; // Keep popup open until user confirms completion
+        public bool ResetTimersOnBreakConfirmation { get; set; } = true; // Start fresh session after break confirmation
     }
 
     public class AudioSettings
@@ -52,6 +54,8 @@ namespace EyeRest.Models
     {
         public bool StartWithWindows { get; set; } = false;
         public bool MinimizeToTray { get; set; } = true;
+        public bool StartMinimized { get; set; } = false;
+        public bool ShowTrayNotifications { get; set; } = true;
         public bool ShowInTaskbar { get; set; } = false;
         public bool IsDarkMode { get; set; } = false;
     }
@@ -72,6 +76,11 @@ namespace EyeRest.Models
         public bool PauseOnMonitorOff { get; set; } = true;
         public bool PauseOnIdle { get; set; } = true;
         public int IdleTimeoutMinutes { get; set; } = 15;
+        
+        // NEW: Extended away period smart reset settings
+        public bool EnableSmartSessionReset { get; set; } = true;
+        public int ExtendedAwayThresholdMinutes { get; set; } = 30; // Reset timers after 30+ min away
+        public bool ShowSessionResetNotification { get; set; } = true;
     }
 
     public class TimerControlSettings

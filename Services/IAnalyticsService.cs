@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using EyeRest.Models;
+using EyeRest.Services; // For SessionActivityMetrics and SessionState
 
 namespace EyeRest.Services
 {
@@ -12,6 +13,12 @@ namespace EyeRest.Services
         
         Task RecordSessionStartAsync();
         Task RecordSessionEndAsync();
+        
+        // NEW: Enhanced session activity tracking methods
+        Task PauseSessionAsync(UserPresenceState awayState, string reason = "");
+        Task ResumeSessionAsync(string reason = "");
+        SessionActivityMetrics GetCurrentSessionMetrics();
+        SessionActivityValidationResult ValidateSessionTracking();
         
         Task RecordEyeRestEventAsync(RestEventType type, UserAction action, TimeSpan duration);
         Task RecordBreakEventAsync(RestEventType type, UserAction action, TimeSpan duration);

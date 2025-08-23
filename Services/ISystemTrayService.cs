@@ -16,6 +16,7 @@ namespace EyeRest.Services
         event EventHandler ExitRequested;
         event EventHandler PauseTimersRequested;
         event EventHandler ResumeTimersRequested;
+        event EventHandler PauseForMeetingRequested; // NEW: Manual pause for meeting
         event EventHandler ShowTimerStatusRequested;
         event EventHandler ShowAnalyticsRequested;
     }
@@ -25,6 +26,7 @@ namespace EyeRest.Services
         Active,
         Paused,
         SmartPaused,
+        ManuallyPaused, // NEW: For manual meeting pause
         Break,
         EyeRest,
         MeetingMode,

@@ -11,12 +11,19 @@ namespace EyeRest.Services
     public class UserPresenceService : IUserPresenceService
     {
         private readonly ILogger<UserPresenceService> _logger;
+        private readonly IConfigurationService _configurationService;
+        private ITimerService? _timerService; // NEW: For triggering timer recovery after system resume
         private readonly DispatcherTimer _monitoringTimer;
         private readonly object _stateLock = new object();
         
         private UserPresenceState _currentState;
         private DateTime _lastStateChange;
         private bool _isMonitoring;
+        
+        // NEW: Extended away tracking
+        private DateTime _awayStartTime;
+        private TimeSpan _totalAwayTime;
+        private bool _hasBeenAwayExtended;
         private IntPtr _sessionNotificationHandle;
         private IntPtr _powerNotificationHandle;
         private IntPtr _mainWindowHandle;
@@ -44,9 +51,11 @@ namespace EyeRest.Services
         private delegate IntPtr WndProcDelegate(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
 
         public event EventHandler<UserPresenceEventArgs>? UserPresenceChanged;
+        public event EventHandler<ExtendedAwayEventArgs>? ExtendedAwaySessionDetected;
 
         public bool IsUserPresent => _currentState == UserPresenceState.Present;
         public UserPresenceState CurrentState => _currentState;
+        public TimeSpan TotalAwayTime => _totalAwayTime;
         
         public TimeSpan IdleTime
         {
@@ -65,9 +74,10 @@ namespace EyeRest.Services
             }
         }
 
-        public UserPresenceService(ILogger<UserPresenceService> logger)
+        public UserPresenceService(ILogger<UserPresenceService> logger, IConfigurationService configurationService)
         {
             _logger = logger;
+            _configurationService = configurationService;
             _currentState = UserPresenceState.Present;
             _lastStateChange = DateTime.Now;
             
@@ -80,6 +90,15 @@ namespace EyeRest.Services
             
             // Initialize window procedure delegate
             _wndProcDelegate = WindowProc;
+        }
+
+        /// <summary>
+        /// Inject TimerService for triggering timer recovery after system resume
+        /// Called by ApplicationOrchestrator to avoid circular dependency
+        /// </summary>
+        public void SetTimerService(ITimerService timerService)
+        {
+            _timerService = timerService;
         }
 
         public async Task StartMonitoringAsync()
@@ -397,6 +416,22 @@ namespace EyeRest.Services
                     case WTS_SESSION_UNLOCK:
                         newState = UserPresenceState.Present;
                         _logger.LogInformation("🔓 Session unlocked - user marked as present");
+                        
+                        // CRITICAL FIX: Trigger timer recovery after session unlock (potential system resume)
+                        if (_timerService != null)
+                        {
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await _timerService.RecoverFromSystemResumeAsync("Session unlocked - potential system resume");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "🔓 Error during timer recovery after session unlock");
+                                }
+                            });
+                        }
                         break;
                         
                     case WTS_CONSOLE_DISCONNECT:
@@ -407,6 +442,22 @@ namespace EyeRest.Services
                     case WTS_CONSOLE_CONNECT:
                         newState = UserPresenceState.Present;
                         _logger.LogInformation("💻 Console connected - user marked as present");
+                        
+                        // CRITICAL FIX: Trigger timer recovery after console connect (potential system resume)
+                        if (_timerService != null)
+                        {
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await _timerService.RecoverFromSystemResumeAsync("Console connected - potential system resume");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "💻 Error during timer recovery after console connect");
+                                }
+                            });
+                        }
                         break;
                 }
                 
@@ -440,6 +491,22 @@ namespace EyeRest.Services
                     {
                         _logger.LogInformation("🖥️ Monitor turned on - user marked as present");
                         UpdatePresenceState(UserPresenceState.Present, TimeSpan.Zero);
+                        
+                        // CRITICAL FIX: Trigger timer recovery after potential system resume
+                        if (_timerService != null)
+                        {
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await _timerService.RecoverFromSystemResumeAsync("Monitor power on - potential system resume");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "🖥️ Error during timer recovery after monitor power on");
+                                }
+                            });
+                        }
                     }
                 }
             }
@@ -456,8 +523,12 @@ namespace EyeRest.Services
                 if (newState != _currentState)
                 {
                     var previousState = _currentState;
-                    _currentState = newState;
                     var now = DateTime.Now;
+                    
+                    // NEW: Track extended away periods for smart session reset
+                    HandleExtendedAwayTracking(previousState, newState, now);
+                    
+                    _currentState = newState;
                     _lastStateChange = now;
                     
                     var eventArgs = new UserPresenceEventArgs
@@ -470,6 +541,61 @@ namespace EyeRest.Services
                     
                     UserPresenceChanged?.Invoke(this, eventArgs);
                 }
+            }
+        }
+
+        private async void HandleExtendedAwayTracking(UserPresenceState previousState, UserPresenceState newState, DateTime now)
+        {
+            try
+            {
+                var config = await _configurationService.LoadConfigurationAsync();
+                var extendedAwayThresholdMinutes = config.UserPresence.ExtendedAwayThresholdMinutes;
+            
+            // User is going away (Present/Idle → Away/SystemSleep)
+            if ((previousState == UserPresenceState.Present || previousState == UserPresenceState.Idle) &&
+                (newState == UserPresenceState.Away || newState == UserPresenceState.SystemSleep))
+            {
+                _awayStartTime = now;
+                _hasBeenAwayExtended = false;
+                _logger.LogDebug($"🏃 User going away - tracking start time: {_awayStartTime:HH:mm:ss}");
+            }
+            
+            // User is returning (Away/SystemSleep → Present)
+            else if ((previousState == UserPresenceState.Away || previousState == UserPresenceState.SystemSleep) &&
+                     newState == UserPresenceState.Present)
+            {
+                if (_awayStartTime != default(DateTime))
+                {
+                    var awayDuration = now - _awayStartTime;
+                    _totalAwayTime = awayDuration;
+                    
+                    _logger.LogInformation($"🏠 User returned after {awayDuration.TotalMinutes:F1} minutes away");
+                    
+                    // Check if this was an extended away period requiring smart session reset
+                    if (awayDuration.TotalMinutes >= extendedAwayThresholdMinutes && !_hasBeenAwayExtended)
+                    {
+                        _hasBeenAwayExtended = true;
+                        _logger.LogInformation($"⚡ Extended away period detected: {awayDuration.TotalMinutes:F1} minutes - triggering smart session reset");
+                        
+                        var extendedAwayArgs = new ExtendedAwayEventArgs
+                        {
+                            TotalAwayTime = awayDuration,
+                            AwayStartTime = _awayStartTime,
+                            ReturnTime = now,
+                            AwayState = previousState
+                        };
+                        
+                        ExtendedAwaySessionDetected?.Invoke(this, extendedAwayArgs);
+                    }
+                    
+                    // Reset tracking for next away period
+                    _awayStartTime = default(DateTime);
+                }
+            }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling extended away tracking");
             }
         }
         

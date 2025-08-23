@@ -823,20 +823,34 @@
                                     BorderBrush="{DynamicResource ControlBorderBrush}"
                                     BorderThickness="1"
                                     Height="160">
-                                <Canvas>
-                                    <!-- Simplified Pie Chart Representation -->
-                                    <Ellipse Width="100" Height="100" 
-                                             Canvas.Left="130" Canvas.Top="30"
-                                             Fill="{DynamicResource AccentBrush}" 
-                                             Opacity="0.8"/>
-                                    <TextBlock Text="Break Distribution" 
-                                               Canvas.Left="140" 
-                                               Canvas.Top="75" 
+                                <Grid>
+                                    <!-- Dynamic Pie Chart using BreakPatternData -->
+                                    <ItemsControl ItemsSource="{Binding BreakPatternData}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas Width="120" Height="120"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Path Fill="{Binding Color}" 
+                                                      Stroke="White" 
+                                                      StrokeThickness="2"
+                                                      Data="{Binding PathData}"
+                                                      ToolTip="{Binding Tooltip}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    
+                                    <!-- Center label showing total breaks -->
+                                    <TextBlock Text="{Binding TotalBreaksText, FallbackValue='No Data'}" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center"
                                                FontFamily="Segoe UI"
                                                FontSize="12" 
-                                               Foreground="{DynamicResource BackgroundBrush}"
-                                               FontWeight="SemiBold"/>
-                                </Canvas>
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                </Grid>
                             </Border>
                             
                             <!-- Professional Legend -->
