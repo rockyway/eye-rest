@@ -141,6 +141,7 @@ namespace EyeRest.Services
                 TrayIconState.Active => CreateActiveIcon(),
                 TrayIconState.Paused => CreatePausedIcon(),
                 TrayIconState.SmartPaused => CreateSmartPausedIcon(),
+                TrayIconState.ManuallyPaused => CreateManuallyPausedIcon(), // NEW: Manual meeting pause
                 TrayIconState.MeetingMode => CreateMeetingIcon(),
                 TrayIconState.UserAway => CreateAwayIcon(),
                 TrayIconState.Break => CreateBreakIcon(),
@@ -239,6 +240,43 @@ namespace EyeRest.Services
             using var font = new Font("Arial", 6, FontStyle.Bold);
             using var textBrush = new SolidBrush(Color.White);
             graphics.DrawString("AI", font, textBrush, new PointF(12, 15));
+
+            return CreateIconFromBitmap(bitmap);
+        }
+        
+        /// <summary>
+        /// Create icon for manually paused state - Yellow-orange eye with meeting timer symbol
+        /// </summary>
+        private Icon CreateManuallyPausedIcon()
+        {
+            const int size = 32;
+            using var bitmap = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+            using var graphics = Graphics.FromImage(bitmap);
+            
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.Clear(Color.Transparent);
+
+            // Draw eye shape with yellow-orange color for manual meeting pause
+            using var eyeBrush = new SolidBrush(Color.FromArgb(255, 183, 77)); // Yellow-orange
+            using var eyePen = new Pen(Color.FromArgb(255, 143, 0), 2); // Darker yellow-orange
+            
+            var eyeRect = new Rectangle(4, 12, 24, 12);
+            graphics.FillEllipse(eyeBrush, eyeRect);
+            graphics.DrawEllipse(eyePen, eyeRect);
+
+            // Draw meeting timer symbol (clock + meeting icon)
+            using var symbolBrush = new SolidBrush(Color.FromArgb(33, 33, 33));
+            
+            // Draw small clock circle
+            graphics.DrawEllipse(new Pen(symbolBrush, 1), new Rectangle(12, 15, 6, 6));
+            
+            // Draw clock hands pointing to "30" (representing 30-minute pause)
+            using var handPen = new Pen(symbolBrush, 1);
+            graphics.DrawLine(handPen, new Point(15, 18), new Point(15, 16)); // 12 o'clock (short hand)
+            graphics.DrawLine(handPen, new Point(15, 18), new Point(17, 20)); // 6 o'clock (long hand at 30 min)
+            
+            // Small meeting indicator dot
+            graphics.FillEllipse(symbolBrush, new Rectangle(18, 15, 2, 2));
 
             return CreateIconFromBitmap(bitmap);
         }

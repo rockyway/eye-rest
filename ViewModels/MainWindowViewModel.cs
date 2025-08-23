@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using EyeRest.Models;
 using EyeRest.Services;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection; // For service provider access
 
 namespace EyeRest.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         private readonly IConfigurationService _configurationService;
         private readonly ITimerConfigurationService _timerConfigurationService;
@@ -25,6 +26,10 @@ namespace EyeRest.ViewModels
         private AppConfiguration _configuration;
         private AppConfiguration _originalConfiguration;
         private bool _hasUnsavedChanges;
+        
+        // Debounced timer restart mechanism
+        private DispatcherTimer? _settingsDebounceTimer;
+        private const int SETTINGS_DEBOUNCE_DELAY_MS = 1500; // 1.5 seconds delay
 
         // Eye Rest Settings
         private int _eyeRestIntervalMinutes = 20;
@@ -40,6 +45,8 @@ namespace EyeRest.ViewModels
         private bool _breakWarningEnabled = true;
         private int _breakWarningSeconds = 30;
         private int _overlayOpacityPercent = 50;
+        private bool _requireConfirmationAfterBreak = true;
+        private bool _resetTimersOnBreakConfirmation = true;
 
         // Audio Settings
         private bool _audioEnabled = true;
@@ -49,6 +56,8 @@ namespace EyeRest.ViewModels
         // Application Settings
         private bool _startWithWindows = false;
         private bool _minimizeToTray = true;
+        private bool _startMinimized = false;
+        private bool _showTrayNotifications = true;
         private bool _showInTaskbar = false;
         private bool _autoOpenDashboard = false;
         
@@ -106,6 +115,12 @@ namespace EyeRest.ViewModels
             RestoreDefaultsCommand = new RelayCommand(async () => await RestoreDefaults());
             StartTimersCommand = new RelayCommand(async () => await StartTimers());
             StopTimersCommand = new RelayCommand(async () => await StopTimers());
+            
+            // NEW: Pause/Resume Commands
+            PauseTimersCommand = new RelayCommand(async () => await PauseTimers(), () => CanPauseTimers);
+            ResumeTimersCommand = new RelayCommand(async () => await ResumeTimers(), () => CanResumeTimers);
+            PauseForMeetingCommand = new RelayCommand(async () => await PauseForMeeting(), () => CanPauseMeeting);
+            
             ExitApplicationCommand = new RelayCommand(ExitApplication);
             ShowAnalyticsCommand = new RelayCommand(ShowAnalyticsWindow);
             BrowseCustomAudioCommand = new RelayCommand(BrowseCustomAudio);
@@ -124,6 +139,9 @@ namespace EyeRest.ViewModels
             // Subscribe to timer service events to update status
             _timerService.PropertyChanged += OnTimerServicePropertyChanged;
 
+            // Initialize debounce timer for graceful timer restarts
+            InitializeDebounceTimer();
+            
             // CRITICAL FIX: Load configuration asynchronously but immediately on window loaded
             // This prevents deadlock while ensuring UI shows correct values ASAP
             try
@@ -157,8 +175,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestIntervalMinutes, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -170,8 +188,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestDurationSeconds, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -183,8 +201,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestStartSoundEnabled, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -196,8 +214,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestEndSoundEnabled, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -209,8 +227,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestWarningEnabled, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -222,8 +240,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _eyeRestWarningSeconds, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -236,8 +254,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakIntervalMinutes, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -249,8 +267,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakDurationMinutes, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -262,8 +280,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakWarningEnabled, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -275,8 +293,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _breakWarningSeconds, value))
                 {
-                    // Auto-save timer settings immediately using TimerConfigurationService
-                    _ = Task.Run(async () => await SaveTimerSettingAsync());
+                    // Debounced timer restart - waits for user to finish editing
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -291,6 +309,30 @@ namespace EyeRest.ViewModels
                     CheckForChanges();
                     // Auto-save overlay opacity immediately without restarting timers
                     _ = Task.Run(async () => await SaveOverlayOpacityAsync());
+                }
+            }
+        }
+
+        public bool RequireConfirmationAfterBreak
+        {
+            get => _requireConfirmationAfterBreak;
+            set
+            {
+                if (SetProperty(ref _requireConfirmationAfterBreak, value))
+                {
+                    CheckForChanges();
+                }
+            }
+        }
+
+        public bool ResetTimersOnBreakConfirmation
+        {
+            get => _resetTimersOnBreakConfirmation;
+            set
+            {
+                if (SetProperty(ref _resetTimersOnBreakConfirmation, value))
+                {
+                    CheckForChanges();
                 }
             }
         }
@@ -367,6 +409,34 @@ namespace EyeRest.ViewModels
             }
         }
 
+        public bool StartMinimized
+        {
+            get => _startMinimized;
+            set
+            {
+                if (SetProperty(ref _startMinimized, value))
+                {
+                    CheckForChanges();
+                    // Auto-save start minimized setting immediately
+                    _ = Task.Run(async () => await SaveStartMinimizedAsync(value));
+                }
+            }
+        }
+
+        public bool ShowTrayNotifications
+        {
+            get => _showTrayNotifications;
+            set
+            {
+                if (SetProperty(ref _showTrayNotifications, value))
+                {
+                    CheckForChanges();
+                    // Auto-save show tray notifications setting immediately
+                    _ = Task.Run(async () => await SaveShowTrayNotificationsAsync(value));
+                }
+            }
+        }
+
         public bool ShowInTaskbar
         {
             get => _showInTaskbar;
@@ -420,8 +490,8 @@ namespace EyeRest.ViewModels
             {
                 if (SetProperty(ref _selectedTabIndex, value))
                 {
-                    // If Analytics tab is selected (index 4) and auto-open is enabled
-                    if (value == 4 && AutoOpenDashboard)
+                    // If Analytics tab is selected (index 3) and auto-open is enabled
+                    if (value == 3 && AutoOpenDashboard)
                     {
                         ShowAnalyticsWindow();
                     }
@@ -472,6 +542,13 @@ namespace EyeRest.ViewModels
             get => _isRunning;
             private set => SetProperty(ref _isRunning, value);
         }
+
+        // NEW: Can-Execute Properties for Pause/Resume Commands
+        public bool CanPauseTimers => _timerService.IsRunning && !_timerService.IsPaused && !_timerService.IsSmartPaused && !_timerService.IsManuallyPaused;
+        
+        public bool CanResumeTimers => _timerService.IsRunning && (_timerService.IsPaused || _timerService.IsManuallyPaused);
+        
+        public bool CanPauseMeeting => _timerService.IsRunning && !_timerService.IsManuallyPaused;
 
         // Error Indicator Properties
         public string ErrorMessage
@@ -662,6 +739,12 @@ namespace EyeRest.ViewModels
         public ICommand RestoreDefaultsCommand { get; }
         public ICommand StartTimersCommand { get; }
         public ICommand StopTimersCommand { get; }
+        
+        // NEW: Pause/Resume Commands
+        public ICommand PauseTimersCommand { get; }
+        public ICommand ResumeTimersCommand { get; }
+        public ICommand PauseForMeetingCommand { get; }
+        
         public ICommand ExitApplicationCommand { get; }
         public ICommand ShowAnalyticsCommand { get; }
         public ICommand BrowseCustomAudioCommand { get; }
@@ -766,6 +849,8 @@ namespace EyeRest.ViewModels
             BreakWarningEnabled = _configuration.Break.WarningEnabled;
             BreakWarningSeconds = _configuration.Break.WarningSeconds;
             OverlayOpacityPercent = _configuration.Break.OverlayOpacityPercent;
+            RequireConfirmationAfterBreak = _configuration.Break.RequireConfirmationAfterBreak;
+            ResetTimersOnBreakConfirmation = _configuration.Break.ResetTimersOnBreakConfirmation;
 
             // Audio
             AudioEnabled = _configuration.Audio.Enabled;
@@ -775,6 +860,8 @@ namespace EyeRest.ViewModels
             // Application
             StartWithWindows = _configuration.Application.StartWithWindows;
             MinimizeToTray = _configuration.Application.MinimizeToTray;
+            StartMinimized = _configuration.Application.StartMinimized;
+            ShowTrayNotifications = _configuration.Application.ShowTrayNotifications;
             ShowInTaskbar = _configuration.Application.ShowInTaskbar;
             
             // Apply dark mode setting and update UI property
@@ -825,6 +912,8 @@ namespace EyeRest.ViewModels
                 _configuration.Break.WarningEnabled = BreakWarningEnabled;
                 _configuration.Break.WarningSeconds = BreakWarningSeconds;
                 _configuration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
+                _configuration.Break.RequireConfirmationAfterBreak = RequireConfirmationAfterBreak;
+                _configuration.Break.ResetTimersOnBreakConfirmation = ResetTimersOnBreakConfirmation;
             }
 
             // Audio
@@ -840,6 +929,8 @@ namespace EyeRest.ViewModels
             {
                 _configuration.Application.StartWithWindows = StartWithWindows;
                 _configuration.Application.MinimizeToTray = MinimizeToTray;
+                _configuration.Application.StartMinimized = StartMinimized;
+                _configuration.Application.ShowTrayNotifications = ShowTrayNotifications;
                 _configuration.Application.ShowInTaskbar = ShowInTaskbar;
                 _configuration.Application.IsDarkMode = IsDarkMode;
             }
@@ -1132,12 +1223,79 @@ namespace EyeRest.ViewModels
             }
         }
 
+        // NEW: Pause/Resume Timer Command Methods
+        private async Task PauseTimers()
+        {
+            try
+            {
+                await _timerService.PauseAsync();
+                UpdateTimerStatus();
+                RefreshCanExecuteStates();
+                _logger.LogInformation("Timers paused manually from UI");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to pause timers");
+                MessageBox.Show("Failed to pause timers.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ResumeTimers()
+        {
+            try
+            {
+                await _timerService.ResumeAsync();
+                UpdateTimerStatus();
+                RefreshCanExecuteStates();
+                _logger.LogInformation("Timers resumed manually from UI");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to resume timers");
+                MessageBox.Show("Failed to resume timers.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task PauseForMeeting()
+        {
+            try
+            {
+                await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(30), "Manual meeting pause from UI");
+                UpdateTimerStatus();
+                RefreshCanExecuteStates();
+                _logger.LogInformation("Timers paused for 30-minute meeting from UI");
+                
+                // Show confirmation to user
+                MessageBox.Show("Timers paused for 30 minutes.\nThey will automatically resume when the time is up.",
+                    "Meeting Pause Active", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to pause timers for meeting");
+                MessageBox.Show("Failed to pause timers for meeting.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void RefreshCanExecuteStates()
+        {
+            OnPropertyChanged(nameof(CanPauseTimers));
+            OnPropertyChanged(nameof(CanResumeTimers));
+            OnPropertyChanged(nameof(CanPauseMeeting));
+        }
+
         private void OnTimerServicePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ITimerService.IsRunning) || 
-                e.PropertyName == nameof(ITimerService.IsBreakDelayed))
+                e.PropertyName == nameof(ITimerService.IsBreakDelayed) ||
+                e.PropertyName == nameof(ITimerService.IsPaused) ||
+                e.PropertyName == nameof(ITimerService.IsSmartPaused) ||
+                e.PropertyName == nameof(ITimerService.IsManuallyPaused))
             {
                 UpdateTimerStatus();
+                RefreshCanExecuteStates(); // NEW: Update button states when timer state changes
             }
         }
 
@@ -1148,7 +1306,37 @@ namespace EyeRest.ViewModels
 
             if (isRunning)
             {
-                if (isBreakDelayed)
+                // ENHANCED: Check for different pause states
+                if (_timerService.IsManuallyPaused)
+                {
+                    var remaining = _timerService.ManualPauseRemaining;
+                    if (remaining.HasValue && remaining.Value > TimeSpan.Zero)
+                    {
+                        var minutes = (int)remaining.Value.TotalMinutes;
+                        var seconds = remaining.Value.Seconds;
+                        TimerStatusText = $"Meeting Pause ({minutes}m {seconds}s left)";
+                    }
+                    else
+                    {
+                        TimerStatusText = "Meeting Pause (Manual)";
+                    }
+                    TimerStatusColor = "#FFB74D"; // Yellow-orange for manual pause
+                    WindowTitle = "Eye-rest Settings - Meeting Pause";
+                }
+                else if (_timerService.IsPaused)
+                {
+                    TimerStatusText = "Paused (Manual)";
+                    TimerStatusColor = "#FFC107"; // Amber for manual pause
+                    WindowTitle = "Eye-rest Settings - Paused";
+                }
+                else if (_timerService.IsSmartPaused)
+                {
+                    var reason = _timerService.PauseReason ?? "Auto";
+                    TimerStatusText = $"Smart Paused ({reason})";
+                    TimerStatusColor = "#FF9800"; // Orange for smart pause
+                    WindowTitle = "Eye-rest Settings - Smart Paused";
+                }
+                else if (isBreakDelayed)
                 {
                     var remainingDelay = _timerService.DelayRemaining;
                     var delayMinutes = (int)Math.Ceiling(remainingDelay.TotalMinutes);
@@ -1180,16 +1368,51 @@ namespace EyeRest.ViewModels
                 
                 if (_timerService.IsRunning)
                 {
-                    // Get individual countdown times
-                    var eyeRestTime = _timerService.TimeUntilNextEyeRest;
-                    var breakTime = _timerService.TimeUntilNextBreak;
-                    
-                    // Format individual countdowns
-                    TimeUntilNextEyeRest = $"Next eye rest: {FormatTimeSpan(eyeRestTime)}";
-                    TimeUntilNextBreak = $"Next break: {FormatTimeSpan(breakTime)}";
-                    
-                    // Create dual countdown display
-                    DualCountdownText = $"Next eye rest: {FormatTimeSpan(eyeRestTime)} | Next break: {FormatTimeSpan(breakTime)}";
+                    // ENHANCED: Check for pause states first
+                    if (_timerService.IsManuallyPaused)
+                    {
+                        var remaining = _timerService.ManualPauseRemaining;
+                        if (remaining.HasValue && remaining.Value > TimeSpan.Zero)
+                        {
+                            var pauseText = $"Meeting pause: {FormatTimeSpan(remaining.Value)} remaining";
+                            TimeUntilNextEyeRest = pauseText;
+                            TimeUntilNextBreak = pauseText;
+                            DualCountdownText = $"{pauseText} (timers will auto-resume)";
+                        }
+                        else
+                        {
+                            TimeUntilNextEyeRest = "Meeting pause (manual)";
+                            TimeUntilNextBreak = "Meeting pause (manual)";
+                            DualCountdownText = "Meeting pause active (manual control)";
+                        }
+                    }
+                    else if (_timerService.IsPaused)
+                    {
+                        TimeUntilNextEyeRest = "Timers paused (manual)";
+                        TimeUntilNextBreak = "Timers paused (manual)";
+                        DualCountdownText = "Timers paused manually";
+                    }
+                    else if (_timerService.IsSmartPaused)
+                    {
+                        var reason = _timerService.PauseReason ?? "Auto";
+                        var pauseText = $"Smart paused ({reason})";
+                        TimeUntilNextEyeRest = pauseText;
+                        TimeUntilNextBreak = pauseText;
+                        DualCountdownText = $"{pauseText} - will auto-resume";
+                    }
+                    else
+                    {
+                        // Normal running state - show countdowns
+                        var eyeRestTime = _timerService.TimeUntilNextEyeRest;
+                        var breakTime = _timerService.TimeUntilNextBreak;
+                        
+                        // Format individual countdowns
+                        TimeUntilNextEyeRest = $"Next eye rest: {FormatTimeSpan(eyeRestTime)}";
+                        TimeUntilNextBreak = $"Next break: {FormatTimeSpan(breakTime)}";
+                        
+                        // Create dual countdown display
+                        DualCountdownText = $"Next eye rest: {FormatTimeSpan(eyeRestTime)} | Next break: {FormatTimeSpan(breakTime)}";
+                    }
                 }
                 else
                 {
@@ -1292,7 +1515,9 @@ namespace EyeRest.ViewModels
                     DurationMinutes = config.Break.DurationMinutes,
                     WarningEnabled = config.Break.WarningEnabled,
                     WarningSeconds = config.Break.WarningSeconds,
-                    OverlayOpacityPercent = config.Break.OverlayOpacityPercent
+                    OverlayOpacityPercent = config.Break.OverlayOpacityPercent,
+                    RequireConfirmationAfterBreak = config.Break.RequireConfirmationAfterBreak,
+                    ResetTimersOnBreakConfirmation = config.Break.ResetTimersOnBreakConfirmation
                 } : new BreakSettings(),
                 Audio = config.Audio != null ? new AudioSettings
                 {
@@ -1304,6 +1529,8 @@ namespace EyeRest.ViewModels
                 {
                     StartWithWindows = config.Application.StartWithWindows,
                     MinimizeToTray = config.Application.MinimizeToTray,
+                    StartMinimized = config.Application.StartMinimized,
+                    ShowTrayNotifications = config.Application.ShowTrayNotifications,
                     ShowInTaskbar = config.Application.ShowInTaskbar,
                     IsDarkMode = config.Application.IsDarkMode
                 } : new ApplicationSettings(),
@@ -1340,11 +1567,15 @@ namespace EyeRest.ViewModels
                    config1.Break.WarningEnabled == config2.Break.WarningEnabled &&
                    config1.Break.WarningSeconds == config2.Break.WarningSeconds &&
                    config1.Break.OverlayOpacityPercent == config2.Break.OverlayOpacityPercent &&
+                   config1.Break.RequireConfirmationAfterBreak == config2.Break.RequireConfirmationAfterBreak &&
+                   config1.Break.ResetTimersOnBreakConfirmation == config2.Break.ResetTimersOnBreakConfirmation &&
                    config1.Audio.Enabled == config2.Audio.Enabled &&
                    config1.Audio.Volume == config2.Audio.Volume &&
                    config1.Audio.CustomSoundPath == config2.Audio.CustomSoundPath &&
                    config1.Application.StartWithWindows == config2.Application.StartWithWindows &&
                    config1.Application.MinimizeToTray == config2.Application.MinimizeToTray &&
+                   config1.Application.StartMinimized == config2.Application.StartMinimized &&
+                   config1.Application.ShowTrayNotifications == config2.Application.ShowTrayNotifications &&
                    config1.Application.ShowInTaskbar == config2.Application.ShowInTaskbar &&
                    config1.Application.IsDarkMode == config2.Application.IsDarkMode &&
                    config1.Analytics.AutoOpenDashboard == config2.Analytics.AutoOpenDashboard;
@@ -1361,9 +1592,9 @@ namespace EyeRest.ViewModels
         {
             try
             {
-                _logger.LogInformation("DEBUG: TestWarningPopup called - manually testing warning popup");
-                await _notificationService.ShowEyeRestWarningAsync(TimeSpan.FromSeconds(10));
-                _logger.LogInformation("DEBUG: TestWarningPopup completed successfully");
+                _logger.LogInformation("🧪 DEBUG: TestWarningPopup called - manually testing warning popup (analytics disabled)");
+                await _notificationService.ShowEyeRestWarningTestAsync(TimeSpan.FromSeconds(10));
+                _logger.LogInformation("🧪 DEBUG: TestWarningPopup completed successfully");
             }
             catch (Exception ex)
             {
@@ -1381,9 +1612,9 @@ namespace EyeRest.ViewModels
             try
             {
                 var testDuration = TimeSpan.FromSeconds(EyeRestDurationSeconds);
-                _logger.LogInformation($"DEBUG: TestEyeRestPopup called - testing with {testDuration.TotalSeconds}s duration from configuration");
-                await _notificationService.ShowEyeRestReminderAsync(testDuration);
-                _logger.LogInformation("DEBUG: TestEyeRestPopup completed successfully");
+                _logger.LogInformation($"🧪 DEBUG: TestEyeRestPopup called - testing with {testDuration.TotalSeconds}s duration from configuration (analytics disabled)");
+                await _notificationService.ShowEyeRestReminderTestAsync(testDuration);
+                _logger.LogInformation("🧪 DEBUG: TestEyeRestPopup completed successfully");
             }
             catch (Exception ex)
             {
@@ -1398,9 +1629,9 @@ namespace EyeRest.ViewModels
         {
             try
             {
-                _logger.LogInformation("DEBUG: TestBreakWarningPopup called - manually testing break warning popup");
-                await _notificationService.ShowBreakWarningAsync(TimeSpan.FromSeconds(30));
-                _logger.LogInformation("DEBUG: TestBreakWarningPopup completed successfully");
+                _logger.LogInformation("🧪 DEBUG: TestBreakWarningPopup called - manually testing break warning popup (analytics disabled)");
+                await _notificationService.ShowBreakWarningTestAsync(TimeSpan.FromSeconds(30));
+                _logger.LogInformation("🧪 DEBUG: TestBreakWarningPopup completed successfully");
             }
             catch (Exception ex)
             {
@@ -1415,11 +1646,11 @@ namespace EyeRest.ViewModels
         {
             try
             {
-                _logger.LogInformation("DEBUG: TestBreakPopup called - manually testing break popup");
+                _logger.LogInformation("🧪 DEBUG: TestBreakPopup called - manually testing break popup (analytics disabled)");
                 var progress = new Progress<double>();
                 var breakDuration = TimeSpan.FromMinutes(BreakDurationMinutes);
-                await _notificationService.ShowBreakReminderAsync(breakDuration, progress);
-                _logger.LogInformation("DEBUG: TestBreakPopup completed successfully");
+                var result = await _notificationService.ShowBreakReminderTestAsync(breakDuration, progress);
+                _logger.LogInformation($"🧪 DEBUG: TestBreakPopup completed successfully with result: {result}");
             }
             catch (Exception ex)
             {
@@ -1923,6 +2154,76 @@ namespace EyeRest.ViewModels
         }
 
         /// <summary>
+        /// Auto-save start minimized setting immediately
+        /// </summary>
+        private async Task SaveStartMinimizedAsync(bool startMinimized)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveStartMinimizedAsync called with value: {startMinimized}");
+                
+                _configuration.Application.StartMinimized = startMinimized;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                _originalConfiguration.Application.StartMinimized = startMinimized;
+                
+                _logger.LogInformation($"Auto-saved start minimized: {startMinimized}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save start minimized setting");
+            }
+        }
+
+        /// <summary>
+        /// Auto-save show tray notifications setting immediately
+        /// </summary>
+        private async Task SaveShowTrayNotificationsAsync(bool showTrayNotifications)
+        {
+            try
+            {
+                _logger.LogInformation($"SaveShowTrayNotificationsAsync called with value: {showTrayNotifications}");
+                
+                _configuration.Application.ShowTrayNotifications = showTrayNotifications;
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                _originalConfiguration.Application.ShowTrayNotifications = showTrayNotifications;
+                
+                _logger.LogInformation($"Auto-saved show tray notifications: {showTrayNotifications}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-save show tray notifications setting");
+            }
+        }
+
+        /// <summary>
+        /// Initialize the debounce timer for graceful timer restarts
+        /// </summary>
+        private void InitializeDebounceTimer()
+        {
+            _settingsDebounceTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(SETTINGS_DEBOUNCE_DELAY_MS)
+            };
+            _settingsDebounceTimer.Tick += async (sender, e) =>
+            {
+                _settingsDebounceTimer.Stop();
+                await SaveTimerSettingAsync();
+                _logger.LogInformation("🔧 Debounced timer restart completed after user finished editing");
+            };
+        }
+
+        /// <summary>
+        /// Debounced timer settings save - waits for user to finish editing before restarting timers
+        /// </summary>
+        private void DebouncedSaveTimerSetting()
+        {
+            // Reset the timer - this delays the actual save until user stops typing
+            _settingsDebounceTimer.Stop();
+            _settingsDebounceTimer.Start();
+            _logger.LogInformation("🔧 Settings changed - debouncing timer restart...");
+        }
+
+        /// <summary>
         /// Auto-save timer settings immediately using TimerConfigurationService
         /// </summary>
         private async Task SaveTimerSettingAsync()
@@ -1985,6 +2286,38 @@ namespace EyeRest.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to auto-save custom sound path");
+            }
+        }
+
+        #endregion
+
+        #region IDisposable Implementation
+
+        private bool _disposed = false;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Clean up the debounce timer
+                    _settingsDebounceTimer?.Stop();
+                    _settingsDebounceTimer = null;
+
+                    // Unsubscribe from timer service events
+                    if (_timerService != null)
+                    {
+                        _timerService.PropertyChanged -= OnTimerServicePropertyChanged;
+                    }
+                }
+                _disposed = true;
             }
         }
 

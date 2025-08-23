@@ -4,10 +4,12 @@
         xmlns:converters="clr-namespace:EyeRest.Converters"
         xmlns:local="clr-namespace:EyeRest.Views"
         Title="{Binding WindowTitle}" 
-        Height="810" 
+        Height="950" 
         Width="600"
+        MinHeight="920"
+        MaxHeight="1100"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanMinimize"
+        ResizeMode="CanResizeWithGrip"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextPrimaryBrush}">
     <Window.Resources>
@@ -17,9 +19,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" MinHeight="120"/>
+            <RowDefinition Height="Auto" MinHeight="40"/>
+            <RowDefinition Height="Auto" MinHeight="50"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -99,8 +101,7 @@
         </Grid>
 
         <!-- Tabbed Settings Content -->
-        <!-- Tabbed Settings Content -->
-        <TabControl Grid.Row="1" Margin="0,0,0,15" SelectedIndex="{Binding SelectedTabIndex}">
+        <TabControl Grid.Row="1" Margin="0,0,0,10" SelectedIndex="{Binding SelectedTabIndex}">
             
             <!-- Eye Rest Tab -->
             <TabItem Header="👁️ Eye Rest" FontSize="14">
@@ -254,6 +255,44 @@
                             </StackPanel>
                         </GroupBox>
 
+                        <!-- Break Completion Settings -->
+                        <GroupBox Header="Break Completion Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="Configure what happens when your break timer completes:"
+                                           TextWrapping="Wrap" 
+                                           Margin="0,0,0,15"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                
+                                <CheckBox Content="Keep break popup open until confirmed"
+                                          IsChecked="{Binding RequireConfirmationAfterBreak}"
+                                          Margin="0,0,0,10">
+                                    <CheckBox.ToolTip>
+                                        <TextBlock Text="Useful when you step away from your PC during breaks. The popup will wait for you to return and click 'Done'."
+                                                   TextWrapping="Wrap"
+                                                   MaxWidth="300"/>
+                                    </CheckBox.ToolTip>
+                                </CheckBox>
+                                
+                                <CheckBox Content="Start fresh session after break confirmation"
+                                          IsChecked="{Binding ResetTimersOnBreakConfirmation}"
+                                          IsEnabled="{Binding RequireConfirmationAfterBreak}"
+                                          Margin="20,0,0,10">
+                                    <CheckBox.ToolTip>
+                                        <TextBlock Text="When enabled, all timers will reset to start fresh intervals after you confirm break completion. When disabled, timers resume from where they were paused."
+                                                   TextWrapping="Wrap"
+                                                   MaxWidth="350"/>
+                                    </CheckBox.ToolTip>
+                                </CheckBox>
+                                
+                                <TextBlock Text="💡 Tip: Enable both options for the best experience when taking actual breaks away from your computer."
+                                           FontSize="12"
+                                           FontStyle="Italic"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </GroupBox>
+
                         <!-- Test Controls -->
                         <GroupBox Header="Test Controls" Padding="15">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
@@ -274,77 +313,12 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Other Settings Tab -->
-            <TabItem Header="⚙️ Other Settings" FontSize="14">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
-                    <StackPanel>
-                        <!-- Audio Settings -->
-                        <GroupBox Header="Audio Settings" Margin="0,0,0,15" Padding="15">
-                            <StackPanel>
-                                <CheckBox Content="Enable audio notifications" 
-                                          IsChecked="{Binding AudioEnabled}" 
-                                          Margin="0,0,0,15"/>
-
-                                <StackPanel IsEnabled="{Binding AudioEnabled}">
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                                        <TextBlock Text="Volume:" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                                        <Slider Value="{Binding AudioVolume}" 
-                                                Minimum="0" 
-                                                Maximum="100" 
-                                                Width="250" 
-                                                TickFrequency="10" 
-                                                IsSnapToTickEnabled="True"/>
-                                        <TextBlock Text="{Binding AudioVolume}" 
-                                                   VerticalAlignment="Center" 
-                                                   Margin="15,0,0,0" 
-                                                   Width="30"/>
-                                    </StackPanel>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Custom sound:" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                                        <TextBox Text="{Binding CustomSoundPath}" Width="200" Margin="0,0,10,0" 
-                                                 ToolTip="Full path to custom audio file"/>
-                                        <Button Content="Browse..." 
-                                                Command="{Binding BrowseCustomAudioCommand}"
-                                                Width="80" 
-                                                Margin="0,0,10,0"
-                                                ToolTip="Browse for custom audio file (WAV, MP3, WMA)"/>
-                                        <Button Content="🔊 Test" 
-                                                Command="{Binding TestCustomAudioCommand}"
-                                                Width="80" 
-                                                Style="{DynamicResource SuccessButtonStyle}"
-                                                ToolTip="Test play the selected custom audio file"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-                        </GroupBox>
-
-                        <!-- Application Settings -->
-                        <GroupBox Header="Application Settings" Padding="15">
-                            <StackPanel>
-                                <CheckBox Content="Start with Windows" 
-                                          IsChecked="{Binding StartWithWindows}" 
-                                          Margin="0,0,0,10"/>
-
-                                <CheckBox Content="Minimize to system tray" 
-                                          IsChecked="{Binding MinimizeToTray}" 
-                                          Margin="0,0,0,10"/>
-
-                                <CheckBox Content="Show in taskbar" 
-                                          IsChecked="{Binding ShowInTaskbar}" 
-                                          Margin="0,0,0,10"/>
-                            </StackPanel>
-                        </GroupBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
             <!-- Advanced Settings Tab -->
             <TabItem Header="🔧 Advanced" FontSize="14">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
                     <StackPanel>
-                        <!-- Meeting Detection Settings -->
-                        <GroupBox Header="Meeting Detection Settings" Margin="0,0,0,15" Padding="15">
+                        <!-- Meeting Detection Settings - DISABLED: Not working reliably, needs improvement and testing in future -->
+                        <GroupBox Header="Meeting Detection Settings" Margin="0,0,0,15" Padding="15" Visibility="Collapsed">
                             <StackPanel>
                                 <TextBlock Text="Choose how the application detects when you're in meetings to automatically pause break timers:" 
                                            TextWrapping="Wrap" 
@@ -466,23 +440,94 @@
                                 </StackPanel>
                             </StackPanel>
                         </GroupBox>
-                        
-                        <!-- Test Controls -->
-                        <GroupBox Header="Test Advanced Features" Padding="15">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                <Button Content="Test Meeting Detection" 
-                                        Command="{Binding TestMeetingDetectionCommand}" 
-                                        Style="{DynamicResource InfoButtonStyle}"
-                                        Width="150"
-                                        Margin="0,0,10,0"
-                                        ToolTip="Test the current meeting detection method"/>
+
+                        <!-- Audio Settings -->
+                        <GroupBox Header="Audio Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="Configure sound notifications for eye rest and break reminders:" 
+                                           TextWrapping="Wrap" 
+                                           Margin="0,0,0,15"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 
-                                <Button Content="Switch Detection Method" 
-                                        Command="{Binding SwitchDetectionMethodCommand}" 
-                                        Style="{DynamicResource AccentButtonStyle}"
-                                        Width="150"
-                                        Margin="0"
-                                        ToolTip="Apply the selected detection method immediately"/>
+                                <CheckBox Content="Enable audio notifications" 
+                                          IsChecked="{Binding AudioEnabled}" 
+                                          Margin="0,0,0,10"/>
+                                
+                                <StackPanel IsEnabled="{Binding AudioEnabled}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="Volume:" VerticalAlignment="Center" Width="100"/>
+                                        <Slider Value="{Binding AudioVolume}" 
+                                                Minimum="0" 
+                                                Maximum="100" 
+                                                Width="200" 
+                                                TickFrequency="10" 
+                                                IsSnapToTickEnabled="True"
+                                                Margin="10,0"/>
+                                        <TextBlock Text="{Binding AudioVolume}" 
+                                                   VerticalAlignment="Center" 
+                                                   Margin="15,0,5,0" 
+                                                   Width="30"/>
+                                        <TextBlock Text="%" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Custom Audio Selection -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+                                        <TextBlock Text="Custom Audio:" VerticalAlignment="Center" Width="100"/>
+                                        <TextBox Text="{Binding CustomSoundPath}" 
+                                                 IsReadOnly="True"
+                                                 Width="200" 
+                                                 Margin="10,0"
+                                                 VerticalAlignment="Center"
+                                                 Background="{DynamicResource BackgroundLightBrush}"
+                                                 ToolTip="Path to custom audio file"/>
+                                        <Button Content="📁 Browse" 
+                                                Command="{Binding BrowseCustomAudioCommand}" 
+                                                Style="{DynamicResource InfoButtonStyle}"
+                                                Width="80"
+                                                Height="25"
+                                                Margin="5,0"
+                                                ToolTip="Select custom audio file (.wav, .mp3, .wma)"/>
+                                    </StackPanel>
+                                    
+                                    <Button Content="🔊 Test Audio" 
+                                            Command="{Binding TestCustomAudioCommand}" 
+                                            Style="{DynamicResource InfoButtonStyle}"
+                                            Width="120"
+                                            Height="30"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,5,0,0"
+                                            ToolTip="Test the selected audio file"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Application Settings -->
+                        <GroupBox Header="Application Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="Configure application behavior and startup options:" 
+                                           TextWrapping="Wrap" 
+                                           Margin="0,0,0,15"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                
+                                <CheckBox Content="Start with Windows" 
+                                          IsChecked="{Binding StartWithWindows}" 
+                                          Margin="0,0,0,10"
+                                          ToolTip="Automatically start the application when Windows starts"/>
+                                
+                                <CheckBox Content="Start minimized to system tray" 
+                                          IsChecked="{Binding StartMinimized}" 
+                                          Margin="0,0,0,10"
+                                          ToolTip="Start the application minimized to the system tray"/>
+                                
+                                <CheckBox Content="Minimize to tray instead of closing" 
+                                          IsChecked="{Binding MinimizeToTray}" 
+                                          Margin="0,0,0,10"
+                                          ToolTip="Minimize to system tray when closing the main window"/>
+                                
+                                <CheckBox Content="Show tray notifications" 
+                                          IsChecked="{Binding ShowTrayNotifications}" 
+                                          Margin="0,0,0,10"
+                                          ToolTip="Show balloon tip notifications in the system tray"/>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
@@ -530,28 +575,66 @@
             </TabItem>
         </TabControl>
 
-        <!-- Timer Controls -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
-            <Button Content="Start Timers" 
-                    Command="{Binding StartTimersCommand}" 
-                    Style="{DynamicResource AccentButtonStyle}"
-                    Width="120"
-                    Height="35"
-                    Margin="10,0"/>
+        <!-- Timer Controls - Organized in 3 Lines -->
+        <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,15,0,10">
             
-            <Button Content="Stop Timers" 
-                    Command="{Binding StopTimersCommand}" 
-                    Style="{DynamicResource ErrorButtonStyle}"
-                    Width="120"
-                    Height="35"
-                    Margin="10,0"/>
+            <!-- Line 1: Primary Controls -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                <Button Content="Start Timers" 
+                        Command="{Binding StartTimersCommand}" 
+                        Style="{DynamicResource AccentButtonStyle}"
+                        Width="130"
+                        Height="35"
+                        Margin="8,0"/>
+                
+                <Button Content="Stop Timers" 
+                        Command="{Binding StopTimersCommand}" 
+                        Style="{DynamicResource ErrorButtonStyle}"
+                        Width="130"
+                        Height="35"
+                        Margin="8,0"/>
+            </StackPanel>
+            
+            <!-- Line 2: Pause/Resume Controls -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                <Button Content="⏸️ Pause" 
+                        Command="{Binding PauseTimersCommand}" 
+                        Style="{DynamicResource WarningButtonStyle}"
+                        Width="130"
+                        Height="35"
+                        Margin="8,0"
+                        IsEnabled="{Binding CanPauseTimers}"
+                        ToolTip="Pause timers manually (can be resumed anytime)"/>
+                
+                <Button Content="▶️ Resume" 
+                        Command="{Binding ResumeTimersCommand}" 
+                        Style="{DynamicResource SuccessButtonStyle}"
+                        Width="130"
+                        Height="35"
+                        Margin="8,0"
+                        IsEnabled="{Binding CanResumeTimers}"
+                        ToolTip="Resume paused timers"/>
+            </StackPanel>
+            
+            <!-- Line 3: Meeting Control -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="🎥 Meeting (30m)" 
+                        Command="{Binding PauseForMeetingCommand}" 
+                        Style="{DynamicResource InfoButtonStyle}"
+                        Width="160"
+                        Height="35"
+                        Margin="8,0"
+                        IsEnabled="{Binding CanPauseMeeting}"
+                        ToolTip="Pause timers for 30 minutes for meetings (auto-resumes)"/>
+            </StackPanel>
+            
         </StackPanel>
 
         <!-- Error Message -->
         <StackPanel Grid.Row="3" 
                     Orientation="Vertical" 
                     HorizontalAlignment="Center" 
-                    Margin="0,10,0,10"
+                    Margin="0,5,0,5"
                     Visibility="{Binding HasValidationErrors, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Border Style="{DynamicResource ErrorBorderStyle}"
                     MaxWidth="600">
@@ -567,7 +650,7 @@
         </StackPanel>
 
         <!-- Action Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,15">
             <Button Content="Save" 
                     Command="{Binding SaveCommand}" 
                     Style="{DynamicResource PrimaryButtonStyle}"

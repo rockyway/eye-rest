@@ -13,11 +13,15 @@ namespace EyeRest.Services
         bool IsRunning { get; }
         bool IsPaused { get; }
         bool IsSmartPaused { get; }
+        bool IsManuallyPaused { get; } // NEW: Manual pause (e.g., for meetings)
         TimeSpan TimeUntilNextEyeRest { get; }
         TimeSpan TimeUntilNextBreak { get; }
         string NextEventDescription { get; }
         bool IsBreakDelayed { get; }
         TimeSpan DelayRemaining { get; }
+        TimeSpan? ManualPauseRemaining { get; } // NEW: Remaining manual pause time
+        string? PauseReason { get; } // NEW: Reason for current pause
+        bool IsAnyNotificationActive { get; } // NEW: Check if either notification is active
         
         Task StartAsync();
         Task StopAsync();
@@ -25,6 +29,8 @@ namespace EyeRest.Services
         Task ResumeAsync();
         Task SmartPauseAsync(string reason);
         Task SmartResumeAsync();
+        Task SmartSessionResetAsync(string reason); // NEW: Reset timers for fresh working session
+        Task PauseForDurationAsync(TimeSpan duration, string reason); // NEW: Manual pause for specific duration
         Task ResetEyeRestTimer();
         Task ResetBreakTimer();
         Task DelayBreak(TimeSpan delay);
@@ -37,6 +43,12 @@ namespace EyeRest.Services
         // Methods for NotificationService to start countdown timers after popup creation
         void StartEyeRestWarningTimer();
         void StartBreakWarningTimer();
+        
+        // Smart coordination methods
+        void SmartResumeBreakTimerAfterEyeRest();
+        
+        // Power management methods
+        Task RecoverFromSystemResumeAsync(string reason); // NEW: Recover timers after system resume from standby/hibernate
     }
 
     public class TimerEventArgs : EventArgs

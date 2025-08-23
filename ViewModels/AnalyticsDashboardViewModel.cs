@@ -42,6 +42,7 @@ namespace EyeRest.ViewModels
         private ObservableCollection<ChartDataPoint> _breakPatternData = new();
         private ObservableCollection<ChartDataPoint> _weeklyTrendData = new();
         private ObservableCollection<ChartDataPoint> _timeOfDayData = new();
+        private string _totalBreaksText = "No Data";
         
         // Daily, Weekly, Monthly Metrics Properties
         private ObservableCollection<DailyMetricViewModel> _dailyMetrics = new();
@@ -259,6 +260,12 @@ namespace EyeRest.ViewModels
         {
             get => _monthlyMetrics;
             set => SetProperty(ref _monthlyMetrics, value);
+        }
+
+        public string TotalBreaksText
+        {
+            get => _totalBreaksText;
+            set => SetProperty(ref _totalBreaksText, value);
         }
 
         public bool AllowDataExport
@@ -1007,7 +1014,7 @@ namespace EyeRest.ViewModels
             {
                 // Generate compliance trend chart data
                 ComplianceChartData.Clear();
-                if (healthMetrics.DailyBreakdown != null)
+                if (healthMetrics.DailyBreakdown != null && healthMetrics.DailyBreakdown.Count > 0)
                 {
                     for (int i = 0; i < healthMetrics.DailyBreakdown.Count; i++)
                     {
@@ -1021,12 +1028,57 @@ namespace EyeRest.ViewModels
                         });
                     }
                 }
+                else
+                {
+                    // Generate demo compliance data for the selected period
+                    var demoStartDate = SelectedStartDate;
+                    var demoDays = Math.Min((SelectedEndDate - SelectedStartDate).Days, 14); // Max 14 days of demo data
+                    
+                    for (int i = 0; i < demoDays; i++)
+                    {
+                        var date = demoStartDate.AddDays(i);
+                        // Generate realistic demo compliance rates (70-95%)
+                        var random = new Random(date.DayOfYear); // Consistent demo data
+                        var compliance = 70 + (random.NextDouble() * 25); // 70-95% range
+                        
+                        ComplianceChartData.Add(new ChartDataPoint
+                        {
+                            X = i,
+                            Y = compliance,
+                            Label = date.ToString("MM/dd"),
+                            Category = "Demo"
+                        });
+                    }
+                    
+                    _logger.LogInformation($"📊 No daily breakdown data found - showing {demoDays} days of demo compliance data");
+                }
 
                 // Generate break pattern data (pie chart data)
                 BreakPatternData.Clear();
-                BreakPatternData.Add(new ChartDataPoint { Y = TotalBreaksCompleted, Label = "Completed", Category = "Completed" });
-                BreakPatternData.Add(new ChartDataPoint { Y = TotalBreaksSkipped, Label = "Skipped", Category = "Skipped" });
-                BreakPatternData.Add(new ChartDataPoint { Y = healthMetrics.BreaksDelayed, Label = "Delayed", Category = "Delayed" });
+                
+                // Always show some data for visualization, even if no breaks recorded yet
+                var completed = Math.Max(TotalBreaksCompleted, 0);
+                var skipped = Math.Max(TotalBreaksSkipped, 0);
+                var delayed = Math.Max(healthMetrics.BreaksDelayed, 0);
+                
+                // Calculate totals and generate pie chart data
+                var total = completed + skipped + delayed;
+                
+                // If no data exists, show sample data for demo purposes
+                if (completed == 0 && skipped == 0 && delayed == 0)
+                {
+                    completed = 15; skipped = 3; delayed = 2;
+                    total = 20;
+                    TotalBreaksText = "20 Demo Breaks";
+                    
+                    GeneratePieChartData(completed, skipped, delayed, total, isDemo: true);
+                    _logger.LogInformation("📊 No break data found - showing demo data in analytics charts");
+                }
+                else
+                {
+                    TotalBreaksText = $"{total} Total Breaks";
+                    GeneratePieChartData(completed, skipped, delayed, total, isDemo: false);
+                }
 
                 // Generate weekly trend data
                 WeeklyTrendData.Clear();
@@ -1300,6 +1352,68 @@ namespace EyeRest.ViewModels
             return true;
         }
 
+        private void GeneratePieChartData(int completed, int skipped, int delayed, int total, bool isDemo)
+        {
+            if (total == 0) return;
+
+            var colors = new[] { "#4CAF50", "#F44336", "#FFC107" }; // Green, Red, Amber
+            var values = new[] { completed, skipped, delayed };
+            var labels = isDemo ? 
+                new[] { "Completed (Demo)", "Skipped (Demo)", "Delayed (Demo)" } :
+                new[] { "Completed", "Skipped", "Delayed" };
+            var categories = new[] { "Completed", "Skipped", "Delayed" };
+
+            double startAngle = -90; // Start from top
+            double currentAngle = startAngle;
+
+            for (int i = 0; i < values.Length; i++)
+            {
+                if (values[i] == 0) continue;
+
+                double percentage = (double)values[i] / total;
+                double sweepAngle = percentage * 360;
+                
+                var dataPoint = new ChartDataPoint
+                {
+                    Y = values[i],
+                    Label = labels[i],
+                    Category = categories[i],
+                    Color = colors[i],
+                    Tooltip = $"{labels[i]}: {values[i]} ({percentage:P0})",
+                    PathData = GenerateArcPathData(60, 60, 50, currentAngle, sweepAngle) // Center X, Y, Radius, Start, Sweep
+                };
+
+                BreakPatternData.Add(dataPoint);
+                currentAngle += sweepAngle;
+            }
+        }
+
+        private string GenerateArcPathData(double centerX, double centerY, double radius, double startAngle, double sweepAngle)
+        {
+            // Convert angles from degrees to radians
+            double startRad = startAngle * Math.PI / 180;
+            double endRad = (startAngle + sweepAngle) * Math.PI / 180;
+
+            // Calculate arc points
+            double startX = centerX + radius * Math.Cos(startRad);
+            double startY = centerY + radius * Math.Sin(startRad);
+            double endX = centerX + radius * Math.Cos(endRad);
+            double endY = centerY + radius * Math.Sin(endRad);
+
+            // Large arc flag (1 if sweep angle > 180°)
+            int largeArcFlag = sweepAngle > 180 ? 1 : 0;
+
+            // Create SVG path data for pie slice
+            if (sweepAngle >= 360) // Full circle
+            {
+                return $"M {centerX - radius},{centerY} A {radius},{radius} 0 1,1 {centerX + radius},{centerY} A {radius},{radius} 0 1,1 {centerX - radius},{centerY} Z";
+            }
+            else
+            {
+                return $"M {centerX},{centerY} L {startX:F2},{startY:F2} A {radius},{radius} 0 {largeArcFlag},1 {endX:F2},{endY:F2} Z";
+            }
+        }
+
         #endregion
     }
 
@@ -1311,6 +1425,9 @@ namespace EyeRest.ViewModels
         public double Y { get; set; }
         public string Label { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+        public string PathData { get; set; } = string.Empty;
+        public string Tooltip { get; set; } = string.Empty;
     }
 
     public class DailyMetricViewModel

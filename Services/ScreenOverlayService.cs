@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -181,12 +183,12 @@ namespace EyeRest.Services
         {
             _screenIndex = screenIndex;
             
-            // Window properties for full-screen overlay
+            // Window properties for full-screen overlay with popup cutout
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Normal;
             AllowsTransparency = true;
-            Background = new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0));
-            Topmost = true;
+            Background = Brushes.Transparent; // Transparent to allow custom content
+            Topmost = false; // Set to false so popup can appear on top
             ShowInTaskbar = false;
             ResizeMode = ResizeMode.NoResize;
             
@@ -195,6 +197,9 @@ namespace EyeRest.Services
             Top = screen.Bounds.Y;
             Width = screen.Bounds.Width;
             Height = screen.Bounds.Height;
+            
+            // Create custom content with cutout for break popup (only on primary screen)
+            CreateOverlayWithCutout(screen, opacity, screenIndex);
             
             // Handle click to close
             MouseDown += (s, e) =>
@@ -233,6 +238,92 @@ namespace EyeRest.Services
                     System.Diagnostics.Debug.WriteLine($"Warning: Failed to force overlay activation: {ex.Message}");
                 }
             };
+        }
+
+        private void CreateOverlayWithCutout(Screen screen, double opacity, int screenIndex)
+        {
+            var canvas = new Canvas();
+            
+            // Determine if this screen should have a cutout for the break popup
+            // Break popup appears on primary screen only, positioned in top-right corner
+            var primaryScreen = Screen.PrimaryScreen;
+            var shouldHaveCutout = screen.Equals(primaryScreen);
+            
+            if (shouldHaveCutout)
+            {
+                // Calculate cutout based on actual BasePopupWindow.PositionWindow() logic
+                // Popup dimensions (from BreakPopup.xaml): MaxWidth="900" MaxHeight="750"
+                var popupMaxWidth = 900.0;
+                var popupMaxHeight = 750.0;
+                
+                // Replicate BasePopupWindow positioning logic
+                var actualWidth = Math.Max(350, Math.Min(popupMaxWidth, popupMaxWidth)); // Assume max size for cutout
+                var actualHeight = Math.Max(200, Math.Min(750, popupMaxHeight));
+                
+                // Position calculation from BasePopupWindow.PositionWindow()
+                var cutoutLeft = Math.Max(0, screen.Bounds.Width - actualWidth - 50);
+                var cutoutTop = 50;
+                
+                // Add some padding around the cutout area
+                var cutoutPadding = 20;
+                cutoutLeft = Math.Max(0, cutoutLeft - cutoutPadding);
+                cutoutTop = Math.Max(0, cutoutTop - cutoutPadding);
+                var cutoutWidth = actualWidth + (cutoutPadding * 2);
+                var cutoutHeight = actualHeight + (cutoutPadding * 2);
+                
+                // Ensure cutout stays within screen bounds
+                if (cutoutLeft + cutoutWidth > screen.Bounds.Width)
+                    cutoutWidth = screen.Bounds.Width - cutoutLeft;
+                if (cutoutTop + cutoutHeight > screen.Bounds.Height)
+                    cutoutHeight = screen.Bounds.Height - cutoutTop;
+                
+                // Create 4 rectangles around the cutout area
+                // Top rectangle (above cutout)
+                if (cutoutTop > 0)
+                    canvas.Children.Add(CreateOverlayRectangle(opacity, 0, 0, screen.Bounds.Width, cutoutTop));
+                
+                // Left rectangle (left of cutout)
+                if (cutoutLeft > 0)
+                    canvas.Children.Add(CreateOverlayRectangle(opacity, 0, cutoutTop, cutoutLeft, cutoutHeight));
+                
+                // Right rectangle (right of cutout)
+                var rightStart = cutoutLeft + cutoutWidth;
+                if (rightStart < screen.Bounds.Width)
+                    canvas.Children.Add(CreateOverlayRectangle(opacity, rightStart, cutoutTop, screen.Bounds.Width - rightStart, cutoutHeight));
+                
+                // Bottom rectangle (below cutout)
+                var bottomStart = cutoutTop + cutoutHeight;
+                if (bottomStart < screen.Bounds.Height)
+                    canvas.Children.Add(CreateOverlayRectangle(opacity, 0, bottomStart, screen.Bounds.Width, screen.Bounds.Height - bottomStart));
+            }
+            else
+            {
+                // Non-primary screens get full overlay (no cutout)
+                canvas.Children.Add(CreateOverlayRectangle(opacity, 0, 0, screen.Bounds.Width, screen.Bounds.Height));
+            }
+            
+            Content = canvas;
+        }
+
+        private Rectangle CreateOverlayRectangle(double opacity, double left, double top, double width, double height)
+        {
+            var rectangle = new Rectangle
+            {
+                Fill = new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0)),
+                Width = width,
+                Height = height
+            };
+            
+            Canvas.SetLeft(rectangle, left);
+            Canvas.SetTop(rectangle, top);
+            
+            // Handle click on this rectangle to close overlay
+            rectangle.MouseDown += (s, e) =>
+            {
+                OverlayClicked?.Invoke(this, _screenIndex);
+            };
+            
+            return rectangle;
         }
         
         #region Win32 API for forcing overlay to foreground

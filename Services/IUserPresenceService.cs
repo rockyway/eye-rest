@@ -6,13 +6,18 @@ namespace EyeRest.Services
     public interface IUserPresenceService : IDisposable
     {
         event EventHandler<UserPresenceEventArgs> UserPresenceChanged;
+        event EventHandler<ExtendedAwayEventArgs> ExtendedAwaySessionDetected; // NEW: For smart session reset
         
         bool IsUserPresent { get; }
         TimeSpan IdleTime { get; }
         UserPresenceState CurrentState { get; }
+        TimeSpan TotalAwayTime { get; } // NEW: Track total time away
         
         Task StartMonitoringAsync();
         Task StopMonitoringAsync();
+        
+        // NEW: Timer recovery integration
+        void SetTimerService(ITimerService timerService);
     }
 
     public class UserPresenceEventArgs : EventArgs
@@ -21,6 +26,14 @@ namespace EyeRest.Services
         public UserPresenceState CurrentState { get; set; }
         public DateTime StateChangedAt { get; set; }
         public TimeSpan IdleDuration { get; set; }
+    }
+
+    public class ExtendedAwayEventArgs : EventArgs
+    {
+        public TimeSpan TotalAwayTime { get; set; }
+        public DateTime AwayStartTime { get; set; }
+        public DateTime ReturnTime { get; set; }
+        public UserPresenceState AwayState { get; set; } // Away, SystemSleep, etc.
     }
 
     public enum UserPresenceState

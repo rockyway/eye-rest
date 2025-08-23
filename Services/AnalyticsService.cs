@@ -21,6 +21,14 @@ namespace EyeRest.Services
         
         private int _currentSessionId = -1;
         private DateTime _sessionStartTime;
+        
+        // ENHANCED: Session activity tracking to exclude inactive time
+        private DateTime _lastActiveTime;
+        private TimeSpan _totalActiveTimeThisSession = TimeSpan.Zero;
+        private TimeSpan _totalInactiveTimeThisSession = TimeSpan.Zero;
+        private SessionState _currentSessionState = SessionState.Active;
+        private DateTime _sessionPauseTime;
+        private readonly object _sessionLock = new object();
 
         public AnalyticsService(ILogger<AnalyticsService> logger)
         {
@@ -95,7 +103,17 @@ namespace EyeRest.Services
         {
             try
             {
-                _sessionStartTime = DateTime.Now;
+                var now = DateTime.Now;
+                
+                lock (_sessionLock)
+                {
+                    _sessionStartTime = now;
+                    _lastActiveTime = now;
+                    _totalActiveTimeThisSession = TimeSpan.Zero;
+                    _totalInactiveTimeThisSession = TimeSpan.Zero;
+                    _currentSessionState = SessionState.Active;
+                    _sessionPauseTime = default;
+                }
                 
                 lock (_dbLock)
                 {
@@ -104,16 +122,18 @@ namespace EyeRest.Services
                     
                     using var command = connection.CreateCommand();
                     command.CommandText = @"
-                        INSERT INTO UserSessions (StartTime, TotalActiveTime, IdleTime, PresenceChanges)
-                        VALUES (@startTime, 0, 0, 0);
+                        INSERT INTO UserSessions (StartTime, TotalActiveTime, IdleTime, InactiveTime, PresenceChanges, SessionState, LastActiveTime)
+                        VALUES (@startTime, 0, 0, 0, 0, @sessionState, @lastActiveTime);
                         SELECT last_insert_rowid();";
                     
                     command.Parameters.AddWithValue("@startTime", _sessionStartTime);
+                    command.Parameters.AddWithValue("@sessionState", _currentSessionState.ToString());
+                    command.Parameters.AddWithValue("@lastActiveTime", _lastActiveTime);
                     
                     _currentSessionId = Convert.ToInt32(command.ExecuteScalar());
                 }
                 
-                _logger.LogInformation($"📊 Session started - ID: {_currentSessionId}");
+                _logger.LogInformation($"📊 Enhanced session started - ID: {_currentSessionId}, State: {_currentSessionState}");
                 await Task.CompletedTask;
             }
             catch (Exception ex)
@@ -128,7 +148,19 @@ namespace EyeRest.Services
             {
                 if (_currentSessionId == -1) return;
                 
-                var sessionDuration = DateTime.Now - _sessionStartTime;
+                var now = DateTime.Now;
+                var sessionDuration = now - _sessionStartTime;
+                
+                // Finalize active time calculation if session is currently active
+                lock (_sessionLock)
+                {
+                    if (_currentSessionState == SessionState.Active)
+                    {
+                        var activeTime = now - _lastActiveTime;
+                        _totalActiveTimeThisSession = _totalActiveTimeThisSession.Add(activeTime);
+                        _logger.LogDebug($"📊 Final active period: {activeTime.TotalMinutes:F1} minutes");
+                    }
+                }
                 
                 lock (_dbLock)
                 {
@@ -139,17 +171,21 @@ namespace EyeRest.Services
                     command.CommandText = @"
                         UPDATE UserSessions 
                         SET EndTime = @endTime,
-                            TotalActiveTime = @duration
+                            TotalActiveTime = @totalActiveTime,
+                            InactiveTime = @inactiveTime,
+                            SessionState = @sessionState
                         WHERE Id = @sessionId";
                     
-                    command.Parameters.AddWithValue("@endTime", DateTime.Now);
-                    command.Parameters.AddWithValue("@duration", (int)sessionDuration.TotalMilliseconds);
+                    command.Parameters.AddWithValue("@endTime", now);
+                    command.Parameters.AddWithValue("@totalActiveTime", (int)_totalActiveTimeThisSession.TotalMilliseconds);
+                    command.Parameters.AddWithValue("@inactiveTime", (int)_totalInactiveTimeThisSession.TotalMilliseconds);
+                    command.Parameters.AddWithValue("@sessionState", SessionState.Ended.ToString());
                     command.Parameters.AddWithValue("@sessionId", _currentSessionId);
                     
                     command.ExecuteNonQuery();
                 }
                 
-                _logger.LogInformation($"📊 Session ended - ID: {_currentSessionId}, Duration: {sessionDuration.TotalMinutes:F1} minutes");
+                _logger.LogInformation($"📊 Enhanced session ended - ID: {_currentSessionId}, Total: {sessionDuration.TotalMinutes:F1}min, Active: {_totalActiveTimeThisSession.TotalMinutes:F1}min, Inactive: {_totalInactiveTimeThisSession.TotalMinutes:F1}min");
                 _currentSessionId = -1;
                 await Task.CompletedTask;
             }
@@ -196,6 +232,282 @@ namespace EyeRest.Services
             await RecordEyeRestEventAsync(type, action, duration);
         }
 
+        /// <summary>
+        /// NEW: Pause session activity tracking when user goes away or system sleeps
+        /// </summary>
+        public async Task PauseSessionAsync(UserPresenceState awayState, string reason = "")
+        {
+            try
+            {
+                if (_currentSessionId == -1) return;
+                
+                var now = DateTime.Now;
+                
+                lock (_sessionLock)
+                {
+                    // Only pause if currently active
+                    if (_currentSessionState != SessionState.Active) return;
+                    
+                    // Calculate and accumulate active time up to this point
+                    var activeTime = now - _lastActiveTime;
+                    _totalActiveTimeThisSession = _totalActiveTimeThisSession.Add(activeTime);
+                    
+                    // Update session state
+                    _currentSessionState = awayState switch
+                    {
+                        UserPresenceState.Away => SessionState.Away,
+                        UserPresenceState.SystemSleep => SessionState.Sleep,
+                        UserPresenceState.Idle => SessionState.Idle,
+                        _ => SessionState.Paused
+                    };
+                    
+                    _sessionPauseTime = now;
+                    
+                    _logger.LogInformation($"🔴 Session paused - ID: {_currentSessionId}, State: {_currentSessionState}, Active time this period: {activeTime.TotalMinutes:F1}min, Total active: {_totalActiveTimeThisSession.TotalMinutes:F1}min. Reason: {reason}");
+                }
+                
+                // Update database with current state
+                await UpdateSessionStateInDatabaseAsync(_currentSessionState, now);
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error pausing session");
+            }
+        }
+        
+        /// <summary>
+        /// NEW: Resume session activity tracking when user returns
+        /// </summary>
+        public async Task ResumeSessionAsync(string reason = "")
+        {
+            try
+            {
+                if (_currentSessionId == -1) return;
+                
+                var now = DateTime.Now;
+                
+                lock (_sessionLock)
+                {
+                    // Only resume if currently paused/away/asleep
+                    if (_currentSessionState == SessionState.Active) return;
+                    
+                    // Calculate inactive time
+                    if (_sessionPauseTime != default)
+                    {
+                        var inactiveTime = now - _sessionPauseTime;
+                        _totalInactiveTimeThisSession = _totalInactiveTimeThisSession.Add(inactiveTime);
+                        
+                        _logger.LogInformation($"🔵 Session resumed - ID: {_currentSessionId}, Was {_currentSessionState} for {inactiveTime.TotalMinutes:F1}min, Total inactive: {_totalInactiveTimeThisSession.TotalMinutes:F1}min. Reason: {reason}");
+                    }
+                    
+                    // Resume active tracking
+                    _currentSessionState = SessionState.Active;
+                    _lastActiveTime = now;
+                    _sessionPauseTime = default;
+                }
+                
+                // Update database with current state
+                await UpdateSessionStateInDatabaseAsync(_currentSessionState, now);
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resuming session");
+            }
+        }
+        
+        /// <summary>
+        /// NEW: Validate session activity tracking integrity
+        /// </summary>
+        public SessionActivityValidationResult ValidateSessionTracking()
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var validation = new SessionActivityValidationResult
+                {
+                    ValidationTime = now,
+                    SessionId = _currentSessionId,
+                    IsValid = true,
+                    ValidationMessages = new List<string>()
+                };
+                
+                if (_currentSessionId == -1)
+                {
+                    validation.ValidationMessages.Add("✅ No active session - validation skipped");
+                    return validation;
+                }
+                
+                var sessionDuration = now - _sessionStartTime;
+                var totalTrackedTime = _totalActiveTimeThisSession + _totalInactiveTimeThisSession;
+                
+                // Add current period to tracked time based on state
+                lock (_sessionLock)
+                {
+                    if (_currentSessionState == SessionState.Active && _lastActiveTime != default)
+                    {
+                        var currentActivePeriod = now - _lastActiveTime;
+                        totalTrackedTime = totalTrackedTime.Add(currentActivePeriod);
+                    }
+                    else if (_sessionPauseTime != default)
+                    {
+                        var currentInactivePeriod = now - _sessionPauseTime;
+                        totalTrackedTime = totalTrackedTime.Add(currentInactivePeriod);
+                    }
+                }
+                
+                // Validation checks
+                var timeDifference = Math.Abs((sessionDuration - totalTrackedTime).TotalSeconds);
+                if (timeDifference > 30) // Allow 30-second tolerance
+                {
+                    validation.IsValid = false;
+                    validation.ValidationMessages.Add($"❌ Time tracking mismatch: Session={sessionDuration.TotalMinutes:F1}min, Tracked={totalTrackedTime.TotalMinutes:F1}min, Diff={timeDifference:F1}s");
+                }
+                else
+                {
+                    validation.ValidationMessages.Add($"✅ Time tracking accurate within tolerance: {timeDifference:F1}s difference");
+                }
+                
+                // State consistency checks
+                if (_currentSessionState == SessionState.Active && _lastActiveTime == default)
+                {
+                    validation.IsValid = false;
+                    validation.ValidationMessages.Add("❌ Inconsistent state: Active session with no lastActiveTime");
+                }
+                
+                if (_currentSessionState != SessionState.Active && _sessionPauseTime == default)
+                {
+                    validation.ValidationMessages.Add($"⚠️ Warning: {_currentSessionState} state with no pauseTime (may be recent state change)");
+                }
+                
+                // Add summary
+                var activityRate = sessionDuration.TotalMinutes > 0 
+                    ? _totalActiveTimeThisSession.TotalMinutes / sessionDuration.TotalMinutes 
+                    : 0.0;
+                
+                validation.ValidationMessages.Add($"📊 Session {_currentSessionId}: {_currentSessionState} | Active: {_totalActiveTimeThisSession.TotalMinutes:F1}min ({activityRate:P0}) | Inactive: {_totalInactiveTimeThisSession.TotalMinutes:F1}min");
+                
+                return validation;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating session tracking");
+                return new SessionActivityValidationResult
+                {
+                    ValidationTime = DateTime.Now,
+                    SessionId = _currentSessionId,
+                    IsValid = false,
+                    ValidationMessages = new List<string> { $"❌ Validation error: {ex.Message}" }
+                };
+            }
+        }
+        
+        /// <summary>
+        /// NEW: Get current session activity metrics in real-time
+        /// </summary>
+        public SessionActivityMetrics GetCurrentSessionMetrics()
+        {
+            try
+            {
+                if (_currentSessionId == -1)
+                {
+                    return new SessionActivityMetrics
+                    {
+                        SessionId = -1,
+                        SessionStartTime = default,
+                        CurrentState = SessionState.Ended,
+                        TotalSessionTime = TimeSpan.Zero,
+                        ActiveTime = TimeSpan.Zero,
+                        InactiveTime = TimeSpan.Zero,
+                        ActivityRate = 0.0
+                    };
+                }
+                
+                var now = DateTime.Now;
+                var totalSessionTime = now - _sessionStartTime;
+                var currentActiveTime = _totalActiveTimeThisSession;
+                var currentInactiveTime = _totalInactiveTimeThisSession;
+                
+                lock (_sessionLock)
+                {
+                    // Add current period to totals based on state
+                    if (_currentSessionState == SessionState.Active)
+                    {
+                        var currentActivePeriod = now - _lastActiveTime;
+                        currentActiveTime = currentActiveTime.Add(currentActivePeriod);
+                    }
+                    else if (_sessionPauseTime != default)
+                    {
+                        var currentInactivePeriod = now - _sessionPauseTime;
+                        currentInactiveTime = currentInactiveTime.Add(currentInactivePeriod);
+                    }
+                }
+                
+                var activityRate = totalSessionTime.TotalMinutes > 0 
+                    ? currentActiveTime.TotalMinutes / totalSessionTime.TotalMinutes 
+                    : 0.0;
+                
+                return new SessionActivityMetrics
+                {
+                    SessionId = _currentSessionId,
+                    SessionStartTime = _sessionStartTime,
+                    CurrentState = _currentSessionState,
+                    TotalSessionTime = totalSessionTime,
+                    ActiveTime = currentActiveTime,
+                    InactiveTime = currentInactiveTime,
+                    ActivityRate = activityRate
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting current session metrics");
+                return new SessionActivityMetrics { SessionId = -1, CurrentState = SessionState.Error };
+            }
+        }
+        
+        /// <summary>
+        /// NEW: Update session state in database
+        /// </summary>
+        private async Task UpdateSessionStateInDatabaseAsync(SessionState state, DateTime timestamp)
+        {
+            try
+            {
+                if (_currentSessionId == -1) return;
+                
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+                    
+                    using var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        UPDATE UserSessions 
+                        SET SessionState = @sessionState,
+                            LastActiveTime = @lastActiveTime,
+                            TotalActiveTime = @totalActiveTime,
+                            InactiveTime = @inactiveTime
+                        WHERE Id = @sessionId";
+                    
+                    command.Parameters.AddWithValue("@sessionState", state.ToString());
+                    command.Parameters.AddWithValue("@lastActiveTime", timestamp);
+                    command.Parameters.AddWithValue("@totalActiveTime", (int)_totalActiveTimeThisSession.TotalMilliseconds);
+                    command.Parameters.AddWithValue("@inactiveTime", (int)_totalInactiveTimeThisSession.TotalMilliseconds);
+                    command.Parameters.AddWithValue("@sessionId", _currentSessionId);
+                    
+                    command.ExecuteNonQuery();
+                }
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating session state in database");
+            }
+        }
+        
         public async Task RecordPresenceChangeAsync(UserPresenceState oldState, UserPresenceState newState, TimeSpan idleDuration)
         {
             try
@@ -970,7 +1282,10 @@ namespace EyeRest.Services
                     EndTime DATETIME,
                     TotalActiveTime INTEGER DEFAULT 0,
                     IdleTime INTEGER DEFAULT 0,
-                    PresenceChanges INTEGER DEFAULT 0
+                    InactiveTime INTEGER DEFAULT 0,
+                    PresenceChanges INTEGER DEFAULT 0,
+                    SessionState TEXT DEFAULT 'Active',
+                    LastActiveTime DATETIME
                 );",
                 
                 @"CREATE TABLE IF NOT EXISTS RestEvents (
@@ -1370,5 +1685,54 @@ namespace EyeRest.Services
             var dayOfYear = date.DayOfYear;
             return (dayOfYear - 1) / 7 + 1;
         }
+    }
+    
+    /// <summary>
+    /// NEW: Session state enumeration for enhanced activity tracking
+    /// </summary>
+    public enum SessionState
+    {
+        Active,      // User is actively using the computer
+        Paused,      // Manually paused
+        Idle,        // User idle but session unlocked (>5min)
+        Away,        // Session locked or monitor off
+        Sleep,       // System in sleep/hibernate mode
+        Ended,       // Session completed
+        Error        // Error state
+    }
+    
+    /// <summary>
+    /// NEW: Real-time session activity metrics
+    /// </summary>
+    public class SessionActivityMetrics
+    {
+        public int SessionId { get; set; }
+        public DateTime SessionStartTime { get; set; }
+        public SessionState CurrentState { get; set; }
+        public TimeSpan TotalSessionTime { get; set; }
+        public TimeSpan ActiveTime { get; set; }
+        public TimeSpan InactiveTime { get; set; }
+        public double ActivityRate { get; set; } // ActiveTime / TotalSessionTime
+        
+        public string FormattedActivitySummary => 
+            $"Session {SessionId}: {CurrentState} | " +
+            $"Total: {TotalSessionTime.TotalMinutes:F1}min | " +
+            $"Active: {ActiveTime.TotalMinutes:F1}min ({ActivityRate:P0}) | " +
+            $"Inactive: {InactiveTime.TotalMinutes:F1}min";
+    }
+    
+    /// <summary>
+    /// NEW: Session activity tracking validation result
+    /// </summary>
+    public class SessionActivityValidationResult
+    {
+        public DateTime ValidationTime { get; set; }
+        public int SessionId { get; set; }
+        public bool IsValid { get; set; }
+        public List<string> ValidationMessages { get; set; } = new();
+        
+        public string FormattedReport => 
+            $"Validation at {ValidationTime:HH:mm:ss} for Session {SessionId}: {(IsValid ? "✅ VALID" : "❌ INVALID")}\n" +
+            string.Join("\n", ValidationMessages);
     }
 }

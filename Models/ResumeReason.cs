@@ -5,6 +5,8 @@ namespace EyeRest.Services
         Manual,
         SmartDetection,
         UserReturned,
-        MeetingEnded
+        MeetingEnded,
+        AutoResumeAfterDuration, // NEW: For timed manual pause auto-resume
+        NewWorkingSession // NEW: For smart session reset after extended away
     }
 }
