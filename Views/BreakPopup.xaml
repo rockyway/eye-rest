@@ -6,28 +6,68 @@
             BorderThickness="2"
             CornerRadius="8"
             Padding="30"
-            MaxWidth="700"
-            MaxHeight="650">
+            MaxWidth="900"
+            MaxHeight="750">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <!-- Break Icon -->
-            <Ellipse Width="80" Height="80" 
-                     Fill="{DynamicResource AccentBrush}" 
-                     Margin="0,0,0,20">
-                <Ellipse.Effect>
-                    <DropShadowEffect Color="Gray" Direction="315" ShadowDepth="5" Opacity="0.3"/>
-                </Ellipse.Effect>
-            </Ellipse>
-
-            <!-- Break icon inside circle -->
-            <TextBlock Text="☕" 
-                       FontSize="40" 
-                       HorizontalAlignment="Center"
-                       Margin="0,-65,0,45"
-                       Foreground="White"/>
+            <!-- Enhanced Timer Display with Minutes and Seconds around Eye Icon -->
+            <Grid Margin="0,0,0,30" HorizontalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Minutes Display (Left) -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock x:Name="MinutesDisplay" 
+                               Text="5" 
+                               FontSize="120" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource AccentBrush}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="minutes" 
+                               FontSize="16" 
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,-10,0,0"/>
+                </StackPanel>
+                
+                <!-- Break Icon (Center) -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <Ellipse Width="100" Height="100" 
+                             Fill="{DynamicResource AccentBrush}" 
+                             Margin="20,0">
+                        <Ellipse.Effect>
+                            <DropShadowEffect Color="Gray" Direction="315" ShadowDepth="8" Opacity="0.4"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
+                    <!-- Break icon inside circle -->
+                    <TextBlock Text="👁️" 
+                               FontSize="50" 
+                               HorizontalAlignment="Center"
+                               Margin="0,-80,0,0"
+                               Foreground="White"/>
+                </StackPanel>
+                
+                <!-- Seconds Display (Right) -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0,0,0">
+                    <TextBlock x:Name="SecondsDisplay" 
+                               Text="00" 
+                               FontSize="120" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource AccentBrush}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="seconds" 
+                               FontSize="16" 
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,-10,0,0"/>
+                </StackPanel>
+            </Grid>
 
             <!-- Main Message -->
             <TextBlock Text="Time for a Break!" 
-                       FontSize="28" 
+                       FontSize="32" 
                        FontWeight="Bold" 
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        HorizontalAlignment="Center"
@@ -42,17 +82,18 @@
                        TextAlignment="Center"
                        Margin="0,0,0,15"/>
 
-            <!-- Progress Bar with smooth animation -->
+            <!-- Enhanced Progress Bar - Thicker and Full Width -->
             <ProgressBar x:Name="ProgressBar" 
-                         Width="400" 
-                         Height="12" 
+                         Width="640" 
+                         Height="36" 
                          Minimum="0" 
                          Maximum="100" 
                          Value="0"
                          IsIndeterminate="False"
                          Foreground="{DynamicResource AccentBrush}"
                          Background="{DynamicResource BackgroundBrush}"
-                         Margin="0,0,0,15">
+                         Margin="0,20,0,20"
+                         BorderThickness="0">
                 <!-- Add subtle glow effect during progress -->
                 <ProgressBar.Effect>
                     <DropShadowEffect x:Name="ProgressGlow"
@@ -142,6 +183,35 @@
                         BorderThickness="0"
                         Click="Skip_Click"/>
             </StackPanel>
+
+            <!-- Confirmation Button (Hidden by default, shown when break completes) -->
+            <Button x:Name="ConfirmationButton" 
+                    Content="Done - Start Fresh Session" 
+                    Padding="20,12"
+                    Margin="0,15,0,0"
+                    Background="#4CAF50"
+                    Foreground="White"
+                    BorderThickness="0"
+                    FontSize="16"
+                    FontWeight="Bold"
+                    HorizontalAlignment="Center"
+                    Visibility="Collapsed"
+                    Click="ConfirmCompletion_Click">
+                <Button.Effect>
+                    <DropShadowEffect Color="Green" Direction="315" ShadowDepth="4" Opacity="0.3"/>
+                </Button.Effect>
+            </Button>
+
+            <!-- Return instruction (Hidden by default, shown when waiting for confirmation) -->
+            <TextBlock x:Name="ReturnInstructionText" 
+                       Text="Click 'Done' when you return to start a fresh session"
+                       FontSize="14" 
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       HorizontalAlignment="Center"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Margin="0,10,0,0"
+                       Visibility="Collapsed"/>
 
             <!-- Click hint -->
             <TextBlock Text="Click anywhere to close" 

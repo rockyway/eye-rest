@@ -14,6 +14,7 @@ namespace EyeRest.Services
         private ContextMenuStrip? _contextMenu;
         private ToolStripMenuItem? _pauseMenuItem;
         private ToolStripMenuItem? _resumeMenuItem;
+        private ToolStripMenuItem? _pauseForMeetingMenuItem; // NEW: Manual meeting pause
         private ToolStripMenuItem? _timerStatusMenuItem;
         private ToolStripMenuItem? _meetingModeMenuItem;
         private ToolStripMenuItem? _analyticsMenuItem;
@@ -31,6 +32,7 @@ namespace EyeRest.Services
         public event EventHandler? ExitRequested;
         public event EventHandler? PauseTimersRequested;
         public event EventHandler? ResumeTimersRequested;
+        public event EventHandler? PauseForMeetingRequested; // NEW: Manual pause for meeting
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
 
@@ -184,9 +186,11 @@ namespace EyeRest.Services
             // Timer Controls
             _pauseMenuItem = new ToolStripMenuItem("⏸️ Pause Timers", null, OnPauseTimers);
             _resumeMenuItem = new ToolStripMenuItem("▶️ Resume Timers", null, OnResumeTimers) { Enabled = false };
+            _pauseForMeetingMenuItem = new ToolStripMenuItem("🎥 Pause for Meeting (30 min)", null, OnPauseForMeeting); // NEW
             
             _contextMenu.Items.Add(_pauseMenuItem);
             _contextMenu.Items.Add(_resumeMenuItem);
+            _contextMenu.Items.Add(_pauseForMeetingMenuItem); // NEW
             
             // Meeting Mode Indicator
             _meetingModeMenuItem = new ToolStripMenuItem("📹 Meeting Mode: Off") { Enabled = false };
@@ -220,6 +224,7 @@ namespace EyeRest.Services
                     _pauseMenuItem.Enabled = true;
                     _pauseMenuItem.Text = "⏸️ Pause Timers";
                     _resumeMenuItem.Enabled = false;
+                    _pauseForMeetingMenuItem.Enabled = true;
                     break;
                     
                 case TrayIconState.Paused:
@@ -234,6 +239,14 @@ namespace EyeRest.Services
                     _pauseMenuItem.Text = "⏸️ Smart Paused (Auto)";
                     _resumeMenuItem.Enabled = true;
                     _resumeMenuItem.Text = "▶️ Force Resume";
+                    break;
+                    
+                case TrayIconState.ManuallyPaused:
+                    _pauseMenuItem.Enabled = false;
+                    _pauseMenuItem.Text = "⏸️ Meeting Pause (Manual)";
+                    _resumeMenuItem.Enabled = true;
+                    _resumeMenuItem.Text = "▶️ Resume Timers";
+                    _pauseForMeetingMenuItem.Enabled = false;
                     break;
                     
                 case TrayIconState.MeetingMode:
@@ -263,6 +276,7 @@ namespace EyeRest.Services
                 TrayIconState.Active => "Active",
                 TrayIconState.Paused => "Paused",
                 TrayIconState.SmartPaused => "Smart Paused",
+                TrayIconState.ManuallyPaused => "Meeting Pause", // NEW
                 TrayIconState.Break => "Break Time",
                 TrayIconState.EyeRest => "Eye Rest",
                 TrayIconState.MeetingMode => $"Meeting ({_meetingType})",
@@ -281,6 +295,7 @@ namespace EyeRest.Services
             {
                 TrayIconState.MeetingMode => $"{baseText} - Meeting Mode ({_meetingType})",
                 TrayIconState.SmartPaused => $"{baseText} - Smart Paused (Auto)",
+                TrayIconState.ManuallyPaused => $"{baseText} - Meeting Pause (Manual)", // NEW
                 TrayIconState.UserAway => $"{baseText} - User Away (Auto-Paused)",
                 _ => $"{baseText} - {stateText}"
             };
@@ -317,6 +332,12 @@ namespace EyeRest.Services
             if (_isInMeetingMode)
             {
                 return $"{baseText} - Meeting Mode ({_meetingType})\nTimers paused during meeting";
+            }
+            
+            // ENHANCED: Handle manual pause with remaining time
+            if (_currentTimerStatus.Contains("Meeting Pause") && _currentTimerStatus.Contains("left"))
+            {
+                return $"{baseText} - Manual Meeting Pause\n{_currentTimerStatus}\nTimers will auto-resume";
             }
             
             // ENHANCED: Determine accurate status based on timer state
@@ -393,6 +414,13 @@ namespace EyeRest.Services
         {
             _logger.LogInformation("🎛️ User requested timer resume from system tray");
             ResumeTimersRequested?.Invoke(this, e);
+        }
+        
+        // NEW: Handle pause for meeting request
+        private void OnPauseForMeeting(object? sender, EventArgs e)
+        {
+            _logger.LogInformation("🎥 User requested 30-minute meeting pause from system tray");
+            PauseForMeetingRequested?.Invoke(this, e);
         }
         
         private void OnShowTimerStatus(object? sender, EventArgs e)

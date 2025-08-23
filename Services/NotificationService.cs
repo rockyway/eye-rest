@@ -17,11 +17,16 @@ namespace EyeRest.Services
         private readonly object _lockObject = new object();
         private bool _isClosing = false; // Track if we're in the process of closing
         private bool _overlayVisible = false; // Track if overlay is currently visible
+        private bool _isTestMode = false; // Track if we're in test mode to prevent analytics recording
         
         // References to active warning popups for external countdown control
         private EyeRestWarningPopup? _activeEyeRestWarningPopup;
         private BreakWarningPopup? _activeBreakWarningPopup;
         private ITimerService? _timerService; // Injected later to avoid circular dependency
+        
+        // Status check properties for backup trigger coordination
+        public bool IsBreakWarningActive => _activeBreakWarningPopup != null;
+        public bool IsEyeRestWarningActive => _activeEyeRestWarningPopup != null;
 
         public NotificationService(ILogger<NotificationService> logger, Dispatcher dispatcher, IScreenOverlayService screenOverlayService, IConfigurationService configurationService)
         {
@@ -29,6 +34,13 @@ namespace EyeRest.Services
             _dispatcher = dispatcher;
             _screenOverlayService = screenOverlayService;
             _configurationService = configurationService;
+            
+            // CRITICAL FIX: Defensive initialization cleanup to prevent stale popup references
+            // This prevents zombie popup issues from persisting across app restarts
+            _activeBreakWarningPopup = null;
+            _activeEyeRestWarningPopup = null;
+            
+            _logger.LogInformation("🧟 ZOMBIE FIX: NotificationService initialized with clean popup references");
         }
 
         // Inject TimerService after construction to avoid circular dependency
@@ -93,9 +105,19 @@ namespace EyeRest.Services
                         // Handle window closed
                         popupWindow.PopupClosed += (s, e) =>
                         {
-                            _logger.LogInformation("Popup window closed event fired");
-                            _activeEyeRestWarningPopup = null; // Clear reference
-                            eyeRestWarningPopup.StopCountdown();
+                            try
+                            {
+                                _logger.LogInformation("🧟 ZOMBIE FIX: Eye rest warning popup closed event fired");
+                                _activeEyeRestWarningPopup = null; // Clear reference
+                                eyeRestWarningPopup.StopCountdown();
+                                _logger.LogInformation("🧟 ZOMBIE FIX: Eye rest warning popup reference cleared successfully");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "🧟 ZOMBIE FIX: Error in eye rest warning popup closed event handler");
+                                // Force clear reference even if error occurred
+                                _activeEyeRestWarningPopup = null;
+                            }
                         };
 
                         // Show popup and start countdown with error handling
@@ -281,8 +303,19 @@ namespace EyeRest.Services
                         // Handle window closed
                         popupWindow.PopupClosed += (s, e) =>
                         {
-                            _activeBreakWarningPopup = null; // Clear reference
-                            breakWarningPopup.StopCountdown();
+                            try
+                            {
+                                _logger.LogInformation("🧟 ZOMBIE FIX: Break warning popup closed event fired");
+                                _activeBreakWarningPopup = null; // Clear reference
+                                breakWarningPopup.StopCountdown();
+                                _logger.LogInformation("🧟 ZOMBIE FIX: Break warning popup reference cleared successfully");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "🧟 ZOMBIE FIX: Error in break warning popup closed event handler");
+                                // Force clear reference even if error occurred
+                                _activeBreakWarningPopup = null;
+                            }
                         };
 
                         // Show popup and start countdown with error handling
@@ -324,6 +357,10 @@ namespace EyeRest.Services
             {
                 _logger.LogInformation($"🎯 ShowBreakReminderAsync START - Duration: {duration.TotalMinutes} minutes, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
                 
+                // Load configuration before entering the lock
+                var breakConfig = await _configurationService.LoadConfigurationAsync();
+                _logger.LogInformation($"🎯 Configuration loaded - RequireConfirmation: {breakConfig.Break.RequireConfirmationAfterBreak}, ResetTimers: {breakConfig.Break.ResetTimersOnBreakConfirmation}");
+                
                 await _dispatcher.InvokeAsync(() =>
                 {
                     lock (_lockObject)
@@ -342,6 +379,12 @@ namespace EyeRest.Services
                         _logger.LogInformation("🎯 Creating fresh BreakPopup instance");
                         var breakPopup = new BreakPopup();
                         _logger.LogInformation($"🎯 BreakPopup created - HashCode: {breakPopup.GetHashCode()}");
+                        
+                        // Configure break popup with current settings
+                        breakPopup.SetConfiguration(
+                            breakConfig.Break.RequireConfirmationAfterBreak, 
+                            breakConfig.Break.ResetTimersOnBreakConfirmation);
+                        _logger.LogInformation($"🎯 BreakPopup configured - RequireConfirmation: {breakConfig.Break.RequireConfirmationAfterBreak}, ResetTimers: {breakConfig.Break.ResetTimersOnBreakConfirmation}");
                         
                         // Create popup window with error handling
                         BasePopupWindow popupWindow;
@@ -367,16 +410,56 @@ namespace EyeRest.Services
 
                         // Handle action selection
                         _logger.LogInformation("🎯 Subscribing to ActionSelected event");
-                        breakPopup.ActionSelected += (s, action) =>
+                        breakPopup.ActionSelected += async (s, action) =>
                         {
                             _logger.LogInformation($"🎯 ActionSelected event fired with action: {action}");
-                            Application.Current.Dispatcher.Invoke(() =>
+                            
+                            if (action == BreakAction.ConfirmedAfterCompletion)
                             {
-                                _logger.LogInformation($"🎯 In ActionSelected dispatcher - calling CloseCurrentPopup for action: {action}");
-                                CloseCurrentPopup();
-                                _logger.LogInformation($"🎯 Setting TaskCompletionSource result to: {action}");
-                                tcs.SetResult(action);
-                            });
+                                // User confirmed after break completion
+                                Application.Current.Dispatcher.Invoke(async () =>
+                                {
+                                    try
+                                    {
+                                        _logger.LogInformation("🎯 User confirmed break completion");
+                                        CloseCurrentPopup();
+                                        
+                                        if (_timerService != null)
+                                        {
+                                            if (breakConfig.Break.ResetTimersOnBreakConfirmation)
+                                            {
+                                                // Reset timers for fresh session
+                                                await _timerService.SmartSessionResetAsync("User confirmed break completion");
+                                                _logger.LogInformation("🎯 Timers reset for fresh session after break confirmation");
+                                            }
+                                            else
+                                            {
+                                                // Just resume timers
+                                                await _timerService.ResumeAsync();
+                                                _logger.LogInformation("🎯 Timers resumed after break confirmation");
+                                            }
+                                        }
+                                        
+                                        tcs.SetResult(BreakAction.ConfirmedAfterCompletion);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex, "🎯 Error handling break confirmation");
+                                        tcs.SetResult(BreakAction.ConfirmedAfterCompletion);
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                // Handle other actions (DelayOneMinute, DelayFiveMinutes, Skipped, or Completed without confirmation)
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    _logger.LogInformation($"🎯 In ActionSelected dispatcher - calling CloseCurrentPopup for action: {action}");
+                                    CloseCurrentPopup();
+                                    _logger.LogInformation($"🎯 Setting TaskCompletionSource result to: {action}");
+                                    tcs.SetResult(action);
+                                });
+                            }
                         };
 
                         // Handle window closed
@@ -405,7 +488,35 @@ namespace EyeRest.Services
                             _logger.LogInformation($"🎯 popupWindow.Show() completed - IsVisible: {popupWindow.IsVisible}, WindowState: {popupWindow.WindowState}");
                             
                             _logger.LogInformation($"🎯 Calling StartCountdown with duration: {duration.TotalMinutes} minutes");
-                            breakPopup.StartCountdown(duration, progress);
+                            
+                            // Create a progress callback that handles break completion for confirmation mode
+                            var progressWithCompletion = new Progress<double>(value =>
+                            {
+                                progress?.Report(value);
+                                
+                                // CRITICAL: When break completes (progress = 1.0) and confirmation is required, pause timers
+                                if (value >= 1.0 && breakConfig.Break.RequireConfirmationAfterBreak)
+                                {
+                                    // Break countdown finished - pause timers while waiting for user confirmation
+                                    Task.Run(async () =>
+                                    {
+                                        try
+                                        {
+                                            if (_timerService != null)
+                                            {
+                                                await _timerService.PauseAsync();
+                                                _logger.LogInformation("🎯 Break completed - timers paused while waiting for user confirmation");
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogError(ex, "🎯 Error pausing timers after break completion");
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            breakPopup.StartCountdown(duration, progressWithCompletion);
                             _logger.LogInformation("🎯 StartCountdown called successfully");
                             
                             _logger.LogInformation($"🎯 Break reminder setup complete - should run for {duration.TotalMinutes} minutes");
@@ -458,6 +569,38 @@ namespace EyeRest.Services
                     lock (_lockObject)
                     {
                         CloseCurrentPopup();
+                        
+                        // CRITICAL FIX: Force clear stale popup references to prevent zombie state
+                        // This fixes the "25 seconds forever" break warning issue caused by stale references
+                        if (_activeBreakWarningPopup != null)
+                        {
+                            _logger.LogCritical("🧟 ZOMBIE FIX: Force clearing stale _activeBreakWarningPopup reference");
+                            try
+                            {
+                                _activeBreakWarningPopup.StopCountdown();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning($"Exception stopping stale break warning popup: {ex.Message}");
+                            }
+                            _activeBreakWarningPopup = null;
+                        }
+                        
+                        if (_activeEyeRestWarningPopup != null)
+                        {
+                            _logger.LogCritical("🧟 ZOMBIE FIX: Force clearing stale _activeEyeRestWarningPopup reference");
+                            try
+                            {
+                                _activeEyeRestWarningPopup.StopCountdown();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning($"Exception stopping stale eye rest warning popup: {ex.Message}");
+                            }
+                            _activeEyeRestWarningPopup = null;
+                        }
+                        
+                        _logger.LogInformation("✅ ZOMBIE FIX: All popup references cleared and validated");
                     }
                 });
                 
@@ -593,6 +736,83 @@ namespace EyeRest.Services
                 _timerService.StartBreakWarningTimer();
             }
         }
+
+        #region Test Mode Methods - Do Not Record Analytics
+        
+        /// <summary>
+        /// Test mode - Show eye rest warning without recording analytics
+        /// </summary>
+        public async Task ShowEyeRestWarningTestAsync(TimeSpan timeUntilBreak)
+        {
+            _isTestMode = true;
+            try
+            {
+                _logger.LogInformation("🧪 TEST MODE: Showing eye rest warning popup (analytics disabled)");
+                await ShowEyeRestWarningAsync(timeUntilBreak);
+            }
+            finally
+            {
+                _isTestMode = false;
+            }
+        }
+
+        /// <summary>
+        /// Test mode - Show eye rest reminder without recording analytics
+        /// </summary>
+        public async Task ShowEyeRestReminderTestAsync(TimeSpan duration)
+        {
+            _isTestMode = true;
+            try
+            {
+                _logger.LogInformation("🧪 TEST MODE: Showing eye rest reminder popup (analytics disabled)");
+                await ShowEyeRestReminderAsync(duration);
+            }
+            finally
+            {
+                _isTestMode = false;
+            }
+        }
+
+        /// <summary>
+        /// Test mode - Show break warning without recording analytics
+        /// </summary>
+        public async Task ShowBreakWarningTestAsync(TimeSpan timeUntilBreak)
+        {
+            _isTestMode = true;
+            try
+            {
+                _logger.LogInformation("🧪 TEST MODE: Showing break warning popup (analytics disabled)");
+                await ShowBreakWarningAsync(timeUntilBreak);
+            }
+            finally
+            {
+                _isTestMode = false;
+            }
+        }
+
+        /// <summary>
+        /// Test mode - Show break reminder without recording analytics
+        /// </summary>
+        public async Task<BreakAction> ShowBreakReminderTestAsync(TimeSpan duration, IProgress<double> progress)
+        {
+            _isTestMode = true;
+            try
+            {
+                _logger.LogInformation("🧪 TEST MODE: Showing break reminder popup (analytics disabled)");
+                return await ShowBreakReminderAsync(duration, progress);
+            }
+            finally
+            {
+                _isTestMode = false;
+            }
+        }
+
+        /// <summary>
+        /// Check if current popup is in test mode (prevents analytics recording)
+        /// </summary>
+        public bool IsTestMode => _isTestMode;
+        
+        #endregion
     }
 
 }

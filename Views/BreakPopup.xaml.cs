@@ -15,12 +15,32 @@ namespace EyeRest.Views
         private TimeSpan _duration;
         private DateTime _startTime;
         private IProgress<double>? _progress;
+        private bool _requireConfirmationAfterBreak;
+        private bool _resetTimersOnConfirmation;
 
         public event EventHandler<BreakAction>? ActionSelected;
 
         public BreakPopup()
         {
             InitializeComponent();
+        }
+
+        public void SetConfiguration(bool requireConfirmationAfterBreak, bool resetTimersOnConfirmation)
+        {
+            _requireConfirmationAfterBreak = requireConfirmationAfterBreak;
+            _resetTimersOnConfirmation = resetTimersOnConfirmation;
+            
+            // Update confirmation button text based on reset timer setting
+            if (_resetTimersOnConfirmation)
+            {
+                ConfirmationButton.Content = "Done - Start Fresh Session";
+                ReturnInstructionText.Text = "Click 'Done' when you return to start a fresh session";
+            }
+            else
+            {
+                ConfirmationButton.Content = "Done - Resume Timers";
+                ReturnInstructionText.Text = "Click 'Done' when you return to resume your timers";
+            }
         }
 
         public void StartCountdown(TimeSpan duration, IProgress<double>? progress = null)
@@ -87,11 +107,15 @@ namespace EyeRest.Views
             ProgressBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, animation);
             _progress?.Report(progressPercent / 100.0);
             
-            // ENHANCED: Update time display to show both minutes and seconds throughout duration
-            var remainingMinutes = (int)remaining.Minutes;
+            // ENHANCED: Update large minute and second displays for visibility from distance
+            var remainingMinutes = (int)remaining.TotalMinutes;
             var remainingSeconds = (int)remaining.Seconds;
             
-            // Always show minutes and seconds for better user experience
+            // Update the large displays
+            MinutesDisplay.Text = remainingMinutes.ToString();
+            SecondsDisplay.Text = remainingSeconds.ToString("00");
+            
+            // Also update the smaller text display for consistency
             if (remaining.TotalMinutes >= 1)
             {
                 TimeRemainingText.Text = $"{remainingMinutes}m {remainingSeconds}s remaining";
@@ -117,28 +141,48 @@ namespace EyeRest.Views
             DelayFiveMinutesButton.Visibility = Visibility.Collapsed;
             SkipButton.Visibility = Visibility.Collapsed;
             
-            // Auto-close after 2 seconds
-            var closeTimer = new DispatcherTimer
+            if (_requireConfirmationAfterBreak)
             {
-                Interval = TimeSpan.FromSeconds(2)
-            };
-            
-            closeTimer.Tick += (s, e) =>
+                // CRITICAL FIX: Show confirmation button and wait for user to click it
+                // DO NOT fire the Completed event immediately - wait for user confirmation
+                ConfirmationButton.Visibility = Visibility.Visible;
+                ReturnInstructionText.Visibility = Visibility.Visible;
+                
+                System.Diagnostics.Debug.WriteLine("🔥 BreakPopup: RequireConfirmationAfterBreak enabled - showing confirmation UI and waiting for user to click");
+                
+                // FIXED: Don't fire any event here - let the user click the confirmation button
+                // The ConfirmCompletion_Click handler will fire BreakAction.ConfirmedAfterCompletion
+            }
+            else
             {
-                closeTimer.Stop();
-                System.Diagnostics.Debug.WriteLine("🔥 BreakPopup: Auto-closing after completion, firing ActionSelected.Completed");
-                ActionSelected?.Invoke(this, BreakAction.Completed);
-            };
-            
-            closeTimer.Start();
+                // Original behavior - auto-close after 2 seconds
+                var closeTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(2)
+                };
+                
+                closeTimer.Tick += (s, e) =>
+                {
+                    closeTimer.Stop();
+                    System.Diagnostics.Debug.WriteLine("🔥 BreakPopup: Auto-closing after completion, firing ActionSelected.Completed");
+                    ActionSelected?.Invoke(this, BreakAction.Completed);
+                };
+                
+                closeTimer.Start();
+            }
         }
 
         private void UpdateTimeDisplay()
         {
-            // ENHANCED: Show both minutes and seconds from the start
-            var totalMinutes = (int)_duration.Minutes;
+            // ENHANCED: Initialize large displays with full duration for visibility from distance
+            var totalMinutes = (int)_duration.TotalMinutes;
             var totalSeconds = (int)_duration.Seconds;
             
+            // Set initial large display values
+            MinutesDisplay.Text = totalMinutes.ToString();
+            SecondsDisplay.Text = totalSeconds.ToString("00");
+            
+            // Also set the smaller text display
             if (_duration.TotalMinutes >= 1)
             {
                 TimeRemainingText.Text = $"{totalMinutes}m {totalSeconds}s remaining";
@@ -198,6 +242,12 @@ namespace EyeRest.Views
         {
             StopCountdown();
             ActionSelected?.Invoke(this, BreakAction.Skipped);
+        }
+
+        private void ConfirmCompletion_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("🔥 BreakPopup.ConfirmCompletion_Click: User confirmed break completion");
+            ActionSelected?.Invoke(this, BreakAction.ConfirmedAfterCompletion);
         }
 
     }

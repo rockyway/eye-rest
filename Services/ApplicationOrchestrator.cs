@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using EyeRest.Services;
 using EyeRest.Models;
@@ -21,7 +22,8 @@ namespace EyeRest.Services
         private readonly IPerformanceMonitor _performanceMonitor;
         private readonly IConfigurationService _configurationService;
         private readonly IUserPresenceService _userPresenceService;
-        private readonly IMeetingDetectionManager _meetingDetectionManager;
+        // DISABLED: Meeting detection not working reliably - needs improvement and testing in future
+        // private readonly IMeetingDetectionManager _meetingDetectionManager;
         private readonly IAnalyticsService _analyticsService;
         private readonly IPauseReminderService _pauseReminderService;
         private readonly ILogger<ApplicationOrchestrator> _logger;
@@ -31,6 +33,9 @@ namespace EyeRest.Services
         
         // ENHANCED: Timer for updating system tray tooltip with timer details
         private System.Windows.Threading.DispatcherTimer? _trayUpdateTimer;
+        
+        // NEW: Timer for validating session activity tracking integrity
+        private System.Windows.Threading.DispatcherTimer? _sessionValidationTimer;
 
         public ApplicationOrchestrator(
             ITimerService timerService,
@@ -40,7 +45,7 @@ namespace EyeRest.Services
             IPerformanceMonitor performanceMonitor,
             IConfigurationService configurationService,
             IUserPresenceService userPresenceService,
-            IMeetingDetectionManager meetingDetectionManager,
+            // IMeetingDetectionManager meetingDetectionManager, // DISABLED: Meeting detection needs improvement
             IAnalyticsService analyticsService,
             IPauseReminderService pauseReminderService,
             ILogger<ApplicationOrchestrator> logger)
@@ -52,7 +57,7 @@ namespace EyeRest.Services
             _performanceMonitor = performanceMonitor;
             _configurationService = configurationService;
             _userPresenceService = userPresenceService;
-            _meetingDetectionManager = meetingDetectionManager;
+            // _meetingDetectionManager = meetingDetectionManager; // DISABLED: Meeting detection needs improvement
             _analyticsService = analyticsService;
             _pauseReminderService = pauseReminderService;
             _logger = logger;
@@ -68,6 +73,7 @@ namespace EyeRest.Services
 
             try
             {
+                _logger.LogCritical($"🚀 ORCHESTRATOR INITIALIZATION STARTED at {DateTime.Now:HH:mm:ss.fff} - Process ID: {Environment.ProcessId}");
                 _logger.LogInformation("🚀 Initializing comprehensive application orchestrator with advanced features");
 
                 // Initialize analytics database
@@ -82,16 +88,23 @@ namespace EyeRest.Services
                 _timerService.EyeRestDue += OnEyeRestDue;
                 _timerService.BreakWarning += OnBreakWarning;
                 _timerService.BreakDue += OnBreakDue;
+                
+                // Subscribe to timer state changes for tray icon updates
+                _timerService.PropertyChanged += OnTimerServicePropertyChanged;
+                
                 _logger.LogInformation("✅ Core timer events subscribed");
                 
                 // Inject services into each other for bidirectional communication
                 _timerService.SetNotificationService(_notificationService);
                 _notificationService.SetTimerService(_timerService);
-                _logger.LogInformation("✅ Bidirectional service injection completed for external countdown control");
+                _userPresenceService.SetTimerService(_timerService); // NEW: Enable timer recovery after system resume
+                _logger.LogInformation("✅ Bidirectional service injection completed for external countdown control and timer recovery");
 
                 // Wire up advanced service events
                 _userPresenceService.UserPresenceChanged += OnUserPresenceChanged;
-                _meetingDetectionManager.MeetingStateChanged += OnMeetingStateChanged;
+                _userPresenceService.ExtendedAwaySessionDetected += OnExtendedAwaySessionDetected; // NEW: Smart session reset
+                // DISABLED: Meeting detection not working reliably - needs improvement and testing in future
+                // _meetingDetectionManager.MeetingStateChanged += OnMeetingStateChanged;
                 _pauseReminderService.PauseReminderShown += OnPauseReminderShown;
                 _pauseReminderService.AutoResumeTriggered += OnAutoResumeTriggered;
                 _logger.LogInformation("✅ Advanced service events subscribed");
@@ -99,6 +112,7 @@ namespace EyeRest.Services
                 // Wire up system tray events
                 _systemTrayService.PauseTimersRequested += OnPauseTimersRequested;
                 _systemTrayService.ResumeTimersRequested += OnResumeTimersRequested;
+                _systemTrayService.PauseForMeetingRequested += OnPauseForMeetingRequested; // NEW
                 _systemTrayService.ShowTimerStatusRequested += OnShowTimerStatusRequested;
                 _systemTrayService.ShowAnalyticsRequested += OnShowAnalyticsRequested;
                 _logger.LogInformation("✅ System tray events subscribed");
@@ -106,11 +120,11 @@ namespace EyeRest.Services
                 // Start advanced services
                 await _userPresenceService.StartMonitoringAsync();
                 
-                // Initialize meeting detection manager with configured method
-                var config = await _configurationService.LoadConfigurationAsync();
-                await _meetingDetectionManager.InitializeAsync(
-                    config.MeetingDetection.DetectionMethod, 
-                    config.MeetingDetection);
+                // DISABLED: Meeting detection initialization - not working reliably, needs improvement and testing in future
+                // var config = await _configurationService.LoadConfigurationAsync();
+                // await _meetingDetectionManager.InitializeAsync(
+                //     config.MeetingDetection.DetectionMethod, 
+                //     config.MeetingDetection);
                 
                 await _pauseReminderService.InitializeAsync();
                 await _pauseReminderService.StartMonitoringAsync();
@@ -120,10 +134,19 @@ namespace EyeRest.Services
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                 _systemTrayService.UpdateTimerStatus("Ready");
                 
+                // CRITICAL: Start the timer service - this was missing!
+                _logger.LogCritical($"🎯 Starting timer service at {DateTime.Now:HH:mm:ss.fff}");
+                await _timerService.StartAsync();
+                _logger.LogCritical($"✅ Timer service started successfully - timers are now active");
+                
                 // ENHANCED: Start periodic timer details update for system tray tooltip
                 StartTrayUpdateTimer();
+                
+                // NEW: Start session validation timer for tracking integrity monitoring
+                StartSessionValidationTimer();
 
                 _isInitialized = true;
+                _logger.LogCritical($"✅ ORCHESTRATOR INITIALIZATION COMPLETED at {DateTime.Now:HH:mm:ss.fff} - ALL SERVICES ACTIVE");
                 _logger.LogInformation("🎯 Comprehensive application orchestrator initialized successfully - ALL ADVANCED FEATURES ACTIVE");
             }
             catch (Exception ex)
@@ -154,22 +177,29 @@ namespace EyeRest.Services
                 _timerService.EyeRestDue -= OnEyeRestDue;
                 _timerService.BreakWarning -= OnBreakWarning;
                 _timerService.BreakDue -= OnBreakDue;
+                
+                // Unsubscribe from timer state changes
+                _timerService.PropertyChanged -= OnTimerServicePropertyChanged;
 
                 // Unsubscribe from advanced service events
                 _userPresenceService.UserPresenceChanged -= OnUserPresenceChanged;
-                _meetingDetectionManager.MeetingStateChanged -= OnMeetingStateChanged;
+                _userPresenceService.ExtendedAwaySessionDetected -= OnExtendedAwaySessionDetected; // NEW: Smart session reset
+                // DISABLED: Meeting detection not working reliably - needs improvement and testing in future
+                // _meetingDetectionManager.MeetingStateChanged -= OnMeetingStateChanged;
                 _pauseReminderService.PauseReminderShown -= OnPauseReminderShown;
                 _pauseReminderService.AutoResumeTriggered -= OnAutoResumeTriggered;
 
                 // Unsubscribe from system tray events
                 _systemTrayService.PauseTimersRequested -= OnPauseTimersRequested;
                 _systemTrayService.ResumeTimersRequested -= OnResumeTimersRequested;
+                _systemTrayService.PauseForMeetingRequested -= OnPauseForMeetingRequested; // NEW
                 _systemTrayService.ShowTimerStatusRequested -= OnShowTimerStatusRequested;
                 _systemTrayService.ShowAnalyticsRequested -= OnShowAnalyticsRequested;
 
                 // Stop advanced services
                 await _userPresenceService.StopMonitoringAsync();
-                await _meetingDetectionManager.ShutdownAsync();
+                // DISABLED: Meeting detection not working reliably - needs improvement and testing in future
+                // await _meetingDetectionManager.ShutdownAsync();
                 await _pauseReminderService.StopMonitoringAsync();
 
                 // Hide all notifications
@@ -177,6 +207,9 @@ namespace EyeRest.Services
                 
                 // ENHANCED: Stop tray update timer
                 StopTrayUpdateTimer();
+                
+                // NEW: Stop session validation timer
+                StopSessionValidationTimer();
 
                 // Stop timer service
                 await _timerService.StopAsync();
@@ -186,7 +219,8 @@ namespace EyeRest.Services
 
                 // Dispose services
                 _userPresenceService.Dispose();
-                _meetingDetectionManager.Dispose();
+                // DISABLED: Meeting detection not working reliably - needs improvement and testing in future
+                // _meetingDetectionManager.Dispose();
                 _analyticsService.Dispose();
                 _pauseReminderService.Dispose();
 
@@ -205,6 +239,7 @@ namespace EyeRest.Services
             {
                 _logger.LogInformation("🚨 EYE REST WARNING EVENT FIRED! TimerService event received by ApplicationOrchestrator");
                 _logger.LogInformation($"Warning details - TriggeredAt: {e.TriggeredAt}, NextInterval: {e.NextInterval.TotalSeconds} seconds, Type: {e.Type}");
+                _logger.LogInformation($"🧠 Smart coordination active: Break timer is paused during eye rest warning to prevent conflicts");
 
                 // Show eye rest warning
                 await _notificationService.ShowEyeRestWarningAsync(e.NextInterval);
@@ -222,7 +257,8 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("👁 Eye rest reminder triggered");
+                _logger.LogInformation("👁 Eye rest reminder triggered with smart timer coordination");
+                _logger.LogInformation($"🧠 Smart coordination: Break timer is paused during eye rest to prevent conflicts");
                 _systemTrayService.UpdateTrayIcon(TrayIconState.EyeRest);
                 _systemTrayService.UpdateTimerStatus("Eye Rest Active");
 
@@ -241,11 +277,21 @@ namespace EyeRest.Services
                 // Play end sound
                 await _audioService.PlayEyeRestEndSound();
 
-                // Record analytics event
-                await _analyticsService.RecordEyeRestEventAsync(RestEventType.EyeRest, UserAction.Completed, actualDuration);
+                // Record analytics event (skip if in test mode)
+                if (!_notificationService.IsTestMode)
+                {
+                    await _analyticsService.RecordEyeRestEventAsync(RestEventType.EyeRest, UserAction.Completed, actualDuration);
+                }
+                else
+                {
+                    _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for eye rest event");
+                }
 
                 // Restart the timer after eye rest completes
                 await _timerService.RestartEyeRestTimerAfterCompletion();
+                
+                // CRITICAL FIX: Resume break timer that was paused during eye rest
+                _timerService.SmartResumeBreakTimerAfterEyeRest();
 
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                 _systemTrayService.UpdateTimerStatus("Running");
@@ -262,13 +308,17 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("Break warning triggered");
+                _logger.LogCritical("🚨🚨🚨 BREAK WARNING RECEIVED BY ORCHESTRATOR! 🚨🚨🚨");
+                _logger.LogCritical($"Break warning triggered with smart timer coordination at {DateTime.Now:HH:mm:ss}");
+                _logger.LogInformation($"🧠 Smart coordination: Eye rest timer is paused during break warning to prevent conflicts");
 
                 // Play warning sound
                 await _audioService.PlayBreakWarningSound();
 
                 // Show break warning
+                _logger.LogCritical("🚨 CALLING NotificationService.ShowBreakWarningAsync...");
                 await _notificationService.ShowBreakWarningAsync(e.NextInterval);
+                _logger.LogCritical("🚨 NotificationService.ShowBreakWarningAsync COMPLETED");
 
                 _logger.LogInformation("Break warning completed");
             }
@@ -283,7 +333,8 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation($"🟢 OnBreakDue EVENT FIRED! TriggeredAt: {e.TriggeredAt}, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+                _logger.LogInformation($"🟢 OnBreakDue EVENT FIRED with smart timer coordination! TriggeredAt: {e.TriggeredAt}, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+                _logger.LogInformation($"🧠 Smart coordination: Eye rest timer is paused during break to prevent conflicts");
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Break);
 
                 // Show break notification with progress tracking and actual configuration duration
@@ -296,28 +347,56 @@ namespace EyeRest.Services
                 var result = await _notificationService.ShowBreakReminderAsync(duration, progress);
                 _logger.LogInformation($"🟢 ShowBreakReminderAsync returned with result: {result}");
 
-                // Handle user action and record analytics
+                // Handle user action and record analytics (skip if in test mode)
                 var actualDuration = DateTime.Now - DateTime.Now.Subtract(duration); // Approximate duration
                 switch (result)
                 {
                     case BreakAction.Completed:
                         _logger.LogInformation("🟢 Break completed successfully");
-                        await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                        if (!_notificationService.IsTestMode)
+                        {
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break completed event");
+                        }
                         await _timerService.RestartBreakTimerAfterCompletion();
                         break;
                     case BreakAction.DelayOneMinute:
                         _logger.LogInformation("🟢 Break delayed by 1 minute");
-                        await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed1Min, TimeSpan.Zero);
+                        if (!_notificationService.IsTestMode)
+                        {
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed1Min, TimeSpan.Zero);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break delay 1min event");
+                        }
                         await _timerService.DelayBreak(TimeSpan.FromMinutes(1));
                         break;
                     case BreakAction.DelayFiveMinutes:
                         _logger.LogInformation("🟢 Break delayed by 5 minutes");
-                        await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed5Min, TimeSpan.Zero);
+                        if (!_notificationService.IsTestMode)
+                        {
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed5Min, TimeSpan.Zero);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break delay 5min event");
+                        }
                         await _timerService.DelayBreak(TimeSpan.FromMinutes(5));
                         break;
                     case BreakAction.Skipped:
                         _logger.LogInformation("🟢 Break skipped by user");
-                        await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Skipped, TimeSpan.Zero);
+                        if (!_notificationService.IsTestMode)
+                        {
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Skipped, TimeSpan.Zero);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break skipped event");
+                        }
                         await _timerService.RestartBreakTimerAfterCompletion();
                         break;
                 }
@@ -328,6 +407,84 @@ namespace EyeRest.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🟢 ERROR handling break reminder in OnBreakDue");
+                _systemTrayService.UpdateTrayIcon(TrayIconState.Error);
+            }
+        }
+
+        /// <summary>
+        /// Handles timer service property changes to update system tray icon consistently
+        /// This ensures tray icon updates when UI buttons change timer states
+        /// </summary>
+        private void OnTimerServicePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            try
+            {
+                // Only update tray icon for state-related property changes
+                if (e.PropertyName == nameof(ITimerService.IsPaused) ||
+                    e.PropertyName == nameof(ITimerService.IsSmartPaused) ||
+                    e.PropertyName == nameof(ITimerService.IsManuallyPaused) ||
+                    e.PropertyName == nameof(ITimerService.IsRunning))
+                {
+                    UpdateTrayIconBasedOnTimerState();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating tray icon based on timer state changes");
+                _systemTrayService.UpdateTrayIcon(TrayIconState.Error);
+            }
+        }
+
+        /// <summary>
+        /// Updates the system tray icon based on current timer service state
+        /// </summary>
+        private void UpdateTrayIconBasedOnTimerState()
+        {
+            try
+            {
+                if (!_timerService.IsRunning)
+                {
+                    _systemTrayService.UpdateTrayIcon(TrayIconState.Paused);
+                    _systemTrayService.UpdateTimerStatus("Stopped");
+                }
+                else if (_timerService.IsManuallyPaused)
+                {
+                    _systemTrayService.UpdateTrayIcon(TrayIconState.ManuallyPaused);
+                    
+                    // Show remaining time if available
+                    var remainingTime = _timerService.ManualPauseRemaining;
+                    if (remainingTime.HasValue)
+                    {
+                        var minutes = (int)remainingTime.Value.TotalMinutes;
+                        var seconds = remainingTime.Value.Seconds;
+                        _systemTrayService.UpdateTimerStatus($"Meeting Pause ({minutes:D2}:{seconds:D2} remaining)");
+                    }
+                    else
+                    {
+                        _systemTrayService.UpdateTimerStatus($"Paused ({_timerService.PauseReason ?? "Manual"})");
+                    }
+                }
+                else if (_timerService.IsPaused)
+                {
+                    _systemTrayService.UpdateTrayIcon(TrayIconState.Paused);
+                    _systemTrayService.UpdateTimerStatus($"Paused ({_timerService.PauseReason ?? "Manual"})");
+                }
+                else if (_timerService.IsSmartPaused)
+                {
+                    _systemTrayService.UpdateTrayIcon(TrayIconState.UserAway);
+                    _systemTrayService.UpdateTimerStatus($"Paused ({_timerService.PauseReason ?? "User Away"})");
+                }
+                else
+                {
+                    _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
+                    _systemTrayService.UpdateTimerStatus("Running");
+                }
+
+                _logger.LogInformation($"🔄 Tray icon updated: Running={_timerService.IsRunning}, Paused={_timerService.IsPaused}, SmartPaused={_timerService.IsSmartPaused}, ManuallyPaused={_timerService.IsManuallyPaused}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update tray icon based on timer state");
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Error);
             }
         }
@@ -343,24 +500,34 @@ namespace EyeRest.Services
                 // Record presence change for analytics
                 await _analyticsService.RecordPresenceChangeAsync(e.PreviousState, e.CurrentState, e.IdleDuration);
                 
-                // Handle auto-pause/resume based on presence
+                // ENHANCED: Handle session activity tracking based on presence
                 switch (e.CurrentState)
                 {
                     case UserPresenceState.Away:
                     case UserPresenceState.SystemSleep:
+                    case UserPresenceState.Idle:
+                        // Pause analytics session tracking when user becomes inactive
+                        var pauseReason = $"User {e.CurrentState.ToString().ToLower()}";
+                        await _analyticsService.PauseSessionAsync(e.CurrentState, pauseReason);
+                        
+                        // Also pause timers if running
                         if (_timerService.IsRunning && !_timerService.IsSmartPaused)
                         {
-                            var reason = $"User {e.CurrentState.ToString().ToLower()}";
-                            await _timerService.SmartPauseAsync(reason);
+                            await _timerService.SmartPauseAsync(pauseReason);
                             _systemTrayService.UpdateTrayIcon(TrayIconState.UserAway);
-                            _systemTrayService.UpdateTimerStatus($"Paused ({reason})");
+                            _systemTrayService.UpdateTimerStatus($"Paused ({pauseReason})");
                             
                             // Notify pause reminder service
-                            await _pauseReminderService.OnTimersPausedAsync(reason);
+                            await _pauseReminderService.OnTimersPausedAsync(pauseReason);
                         }
                         break;
                         
                     case UserPresenceState.Present:
+                        // Resume analytics session tracking when user returns
+                        var resumeReason = "User returned";
+                        await _analyticsService.ResumeSessionAsync(resumeReason);
+                        
+                        // Also resume timers if they were smart-paused
                         if (_timerService.IsSmartPaused)
                         {
                             await _timerService.SmartResumeAsync();
@@ -369,6 +536,22 @@ namespace EyeRest.Services
                             
                             // Notify pause reminder service
                             await _pauseReminderService.OnTimersResumedAsync();
+                        }
+                        
+                        // ENHANCED: Log current session metrics and validate tracking integrity
+                        var metrics = _analyticsService.GetCurrentSessionMetrics();
+                        var validation = _analyticsService.ValidateSessionTracking();
+                        
+                        _logger.LogInformation($"📊 {metrics.FormattedActivitySummary}");
+                        
+                        if (!validation.IsValid)
+                        {
+                            _logger.LogWarning($"⚠️ Session tracking validation issues detected:\n{validation.FormattedReport}");
+                        }
+                        else
+                        {
+                            var lastMessage = validation.ValidationMessages?.LastOrDefault() ?? "No validation messages";
+                            _logger.LogDebug($"📊 Session validation passed: {lastMessage}");
                         }
                         break;
                 }
@@ -379,6 +562,63 @@ namespace EyeRest.Services
             }
         }
 
+        private async void OnExtendedAwaySessionDetected(object? sender, ExtendedAwayEventArgs e)
+        {
+            try
+            {
+                if (e == null)
+                {
+                    _logger.LogWarning("Extended away session event received with null arguments");
+                    return;
+                }
+                
+                var config = await _configurationService.LoadConfigurationAsync();
+                
+                _logger.LogCritical($"🔥 EXTENDED AWAY SESSION DETECTED!");
+                _logger.LogCritical($"🔥 Away duration: {e.TotalAwayTime.TotalMinutes:F1} minutes");
+                _logger.LogCritical($"🔥 Away start: {e.AwayStartTime:HH:mm:ss}, Return: {e.ReturnTime:HH:mm:ss}");
+                _logger.LogCritical($"🔥 Config - EnableSmartSessionReset: {config.UserPresence.EnableSmartSessionReset}");
+                _logger.LogCritical($"🔥 Config - ExtendedAwayThresholdMinutes: {config.UserPresence.ExtendedAwayThresholdMinutes}");
+                _logger.LogCritical($"🔥 Config - ShowSessionResetNotification: {config.UserPresence.ShowSessionResetNotification}");
+                
+                // Check if smart session reset is enabled
+                if (!config.UserPresence.EnableSmartSessionReset)
+                {
+                    _logger.LogCritical($"🚨 SMART SESSION RESET DISABLED - Extended away session detected ({e.TotalAwayTime.TotalMinutes:F1} min) but smart session reset is disabled in config");
+                    return;
+                }
+
+                _logger.LogInformation($"⚡ Extended away session detected: {e.TotalAwayTime.TotalMinutes:F1} minutes away - initiating smart session reset");
+                
+                var reason = $"Extended away ({e.TotalAwayTime.TotalMinutes:F0}min) - fresh session";
+                
+                // Perform smart session reset
+                await _timerService.SmartSessionResetAsync(reason);
+                
+                // Update system tray to show fresh session
+                _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
+                _systemTrayService.UpdateTimerStatus("Fresh Session");
+                
+                // Record analytics event
+                await _analyticsService.RecordPresenceChangeAsync(e.AwayState, UserPresenceState.Present, e.TotalAwayTime);
+                
+                // Show optional notification if enabled
+                if (config.UserPresence.ShowSessionResetNotification)
+                {
+                    _systemTrayService.ShowBalloonTip(
+                        "Eye-rest Session Reset", 
+                        $"Welcome back! Starting fresh {config.EyeRest.IntervalMinutes}min/{config.Break.IntervalMinutes}min cycle after {e.TotalAwayTime.TotalMinutes:F0}min away.");
+                }
+                
+                _logger.LogInformation($"✅ Smart session reset completed - fresh working session started");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling extended away session detection");
+            }
+        }
+
+        /* DISABLED: Meeting detection not working reliably - needs improvement and testing in future
         private async void OnMeetingStateChanged(object? sender, MeetingStateEventArgs e)
         {
             try
@@ -424,6 +664,7 @@ namespace EyeRest.Services
                 _logger.LogError(ex, "Error handling meeting state change");
             }
         }
+        */
 
         private async void OnPauseReminderShown(object? sender, PauseReminderEventArgs e)
         {
@@ -515,7 +756,7 @@ namespace EyeRest.Services
             {
                 _logger.LogInformation("▶️ Manual resume requested from system tray");
                 
-                if (_timerService.IsRunning && (_timerService.IsPaused || _timerService.IsSmartPaused))
+                if (_timerService.IsRunning && (_timerService.IsPaused || _timerService.IsSmartPaused || _timerService.IsManuallyPaused))
                 {
                     await _timerService.ResumeAsync();
                     _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
@@ -533,6 +774,36 @@ namespace EyeRest.Services
             }
         }
 
+        // NEW: Handle pause for meeting request
+        private async void OnPauseForMeetingRequested(object? sender, EventArgs e)
+        {
+            try
+            {
+                _logger.LogInformation("🎥 30-minute meeting pause requested from system tray");
+                
+                if (_timerService.IsRunning && !_timerService.IsManuallyPaused)
+                {
+                    // Pause for 30 minutes for meeting
+                    await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(30), "Manual meeting pause");
+                    _systemTrayService.UpdateTrayIcon(TrayIconState.ManuallyPaused);
+                    _systemTrayService.UpdateTimerStatus("Meeting Pause (30 min)");
+                    _systemTrayService.ShowBalloonTip("Meeting Pause Active", "Timers paused for 30 minutes. They will auto-resume when the time is up.");
+                    
+                    // Notify pause reminder service
+                    await _pauseReminderService.OnTimersPausedAsync("Manual meeting pause (30 min)");
+                }
+                else if (_timerService.IsManuallyPaused)
+                {
+                    _systemTrayService.ShowBalloonTip("Already Paused", "Timers are already paused for a meeting. Use 'Resume Timers' to restart immediately.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling pause for meeting request");
+                _systemTrayService.ShowBalloonTip("Error", "Failed to pause timers for meeting. Please try again.");
+            }
+        }
+
         private void OnShowTimerStatusRequested(object? sender, EventArgs e)
         {
             try
@@ -545,9 +816,9 @@ namespace EyeRest.Services
                     (_timerService.IsPaused ? "Paused" : 
                      _timerService.IsSmartPaused ? "Smart Paused" : "Running") : "Stopped";
                 
-                var message = $"Status: {status}\\n" +
-                             $"Next Eye Rest: {eyeRestTime:mm\\\\:ss}\\n" +
-                             $"Next Break: {breakTime:mm\\\\:ss}";
+                var message = $"Status: {status}\n" +
+                             $"Next Eye Rest: {eyeRestTime:mm\\:ss}\n" +
+                             $"Next Break: {breakTime:mm\\:ss}";
                 
                 _systemTrayService.ShowBalloonTip("Timer Status", message);
             }
@@ -655,13 +926,29 @@ namespace EyeRest.Services
                 {
                     newStatus = "Stopped";
                 }
+                else if (_timerService.IsManuallyPaused)
+                {
+                    // ENHANCED: Show remaining time for manual pause
+                    var remaining = _timerService.ManualPauseRemaining;
+                    if (remaining.HasValue && remaining.Value > TimeSpan.Zero)
+                    {
+                        var minutes = (int)remaining.Value.TotalMinutes;
+                        var seconds = remaining.Value.Seconds;
+                        newStatus = $"Meeting Pause ({minutes}m {seconds}s left)";
+                    }
+                    else
+                    {
+                        newStatus = "Meeting Pause (Manual)";
+                    }
+                }
                 else if (_timerService.IsPaused)
                 {
                     newStatus = "Paused (Manual)";
                 }
                 else if (_timerService.IsSmartPaused)
                 {
-                    newStatus = "Smart Paused";
+                    var reason = _timerService.PauseReason ?? "Auto";
+                    newStatus = $"Smart Paused ({reason})";
                 }
                 else
                 {
@@ -697,6 +984,69 @@ namespace EyeRest.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🎛️ Error stopping tray timer update");
+            }
+        }
+        
+        /// <summary>
+        /// NEW: Start session validation timer for integrity monitoring
+        /// </summary>
+        private void StartSessionValidationTimer()
+        {
+            try
+            {
+                _sessionValidationTimer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMinutes(15) // Validate every 15 minutes
+                };
+                
+                _sessionValidationTimer.Tick += (sender, e) =>
+                {
+                    try
+                    {
+                        var validation = _analyticsService.ValidateSessionTracking();
+                        var metrics = _analyticsService.GetCurrentSessionMetrics();
+                        
+                        if (!validation.IsValid)
+                        {
+                            _logger.LogWarning($"⚠️ Periodic session validation failed:\n{validation.FormattedReport}");
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"📊 Periodic validation: {metrics.FormattedActivitySummary}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during periodic session validation");
+                    }
+                };
+                
+                _sessionValidationTimer.Start();
+                _logger.LogInformation("⚙️ Session validation timer started (15-minute intervals)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting session validation timer");
+            }
+        }
+        
+        /// <summary>
+        /// NEW: Stop session validation timer
+        /// </summary>
+        private void StopSessionValidationTimer()
+        {
+            try
+            {
+                if (_sessionValidationTimer != null)
+                {
+                    _sessionValidationTimer.Stop();
+                    _sessionValidationTimer = null;
+                    _logger.LogInformation("⚙️ Session validation timer stopped");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error stopping session validation timer");
             }
         }
         
