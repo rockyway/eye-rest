@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Media;
 using System.Threading.Tasks;
@@ -15,6 +16,7 @@ namespace EyeRest.Services
         private AppConfiguration _configuration;
         private readonly object _soundLock = new object(); // Prevent concurrent sound playback
         private bool _isPlayingSound = false; // Track if sound is currently playing
+        private readonly Queue<string> _soundQueue = new Queue<string>(); // Queue for multiple sound requests
 
         public bool IsAudioEnabled => _configuration.Audio.Enabled;
 
@@ -150,6 +152,16 @@ namespace EyeRest.Services
 
         private void PlaySystemSound(SystemSound sound)
         {
+            lock (_soundLock)
+            {
+                if (_isPlayingSound)
+                {
+                    _logger.LogDebug("🔊 Sound already playing - skipping duplicate playback to prevent ghost sounds");
+                    return;
+                }
+                _isPlayingSound = true;
+            }
+
             try
             {
                 // ENHANCED: Always prefer custom sound when configured
@@ -186,6 +198,13 @@ namespace EyeRest.Services
                     _logger.LogWarning("🔊 All audio playback methods failed");
                 }
             }
+            finally
+            {
+                lock (_soundLock)
+                {
+                    _isPlayingSound = false;
+                }
+            }
         }
 
         private void PlayCustomSound(string soundPath)
@@ -204,21 +223,63 @@ namespace EyeRest.Services
                 }
                 else
                 {
-                    // Use MediaPlayer for other formats (MP3, WMA, etc.) with volume control
+                    // CRITICAL FIX: Properly manage MediaPlayer lifecycle to prevent ghost sounds
+                    // Note: MediaPlayer doesn't implement IDisposable, so manual cleanup is required
                     var mediaPlayer = new System.Windows.Media.MediaPlayer();
-                    mediaPlayer.Open(new Uri(soundPath));
-                    
-                    // Apply volume setting from configuration (0-100 to 0.0-1.0)
-                    mediaPlayer.Volume = _configuration.Audio.Volume / 100.0;
-                    
-                    mediaPlayer.Play();
-                    
-                    // Wait for playback to complete (approximate)
-                    System.Threading.Thread.Sleep(1000); // Basic wait - could be improved with MediaEnded event
-                    
-                    mediaPlayer.Close();
-                    
-                    _logger.LogInformation($"🔊 ✅ Custom media sound played successfully: {Path.GetFileName(soundPath)} at {_configuration.Audio.Volume}% volume");
+                    try
+                    {
+                        mediaPlayer.Open(new Uri(soundPath));
+                        
+                        // Apply volume setting from configuration (0-100 to 0.0-1.0)
+                        mediaPlayer.Volume = _configuration.Audio.Volume / 100.0;
+                        
+                        // Use proper async playback with completion tracking
+                        var playbackCompleted = new TaskCompletionSource<bool>();
+                        
+                        EventHandler? mediaEndedHandler = null;
+                        EventHandler<System.Windows.Media.ExceptionEventArgs>? mediaFailedHandler = null;
+                        
+                        mediaEndedHandler = (s, e) =>
+                        {
+                            _logger.LogInformation($"🔊 MediaPlayer playback ended for {Path.GetFileName(soundPath)}");
+                            playbackCompleted.TrySetResult(true);
+                        };
+                        
+                        mediaFailedHandler = (s, e) =>
+                        {
+                            _logger.LogWarning($"🔊 MediaPlayer playback failed for {Path.GetFileName(soundPath)}: {e.ErrorException?.Message}");
+                            playbackCompleted.TrySetException(e.ErrorException ?? new Exception("Media playback failed"));
+                        };
+                        
+                        mediaPlayer.MediaEnded += mediaEndedHandler;
+                        mediaPlayer.MediaFailed += mediaFailedHandler;
+                        
+                        mediaPlayer.Play();
+                        
+                        // Wait for playback completion or timeout
+                        var completionTask = playbackCompleted.Task;
+                        if (completionTask.Wait(TimeSpan.FromSeconds(10))) // 10 second timeout
+                        {
+                            _logger.LogInformation($"🔊 ✅ Custom media sound played successfully: {Path.GetFileName(soundPath)} at {_configuration.Audio.Volume}% volume");
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"🔊 ⚠️ MediaPlayer playback timeout for {Path.GetFileName(soundPath)}, but disposing properly");
+                        }
+                        
+                        // CRITICAL: Always clean up event handlers to prevent memory leaks
+                        if (mediaEndedHandler != null)
+                            mediaPlayer.MediaEnded -= mediaEndedHandler;
+                        if (mediaFailedHandler != null)
+                            mediaPlayer.MediaFailed -= mediaFailedHandler;
+                    }
+                    finally
+                    {
+                        // Stop and close to ensure proper cleanup - prevents ghost sounds
+                        mediaPlayer.Stop();
+                        mediaPlayer.Close();
+                        _logger.LogDebug($"🔊 🧹 MediaPlayer properly cleaned up for {Path.GetFileName(soundPath)}");
+                    }
                 }
             }
             catch (Exception ex)

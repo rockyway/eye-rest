@@ -15,21 +15,29 @@ namespace EyeRest.Services
         
         // Health monitoring fields
         private DateTime _lastHeartbeat = DateTime.Now;
-        private System.Windows.Threading.DispatcherTimer? _healthMonitorTimer;
+        // Health monitor timer is declared in TimerService.State.cs
         
         private void InitializeHealthMonitor()
         {
             if (_healthMonitorTimer == null)
             {
-                _healthMonitorTimer = new DispatcherTimer(DispatcherPriority.Normal)
-                {
-                    Interval = TimeSpan.FromMinutes(1) // Check every minute
-                };
+                _healthMonitorTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
+                _healthMonitorTimer.Interval = TimeSpan.FromMinutes(1); // Check every minute
                 
                 _healthMonitorTimer.Tick += OnHealthMonitorTick;
                 
                 _logger.LogInformation("❤️ Health monitor initialized - checking timer health every minute");
             }
+        }
+        
+        /// <summary>
+        /// Update heartbeat more frequently to prevent false recovery triggers
+        /// Call this from various timer operations, not just timer events
+        /// </summary>
+        public void UpdateHeartbeatFromOperation(string operation)
+        {
+            UpdateHeartbeat();
+            _logger.LogDebug($"❤️ Heartbeat updated from {operation}");
         }
 
         private void OnHealthMonitorTick(object? sender, EventArgs e)
@@ -49,22 +57,57 @@ namespace EyeRest.Services
                     _logger.LogCritical($"❤️ PROCESS STATUS: ID={process.Id}, Memory={process.WorkingSet64 / 1024 / 1024}MB");
                 }
                 
-                // Check if timers haven't fired for too long
-                if (timeSinceLastHeartbeat.TotalMinutes > 3)
+                // SOLID FIX: Calculate dynamic heartbeat threshold based on current timer intervals
+                var dynamicThresholdMinutes = CalculateDynamicHeartbeatThreshold();
+                _logger.LogCritical($"❤️ DYNAMIC THRESHOLD: {dynamicThresholdMinutes:F1} minutes (based on current timer intervals)");
+                
+                // Check if timers haven't fired for too long using dynamic threshold
+                if (timeSinceLastHeartbeat.TotalMinutes > dynamicThresholdMinutes)
                 {
-                    _logger.LogCritical($"🚨 TIMER HANG DETECTED - No heartbeat for {timeSinceLastHeartbeat.TotalMinutes:F1} minutes!");
+                    _logger.LogCritical($"🚨 TIMER HANG DETECTED - No heartbeat for {timeSinceLastHeartbeat.TotalMinutes:F1} minutes (threshold: {dynamicThresholdMinutes:F1}min)!");
                     
-                    // ENHANCED: Auto-recovery after 3 minutes of no heartbeat
-                    if (timeSinceLastHeartbeat.TotalMinutes > 3)
-                    {
-                        _logger.LogCritical($"🔧 INITIATING TIMER RECOVERY - Attempting to fix timer hang after {timeSinceLastHeartbeat.TotalMinutes:F1} minutes");
-                        RecoverTimersFromHang();
-                    }
+                    _logger.LogCritical($"🔧 INITIATING TIMER RECOVERY - Attempting to fix timer hang after {timeSinceLastHeartbeat.TotalMinutes:F1} minutes");
+                    RecoverTimersFromHang();
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in health monitor tick");
+            }
+        }
+        
+        /// <summary>
+        /// SOLID SOLUTION: Calculate dynamic heartbeat threshold based on current timer configurations
+        /// Ensures recovery threshold is always longer than the longest configured timer interval
+        /// </summary>
+        private double CalculateDynamicHeartbeatThreshold()
+        {
+            try
+            {
+                // Get current timer intervals (in minutes)
+                var eyeRestMinutes = _eyeRestTimer?.Interval.TotalMinutes ?? 20.0; // Default 20 minutes
+                var breakMinutes = _breakTimer?.Interval.TotalMinutes ?? 55.0;     // Default 55 minutes
+                
+                // Find the longest timer interval
+                var longestIntervalMinutes = Math.Max(eyeRestMinutes, breakMinutes);
+                
+                // Set threshold to 125% of longest interval + 5 minute buffer
+                // This ensures recovery only triggers when timers are truly stuck
+                var dynamicThreshold = (longestIntervalMinutes * 1.25) + 5.0;
+                
+                // Minimum threshold of 10 minutes (for very short custom intervals)
+                // Maximum threshold of 120 minutes (for very long custom intervals)
+                var clampedThreshold = Math.Max(10.0, Math.Min(120.0, dynamicThreshold));
+                
+                _logger.LogDebug($"🧮 THRESHOLD CALCULATION: EyeRest={eyeRestMinutes:F1}min, Break={breakMinutes:F1}min, " +
+                                $"Longest={longestIntervalMinutes:F1}min, Dynamic={dynamicThreshold:F1}min, Final={clampedThreshold:F1}min");
+                
+                return clampedThreshold;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating dynamic heartbeat threshold, using fallback");
+                return 30.0; // Safe fallback: 30 minutes
             }
         }
         
@@ -127,17 +170,28 @@ namespace EyeRest.Services
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
                 
-                // STEP 2.5: CRITICAL: Clear any zombie popup references during recovery
+                // STEP 2.5: CRITICAL: Clear all popup references during recovery
                 // This fixes the "17 seconds forever" issue where popups persist after timer recovery
                 try
                 {
-                    _logger.LogCritical("🧟 ZOMBIE FIX: Clearing popup references during timer recovery");
+                    _logger.LogCritical("🧹 RECOVERY FIX: Clearing all popup references during timer recovery");
                     _notificationService?.HideAllNotifications();
-                    _logger.LogCritical("🧟 ZOMBIE FIX: Popup references cleared during recovery");
+                    
+                    // Force clear all popup state in notification service
+                    var notificationServiceType = _notificationService?.GetType();
+                    var activeEyeRestField = notificationServiceType?.GetField("_activeEyeRestWarningPopup", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var activeBreakField = notificationServiceType?.GetField("_activeBreakWarningPopup", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    
+                    activeEyeRestField?.SetValue(_notificationService, null);
+                    activeBreakField?.SetValue(_notificationService, null);
+                    
+                    _logger.LogCritical("🧹 RECOVERY FIX: All popup references cleared during recovery");
                 }
                 catch (Exception popupEx)
                 {
-                    _logger.LogError(popupEx, "🧟 ZOMBIE FIX: Error clearing popups during recovery");
+                    _logger.LogError(popupEx, "🧹 RECOVERY FIX: Error clearing popups during recovery");
                 }
                 
                 // STEP 3: Recreate all timers with fresh DispatcherTimer instances
@@ -237,11 +291,35 @@ namespace EyeRest.Services
                     _logger.LogCritical($"🔄 Time since pause: {timeSincePause.TotalMinutes:F1} minutes");
                 }
                 
-                // Check if this qualifies as an extended away period requiring smart session reset
+                // ENHANCED: Check for extended away period (overnight standby)
+                // Consider any pause/away period >= 30 minutes as extended away requiring fresh session
                 if (timeSincePause.TotalMinutes >= extendedAwayThresholdMinutes && config.UserPresence.EnableSmartSessionReset)
                 {
                     _logger.LogCritical($"🌅 EXTENDED AWAY DETECTED: {timeSincePause.TotalMinutes:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
                     _logger.LogCritical($"🌅 Treating as NEW WORKING SESSION after overnight/extended standby");
+                    
+                    // CRITICAL FIX: Clear ALL popup references during extended away reset
+                    try
+                    {
+                        _logger.LogCritical("🧹 EXTENDED AWAY: Clearing all popup references during session reset");
+                        _notificationService?.HideAllNotifications();
+                        
+                        // Force clear notification service popup state
+                        var notificationServiceType = _notificationService?.GetType();
+                        var activeEyeRestField = notificationServiceType?.GetField("_activeEyeRestWarningPopup", 
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        var activeBreakField = notificationServiceType?.GetField("_activeBreakWarningPopup", 
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        
+                        activeEyeRestField?.SetValue(_notificationService, null);
+                        activeBreakField?.SetValue(_notificationService, null);
+                        
+                        _logger.LogCritical("🧹 EXTENDED AWAY: All popup references cleared");
+                    }
+                    catch (Exception popupEx)
+                    {
+                        _logger.LogError(popupEx, "🧹 EXTENDED AWAY: Error clearing popups during reset");
+                    }
                     
                     // Clear all pause states
                     IsManuallyPaused = false;
@@ -350,10 +428,8 @@ namespace EyeRest.Services
         {
             try
             {
-                var testTimer = new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(100)
-                };
+                var testTimer = _timerFactory.CreateTimer();
+                testTimer.Interval = TimeSpan.FromMilliseconds(100);
                 
                 var timerFired = false;
                 testTimer.Tick += (s, e) =>

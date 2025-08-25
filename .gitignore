@@ -36,3 +36,12 @@ bld/
 config.json
 logs/
 .fake
+# Log files
+hooks.log
+hooks-ragsearch.log
+
+# System files
+nul
+.ragsearch/
+.claude/
+EyeRest.Tests/TestResults/

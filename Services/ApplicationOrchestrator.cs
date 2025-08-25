@@ -495,10 +495,25 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation($"👤 User presence changed: {e.PreviousState} → {e.CurrentState}");
+                _logger.LogCritical($"👤 USER PRESENCE: Changed from {e.PreviousState} → {e.CurrentState} at {DateTime.Now:HH:mm:ss.fff}");
+                
+                // CRITICAL FIX: Validate state transition to prevent invalid presence changes
+                if (e.PreviousState == e.CurrentState)
+                {
+                    _logger.LogWarning($"👤 USER PRESENCE: Invalid state transition - previous and current state are the same ({e.CurrentState})");
+                    return;
+                }
                 
                 // Record presence change for analytics
                 await _analyticsService.RecordPresenceChangeAsync(e.PreviousState, e.CurrentState, e.IdleDuration);
+                
+                // CRITICAL FIX: Clear any active popups on presence state change
+                // This prevents popups from staying visible when user is away
+                if (e.CurrentState != UserPresenceState.Present)
+                {
+                    _logger.LogCritical($"👤 USER PRESENCE: User no longer present - clearing active popups");
+                    _notificationService.HideAllNotifications();
+                }
                 
                 // ENHANCED: Handle session activity tracking based on presence
                 switch (e.CurrentState)
@@ -510,7 +525,7 @@ namespace EyeRest.Services
                         var pauseReason = $"User {e.CurrentState.ToString().ToLower()}";
                         await _analyticsService.PauseSessionAsync(e.CurrentState, pauseReason);
                         
-                        // Also pause timers if running
+                        // CRITICAL FIX: Coordinate smart pause with timer events
                         if (_timerService.IsRunning && !_timerService.IsSmartPaused)
                         {
                             await _timerService.SmartPauseAsync(pauseReason);
@@ -999,16 +1014,38 @@ namespace EyeRest.Services
                     Interval = TimeSpan.FromMinutes(15) // Validate every 15 minutes
                 };
                 
-                _sessionValidationTimer.Tick += (sender, e) =>
+                _sessionValidationTimer.Tick += async (sender, e) =>
                 {
                     try
                     {
+                        // CRITICAL FIX: Enhanced session validation with user presence coordination
+                        _logger.LogDebug("🔍 VALIDATION: Running periodic session validation");
+                        
                         var validation = _analyticsService.ValidateSessionTracking();
                         var metrics = _analyticsService.GetCurrentSessionMetrics();
+                        var userPresent = _userPresenceService.IsUserPresent;
+                        var timerState = _timerService.IsRunning;
+                        
+                        // Validate coordination between services
+                        if (userPresent && !timerState && !_timerService.IsManuallyPaused)
+                        {
+                            _logger.LogWarning($"🔍 VALIDATION: User present but timers stopped - investigating recovery");
+                            
+                            // Attempt to recover timers if user is present but timers aren't running
+                            try
+                            {
+                                await _timerService.RecoverFromSystemResumeAsync("Session validation detected stopped timers");
+                                _logger.LogInformation($"🔍 VALIDATION: Timer recovery attempted");
+                            }
+                            catch (Exception recoveryEx)
+                            {
+                                _logger.LogError(recoveryEx, "🔍 VALIDATION: Timer recovery failed");
+                            }
+                        }
                         
                         if (!validation.IsValid)
                         {
-                            _logger.LogWarning($"⚠️ Periodic session validation failed:\n{validation.FormattedReport}");
+                            _logger.LogWarning($"⚠️ VALIDATION: Periodic session validation failed:\n{validation.FormattedReport}");
                         }
                         else
                         {

@@ -44,11 +44,25 @@ namespace EyeRest.Services
                 // Initialize health monitoring
                 InitializeHealthMonitor();
                 
-                // Set timer intervals
-                _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes) - 
-                                 TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
-                _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes) - 
-                               TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
+                // CRITICAL FIX: Timer intervals should be FULL intervals, not reduced by warning time
+                // The warning is handled separately by the warning timer system
+                _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes);
+                _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes);
+                
+                // CRITICAL FIX: Validate intervals don't exceed DispatcherTimer maximum capacity
+                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
+                if (_eyeRestInterval > maxInterval)
+                {
+                    _logger.LogWarning("⚠️ Eye rest interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
+                        _eyeRestInterval.TotalMinutes, maxInterval.TotalMinutes);
+                    _eyeRestInterval = maxInterval;
+                }
+                if (_breakInterval > maxInterval)
+                {
+                    _logger.LogWarning("⚠️ Break interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
+                        _breakInterval.TotalMinutes, maxInterval.TotalMinutes);
+                    _breakInterval = maxInterval;
+                }
                 
                 _eyeRestTimer.Interval = _eyeRestInterval;
                 _breakTimer.Interval = _breakInterval;
@@ -62,7 +76,7 @@ namespace EyeRest.Services
                 
                 // Start health monitor
                 _healthMonitorTimer?.Start();
-                UpdateHeartbeat();
+                UpdateHeartbeatFromOperation("StartAsync");
                 
                 IsRunning = true;
                 
@@ -152,9 +166,8 @@ namespace EyeRest.Services
                     // Clear notification state
                     _isEyeRestNotificationActive = false;
                     
-                    // Reset interval
-                    _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes) - 
-                                     TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
+                    // CRITICAL FIX: Use FULL interval consistently - warning is handled by separate warning timer
+                    _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes);
                     _eyeRestTimer.Interval = _eyeRestInterval;
                     
                     // Clear any remaining time
@@ -196,9 +209,8 @@ namespace EyeRest.Services
                     _isBreakNotificationActive = false;
                     IsBreakDelayed = false;
                     
-                    // Reset interval
-                    _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes) - 
-                                   TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
+                    // CRITICAL FIX: Use FULL interval consistently - warning is handled by separate warning timer
+                    _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes);
                     _breakTimer.Interval = _breakInterval;
                     
                     // Clear any remaining time
@@ -238,9 +250,8 @@ namespace EyeRest.Services
                 
                 if (_eyeRestTimer != null)
                 {
-                    // Reset to full interval
-                    _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes) - 
-                                     TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
+                    // Reset to full interval consistently
+                    _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes);
                     _eyeRestTimer.Interval = _eyeRestInterval;
                     
                     // Only start if not paused
@@ -275,9 +286,8 @@ namespace EyeRest.Services
                 
                 if (_breakTimer != null)
                 {
-                    // Reset to full interval
-                    _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes) - 
-                                   TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
+                    // Reset to full interval consistently
+                    _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes);
                     _breakTimer.Interval = _breakInterval;
                     
                     // Only start if not paused
@@ -316,10 +326,8 @@ namespace EyeRest.Services
                 _breakTimer?.Stop();
                 
                 // Set timer to resume after delay
-                var delayTimer = new DispatcherTimer
-                {
-                    Interval = delay
-                };
+                var delayTimer = _timerFactory.CreateTimer();
+                delayTimer.Interval = delay;
                 
                 delayTimer.Tick += async (s, e) =>
                 {

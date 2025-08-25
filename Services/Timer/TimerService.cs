@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using EyeRest.Models;
+using EyeRest.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace EyeRest.Services
@@ -15,6 +16,7 @@ namespace EyeRest.Services
         private readonly ILogger<TimerService> _logger;
         private readonly IConfigurationService _configurationService;
         private readonly IAnalyticsService _analyticsService;
+        private readonly ITimerFactory _timerFactory;
         
         // Notification service injected later to avoid circular dependency
         private INotificationService? _notificationService;
@@ -35,14 +37,16 @@ namespace EyeRest.Services
         public TimerService(
             ILogger<TimerService> logger,
             IConfigurationService configurationService,
-            IAnalyticsService analyticsService)
+            IAnalyticsService analyticsService,
+            ITimerFactory timerFactory)
         {
             _logger = logger;
             _configurationService = configurationService;
             _analyticsService = analyticsService;
+            _timerFactory = timerFactory;
             _configuration = new AppConfiguration(); // Will be loaded in StartAsync
             
-            _logger.LogInformation("TimerService initialized");
+            _logger.LogInformation("TimerService initialized with testable timer factory");
         }
 
         /// <summary>

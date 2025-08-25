@@ -302,10 +302,8 @@ namespace EyeRest.Services
                 _breakTimer?.Stop();
                 
                 // Create timer for auto-resume
-                _manualPauseTimer = new DispatcherTimer
-                {
-                    Interval = duration
-                };
+                _manualPauseTimer = _timerFactory.CreateTimer();
+                _manualPauseTimer.Interval = duration;
                 
                 _manualPauseTimer.Tick += OnManualPauseTimerTick;
                 _manualPauseTimer.Start();
