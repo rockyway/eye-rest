@@ -66,33 +66,8 @@ namespace EyeRest.Views
             // Don't show confirmation if app is already closing programmatically
             if (IsClosing) return;
             
-            // X button should just minimize to tray without confirmation
-            // Only check for unsaved changes, no general exit confirmation
-            if (DataContext is MainWindowViewModel viewModel && viewModel.HasUnsavedChanges)
-            {
-                var result = MessageBox.Show(
-                    "You have unsaved changes. Do you want to save them before minimizing?",
-                    "Unsaved Changes",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question);
-                
-                switch (result)
-                {
-                    case MessageBoxResult.Yes:
-                        // Save and continue closing (which will minimize to tray)
-                        viewModel.SaveCommand.Execute(null);
-                        break;
-                    case MessageBoxResult.No:
-                        // Don't save, continue closing (which will minimize to tray)
-                        break;
-                    case MessageBoxResult.Cancel:
-                        // Cancel closing
-                        e.Cancel = true;
-                        return;
-                }
-            }
-            
-            // No general confirmation needed - X button just minimizes to tray
+            // X button just minimizes to tray - no confirmation needed since all settings auto-save
+            // No unsaved changes are possible since everything saves in real-time
         }
 
         public void UpdateCountdown()

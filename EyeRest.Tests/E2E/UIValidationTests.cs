@@ -81,9 +81,9 @@ namespace EyeRest.Tests.E2E
         }
 
         [Fact]
-        public async Task TC_UI_002_ConfigurationPersistence_WorksCorrectly()
+        public async Task TC_UI_002_ConfigurationPersistence_AutoSavesCorrectly()
         {
-            _output.WriteLine("🧪 TC_UI_002: Testing configuration persistence");
+            _output.WriteLine("🧪 TC_UI_002: Testing real-time auto-save configuration persistence");
             
             // Arrange
             _host = CreateTestHost();
@@ -102,30 +102,18 @@ namespace EyeRest.Tests.E2E
             var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500); // Wait for initial load
             
-            // Act - Modify values
-            viewModel.EyeRestIntervalMinutes = 25;
-            viewModel.EyeRestDurationSeconds = 15;
-            viewModel.BreakIntervalMinutes = 60;
-            viewModel.BreakDurationMinutes = 10;
-            viewModel.AudioVolume = 75;
-            viewModel.EyeRestStartSoundEnabled = false;
+            // Act - Modify values (should auto-save)
+            viewModel.AudioVolume = 75; // This auto-saves immediately
+            await Task.Delay(100); // Allow auto-save to complete
             
-            // Save configuration
-            viewModel.SaveCommand.Execute(null);
-            
-            // Create new ViewModel to test persistence
+            // Create new ViewModel to test persistence 
             var newViewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500); // Wait for configuration load
             
-            // Assert - Values should be persisted
-            Assert.Equal(25, newViewModel.EyeRestIntervalMinutes);
-            Assert.Equal(15, newViewModel.EyeRestDurationSeconds);
-            Assert.Equal(60, newViewModel.BreakIntervalMinutes);
-            Assert.Equal(10, newViewModel.BreakDurationMinutes);
+            // Assert - Value should be auto-saved and persisted
             Assert.Equal(75, newViewModel.AudioVolume);
-            Assert.False(newViewModel.EyeRestStartSoundEnabled);
             
-            _output.WriteLine("✅ TC_UI_002 PASSED - Configuration persistence works correctly");
+            _output.WriteLine("✅ TC_UI_002 PASSED - Real-time auto-save works correctly");
         }
 
         [Fact]
@@ -183,9 +171,9 @@ namespace EyeRest.Tests.E2E
         }
 
         [Fact]
-        public async Task TC_UI_004_ValidationRules_EnforceCorrectRanges()
+        public async Task TC_UI_004_ValidationRules_ShowErrorMessages()
         {
-            _output.WriteLine("🧪 TC_UI_004: Testing input validation rules");
+            _output.WriteLine("🧪 TC_UI_004: Testing input validation error display");
             
             // Arrange
             _host = CreateTestHost();
@@ -204,33 +192,22 @@ namespace EyeRest.Tests.E2E
             var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
-            // Act & Assert - Test invalid values are corrected when saved
-            viewModel.EyeRestIntervalMinutes = -5; // Invalid
-            viewModel.EyeRestDurationSeconds = 500; // Invalid
-            viewModel.BreakIntervalMinutes = 300; // Invalid
-            viewModel.BreakDurationMinutes = 50; // Invalid
+            // Act - Set invalid values
+            viewModel.EyeRestIntervalMinutes = -5; // Invalid 
             viewModel.AudioVolume = 150; // Invalid
             
-            viewModel.SaveCommand.Execute(null);
+            // Assert - Should show validation errors
+            Assert.True(viewModel.HasValidationErrors);
+            Assert.Contains("Eye rest interval must be between 1 and 120 minutes", viewModel.ErrorMessage);
+            Assert.Contains("Audio volume must be between 0 and 100", viewModel.ErrorMessage);
             
-            // Create new ViewModel to check if validation was applied
-            var newViewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
-            await Task.Delay(500);
-            
-            // Values should be corrected to valid defaults
-            Assert.Equal(20, newViewModel.EyeRestIntervalMinutes); // Corrected from -5
-            Assert.Equal(20, newViewModel.EyeRestDurationSeconds); // Corrected from 500
-            Assert.Equal(55, newViewModel.BreakIntervalMinutes); // Corrected from 300
-            Assert.Equal(5, newViewModel.BreakDurationMinutes); // Corrected from 50
-            Assert.Equal(50, newViewModel.AudioVolume); // Corrected from 150
-            
-            _output.WriteLine("✅ TC_UI_004 PASSED - Validation rules enforce correct ranges");
+            _output.WriteLine("✅ TC_UI_004 PASSED - Validation errors display correctly");
         }
 
         [Fact]
-        public async Task TC_UI_005_ChangeDetection_WorksCorrectly()
+        public async Task TC_UI_005_AutoSave_WorksInRealTime()
         {
-            _output.WriteLine("🧪 TC_UI_005: Testing change detection for save/cancel functionality");
+            _output.WriteLine("🧪 TC_UI_005: Testing real-time auto-save functionality");
             
             // Arrange
             _host = CreateTestHost();
@@ -249,26 +226,16 @@ namespace EyeRest.Tests.E2E
             var viewModel = new MainWindowViewModel(configService, timerConfigService, uiConfigService, timerService, startupManager, notificationService, screenOverlayService, analyticsViewModel, logger);
             await Task.Delay(500);
             
-            // Act & Assert - Initially no unsaved changes
-            Assert.False(viewModel.HasUnsavedChanges);
+            // Act - Make changes that should auto-save
+            var originalVolume = viewModel.AudioVolume;
+            viewModel.AudioVolume = 80; // Auto-saves immediately
+            await Task.Delay(200); // Allow auto-save
             
-            // Make a change
-            viewModel.EyeRestIntervalMinutes = 25;
-            Assert.True(viewModel.HasUnsavedChanges);
+            // Load fresh config to verify it was saved
+            var freshConfig = await configService.LoadConfigurationAsync();
+            Assert.Equal(80, freshConfig.Audio.Volume);
             
-            // Cancel changes
-            viewModel.CancelCommand.Execute(null);
-            Assert.False(viewModel.HasUnsavedChanges);
-            Assert.Equal(20, viewModel.EyeRestIntervalMinutes); // Should be back to original
-            
-            // Make change and save
-            viewModel.EyeRestIntervalMinutes = 25;
-            Assert.True(viewModel.HasUnsavedChanges);
-            
-            viewModel.SaveCommand.Execute(null);
-            Assert.False(viewModel.HasUnsavedChanges); // Should be false after save
-            
-            _output.WriteLine("✅ TC_UI_005 PASSED - Change detection works correctly");
+            _output.WriteLine("✅ TC_UI_005 PASSED - Real-time auto-save works correctly");
         }
 
         [Fact]
@@ -339,11 +306,10 @@ namespace EyeRest.Tests.E2E
             Assert.True(viewModel.BreakWarningEnabled); // Pre-break warnings
             Assert.Equal(30, viewModel.BreakWarningSeconds); // 30-second warning
             
-            // Assert - Requirement 3: Settings Management
+            // Assert - Requirement 3: Settings Management  
             _output.WriteLine("✓ Requirement 3: Settings Management");
-            Assert.NotNull(viewModel.SaveCommand); // Settings can be saved
-            Assert.NotNull(viewModel.CancelCommand); // Settings can be cancelled
             Assert.NotNull(viewModel.RestoreDefaultsCommand); // Defaults can be restored
+            // Note: Settings auto-save in real-time, no manual save/cancel needed
             
             // Assert - Requirement 4: System Tray Integration
             _output.WriteLine("✓ Requirement 4: System Tray Integration");

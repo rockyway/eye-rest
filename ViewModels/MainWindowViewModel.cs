@@ -25,7 +25,6 @@ namespace EyeRest.ViewModels
         
         private AppConfiguration _configuration;
         private AppConfiguration _originalConfiguration;
-        private bool _hasUnsavedChanges;
         
         // Debounced timer restart mechanism
         private DispatcherTimer? _settingsDebounceTimer;
@@ -110,8 +109,6 @@ namespace EyeRest.ViewModels
             _originalConfiguration = new AppConfiguration();
 
             // Initialize commands
-            SaveCommand = new RelayCommand(async () => await SaveSettings(), () => HasUnsavedChanges && !IsSaving);
-            CancelCommand = new RelayCommand(CancelChanges, () => HasUnsavedChanges);
             RestoreDefaultsCommand = new RelayCommand(async () => await RestoreDefaults());
             StartTimersCommand = new RelayCommand(async () => await StartTimers());
             StopTimersCommand = new RelayCommand(async () => await StopTimers());
@@ -161,11 +158,6 @@ namespace EyeRest.ViewModels
 
         #region Properties
 
-        public bool HasUnsavedChanges
-        {
-            get => false; // Always false since we auto-save everything
-            private set => SetProperty(ref _hasUnsavedChanges, false); // Always force to false
-        }
 
         // Eye Rest Properties
         public int EyeRestIntervalMinutes
@@ -734,8 +726,6 @@ namespace EyeRest.ViewModels
 
         #region Commands
 
-        public ICommand SaveCommand { get; }
-        public ICommand CancelCommand { get; }
         public ICommand RestoreDefaultsCommand { get; }
         public ICommand StartTimersCommand { get; }
         public ICommand StopTimersCommand { get; }
@@ -779,7 +769,6 @@ namespace EyeRest.ViewModels
                 
                 // Update UI properties from loaded configuration
                 UpdatePropertiesFromConfiguration();
-                HasUnsavedChanges = false;
                 
                 _logger.LogInformation("🔧 ✅ Configuration loaded immediately on window load - UI updated");
             }
@@ -791,8 +780,7 @@ namespace EyeRest.ViewModels
                 _configuration = await _configurationService.GetDefaultConfiguration();
                 _originalConfiguration = CloneConfiguration(_configuration);
                 UpdatePropertiesFromConfiguration();
-                HasUnsavedChanges = false;
-                
+                                
                 MessageBox.Show("Failed to load configuration. Using default values.", "Error", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -811,8 +799,7 @@ namespace EyeRest.ViewModels
                 
                 // Update UI properties from loaded configuration
                 UpdatePropertiesFromConfiguration();
-                HasUnsavedChanges = false;
-                
+                                
                 _logger.LogInformation("Configuration loaded successfully");
             }
             catch (Exception ex)
@@ -823,8 +810,7 @@ namespace EyeRest.ViewModels
                 _configuration = await _configurationService.GetDefaultConfiguration();
                 _originalConfiguration = CloneConfiguration(_configuration);
                 UpdatePropertiesFromConfiguration();
-                HasUnsavedChanges = false;
-                
+                                
                 MessageBox.Show("Failed to load configuration. Using default values.", "Error", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -959,53 +945,6 @@ namespace EyeRest.ViewModels
             }
         }
 
-        private async Task SaveSettings()
-        {
-            if (IsSaving) return; // Prevent multiple simultaneous saves
-            
-            try
-            {
-                IsSaving = true;
-                UpdateConfigurationFromProperties();
-                await _configurationService.SaveConfigurationAsync(_configuration);
-                
-                // Handle Windows startup setting
-                if (_configuration.Application.StartWithWindows)
-                {
-                    _startupManager.EnableStartup();
-                }
-                else
-                {
-                    _startupManager.DisableStartup();
-                }
-                
-                _originalConfiguration = CloneConfiguration(_configuration);
-                HasUnsavedChanges = false;
-                
-                // Restart timers with new settings if they're currently running
-                if (_timerService.IsRunning)
-                {
-                    _logger.LogInformation("Restarting timers with new settings");
-                    await _timerService.StopAsync();
-                    await _timerService.StartAsync();
-                    _logger.LogInformation("Timers restarted successfully with new settings");
-                }
-                
-                _logger.LogInformation("Settings saved successfully");
-                MessageBox.Show("Settings saved successfully!\n\nTimers have been restarted with the new settings.", "Success", 
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to save settings");
-                MessageBox.Show("Failed to save settings. Please try again.", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                IsSaving = false;
-            }
-        }
 
         /// <summary>
         /// Save only the auto-open analytics dashboard setting without timer reset or success popup
@@ -1165,12 +1104,6 @@ namespace EyeRest.ViewModels
             }
         }
 
-        private void CancelChanges()
-        {
-            _configuration = CloneConfiguration(_originalConfiguration);
-            UpdatePropertiesFromConfiguration();
-            HasUnsavedChanges = false;
-        }
 
         private async Task RestoreDefaults()
         {
@@ -1428,10 +1361,14 @@ namespace EyeRest.ViewModels
         
         private static string FormatTimeSpan(TimeSpan timeSpan)
         {
-            // ENHANCED: Improved timer display format that never shows 0s
-            if (timeSpan.TotalSeconds <= 1)
+            // CRITICAL FIX: Properly handle zero/negative time to prevent "1s" stuck state
+            if (timeSpan.TotalSeconds <= 0)
             {
-                return "1s"; // Never show 0s - always show minimum 1s when timer is due
+                return "Due now"; // Timer has expired - should trigger popup
+            }
+            else if (timeSpan.TotalSeconds < 2)
+            {
+                return "1s"; // Only show 1s when actually 1 second remaining
             }
             else if (timeSpan.TotalMinutes < 1)
             {
@@ -1449,10 +1386,8 @@ namespace EyeRest.ViewModels
 
         private void CheckForChanges()
         {
-            // DISABLED: Auto-save eliminates need for unsaved changes tracking
-            // Since all settings now auto-save immediately, we don't need to track unsaved changes
-            // UpdateConfigurationFromProperties();
-            // HasUnsavedChanges = !ConfigurationsEqual(_configuration, _originalConfiguration);
+            // Auto-save eliminates need for unsaved changes tracking
+            // All settings auto-save immediately, only validation needed
             ValidateSettings();
         }
 
@@ -1554,32 +1489,6 @@ namespace EyeRest.ViewModels
             };
         }
 
-        private static bool ConfigurationsEqual(AppConfiguration config1, AppConfiguration config2)
-        {
-            return config1.EyeRest.IntervalMinutes == config2.EyeRest.IntervalMinutes &&
-                   config1.EyeRest.DurationSeconds == config2.EyeRest.DurationSeconds &&
-                   config1.EyeRest.StartSoundEnabled == config2.EyeRest.StartSoundEnabled &&
-                   config1.EyeRest.EndSoundEnabled == config2.EyeRest.EndSoundEnabled &&
-                   config1.EyeRest.WarningEnabled == config2.EyeRest.WarningEnabled &&
-                   config1.EyeRest.WarningSeconds == config2.EyeRest.WarningSeconds &&
-                   config1.Break.IntervalMinutes == config2.Break.IntervalMinutes &&
-                   config1.Break.DurationMinutes == config2.Break.DurationMinutes &&
-                   config1.Break.WarningEnabled == config2.Break.WarningEnabled &&
-                   config1.Break.WarningSeconds == config2.Break.WarningSeconds &&
-                   config1.Break.OverlayOpacityPercent == config2.Break.OverlayOpacityPercent &&
-                   config1.Break.RequireConfirmationAfterBreak == config2.Break.RequireConfirmationAfterBreak &&
-                   config1.Break.ResetTimersOnBreakConfirmation == config2.Break.ResetTimersOnBreakConfirmation &&
-                   config1.Audio.Enabled == config2.Audio.Enabled &&
-                   config1.Audio.Volume == config2.Audio.Volume &&
-                   config1.Audio.CustomSoundPath == config2.Audio.CustomSoundPath &&
-                   config1.Application.StartWithWindows == config2.Application.StartWithWindows &&
-                   config1.Application.MinimizeToTray == config2.Application.MinimizeToTray &&
-                   config1.Application.StartMinimized == config2.Application.StartMinimized &&
-                   config1.Application.ShowTrayNotifications == config2.Application.ShowTrayNotifications &&
-                   config1.Application.ShowInTaskbar == config2.Application.ShowInTaskbar &&
-                   config1.Application.IsDarkMode == config2.Application.IsDarkMode &&
-                   config1.Analytics.AutoOpenDashboard == config2.Analytics.AutoOpenDashboard;
-        }
 
         #endregion
 
