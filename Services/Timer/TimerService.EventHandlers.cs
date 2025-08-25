@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using EyeRest.Models;
@@ -17,26 +18,61 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("👁️ Eye rest timer tick - triggering eye rest warning");
-                UpdateHeartbeat();
+                _logger.LogCritical($"👁️ TIMER EVENT: Eye rest timer tick fired at {DateTime.Now:HH:mm:ss.fff}");
                 
+                // CRITICAL FIX: Validate timer state before processing
+                if (!IsRunning || IsPaused || IsManuallyPaused)
+                {
+                    _logger.LogInformation($"👁️ TIMER EVENT: Skipping eye rest tick - not running or paused (Running={IsRunning}, Paused={IsPaused}, ManuallyPaused={IsManuallyPaused})");
+                    return;
+                }
+                
+                // CRITICAL FIX: Ensure we're on UI thread for all timer operations
+                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() != true)
+                {
+                    _logger.LogCritical("👁️ TIMER EVENT: Not on UI thread - invoking on UI thread");
+                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => OnEyeRestTimerTick(sender, e)));
+                    return;
+                }
+                
+                UpdateHeartbeatFromOperation("OnEyeRestTimerTick");
+                
+                // CRITICAL FIX: Verify timer timing is correct
+                var elapsed = DateTime.Now - _eyeRestStartTime;
+                var expectedInterval = _eyeRestInterval;
+                _logger.LogCritical("👁️ TIMER VERIFICATION: Timer elapsed={ElapsedMinutes:F2}m, expected={ExpectedMinutes:F2}m", 
+                    elapsed.TotalMinutes, expectedInterval.TotalMinutes);
+                
+                // Log if timer fired significantly early or late
+                if (Math.Abs((elapsed - expectedInterval).TotalSeconds) > 5)
+                {
+                    _logger.LogWarning("⚠️ TIMER ACCURACY: Timer fired {TimingDiff:F1}s {Direction} expected time", 
+                        Math.Abs((elapsed - expectedInterval).TotalSeconds),
+                        elapsed < expectedInterval ? "before" : "after");
+                }
+                
+                _logger.LogCritical("👁️ TIMER EVENT: Stopping eye rest timer and starting warning timer");
                 _eyeRestTimer?.Stop();
-                StartEyeRestWarningTimerInternal();
+                
+                // Use public method to ensure proper thread safety
+                StartEyeRestWarningTimer();
+                
+                _logger.LogCritical("👁️ TIMER EVENT: Eye rest timer tick completed successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in eye rest timer tick - attempting recovery");
+                _logger.LogError(ex, "👁️ TIMER EVENT: Error in eye rest timer tick - attempting recovery");
                 
                 // Attempt to recover by restarting the timer
                 try
                 {
                     _eyeRestTimer?.Stop();
                     _eyeRestTimer?.Start();
-                    _logger.LogInformation("Eye rest timer recovered successfully");
+                    _logger.LogInformation("👁️ TIMER EVENT: Eye rest timer recovered successfully");
                 }
                 catch (Exception recoveryEx)
                 {
-                    _logger.LogError(recoveryEx, "Failed to recover eye rest timer");
+                    _logger.LogError(recoveryEx, "👁️ TIMER EVENT: Failed to recover eye rest timer");
                 }
             }
         }
@@ -45,26 +81,47 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("☕ Break timer tick - triggering break warning");
-                UpdateHeartbeat();
+                _logger.LogCritical($"☕ TIMER EVENT: Break timer tick fired at {DateTime.Now:HH:mm:ss.fff}");
                 
+                // CRITICAL FIX: Validate timer state before processing
+                if (!IsRunning || IsPaused || IsManuallyPaused)
+                {
+                    _logger.LogInformation($"☕ TIMER EVENT: Skipping break tick - not running or paused (Running={IsRunning}, Paused={IsPaused}, ManuallyPaused={IsManuallyPaused})");
+                    return;
+                }
+                
+                // CRITICAL FIX: Ensure we're on UI thread for all timer operations
+                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() != true)
+                {
+                    _logger.LogCritical("☕ TIMER EVENT: Not on UI thread - invoking on UI thread");
+                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => OnBreakTimerTick(sender, e)));
+                    return;
+                }
+                
+                UpdateHeartbeatFromOperation("OnBreakTimerTick");
+                
+                _logger.LogCritical("☕ TIMER EVENT: Stopping break timer and starting warning timer");
                 _breakTimer?.Stop();
-                StartBreakWarningTimerInternal();
+                
+                // Use public method to ensure proper thread safety
+                StartBreakWarningTimer();
+                
+                _logger.LogCritical("☕ TIMER EVENT: Break timer tick completed successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in break timer tick - attempting recovery");
+                _logger.LogError(ex, "☕ TIMER EVENT: Error in break timer tick - attempting recovery");
                 
                 // Attempt to recover by restarting the timer
                 try
                 {
                     _breakTimer?.Stop();
                     _breakTimer?.Start();
-                    _logger.LogInformation("Break timer recovered successfully");
+                    _logger.LogInformation("☕ TIMER EVENT: Break timer recovered successfully");
                 }
                 catch (Exception recoveryEx)
                 {
-                    _logger.LogError(recoveryEx, "Failed to recover break timer");
+                    _logger.LogError(recoveryEx, "☕ TIMER EVENT: Failed to recover break timer");
                 }
             }
         }
@@ -101,7 +158,14 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("👁️ Triggering eye rest");
+                _logger.LogCritical("👁️ TRIGGER EYE REST: Starting popup at {Time}", DateTime.Now.ToString("HH:mm:ss.fff"));
+                
+                // CRITICAL FIX: Verify notification service is available
+                if (_notificationService == null)
+                {
+                    _logger.LogError("👁️ TRIGGER ERROR: NotificationService is null - cannot show popup!");
+                    return;
+                }
                 
                 // Set notification active state
                 _isEyeRestNotificationActive = true;
@@ -117,7 +181,10 @@ namespace EyeRest.Services
                     Type = TimerType.EyeRest
                 };
                 
+                // CRITICAL FIX: Log before and after event trigger
+                _logger.LogCritical("👁️ TRIGGER EYE REST: Invoking EyeRestDue event to show popup");
                 EyeRestDue?.Invoke(this, eventArgs);
+                _logger.LogCritical("👁️ TRIGGER EYE REST: EyeRestDue event invoked successfully");
                 
                 _ = _analyticsService.RecordEyeRestEventAsync(RestEventType.EyeRest, UserAction.Completed, duration);
             }
@@ -189,16 +256,58 @@ namespace EyeRest.Services
 
         public void StartEyeRestWarningTimer()
         {
-            _ = Task.Run(() => StartEyeRestWarningTimerInternal());
+            // CRITICAL FIX: DispatcherTimer must be created/manipulated on UI thread
+            // Remove Task.Run() that was causing thread safety violations and infinite loops
+            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            {
+                // Already on UI thread
+                StartEyeRestWarningTimerInternal();
+            }
+            else
+            {
+                // Invoke on UI thread
+                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => 
+                {
+                    StartEyeRestWarningTimerInternal();
+                }));
+            }
         }
 
         public void StartBreakWarningTimer()
         {
-            _ = Task.Run(() => StartBreakWarningTimerInternal());
+            // CRITICAL FIX: DispatcherTimer must be created/manipulated on UI thread
+            // Remove Task.Run() that was causing thread safety violations and infinite loops
+            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            {
+                // Already on UI thread
+                StartBreakWarningTimerInternal();
+            }
+            else
+            {
+                // Invoke on UI thread
+                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => 
+                {
+                    StartBreakWarningTimerInternal();
+                }));
+            }
         }
 
         private void StartEyeRestWarningTimerInternal()
         {
+            // CRITICAL FIX: Prevent duplicate warning timer starts that cause infinite loops and UI desync
+            if (_eyeRestWarningTimer?.IsEnabled == true)
+            {
+                _logger.LogWarning("⚠️ Eye rest warning timer already running - skipping duplicate start to prevent infinite loop and UI countdown reset");
+                return;
+            }
+            
+            // Additional safety check: prevent multiple active notification states
+            if (_isEyeRestNotificationActive)
+            {
+                _logger.LogWarning("⚠️ Eye rest notification already active - preventing duplicate timer start");
+                return;
+            }
+            
             if (_eyeRestWarningTimer != null && _notificationService != null)
             {
                 // CRITICAL FIX: Recreate timer to ensure clean state
@@ -211,7 +320,7 @@ namespace EyeRest.Services
                 _eyeRestWarningTimer.Interval = TimeSpan.FromMilliseconds(100); // Update every 100ms for smooth countdown
                 
                 // Create a new event handler to avoid accumulating handlers
-                EventHandler warningTickHandler = (sender, e) =>
+                EventHandler<EventArgs> warningTickHandler = (sender, e) =>
                 {
                     if (hasTriggered) return; // Prevent multiple executions
                     
@@ -254,6 +363,20 @@ namespace EyeRest.Services
 
         private void StartBreakWarningTimerInternal()
         {
+            // CRITICAL FIX: Prevent duplicate warning timer starts that cause infinite loops and UI desync
+            if (_breakWarningTimer?.IsEnabled == true)
+            {
+                _logger.LogWarning("⚠️ Break warning timer already running - skipping duplicate start to prevent infinite loop and UI countdown reset");
+                return;
+            }
+            
+            // Additional safety check: prevent multiple active notification states
+            if (_isBreakNotificationActive)
+            {
+                _logger.LogWarning("⚠️ Break notification already active - preventing duplicate timer start");
+                return;
+            }
+            
             if (_breakWarningTimer != null && _notificationService != null)
             {
                 // CRITICAL FIX: Recreate timer to ensure clean state
@@ -266,7 +389,7 @@ namespace EyeRest.Services
                 _breakWarningTimer.Interval = TimeSpan.FromMilliseconds(100); // Update every 100ms for smooth countdown
                 
                 // Create a new event handler to avoid accumulating handlers
-                EventHandler warningTickHandler = (sender, e) =>
+                EventHandler<EventArgs> warningTickHandler = (sender, e) =>
                 {
                     if (hasTriggered) return; // Prevent multiple executions
                     

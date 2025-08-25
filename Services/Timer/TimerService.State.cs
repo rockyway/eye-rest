@@ -1,5 +1,7 @@
 using System;
 using System.Windows.Threading;
+using EyeRest.Services.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace EyeRest.Services
 {
@@ -10,17 +12,20 @@ namespace EyeRest.Services
     {
         #region Core Timer Objects
         
-        private DispatcherTimer? _eyeRestTimer;
-        private DispatcherTimer? _eyeRestWarningTimer;
-        private DispatcherTimer? _breakTimer;
-        private DispatcherTimer? _breakWarningTimer;
+        private ITimer? _eyeRestTimer;
+        private ITimer? _eyeRestWarningTimer;
+        private ITimer? _breakTimer;
+        private ITimer? _breakWarningTimer;
         
         // Fallback timers to prevent stuck state
-        private DispatcherTimer? _eyeRestFallbackTimer;
-        private DispatcherTimer? _breakFallbackTimer;
+        private ITimer? _eyeRestFallbackTimer;
+        private ITimer? _breakFallbackTimer;
         
         // Manual pause timer
-        private DispatcherTimer? _manualPauseTimer;
+        private ITimer? _manualPauseTimer;
+        
+        // Health monitoring timer
+        private ITimer? _healthMonitorTimer;
         
         #endregion
 
@@ -150,7 +155,15 @@ namespace EyeRest.Services
                 {
                     var elapsed = DateTime.Now - _eyeRestStartTime;
                     var remaining = _eyeRestInterval - elapsed;
-                    return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+                    
+                    // CRITICAL FIX: Log when timer is overdue to help debug stuck state
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        _logger?.LogWarning("👁️ Eye rest timer is overdue by {OverdueSeconds}s - event should have fired!", 
+                            Math.Abs(remaining.TotalSeconds));
+                        return TimeSpan.Zero;
+                    }
+                    return remaining;
                 }
                 
                 return TimeSpan.Zero;
@@ -193,7 +206,15 @@ namespace EyeRest.Services
                 {
                     var elapsed = DateTime.Now - _breakStartTime;
                     var remaining = _breakInterval - elapsed;
-                    return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+                    
+                    // CRITICAL FIX: Log when break timer is overdue to help debug stuck state
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        _logger?.LogWarning("☕ Break timer is overdue by {OverdueSeconds}s - event should have fired!", 
+                            Math.Abs(remaining.TotalSeconds));
+                        return TimeSpan.Zero;
+                    }
+                    return remaining;
                 }
                 
                 return TimeSpan.Zero;

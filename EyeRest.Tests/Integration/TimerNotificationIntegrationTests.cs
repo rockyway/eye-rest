@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using EyeRest.Models;
 using EyeRest.Services;
+using EyeRest.Services.Abstractions;
+using EyeRest.Tests.Fakes;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -15,6 +17,7 @@ namespace EyeRest.Tests.Integration
         private readonly Mock<IConfigurationService> _mockConfigService;
         private readonly Mock<IScreenOverlayService> _mockScreenOverlayService;
         private readonly Mock<IAnalyticsService> _mockAnalyticsService;
+        private readonly FakeTimerFactory _fakeTimerFactory;
         private readonly TimerService _timerService;
         private readonly NotificationService _notificationService;
         private readonly AppConfiguration _testConfig;
@@ -26,6 +29,7 @@ namespace EyeRest.Tests.Integration
             _mockConfigService = new Mock<IConfigurationService>();
             _mockScreenOverlayService = new Mock<IScreenOverlayService>();
             _mockAnalyticsService = new Mock<IAnalyticsService>();
+            _fakeTimerFactory = new FakeTimerFactory();
 
             _testConfig = new AppConfiguration
             {
@@ -46,7 +50,7 @@ namespace EyeRest.Tests.Integration
             _mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(_testConfig);
 
-            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object);
+            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory);
             _notificationService = new NotificationService(_mockNotificationLogger.Object, System.Windows.Threading.Dispatcher.CurrentDispatcher, _mockScreenOverlayService.Object, _mockConfigService.Object);
         }
 

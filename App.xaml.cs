@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.Configuration;
@@ -7,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using EyeRest.Services;
+using EyeRest.Services.Abstractions;
+using EyeRest.Services.Implementation;
 using EyeRest.ViewModels;
 using EyeRest.Views;
 using System.Windows.Threading;
@@ -17,6 +20,8 @@ namespace EyeRest
     public partial class App : Application
     {
         private readonly IHost _host;
+        private static Mutex? _instanceMutex;
+        private const string MUTEX_NAME = "Global\\EyeRest_SingleInstance_Mutex_UniqueGUID_{B6F2E234-8A4B-4C5D-9E7F-3A8B1C6D4E2F}";
 
         private ILogger<App>? _logger;
         private DispatcherTimer? _countdownTimer;
@@ -98,6 +103,9 @@ namespace EyeRest
             // Dual Configuration Services
             services.AddSingleton<ITimerConfigurationService, TimerConfigurationService>();
             services.AddSingleton<IUIConfigurationService, UIConfigurationService>();
+            
+            // Timer factory for testable timer creation
+            services.AddSingleton<ITimerFactory, ProductionTimerFactory>();
             services.AddSingleton<ITimerService, TimerService>();
             services.AddSingleton<INotificationService, NotificationService>();
             services.AddSingleton<IAudioService, AudioService>();
@@ -140,7 +148,33 @@ namespace EyeRest
         {
             base.OnStartup(e);
 
-            Console.WriteLine($"[STARTUP] Starting EyeRest at {DateTime.Now:HH:mm:ss.fff}");
+            // CRITICAL: Check for single instance before initialization
+            bool isNewInstance;
+            try
+            {
+                _instanceMutex = new Mutex(true, MUTEX_NAME, out isNewInstance);
+            }
+            catch (Exception ex)
+            {
+                // If mutex creation fails, assume we can continue
+                Console.WriteLine($"[STARTUP ERROR] Failed to create mutex: {ex.Message}");
+                isNewInstance = true;
+            }
+
+            if (!isNewInstance)
+            {
+                Console.WriteLine($"[STARTUP] Another instance of EyeRest is already running. Exiting.");
+                MessageBox.Show(
+                    "EyeRest is already running.\n\nCheck the system tray for the EyeRest icon.",
+                    "Application Already Running",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                    
+                Current.Shutdown(0);
+                return;
+            }
+
+            Console.WriteLine($"[STARTUP] Starting EyeRest at {DateTime.Now:HH:mm:ss.fff} (Single instance confirmed)");
 
             await _host.StartAsync();
 
@@ -212,194 +246,12 @@ namespace EyeRest
                 mainWindow.UpdateCountdown();
             }
             
-            // CRITICAL FIX: Alternative popup trigger system to bypass broken DispatcherTimer.Tick events
-            // This piggybacks on the working UI countdown timer since TimerService DispatcherTimer events never fire
-            CheckAndTriggerPopups();
+            // REMOVED: Backup trigger system that was causing race conditions
+            // Now relying on proper TimerService event handling
         }
         
-        // Track last popup trigger times to prevent duplicate popups
-        private DateTime _lastEyeRestWarningCheck = DateTime.MinValue;
-        private DateTime _lastEyeRestDueCheck = DateTime.MinValue;
-        private DateTime _lastBreakWarningCheck = DateTime.MinValue;
-        private DateTime _lastBreakDueCheck = DateTime.MinValue;
-        
-        private void CheckAndTriggerPopups()
-        {
-            try
-            {
-                // Get services from DI container
-                var timerService = ServiceProvider?.GetService<ITimerService>();
-                var applicationOrchestrator = ServiceProvider?.GetService<IApplicationOrchestrator>();
-                var notificationService = ServiceProvider?.GetService<INotificationService>();
-                var logger = ServiceProvider?.GetService<ILogger<App>>();
-                
-                // DEBUG: Log that we're being called
-                logger?.LogCritical($"🔍 BACKUP TRIGGER: CheckAndTriggerPopups() called at {DateTime.Now:HH:mm:ss.fff}");
-                
-                if (timerService == null || applicationOrchestrator == null || notificationService == null)
-                {
-                    logger?.LogCritical($"❌ BACKUP TRIGGER: Services not available - TimerService={timerService != null}, NotificationService={notificationService != null}");
-                    return; // Services not available
-                }
-                
-                var now = DateTime.Now;
-                
-                // DEBUG: Log timer states
-                logger?.LogCritical($"🔍 BACKUP TRIGGER: Timer states - Running={timerService.IsRunning}, Paused={timerService.IsPaused}, SmartPaused={timerService.IsSmartPaused}, ManuallyPaused={timerService.IsManuallyPaused}");
-                
-                // Only check when timers are running and not manually paused
-                // NOTE: We ignore IsSmartPaused because backup trigger is designed to work when user presence detection fails
-                if (!timerService.IsRunning || timerService.IsPaused || timerService.IsManuallyPaused)
-                {
-                    logger?.LogCritical($"🔍 BACKUP TRIGGER: Skipping - timer not active");
-                    return;
-                }
-                
-                // Log if smart paused but continuing anyway
-                if (timerService.IsSmartPaused)
-                {
-                    logger?.LogCritical($"⚠️ BACKUP TRIGGER: Timer is smart paused (user presence detection may be wrong) but continuing with backup triggers");
-                }
-                
-                // DEBUG: Log current timer values
-                var timeUntilEyeRest = timerService.TimeUntilNextEyeRest;
-                var timeUntilBreak = timerService.TimeUntilNextBreak;
-                logger?.LogCritical($"🔍 BACKUP TRIGGER: Current times - EyeRest: {timeUntilEyeRest.TotalSeconds:F1}s, Break: {timeUntilBreak.TotalSeconds:F1}s");
-                
-                // CRITICAL: Zombie popup detection and cleanup
-                // Detect when popup claims to be active but timer shows it shouldn't be (mismatch = zombie)
-                if (notificationService.IsBreakWarningActive && timeUntilBreak.TotalSeconds > 60)
-                {
-                    logger?.LogCritical($"🧟 ZOMBIE DETECTION: Break warning popup active but timer shows {timeUntilBreak.TotalSeconds:F0}s remaining (>60s) - ZOMBIE POPUP DETECTED!");
-                    logger?.LogCritical($"🧟 ZOMBIE CLEANUP: Force clearing zombie break warning popup");
-                    try
-                    {
-                        notificationService.HideAllNotifications();
-                        logger?.LogCritical($"✅ ZOMBIE CLEANUP: Zombie popup cleared successfully");
-                    }
-                    catch (Exception zombieEx)
-                    {
-                        logger?.LogError(zombieEx, "❌ ZOMBIE CLEANUP: Error clearing zombie popup");
-                    }
-                }
-                
-                if (notificationService.IsEyeRestWarningActive && timeUntilEyeRest.TotalSeconds > 60)
-                {
-                    logger?.LogCritical($"🧟 ZOMBIE DETECTION: Eye rest warning popup active but timer shows {timeUntilEyeRest.TotalSeconds:F0}s remaining (>60s) - ZOMBIE POPUP DETECTED!");
-                    logger?.LogCritical($"🧟 ZOMBIE CLEANUP: Force clearing zombie eye rest warning popup");
-                    try
-                    {
-                        notificationService.HideAllNotifications();
-                        logger?.LogCritical($"✅ ZOMBIE CLEANUP: Zombie popup cleared successfully");
-                    }
-                    catch (Exception zombieEx)
-                    {
-                        logger?.LogError(zombieEx, "❌ ZOMBIE CLEANUP: Error clearing zombie popup");
-                    }
-                }
-                
-                // Check for eye rest warning (30 seconds before due)
-                if (timeUntilEyeRest.TotalSeconds <= 30 && timeUntilEyeRest.TotalSeconds > 29 && 
-                    (now - _lastEyeRestWarningCheck).TotalSeconds > 5 &&
-                    !notificationService.IsEyeRestWarningActive)  // NEW: Don't trigger if warning already active
-                {
-                    logger?.LogCritical($"🚨 BACKUP TRIGGER: Eye rest warning - {timeUntilEyeRest.TotalSeconds:F0} seconds remaining");
-                    _lastEyeRestWarningCheck = now;
-                    
-                    // Trigger eye rest warning directly via reflection to access private method
-                    TriggerTimerEvent(timerService, "EyeRestWarning", timeUntilEyeRest, TimerType.EyeRestWarning);
-                }
-                else if (timeUntilEyeRest.TotalSeconds <= 30 && timeUntilEyeRest.TotalSeconds > 29 && 
-                         notificationService.IsEyeRestWarningActive)
-                {
-                    // Warning already active - don't trigger again
-                    logger?.LogDebug($"🛡️ BACKUP TRIGGER: Eye rest warning already active - skipping duplicate trigger");
-                }
-                
-                // Check for eye rest due (0 seconds or negative)
-                else if (timeUntilEyeRest.TotalSeconds <= 0 && 
-                    (now - _lastEyeRestDueCheck).TotalSeconds > 5)
-                {
-                    logger?.LogCritical($"🚨 BACKUP TRIGGER: Eye rest due - {timeUntilEyeRest.TotalSeconds:F0} seconds past due");
-                    _lastEyeRestDueCheck = now;
-                    
-                    // Trigger eye rest due directly
-                    TriggerTimerEvent(timerService, "EyeRestDue", TimeSpan.FromSeconds(20), TimerType.EyeRest);
-                }
-                
-                // Check for break warning (30 seconds before due)
-                if (timeUntilBreak.TotalSeconds <= 30 && timeUntilBreak.TotalSeconds > 29 && 
-                    (now - _lastBreakWarningCheck).TotalSeconds > 5 && 
-                    !notificationService.IsBreakWarningActive)  // NEW: Don't trigger if warning already active
-                {
-                    logger?.LogCritical($"🚨 BACKUP TRIGGER: Break warning - {timeUntilBreak.TotalSeconds:F0} seconds remaining");
-                    _lastBreakWarningCheck = now;
-                    
-                    // Trigger break warning directly
-                    TriggerTimerEvent(timerService, "BreakWarning", timeUntilBreak, TimerType.BreakWarning);
-                }
-                else if (timeUntilBreak.TotalSeconds <= 30 && timeUntilBreak.TotalSeconds > 29 && 
-                         notificationService.IsBreakWarningActive)
-                {
-                    // Warning already active - don't trigger again
-                    logger?.LogDebug($"🛡️ BACKUP TRIGGER: Break warning already active - skipping duplicate trigger");
-                }
-                
-                // Check for break due (0 seconds or negative)
-                else if (timeUntilBreak.TotalSeconds <= 0 && 
-                    (now - _lastBreakDueCheck).TotalSeconds > 5)
-                {
-                    logger?.LogCritical($"🚨 BACKUP TRIGGER: Break due - {timeUntilBreak.TotalSeconds:F0} seconds past due");
-                    _lastBreakDueCheck = now;
-                    
-                    // Trigger break due directly  
-                    TriggerTimerEvent(timerService, "BreakDue", TimeSpan.FromMinutes(5), TimerType.Break);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't crash the UI countdown timer
-                var logger = ServiceProvider?.GetService<ILogger<App>>();
-                logger?.LogError(ex, "Error in backup popup trigger system");
-            }
-        }
-        
-        private void TriggerTimerEvent(ITimerService timerService, string eventName, TimeSpan duration, TimerType timerType)
-        {
-            try
-            {
-                var logger = ServiceProvider?.GetService<ILogger<App>>();
-                logger?.LogCritical($"🔥 BACKUP TRIGGER: Manually firing {eventName} event");
-                
-                // Create timer event args
-                var eventArgs = new TimerEventArgs
-                {
-                    TriggeredAt = DateTime.Now,
-                    NextInterval = duration,
-                    Type = timerType
-                };
-                
-                // Use reflection to access the private event field and fire it manually
-                var eventField = timerService.GetType().GetField(eventName, 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                
-                if (eventField?.GetValue(timerService) is EventHandler<TimerEventArgs> eventHandler)
-                {
-                    logger?.LogCritical($"🔥 BACKUP TRIGGER: Found {eventName} event with {eventHandler.GetInvocationList().Length} subscribers");
-                    eventHandler?.Invoke(timerService, eventArgs);
-                    logger?.LogCritical($"🔥 BACKUP TRIGGER: Successfully fired {eventName} event - popup should appear!");
-                }
-                else
-                {
-                    logger?.LogError($"🔥 BACKUP TRIGGER: Could not find {eventName} event field via reflection");
-                }
-            }
-            catch (Exception ex)
-            {
-                var logger = ServiceProvider?.GetService<ILogger<App>>();
-                logger?.LogError(ex, $"Error manually triggering {eventName} event");
-            }
-        }
+        // REMOVED: Backup trigger system that was causing race conditions
+        // All popup triggering now handled by proper TimerService events
 
         private async void OnExitRequested(object? sender, EventArgs e)
         {
@@ -428,6 +280,21 @@ namespace EyeRest
             using (_host)
             {
                 await _host.StopAsync(TimeSpan.FromSeconds(5));
+            }
+
+            // CRITICAL: Clean up mutex on shutdown
+            if (_instanceMutex != null)
+            {
+                try
+                {
+                    _instanceMutex.ReleaseMutex();
+                    _instanceMutex.Dispose();
+                    _instanceMutex = null;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SHUTDOWN] Error releasing mutex: {ex.Message}");
+                }
             }
 
             Current.Shutdown();
@@ -460,6 +327,20 @@ namespace EyeRest
             using (_host)
             {
                 await _host.StopAsync(TimeSpan.FromSeconds(5));
+            }
+
+            // CRITICAL: Clean up mutex on application exit
+            if (_instanceMutex != null)
+            {
+                try
+                {
+                    _instanceMutex.ReleaseMutex();
+                    _instanceMutex.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[EXIT] Error releasing mutex: {ex.Message}");
+                }
             }
 
             base.OnExit(e);
