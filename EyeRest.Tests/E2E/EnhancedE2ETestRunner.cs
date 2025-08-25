@@ -33,21 +33,21 @@ namespace EyeRest.Tests.E2E
                 await ExecuteTestWithReporting("TC_UI_001", "Default Values Display", 
                     () => uiTests.TC_UI_001_DefaultValues_DisplayCorrectly());
 
-                _output.WriteLine("\n📋 PHASE 2: Configuration Persistence");
-                await ExecuteTestWithReporting("TC_UI_002", "Configuration Persistence", 
-                    () => uiTests.TC_UI_002_ConfigurationPersistence_WorksCorrectly());
+                _output.WriteLine("\n📋 PHASE 2: Configuration Auto-Save");
+                await ExecuteTestWithReporting("TC_UI_002", "Auto-Save Persistence", 
+                    () => uiTests.TC_UI_002_ConfigurationPersistence_AutoSavesCorrectly());
 
                 _output.WriteLine("\n📋 PHASE 3: Restore Defaults Functionality");
                 await ExecuteTestWithReporting("TC_UI_003", "Restore Defaults", 
                     () => uiTests.TC_UI_003_RestoreDefaults_ResetsAllValues());
 
                 _output.WriteLine("\n📋 PHASE 4: Input Validation");
-                await ExecuteTestWithReporting("TC_UI_004", "Validation Rules", 
-                    () => uiTests.TC_UI_004_ValidationRules_EnforceCorrectRanges());
+                await ExecuteTestWithReporting("TC_UI_004", "Validation Errors", 
+                    () => uiTests.TC_UI_004_ValidationRules_ShowErrorMessages());
 
-                _output.WriteLine("\n📋 PHASE 5: Change Detection");
-                await ExecuteTestWithReporting("TC_UI_005", "Change Detection", 
-                    () => uiTests.TC_UI_005_ChangeDetection_WorksCorrectly());
+                _output.WriteLine("\n📋 PHASE 5: Real-time Auto-Save");
+                await ExecuteTestWithReporting("TC_UI_005", "Real-time Auto-Save", 
+                    () => uiTests.TC_UI_005_AutoSave_WorksInRealTime());
 
                 _output.WriteLine("\n📋 PHASE 6: Timer Commands");
                 await ExecuteTestWithReporting("TC_UI_006", "Timer Commands", 
@@ -154,10 +154,10 @@ namespace EyeRest.Tests.E2E
 
             _output.WriteLine("\n🎯 REQUIREMENT COMPLIANCE ANALYSIS:");
             _output.WriteLine($"   📋 Default Values Display Correctly: {(report.RequirementCompliance.DefaultValuesCorrect ? "✅ PASS" : "❌ FAIL")}");
-            _output.WriteLine($"   💾 Configuration Persistence Works: {(report.RequirementCompliance.ConfigurationPersists ? "✅ PASS" : "❌ FAIL")}");
+            _output.WriteLine($"   💾 Auto-Save Configuration Works: {(report.RequirementCompliance.ConfigurationPersists ? "✅ PASS" : "❌ FAIL")}");
             _output.WriteLine($"   🔄 Restore Defaults Functions: {(report.RequirementCompliance.RestoreDefaultsWorks ? "✅ PASS" : "❌ FAIL")}");
             _output.WriteLine($"   ✅ Input Validation Rules: {(report.RequirementCompliance.ValidationRulesWork ? "✅ PASS" : "❌ FAIL")}");
-            _output.WriteLine($"   🔍 Change Detection System: {(report.RequirementCompliance.ChangeDetectionWorks ? "✅ PASS" : "❌ FAIL")}");
+            _output.WriteLine($"   ⚡ Real-time Auto-Save System: {(report.RequirementCompliance.ChangeDetectionWorks ? "✅ PASS" : "❌ FAIL")}");
             _output.WriteLine($"   ⏰ Timer Commands Execute: {(report.RequirementCompliance.TimerCommandsWork ? "✅ PASS" : "❌ FAIL")}");
             _output.WriteLine($"   🎯 All Requirements Met: {(report.RequirementCompliance.AllRequirementsMet ? "✅ PASS" : "❌ FAIL")}");
 
