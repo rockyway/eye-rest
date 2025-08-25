@@ -651,20 +651,6 @@
 
         <!-- Action Buttons -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,15">
-            <Button Content="Save" 
-                    Command="{Binding SaveCommand}" 
-                    Style="{DynamicResource PrimaryButtonStyle}"
-                    Width="120"
-                    Height="35"
-                    Margin="10,0"/>
-            
-            <Button Content="Cancel" 
-                    Command="{Binding CancelCommand}" 
-                    Style="{DynamicResource CancelButtonStyle}"
-                    Width="120"
-                    Height="35"
-                    Margin="10,0"/>
-            
             <Button Content="Restore Defaults" 
                     Command="{Binding RestoreDefaultsCommand}" 
                     Style="{DynamicResource WarningButtonStyle}"
