@@ -15,6 +15,7 @@ namespace EyeRest.Services
         private readonly IConfigurationService _configurationService;
         private BasePopupWindow? _currentPopup;
         private readonly object _lockObject = new object();
+        private readonly object _popupLock = new object(); // POPUP FIX: Dedicated lock for popup instance management
         private bool _isClosing = false; // Track if we're in the process of closing
         private bool _overlayVisible = false; // Track if overlay is currently visible
         private bool _isTestMode = false; // Track if we're in test mode to prevent analytics recording
@@ -24,9 +25,31 @@ namespace EyeRest.Services
         private BreakWarningPopup? _activeBreakWarningPopup;
         private ITimerService? _timerService; // Injected later to avoid circular dependency
         
-        // Status check properties for backup trigger coordination
-        public bool IsBreakWarningActive => _activeBreakWarningPopup != null;
-        public bool IsEyeRestWarningActive => _activeEyeRestWarningPopup != null;
+        // POPUP FIX: Thread-safe status check properties
+        public bool IsBreakWarningActive 
+        { 
+            get 
+            {
+                lock (_popupLock)
+                {
+                    return _activeBreakWarningPopup != null;
+                }
+            }
+        }
+        
+        public bool IsEyeRestWarningActive 
+        { 
+            get 
+            {
+                lock (_popupLock)
+                {
+                    return _activeEyeRestWarningPopup != null;
+                }
+            }
+        }
+        
+        // POPUP FIX: Helper method to check if any popup is currently active
+        public bool IsAnyPopupActive => IsEyeRestWarningActive || IsBreakWarningActive;
 
         public NotificationService(ILogger<NotificationService> logger, Dispatcher dispatcher, IScreenOverlayService screenOverlayService, IConfigurationService configurationService)
         {
@@ -97,8 +120,12 @@ namespace EyeRest.Services
                             _logger.LogInformation("Eye rest warning completed event fired");
                             Application.Current.Dispatcher.Invoke(() =>
                             {
-                                _activeEyeRestWarningPopup = null; // Clear reference
+                                // CRITICAL FIX: Immediate cleanup - no delays to prevent race conditions
+                                // Backup trigger system has been removed, so no race conditions possible
+                                _logger.LogInformation("🧹 POPUP FIX: Immediate cleanup starting - clearing popup reference");
+                                _activeEyeRestWarningPopup = null; // Clear reference immediately
                                 CloseCurrentPopup();
+                                _logger.LogInformation("🧹 POPUP FIX: Immediate cleanup completed successfully");
                             });
                         };
 
@@ -107,14 +134,18 @@ namespace EyeRest.Services
                         {
                             try
                             {
-                                _logger.LogInformation("🧟 ZOMBIE FIX: Eye rest warning popup closed event fired");
-                                _activeEyeRestWarningPopup = null; // Clear reference
+                                _logger.LogInformation("🧹 POPUP FIX: Eye rest warning popup closed event fired");
+                                
+                                // CRITICAL FIX: Immediate cleanup - no delays to prevent race conditions
+                                // Backup trigger system removed, so immediate cleanup is safe
+                                _logger.LogInformation("🧹 POPUP FIX: Immediate popup close cleanup starting");
+                                _activeEyeRestWarningPopup = null; // Clear reference immediately
                                 eyeRestWarningPopup.StopCountdown();
-                                _logger.LogInformation("🧟 ZOMBIE FIX: Eye rest warning popup reference cleared successfully");
+                                _logger.LogInformation("🧹 POPUP FIX: Eye rest warning popup reference cleared successfully");
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "🧟 ZOMBIE FIX: Error in eye rest warning popup closed event handler");
+                                _logger.LogError(ex, "🧹 POPUP FIX: Error in eye rest warning popup closed event handler");
                                 // Force clear reference even if error occurred
                                 _activeEyeRestWarningPopup = null;
                             }
@@ -131,11 +162,25 @@ namespace EyeRest.Services
                             eyeRestWarningPopup.StartCountdown((int)timeUntilBreak.TotalSeconds);
                             _logger.LogInformation("Countdown started successfully");
                             
-                            // Start TimerService countdown after popup is created
+                            // CRITICAL FIX: Start timer countdown ONLY if not already running
+                            // This prevents the UI desync issue while ensuring countdown works
                             if (_timerService != null)
                             {
-                                _timerService.StartEyeRestWarningTimer();
-                                _logger.LogInformation("TimerService countdown timer started");
+                                // Check if we need to start the countdown timer
+                                var timerServiceType = _timerService.GetType();
+                                var isEyeRestWarningTimerEnabledField = timerServiceType.GetField("_eyeRestWarningTimer", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                var eyeRestWarningTimer = isEyeRestWarningTimerEnabledField?.GetValue(_timerService) as System.Windows.Threading.DispatcherTimer;
+                                
+                                if (eyeRestWarningTimer?.IsEnabled != true)
+                                {
+                                    _logger.LogInformation("Starting eye rest warning countdown timer - not currently running");
+                                    _timerService.StartEyeRestWarningTimer();
+                                }
+                                else
+                                {
+                                    _logger.LogInformation("Eye rest warning timer already running - skipping duplicate start");
+                                }
                             }
                             
                             _logger.LogInformation($"Eye rest warning shown for {timeUntilBreak.TotalSeconds} seconds");
@@ -283,9 +328,12 @@ namespace EyeRest.Services
                             _logger.LogInformation("🟠 BreakWarningPopup Completed event fired");
                             Application.Current.Dispatcher.Invoke(() =>
                             {
-                                _activeBreakWarningPopup = null; // Clear reference
+                                // CRITICAL FIX: Immediate cleanup - no delays to prevent race conditions
+                                // Backup trigger system has been removed, so no race conditions possible
+                                _logger.LogInformation("🧹 POPUP FIX: Break warning completed - immediate cleanup starting");
+                                _activeBreakWarningPopup = null; // Clear reference immediately
                                 
-                                // CRITICAL FIX: Only close if this warning popup is still the current popup
+                                // Only close if this warning popup is still the current popup
                                 // If break popup has already been shown, don't interfere
                                 var currentContent = (_currentPopup as BasePopupWindow)?.ContentArea?.Content;
                                 if (_currentPopup != null && currentContent == breakWarningPopup)
@@ -297,6 +345,7 @@ namespace EyeRest.Services
                                 {
                                     _logger.LogInformation($"🟠 WARNING: BreakWarningPopup completed but break popup is already shown - NOT closing. Current content: {currentContent?.GetType().Name}");
                                 }
+                                _logger.LogInformation("🧹 POPUP FIX: Break warning cleanup completed successfully");
                             });
                         };
 
@@ -305,14 +354,18 @@ namespace EyeRest.Services
                         {
                             try
                             {
-                                _logger.LogInformation("🧟 ZOMBIE FIX: Break warning popup closed event fired");
-                                _activeBreakWarningPopup = null; // Clear reference
+                                _logger.LogInformation("🧹 POPUP FIX: Break warning popup closed event fired");
+                                
+                                // CRITICAL FIX: Immediate cleanup - no delays to prevent race conditions
+                                // Backup trigger system removed, so immediate cleanup is safe
+                                _logger.LogInformation("🧹 POPUP FIX: Break warning popup close cleanup starting");
+                                _activeBreakWarningPopup = null; // Clear reference immediately
                                 breakWarningPopup.StopCountdown();
-                                _logger.LogInformation("🧟 ZOMBIE FIX: Break warning popup reference cleared successfully");
+                                _logger.LogInformation("🧹 POPUP FIX: Break warning popup reference cleared successfully");
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "🧟 ZOMBIE FIX: Error in break warning popup closed event handler");
+                                _logger.LogError(ex, "🧹 POPUP FIX: Error in break warning popup closed event handler");
                                 // Force clear reference even if error occurred
                                 _activeBreakWarningPopup = null;
                             }
@@ -324,12 +377,10 @@ namespace EyeRest.Services
                             popupWindow.Show();
                             breakWarningPopup.StartCountdown(timeUntilBreak);
                             
-                            // Start TimerService countdown after popup is created
-                            if (_timerService != null)
-                            {
-                                _timerService.StartBreakWarningTimer();
-                                _logger.LogInformation("TimerService break countdown timer started");
-                            }
+                            // CRITICAL FIX: Remove duplicate timer start that causes UI desync
+                            // The timer is already started by TimerService.OnBreakTimerTick()
+                            // This duplicate call was causing the countdown to reset back to original time
+                            _logger.LogInformation("Break warning popup created - timer already running from TimerService");
                             
                             _logger.LogInformation($"Break warning shown for {timeUntilBreak.TotalSeconds} seconds");
                         }
@@ -723,18 +774,18 @@ namespace EyeRest.Services
 
         public void StartEyeRestWarningCountdown(TimeSpan duration)
         {
-            if (_timerService != null)
-            {
-                _timerService.StartEyeRestWarningTimer();
-            }
+            // CRITICAL FIX: Remove duplicate timer start that causes UI desync
+            // The timer should already be started by TimerService.OnEyeRestTimerTick()
+            // This duplicate call was causing countdown resets
+            _logger.LogInformation($"Eye rest warning countdown requested for {duration.TotalSeconds}s - timer should already be running");
         }
 
         public void StartBreakWarningCountdown(TimeSpan duration)
         {
-            if (_timerService != null)
-            {
-                _timerService.StartBreakWarningTimer();
-            }
+            // CRITICAL FIX: Remove duplicate timer start that causes UI desync
+            // The timer should already be started by TimerService.OnBreakTimerTick()
+            // This duplicate call was causing countdown resets
+            _logger.LogInformation($"Break warning countdown requested for {duration.TotalSeconds}s - timer should already be running");
         }
 
         #region Test Mode Methods - Do Not Record Analytics

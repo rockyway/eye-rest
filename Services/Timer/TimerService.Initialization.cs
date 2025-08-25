@@ -15,16 +15,25 @@ namespace EyeRest.Services
         {
             if (_eyeRestTimer == null)
             {
-                _eyeRestTimer = new DispatcherTimer(DispatcherPriority.Normal);
+                _eyeRestTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
                 _eyeRestTimer.Tick += OnEyeRestTimerTick;
                 
-                // Calculate interval (total time minus warning period)
+                // CRITICAL FIX: Use FULL interval - warning is handled by separate warning timer
                 var totalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;
                 var warningSeconds = _configuration?.EyeRest?.WarningSeconds ?? 15;
-                var interval = TimeSpan.FromMinutes(totalMinutes) - TimeSpan.FromSeconds(warningSeconds);
+                var interval = TimeSpan.FromMinutes(totalMinutes);  // Full 20 minutes, not reduced!
+                
+                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
+                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
+                if (interval > maxInterval)
+                {
+                    _logger.LogWarning("⚠️ Eye rest interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
+                        interval.TotalMinutes, maxInterval.TotalMinutes);
+                    interval = maxInterval;
+                }
                 
                 _eyeRestTimer.Interval = interval;
-                _logger.LogInformation("Eye rest timer initialized - interval: {TotalSeconds}s (warning at {WarningSeconds}s before {TotalMinutes}min target)", 
+                _logger.LogInformation("Eye rest timer initialized - interval: {TotalSeconds}s FULL (will show {WarningSeconds}s warning before {TotalMinutes}min target)", 
                     interval.TotalSeconds, warningSeconds, totalMinutes);
             }
         }
@@ -38,7 +47,7 @@ namespace EyeRest.Services
                 _eyeRestWarningTimer = null;
             }
             
-            _eyeRestWarningTimer = new DispatcherTimer(DispatcherPriority.Normal);
+            _eyeRestWarningTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
             // Event handler will be attached when the timer is started
         }
 
@@ -46,16 +55,25 @@ namespace EyeRest.Services
         {
             if (_breakTimer == null)
             {
-                _breakTimer = new DispatcherTimer(DispatcherPriority.Normal);
+                _breakTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
                 _breakTimer.Tick += OnBreakTimerTick;
                 
-                // Calculate interval (total time minus warning period)
+                // CRITICAL FIX: Use FULL interval - warning is handled by separate warning timer
                 var totalMinutes = _configuration?.Break?.IntervalMinutes ?? 55;
                 var warningSeconds = _configuration?.Break?.WarningSeconds ?? 30;
-                var interval = TimeSpan.FromMinutes(totalMinutes) - TimeSpan.FromSeconds(warningSeconds);
+                var interval = TimeSpan.FromMinutes(totalMinutes);  // Full 55 minutes, not reduced!
+                
+                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
+                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
+                if (interval > maxInterval)
+                {
+                    _logger.LogWarning("⚠️ Break interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
+                        interval.TotalMinutes, maxInterval.TotalMinutes);
+                    interval = maxInterval;
+                }
                 
                 _breakTimer.Interval = interval;
-                _logger.LogInformation("🔧 Break timer initialized - interval: {TotalMinutes}m (warning at {WarningSeconds}s before {ConfiguredMinutes}min target)", 
+                _logger.LogInformation("🔧 Break timer initialized - interval: {TotalMinutes}m FULL (will show {WarningSeconds}s warning before {ConfiguredMinutes}min target)", 
                     interval.TotalMinutes, warningSeconds, totalMinutes);
                 _logger.LogInformation("🔧 Break timer: Enabled={IsEnabled}, Interval={Interval}m, Event handlers registered", 
                     _breakTimer.IsEnabled, _breakTimer.Interval.TotalMinutes);
@@ -71,7 +89,7 @@ namespace EyeRest.Services
                 _breakWarningTimer = null;
             }
             
-            _breakWarningTimer = new DispatcherTimer(DispatcherPriority.Normal);
+            _breakWarningTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
             // Event handler will be attached when the timer is started
         }
 
@@ -83,11 +101,20 @@ namespace EyeRest.Services
         {
             if (_eyeRestFallbackTimer == null)
             {
-                _eyeRestFallbackTimer = new DispatcherTimer(DispatcherPriority.Normal);
+                _eyeRestFallbackTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
                 
                 // Set to trigger 5 seconds after the expected time
                 var totalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;
                 var fallbackInterval = TimeSpan.FromMinutes(totalMinutes).Add(TimeSpan.FromSeconds(5));
+                
+                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
+                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
+                if (fallbackInterval > maxInterval)
+                {
+                    _logger.LogWarning("⚠️ Eye rest fallback interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
+                        fallbackInterval.TotalMinutes, maxInterval.TotalMinutes);
+                    fallbackInterval = maxInterval;
+                }
                 
                 _eyeRestFallbackTimer.Interval = fallbackInterval;
                 _eyeRestFallbackTimer.Tick += OnEyeRestFallbackTimerTick;
@@ -101,11 +128,20 @@ namespace EyeRest.Services
         {
             if (_breakFallbackTimer == null)
             {
-                _breakFallbackTimer = new DispatcherTimer(DispatcherPriority.Normal);
+                _breakFallbackTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
                 
                 // Set to trigger 5 seconds after the expected time
                 var totalMinutes = _configuration?.Break?.IntervalMinutes ?? 55;
                 var fallbackInterval = TimeSpan.FromMinutes(totalMinutes).Add(TimeSpan.FromSeconds(5));
+                
+                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
+                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
+                if (fallbackInterval > maxInterval)
+                {
+                    _logger.LogWarning("⚠️ Break fallback interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
+                        fallbackInterval.TotalMinutes, maxInterval.TotalMinutes);
+                    fallbackInterval = maxInterval;
+                }
                 
                 _breakFallbackTimer.Interval = fallbackInterval;
                 _breakFallbackTimer.Tick += OnBreakFallbackTimerTick;
@@ -120,7 +156,7 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogWarning("⚠️ FALLBACK: Eye rest timer didn't fire on time - forcing trigger");
-                UpdateHeartbeat();
+                UpdateHeartbeatFromOperation("EyeRestFallback");
                 
                 _eyeRestFallbackTimer?.Stop();
                 
@@ -149,7 +185,7 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogWarning("⚠️ FALLBACK: Break timer didn't fire on time - forcing trigger");
-                UpdateHeartbeat();
+                UpdateHeartbeatFromOperation("BreakFallback");
                 
                 _breakFallbackTimer?.Stop();
                 

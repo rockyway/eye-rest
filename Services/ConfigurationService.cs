@@ -122,14 +122,14 @@ namespace EyeRest.Services
                     StartSoundEnabled = true,
                     EndSoundEnabled = true,
                     WarningEnabled = true,
-                    WarningSeconds = 30
+                    WarningSeconds = 15  // FIXED: Use 15s warning for eye rest (short)
                 },
                 Break = new BreakSettings
                 {
-                    IntervalMinutes = 10,
-                    DurationMinutes = 2,
+                    IntervalMinutes = 55,  // FIXED: Use correct PRD default (55 minutes)
+                    DurationMinutes = 5,   // FIXED: Use correct PRD default (5 minutes)
                     WarningEnabled = true,
-                    WarningSeconds = 30,
+                    WarningSeconds = 30,   // Keep 30s warning for break (longer)
                     OverlayOpacityPercent = 50
                 },
                 Audio = new AudioSettings
