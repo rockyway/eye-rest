@@ -51,7 +51,30 @@ Eye-Rest is a comprehensive Windows desktop application designed to promote heal
 - User options: Complete, Delay (1min/5min), Skip
 - Audio notifications with customizable sounds
 
-### 3. User Presence Detection
+### 3. Break Completion Flow with Flexible Timing
+
+**Done Screen States**
+- **Grace Period (0-10 seconds)**: Done screen visible, no timer display
+  - Background: Light blue (#ADD8E6) for clear completion state
+  - Title: "Break Complete – Continue when ready"
+  - Message: "Break complete! Great job!"
+  - Purpose: Allow user to finish task before interacting
+
+- **Forward Timer Active (10+ seconds)**: Timer shows elapsed extension time
+  - Timer starts at 0:10 (10 seconds elapsed from Done screen appearance)
+  - Counts upward continuously showing time extended
+  - Format: "M minutes SS seconds extended"
+  - Updates every 100ms for smooth display
+  - Waits indefinitely until user clicks "Done" button (no timeout)
+
+**Completion Behavior**
+- Users can click "Done" immediately or wait any duration
+- Forward timer provides transparency about break extension time
+- Session resets immediately upon "Done" click (fresh 55-minute break cycle)
+- Light blue background distinguishes completion from warning states
+- Works consistently across multi-monitor configurations
+
+### 4. User Presence Detection
 
 **Detection Methods**
 - Keyboard/mouse idle time monitoring (5-minute threshold)
@@ -65,7 +88,7 @@ Eye-Rest is a comprehensive Windows desktop application designed to promote heal
 - Extended away period detection (30+ minutes)
 - Fresh session start after overnight absence
 
-### 4. System Integration
+### 5. System Integration
 
 **System Tray Integration**
 - Always-running background service
@@ -173,14 +196,32 @@ stateDiagram-v2
 **Criteria**:
 - Away time ≥ 30 minutes (configurable: 15-120 minutes)
 - Includes: overnight standby, long meetings, extended breaks
-- Smart session reset enabled in configuration
+- Detected on system resume or user return from idle
 
-**Behavior**:
-1. Detect extended away period on system resume
-2. Clear all timer states and popup references  
-3. Start fresh timer cycles (20min eye rest, 55min break)
-4. Show optional "Fresh session started" notification
-5. Reset analytics tracking to new session
+**Behavior** (Unconditional Reset):
+1. Detect extended away period on system resume or return from idle
+2. **Unconditionally reset** session regardless of prior state
+3. Clear all timer states completely
+4. Close all active popups and popup references using multiple methods:
+   - Direct notification service calls
+   - Reflection-based state clearing for popup references
+   - Event flag clearing to prevent pending notifications
+5. Start fresh timer cycles (20min eye rest, 55min break)
+6. Show optional "Fresh session started" notification
+7. Reset analytics tracking to new session
+8. Ensure no stale events fire after reset
+
+**Critical Details**:
+- **No State Preservation**: Unlike short breaks (<30 min), extended away triggers complete reset
+- **Popup Clearing**: All popup windows closed AND popup state references cleared
+- **Event Flag Cleanup**: All processing flags (_isProcessingEyeRestEvent, etc.) explicitly cleared
+- **Recovery Coordination**: Health monitor and pause management work together to ensure clean state
+- **Race Condition Prevention**: Unconditional reset eliminates timing-dependent behavior
+
+**Accepted Behavior**:
+- If user was in middle of break or eye rest popup when extended away triggered, it will be cleared
+- This is intentional - users expect fresh start after 30+ minutes away
+- Provides consistent, predictable experience
 
 ---
 
@@ -245,78 +286,130 @@ flowchart TD
     P --> Q[Optional: Show 'Fresh session' notification]
 ```
 
-### Use Case 3: System Sleep/Standby
+### Use Case 3: Break Completion with Flexible Timing
+
+**Scenario**: Break countdown completes and user completes their break when ready
+
+```mermaid
+flowchart TD
+    A["Break countdown reaches 0:00"] --> B["Done screen appears\n(Light blue background)"]
+    B --> C["Title: 'Break Complete – Continue when ready'"]
+    C --> D["Grace Period: 0-10 seconds\n(No timer display)"]
+
+    D --> E["10 seconds elapsed"]
+    E --> F["Forward Timer starts\nDisplays: 0:10 seconds extended"]
+
+    F --> G{User action?}
+
+    G -->|Immediately| H["User clicks Done\n(within 10s grace)"]
+    G -->|Wait for timer| I["User waits, watches\nforward timer count up"]
+
+    I --> J["Forward timer continues\n0:10 → 0:11 → ... → 1:05..."]
+    J --> K["User clicks Done when ready"]
+
+    H --> L["Forward timer stops"]
+    K --> L
+    L --> M["Window closes immediately"]
+    M --> N["Fresh session starts\n55-minute break timer resets"]
+    N --> O["Next break in 55 minutes"]
+```
+
+### Use Case 5: System Sleep/Standby
 
 **Scenario**: User puts PC to sleep or system hibernates
 
 ```mermaid
 flowchart TD
-    A[System sleep/hibernate initiated] --> B[UserPresenceService detects power event]
-    B --> C[Record current timer states]
-    C --> D[Auto-pause all timers]
-    D --> E[Hide all popups]
-    E --> F[System enters sleep mode]
-    
-    F --> G[System resumes/wakes up]
-    G --> H[UserPresenceService detects wake event]
-    H --> I[TimerService.RecoverFromSystemResumeAsync()]
-    I --> J{Time since sleep?}
-    
-    J -->|< 30 minutes| K[Test timer functionality]
-    K --> L[Restore previous timer states]
-    L --> M[Resume normal operation]
-    
-    J -->|30+ minutes| N[Extended away - Fresh session]
-    N --> O[Clear all states and popup references]
-    O --> P[Start new timer cycles]
-    P --> Q[Fresh working session begins]
+    SYS_SLEEP[System sleep/hibernate initiated] --> PRESENCE_DETECT[UserPresenceService detects power event]
+    PRESENCE_DETECT --> RECORD_STATE[Record current timer states]
+    RECORD_STATE --> PAUSE_TIMERS[Auto-pause all timers]
+    PAUSE_TIMERS --> HIDE_POPUPS[Hide all popups]
+    HIDE_POPUPS --> ENTER_SLEEP[System enters sleep mode]
+
+    ENTER_SLEEP --> WAKE_UP[System resumes/wakes up]
+    WAKE_UP --> WAKE_DETECT[UserPresenceService detects wake event]
+    WAKE_DETECT --> RECOVER[Recover timer states]
+    RECOVER --> CHECK_TIME{Time since sleep?}
+
+    CHECK_TIME -->|Less than 30 minutes| TEST_TIMERS[Test timer functionality]
+    TEST_TIMERS --> RESTORE_STATE[Restore previous timer states]
+    RESTORE_STATE --> RESUME_OP[Resume normal operation]
+
+    CHECK_TIME -->|30 minutes or more| FRESH_SESSION[Start fresh session]
+    FRESH_SESSION --> CLEAR_STATE[Clear all states and popup references]
+    CLEAR_STATE --> NEW_CYCLE[Start new timer cycles]
+    NEW_CYCLE --> FRESH_WORK[Fresh working session begins]
 ```
 
-### Use Case 4: System Crash/Recovery
+### Use Case 6: System Crash/Recovery
 
 **Scenario**: Application or system crashes and recovers
 
 ```mermaid
 flowchart TD
     A[Application starts after crash] --> B[Initialize all services]
-    B --> C[Health monitor detects timer hang]
-    C --> D[RecoverTimersFromHang() triggered]
+    B --> C[Health monitor checks timer status]
+    C --> |Timer hang detected| D["RecoverTimersFromHang() triggered"]
     D --> E[Stop and dispose all existing timers]
-    E --> F[Force garbage collection]
-    F --> G[Clear all popup references via reflection]
-    G --> H[Recreate fresh timer instances]
-    H --> I[Test timer functionality]
-    I --> J{Timers working?}
-    
-    J -->|Yes| K[Resume normal operation]
-    J -->|No| L[Emergency fallback: manual restart]
-    
-    K --> M[Update heartbeat - recovery successful]
-    L --> N[Log critical error - user intervention needed]
+    E --> F[Release timer-related resources safely]
+    F --> G[Recreate fresh timer instances]
+    G --> H[Test timer functionality]
+    H --> I{Timers operational?}
+
+    I -->|Yes| J[Resume normal operation]
+    I -->|No| K{Check retry attempts}
+    K -->|Within retry limit| L[Log retry attempt]
+    L --> D
+    K -->|Retry limit exceeded| M[Log critical error]
+    M --> N[Notify system administrator]
+    N --> O[Initiate emergency fallback: manual restart]
+    O --> P[End: Await manual action]
+
+    J --> Q[Update system heartbeat]
+
 ```
 
-### Use Case 5: Manual Timer Control
+### Use Case 7: Manual Timer Control
 
 **Scenario**: User manually controls timers via system tray
 
 ```mermaid
 flowchart TD
-    A[User right-clicks system tray] --> B[Context menu appears]
+    A[User right-clicks system tray] --> B[Show context menu]
     B --> C{User selection?}
-    
-    C -->|Pause Timers| D[Manual pause with confirmation]
-    D --> E[PauseAsync() with reason 'Manual']
-    E --> F[Show pause reminders every hour]
-    F --> G[Auto-resume after 8 hours max]
-    
-    C -->|Resume Timers| H[Manual resume]
-    H --> I[StartAsync() - continue from where left]
-    
-    C -->|Show Status| J[Display current timer progress]
-    J --> K[Show time until next eye rest/break]
-    
-    C -->|Show Analytics| L[Open analytics dashboard]
-    L --> M[Display compliance rates and history]
+
+    C -->|Pause Timers| D[Show pause confirmation dialog]
+    D -->|Confirmed| E["Pause timers: PauseAsync()"]
+    E -->|Success| F[Log pause action]
+    F --> G[Show pause notification]
+    G --> H[Configure auto-resume timer]
+    H -->|User-configured duration| I[Auto-resume timers]
+    I --> J[Log resume action]
+    J --> K[Close context menu]
+
+    E -->|Failure| L[Log pause failure]
+    L --> M[Show error notification]
+    M --> K
+
+    D -->|Canceled| N[Log cancel action]
+    N --> K
+
+    C -->|Resume Timers| O["Resume timers: StartAsync()"]
+    O -->|Success| P[Log resume action]
+    P --> Q[Show resume notification]
+    Q --> K
+
+    O -->|Failure| R[Log resume failure]
+    R --> S[Show error notification]
+    S --> K
+
+    C -->|Show Status| T[Display timer progress]
+    T --> U[Show time until next break, if configured]
+    U --> K
+
+    C -->|Show Analytics| V[Open analytics dashboard]
+    V --> W[Display compliance rates/history]
+    W --> K
 ```
 
 ---
@@ -414,6 +507,68 @@ flowchart TD
 
 ## Advanced Features
 
+### Break Popup System Enhancements
+
+**Done Screen Behavior**
+The break completion flow has been enhanced to provide users with flexible timing and complete transparency about break extensions.
+
+**Visual Design**
+- Background: Light blue (#ADD8E6) instead of green - provides clear distinction from warning popups
+- Title: "Break Complete – Continue when ready" - indicates flexibility in timing
+- Message: "Break complete! Great job!" - positive reinforcement
+- Confirmation Button: "Done - Start Fresh Session" or "Done - Resume Timers" (configurable)
+
+**Grace Period (0-10 seconds)**
+- Allows user to finish current task before interacting with popup
+- No timer display shown during this period
+- Popup remains visible but non-intrusive
+
+**Forward Timer Display (10+ seconds)**
+- Automatically starts after 10-second grace period
+- Initial display: 0:10 (representing 10 seconds elapsed)
+- Counts upward continuously: 0:10 → 0:11 → ... → 1:00 → 1:01...
+- Format: "M minutes SS seconds extended"
+- Update frequency: Every 100ms for smooth, real-time display
+- Label: "time extended" to clarify meaning
+
+**Indefinite Waiting (No Timeout)**
+- Done screen waits indefinitely for user action
+- No auto-close timeout - user has complete control
+- Forward timer continues counting as long as popup is visible
+- User can click Done at any time
+
+**Session Reset Behavior**
+- Upon "Done" click: Forward timer stops immediately
+- Window closes cleanly without delay
+- Fresh session starts immediately with full timer intervals
+- Next break timer resets to 55 minutes (default)
+- Next eye rest timer resets to 20 minutes (default)
+
+**Implementation Details - Race Condition Prevention**
+Critical fixes implemented to ensure Done screen behavior is reliable:
+
+1. **Synchronous Flag Setting**: `_isWaitingForBreakConfirmation` flag is set BEFORE Done screen displays
+   - Prevents recovery routines from closing popup during async delays
+   - Ensures popup state is immediately recognizable to system
+
+2. **Recovery Routine Safety Check**: Explicit check in health monitor for confirmation state
+   - Even if state somehow gets out of sync, popup is explicitly preserved
+   - Provides defense-in-depth protection
+   - Enhanced logging identifies any state issues
+
+3. **Timeout Removal**: Eliminated 10-minute timeout that was auto-closing Done screen
+   - Now waits only for explicit user action
+   - No background tasks trying to close popup
+
+**Testing Verified**
+- ✅ Done screen shows for minimum 10 seconds (grace period)
+- ✅ Forward timer starts at 0:10 after grace period
+- ✅ Forward timer counts upward in real-time
+- ✅ Done screen stays visible indefinitely until user clicks Done
+- ✅ Light blue background consistent on all monitors
+- ✅ Fresh session starts immediately on Done click
+- ✅ No auto-close timeouts
+
 ### Meeting Detection (Future Enhancement)
 
 **Status**: Currently disabled in codebase - requires improvement and testing
@@ -497,6 +652,18 @@ graph TD
     subgraph "Configuration"
         CS
     end
+    
+    subgraph "TimerService Architecture (Refactored)"
+        TSC[TimerService Core] --> TSS[TimerService.State]
+        TSC --> TSR[TimerService.Recovery]
+        TSC --> TSP[TimerService.PauseManagement]
+        TSC --> TSL[TimerService.Lifecycle]
+        
+        TSR --> |Health Monitor| TSC
+        TSR --> |System Resume| TSP
+        TSP --> |Manual Pause Cleanup| TSS
+        UPS --> |Recovery Triggers| TSR
+    end
 ```
 
 ### Event Flow Architecture
@@ -547,11 +714,38 @@ sequenceDiagram
 - Popup state clearing to prevent zombie references
 - Validation and logging of recovery success
 
-**System Resume Recovery**  
+**System Resume Recovery**
 - Detect extended away periods (30+ minutes)
-- Fresh session reset with clean timer states
+- **Unconditional fresh session reset** with clean timer states
 - Enhanced popup reference clearing using reflection
+- **CRITICAL FIX**: Manual pause state coordination repair
 - Comprehensive validation of timer functionality
+- Automatic UI state synchronization after recovery
+
+**Break Done Screen Auto-Close Prevention**
+- **Issue**: Done screen popup was auto-closing before user could confirm
+- **Root Cause**: Race condition between synchronous UI display and asynchronous flag setting
+- **Timeline**: 100ms delay in setting `_isWaitingForBreakConfirmation` flag allowed recovery routines to close popup
+- **P0 FIX**: Move flag setting to synchronous code path BEFORE Done screen appears
+  - Flag now set immediately when break countdown completes
+  - Recovery routines see correct popup state
+  - Popup marked as "waiting for confirmation" before visible
+- **P1 FIX**: Add explicit safety check in recovery routine for confirmation state
+  - Uses reflection to check `_isWaitingForBreakConfirmation` field
+  - Explicitly blocks popup closing when confirmation is pending
+  - Provides defense-in-depth if state somehow gets out of sync
+- **Timeout Removal**: Eliminated 10-minute auto-close timeout
+  - Now waits indefinitely for user "Done" click
+  - Forward timer continues counting to show elapsed extension time
+  - User has complete control over break duration
+
+**Manual Pause State Coordination**
+- **Issue**: Manual pause states could persist after extended absence
+- **Detection**: Health monitor identifies coordination failures
+- **Resolution**: Comprehensive cleanup of manual pause timers and state
+- **Recovery Triggers**: Session unlock, console connect, monitor power on
+- **UI Synchronization**: Property change notifications ensure correct display
+- **Guarantee**: Timers ALWAYS resume counting when user returns
 
 **Configuration Recovery**
 - Automatic default restoration for corrupt config files
