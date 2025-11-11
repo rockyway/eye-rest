@@ -74,40 +74,104 @@ namespace EyeRest.Services
 
         public async Task SaveConfigurationAsync(AppConfiguration config)
         {
-            try
+            const int maxRetries = 3;
+            var retryDelay = TimeSpan.FromMilliseconds(100);
+            
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                var validatedConfig = ValidateConfiguration(config);
-                
-                var options = new JsonSerializerOptions
+                try
                 {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                };
-
-                using (var stream = File.Create(_configFilePath))
-                {
-                    await JsonSerializer.SerializeAsync(stream, validatedConfig, options);
-                }
-
-                var oldConfig = _currentConfiguration;
-                _currentConfiguration = validatedConfig;
-
-                // Raise configuration changed event
-                if (oldConfig != null)
-                {
-                    ConfigurationChanged?.Invoke(this, new ConfigurationChangedEventArgs
+                    var validatedConfig = ValidateConfiguration(config);
+                    
+                    var options = new JsonSerializerOptions
                     {
-                        NewConfiguration = validatedConfig,
-                        OldConfiguration = oldConfig
-                    });
-                }
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        WriteIndented = true
+                    };
 
-                _logger.LogInformation("Configuration saved successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving configuration");
-                throw;
+                    // CRITICAL FIX: Atomic file write using temporary file + move operation
+                    // This prevents corruption and file locking issues
+                    var tempFilePath = _configFilePath + ".tmp";
+                    var backupFilePath = _configFilePath + ".backup";
+
+                    // Step 1: Write to temporary file
+                    using (var stream = File.Create(tempFilePath))
+                    {
+                        await JsonSerializer.SerializeAsync(stream, validatedConfig, options);
+                        await stream.FlushAsync(); // Ensure data is written to disk
+                    }
+
+                    // Step 2: Create backup of existing file (if it exists)
+                    if (File.Exists(_configFilePath))
+                    {
+                        if (File.Exists(backupFilePath))
+                        {
+                            File.Delete(backupFilePath); // Remove old backup
+                        }
+                        File.Copy(_configFilePath, backupFilePath);
+                    }
+
+                    // Step 3: Atomic replace - move temp file to final location
+                    File.Move(tempFilePath, _configFilePath, overwrite: true);
+
+                    // Step 4: Clean up backup file after successful write
+                    if (File.Exists(backupFilePath))
+                    {
+                        File.Delete(backupFilePath);
+                    }
+
+                    var oldConfig = _currentConfiguration;
+                    _currentConfiguration = validatedConfig;
+
+                    // Raise configuration changed event
+                    if (oldConfig != null)
+                    {
+                        ConfigurationChanged?.Invoke(this, new ConfigurationChangedEventArgs
+                        {
+                            NewConfiguration = validatedConfig,
+                            OldConfiguration = oldConfig
+                        });
+                    }
+
+                    _logger.LogInformation("Configuration saved successfully on attempt {Attempt}", attempt);
+                    return; // Success - exit retry loop
+                }
+                catch (IOException ioEx) when (ioEx.Message.Contains("being used by another process") && attempt < maxRetries)
+                {
+                    _logger.LogWarning("Configuration file locked on attempt {Attempt}/{MaxRetries}, retrying in {DelayMs}ms: {Error}", 
+                        attempt, maxRetries, retryDelay.TotalMilliseconds, ioEx.Message);
+                    
+                    // Wait before retry with exponential backoff
+                    await Task.Delay(retryDelay);
+                    retryDelay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * 2); // Exponential backoff
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error saving configuration on attempt {Attempt}/{MaxRetries}", attempt, maxRetries);
+                    
+                    if (attempt == maxRetries)
+                    {
+                        // Clean up any temporary files on final failure
+                        try
+                        {
+                            var tempFilePath = _configFilePath + ".tmp";
+                            if (File.Exists(tempFilePath))
+                            {
+                                File.Delete(tempFilePath);
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore cleanup errors
+                        }
+                        
+                        throw; // Re-throw on final attempt
+                    }
+                    
+                    // Wait before retry
+                    await Task.Delay(retryDelay);
+                    retryDelay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * 2);
+                }
             }
         }
 

@@ -99,6 +99,82 @@ namespace EyeRest.Services
             }
         }
 
+        private void CreateTables(SqliteConnection connection)
+        {
+            using var command = connection.CreateCommand();
+            
+            // Create UserSessions table
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS UserSessions (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StartTime DATETIME NOT NULL,
+                    EndTime DATETIME,
+                    TotalActiveTime INTEGER DEFAULT 0,
+                    IdleTime INTEGER DEFAULT 0,
+                    InactiveTime INTEGER DEFAULT 0,
+                    PresenceChanges INTEGER DEFAULT 0,
+                    SessionState TEXT DEFAULT 'Active',
+                    LastActiveTime DATETIME NOT NULL
+                )";
+            command.ExecuteNonQuery();
+            
+            // Create RestEvents table
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS RestEvents (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    EventType TEXT NOT NULL,
+                    TriggeredAt DATETIME NOT NULL,
+                    UserAction TEXT NOT NULL,
+                    Duration INTEGER,
+                    ConfiguredDuration INTEGER,
+                    SessionId INTEGER,
+                    FOREIGN KEY (SessionId) REFERENCES UserSessions (Id)
+                )";
+            command.ExecuteNonQuery();
+            
+            // Create PresenceEvents table
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS PresenceEvents (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Timestamp DATETIME NOT NULL,
+                    OldState TEXT NOT NULL,
+                    NewState TEXT NOT NULL,
+                    IdleDuration INTEGER,
+                    SessionId INTEGER,
+                    FOREIGN KEY (SessionId) REFERENCES UserSessions (Id)
+                )";
+            command.ExecuteNonQuery();
+            
+            // Create ResumeEvents table (MISSING TABLE)
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS ResumeEvents (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Timestamp DATETIME NOT NULL,
+                    Reason TEXT NOT NULL,
+                    SessionId INTEGER,
+                    FOREIGN KEY (SessionId) REFERENCES UserSessions (Id)
+                )";
+            command.ExecuteNonQuery();
+            
+            _logger.LogInformation("📊 Database tables created successfully");
+        }
+
+        private void CreateIndexes(SqliteConnection connection)
+        {
+            using var command = connection.CreateCommand();
+            
+            // Create indexes for performance
+            command.CommandText = @"
+                CREATE INDEX IF NOT EXISTS idx_usersessions_starttime ON UserSessions (StartTime);
+                CREATE INDEX IF NOT EXISTS idx_restevents_triggeredat ON RestEvents (TriggeredAt);
+                CREATE INDEX IF NOT EXISTS idx_presenceevents_timestamp ON PresenceEvents (Timestamp);
+                CREATE INDEX IF NOT EXISTS idx_resumeevents_timestamp ON ResumeEvents (Timestamp);
+            ";
+            command.ExecuteNonQuery();
+            
+            _logger.LogInformation("📊 Database indexes created successfully");
+        }
+
         public async Task RecordSessionStartAsync()
         {
             try
@@ -1269,76 +1345,6 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "Error deleting all data");
                 throw;
-            }
-        }
-
-        private void CreateTables(SqliteConnection connection)
-        {
-            var createTableCommands = new[]
-            {
-                @"CREATE TABLE IF NOT EXISTS UserSessions (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    StartTime DATETIME NOT NULL,
-                    EndTime DATETIME,
-                    TotalActiveTime INTEGER DEFAULT 0,
-                    IdleTime INTEGER DEFAULT 0,
-                    InactiveTime INTEGER DEFAULT 0,
-                    PresenceChanges INTEGER DEFAULT 0,
-                    SessionState TEXT DEFAULT 'Active',
-                    LastActiveTime DATETIME
-                );",
-                
-                @"CREATE TABLE IF NOT EXISTS RestEvents (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    EventType TEXT NOT NULL,
-                    TriggeredAt DATETIME NOT NULL,
-                    UserAction TEXT NOT NULL,
-                    Duration INTEGER DEFAULT 0,
-                    ConfiguredDuration INTEGER DEFAULT 0
-                );",
-                
-                @"CREATE TABLE IF NOT EXISTS MeetingEvents (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    StartTime DATETIME NOT NULL,
-                    EndTime DATETIME,
-                    ApplicationName TEXT NOT NULL,
-                    MeetingType TEXT,
-                    TimersPaused BOOLEAN DEFAULT 0
-                );",
-                
-                @"CREATE TABLE IF NOT EXISTS PresenceEvents (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Timestamp DATETIME NOT NULL,
-                    OldState TEXT NOT NULL,
-                    NewState TEXT NOT NULL,
-                    IdleDuration INTEGER DEFAULT 0
-                );"
-            };
-            
-            foreach (var sql in createTableCommands)
-            {
-                using var command = connection.CreateCommand();
-                command.CommandText = sql;
-                command.ExecuteNonQuery();
-            }
-        }
-
-        private void CreateIndexes(SqliteConnection connection)
-        {
-            var createIndexCommands = new[]
-            {
-                "CREATE INDEX IF NOT EXISTS idx_sessions_starttime ON UserSessions(StartTime);",
-                "CREATE INDEX IF NOT EXISTS idx_restevents_triggered ON RestEvents(TriggeredAt);",
-                "CREATE INDEX IF NOT EXISTS idx_restevents_type ON RestEvents(EventType);",
-                "CREATE INDEX IF NOT EXISTS idx_meetings_starttime ON MeetingEvents(StartTime);",
-                "CREATE INDEX IF NOT EXISTS idx_presence_timestamp ON PresenceEvents(Timestamp);"
-            };
-            
-            foreach (var sql in createIndexCommands)
-            {
-                using var command = connection.CreateCommand();
-                command.CommandText = sql;
-                command.ExecuteNonQuery();
             }
         }
 

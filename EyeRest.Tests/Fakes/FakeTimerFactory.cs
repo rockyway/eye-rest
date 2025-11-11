@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Threading;
 using EyeRest.Services.Abstractions;
 using ITimer = EyeRest.Services.Abstractions.ITimer;
@@ -7,10 +9,12 @@ namespace EyeRest.Tests.Fakes
 {
     /// <summary>
     /// Fake timer factory for testing that creates controllable fake timers
+    /// Enhanced to support extended idle recovery testing scenarios
     /// </summary>
     public class FakeTimerFactory : ITimerFactory
     {
         private readonly List<FakeTimer> _createdTimers = new();
+        private DateTime _currentTime = DateTime.Now;
 
         /// <summary>
         /// Gets all timers created by this factory for test inspection
@@ -76,6 +80,54 @@ namespace EyeRest.Tests.Fakes
         public void Reset()
         {
             Clear();
+        }
+
+        /// <summary>
+        /// Advances the simulated time and potentially triggers timer events
+        /// This simulates time passing for extended idle scenario testing
+        /// </summary>
+        /// <param name="timeSpan">Amount of time to advance</param>
+        public void AdvanceTime(TimeSpan timeSpan)
+        {
+            _currentTime = _currentTime.Add(timeSpan);
+            
+            // For simple simulation, fire ticks on enabled timers
+            // In real scenario, this would be more sophisticated
+            foreach (var timer in _createdTimers.Where(t => t.IsEnabled))
+            {
+                timer.AdvanceTime(timeSpan);
+            }
+        }
+
+        /// <summary>
+        /// Disables all timers (simulates the bug where timers become disabled after extended idle)
+        /// </summary>
+        public void DisableAllTimers()
+        {
+            foreach (var timer in _createdTimers)
+            {
+                timer.ForceDisable();
+            }
+        }
+
+        /// <summary>
+        /// Nullifies all timers (simulates extreme case where timer objects are lost)
+        /// </summary>
+        public void NullifyAllTimers()
+        {
+            // This is handled by the TimerService checking for null timers
+            // We simulate by clearing the list which makes timers inaccessible
+            _createdTimers.Clear();
+        }
+
+        /// <summary>
+        /// Gets the health monitor timer for testing health check scenarios
+        /// </summary>
+        /// <returns>The first timer that could be the health monitor timer, or null</returns>
+        public FakeTimer? GetHealthMonitorTimer()
+        {
+            // Return the last created timer as it's likely the health monitor
+            return _createdTimers.LastOrDefault();
         }
     }
 }

@@ -366,6 +366,48 @@ namespace EyeRest.Services
             }
         }
 
+        public async Task ShowRecoveryNotificationAsync(string recoveryType, string details)
+        {
+            if (!_settings.EnableToastNotifications)
+            {
+                _logger.LogInformation($"🔔 Recovery notification skipped - toast notifications disabled: {recoveryType}");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation($"🔔 Showing recovery notification: {recoveryType}");
+
+                var toastXml = CreateRecoveryNotificationToastXml(recoveryType, details);
+                var toast = new ToastNotification(toastXml)
+                {
+                    ExpirationTime = DateTime.Now.AddMinutes(10) // Auto-dismiss after 10 minutes
+                };
+
+                // Add event handlers for tracking
+                toast.Activated += OnToastActivated;
+                toast.Dismissed += OnToastDismissed;
+                toast.Failed += OnToastFailed;
+
+                ToastNotificationManager.CreateToastNotifier("EyeRest").Show(toast);
+
+                // Play a subtle notification sound
+                if (_settings.PlaySoundOnReminder)
+                {
+                    await _audioService.PlayBreakWarningSound(); // Subtle sound for recovery notifications
+                }
+
+                _logger.LogInformation($"🔔 Recovery notification sent successfully: {recoveryType}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"❌ Failed to show recovery notification: {recoveryType}");
+                
+                // For recovery notifications, we'll skip fallback since they're informational
+                _logger.LogWarning($"⚠️ Recovery notification will not be shown due to error: {recoveryType}");
+            }
+        }
+
         #region Private Methods
 
         private void InitializeToastNotifications()
@@ -478,6 +520,35 @@ namespace EyeRest.Services
                             content='Settings' 
                             arguments='settings' 
                             activationType='foreground'/>
+                    </actions>
+                </toast>";
+
+            var toastXml = new XmlDocument();
+            toastXml.LoadXml(toastXmlString);
+            return toastXml;
+        }
+
+        private XmlDocument CreateRecoveryNotificationToastXml(string recoveryType, string details)
+        {
+            var toastXmlString = $@"
+                <toast activationType='foreground' launch='recovery-notification'>
+                    <visual>
+                        <binding template='ToastGeneric'>
+                            <text>✅ EyeRest - System Recovery</text>
+                            <text>{recoveryType} Successful</text>
+                            <text>{details}</text>
+                            <text>Your timers are now running normally.</text>
+                        </binding>
+                    </visual>
+                    <actions>
+                        <action 
+                            content='View Status' 
+                            arguments='status' 
+                            activationType='foreground'/>
+                        <action 
+                            content='Dismiss' 
+                            arguments='dismiss' 
+                            activationType='background'/>
                     </actions>
                 </toast>";
 

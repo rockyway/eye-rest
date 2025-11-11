@@ -104,8 +104,12 @@ namespace EyeRest
             services.AddSingleton<ITimerConfigurationService, TimerConfigurationService>();
             services.AddSingleton<IUIConfigurationService, UIConfigurationService>();
             
-            // Timer factory for testable timer creation
-            services.AddSingleton<ITimerFactory, ProductionTimerFactory>();
+            // Timer factory for robust timer creation - FIXED: Use HybridTimerFactory to prevent DispatcherTimer corruption
+            services.AddSingleton<ITimerFactory>(provider => 
+                new HybridTimerFactory(
+                    provider.GetRequiredService<Dispatcher>(),
+                    provider.GetService<ILoggerFactory>()
+                ));
             services.AddSingleton<ITimerService, TimerService>();
             services.AddSingleton<INotificationService, NotificationService>();
             services.AddSingleton<IAudioService, AudioService>();
@@ -230,6 +234,8 @@ namespace EyeRest
 
         private void InitializeCountdownTimer()
         {
+            // FIXED: Use DispatcherTimer for simple UI updates (not critical like timer system)
+            // This is acceptable for UI countdown since it doesn't need the reliability of the main timer system
             _countdownTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(1)

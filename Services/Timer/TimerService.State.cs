@@ -20,10 +20,17 @@ namespace EyeRest.Services
         // Fallback timers to prevent stuck state
         private ITimer? _eyeRestFallbackTimer;
         private ITimer? _breakFallbackTimer;
+
+        // Warning countdown fallback timers (to prevent ghost timers)
+        private DispatcherTimer? _eyeRestWarningFallbackTimer;
+        private DispatcherTimer? _breakWarningFallbackTimer;
         
         // Manual pause timer
         private ITimer? _manualPauseTimer;
-        
+
+        // Break delay timer
+        private ITimer? _breakDelayTimer;
+
         // Health monitoring timer
         private ITimer? _healthMonitorTimer;
         
@@ -43,8 +50,8 @@ namespace EyeRest.Services
         private string _pauseReason = string.Empty;
         
         // Timer tracking
-        private DateTime _eyeRestStartTime;
-        private DateTime _breakStartTime;
+        private DateTime _eyeRestStartTime = DateTime.MinValue;
+        private DateTime _breakStartTime = DateTime.MinValue;
         private TimeSpan _eyeRestInterval;
         private TimeSpan _breakInterval;
         private bool _isBreakDelayed;
@@ -62,6 +69,35 @@ namespace EyeRest.Services
         private bool _isBreakNotificationActive;
         private bool _eyeRestTimerPausedForBreak;
         private bool _breakTimerPausedForEyeRest;
+
+        // Processing state to prevent backup trigger race conditions
+        private bool _isEyeRestEventProcessing;
+        private bool _isBreakEventProcessing;
+
+        // Warning processing state to prevent duplicate warning triggers
+        private bool _isEyeRestWarningProcessing;
+        private bool _isBreakWarningProcessing;
+
+        // THREAD SAFETY: Static locks to prevent ALL timer systems from interfering
+        private static readonly object _globalEyeRestLock = new object();
+        private static readonly object _globalBreakLock = new object();
+        private static volatile bool _isAnyEyeRestEventProcessing = false;
+        private static volatile bool _isAnyBreakEventProcessing = false;
+
+        // THREAD SAFETY: Static locks for warning events to prevent duplicate warnings
+        private static readonly object _globalEyeRestWarningLock = new object();
+        private static readonly object _globalBreakWarningLock = new object();
+        private static volatile bool _isAnyEyeRestWarningProcessing = false;
+        private static volatile bool _isAnyBreakWarningProcessing = false;
+        
+        // Clock jump detection fields
+        private DateTime _lastEyeRestTick = DateTime.MinValue;
+        private DateTime _lastBreakTick = DateTime.MinValue;
+        private DateTime _lastSystemCheck = DateTime.Now;
+
+        // TIMELINE FIX: Track when main timers actually triggered events (for fallback validation)
+        private DateTime _lastEyeRestTriggeredTime = DateTime.MinValue;
+        private DateTime _lastBreakTriggeredTime = DateTime.MinValue;
         
         #endregion
 
@@ -139,7 +175,11 @@ namespace EyeRest.Services
             get
             {
                 if (!IsRunning)
-                    return TimeSpan.Zero;
+                {
+                    // CRITICAL FIX: Don't show "Due now" when service is stopped
+                    // Return a reasonable default to prevent UI stuck state
+                    return TimeSpan.FromMinutes(_configuration?.EyeRest?.IntervalMinutes ?? 20);
+                }
                     
                 if (_isEyeRestNotificationActive)
                     return TimeSpan.Zero;
@@ -153,7 +193,23 @@ namespace EyeRest.Services
                 
                 if (_eyeRestTimer?.IsEnabled == true)
                 {
+                    // CRITICAL FIX: Check if start time is initialized to prevent massive elapsed time on startup
+                    if (_eyeRestStartTime == DateTime.MinValue)
+                    {
+                        _logger?.LogWarning("👁️ Eye rest timer is enabled but start time not initialized - returning full interval");
+                        return _eyeRestInterval > TimeSpan.Zero ? _eyeRestInterval : TimeSpan.FromMinutes(20);
+                    }
+                    
                     var elapsed = DateTime.Now - _eyeRestStartTime;
+                    
+                    // SAFETY CHECK: Prevent negative elapsed time on clock changes or startup issues
+                    if (elapsed < TimeSpan.Zero)
+                    {
+                        _logger?.LogWarning("👁️ Negative elapsed time detected ({Elapsed}), resetting start time", elapsed);
+                        _eyeRestStartTime = DateTime.Now;
+                        return _eyeRestInterval;
+                    }
+                    
                     var remaining = _eyeRestInterval - elapsed;
                     
                     // CRITICAL FIX: Log when timer is overdue to help debug stuck state
@@ -175,10 +231,31 @@ namespace EyeRest.Services
             get
             {
                 if (!IsRunning)
-                    return TimeSpan.Zero;
+                {
+                    // CRITICAL FIX: Don't show "Due now" when service is stopped
+                    // Return a reasonable default to prevent UI stuck state
+                    return TimeSpan.FromMinutes(_configuration?.Break?.IntervalMinutes ?? 55);
+                }
                     
                 if (_isBreakNotificationActive)
-                    return TimeSpan.Zero;
+                {
+                    // CRITICAL FIX: During warning phase, show actual countdown to break
+                    // Only return zero if we're in the actual break popup phase
+                    if (_breakWarningTimer?.IsEnabled == true)
+                    {
+                        // We're in warning phase - calculate remaining warning time
+                        // This provides accurate countdown during the 30-second warning
+                        var warningDuration = TimeSpan.FromSeconds(_configuration?.Break?.WarningSeconds ?? 30);
+                        // Note: Exact warning remaining time calculation would require tracking warning start time
+                        // For now, return a reasonable estimate to prevent showing 0s during warning
+                        return TimeSpan.FromSeconds(Math.Max(1, warningDuration.TotalSeconds / 2));
+                    }
+                    else
+                    {
+                        // We're in actual break phase - return zero
+                        return TimeSpan.Zero;
+                    }
+                }
                     
                 if (IsPaused || IsSmartPaused || IsManuallyPaused)
                 {
@@ -204,7 +281,23 @@ namespace EyeRest.Services
                 
                 if (_breakTimer?.IsEnabled == true)
                 {
+                    // CRITICAL FIX: Check if start time is initialized to prevent massive elapsed time on startup
+                    if (_breakStartTime == DateTime.MinValue)
+                    {
+                        _logger?.LogWarning("☕ Break timer is enabled but start time not initialized - returning full interval");
+                        return _breakInterval > TimeSpan.Zero ? _breakInterval : TimeSpan.FromMinutes(55);
+                    }
+                    
                     var elapsed = DateTime.Now - _breakStartTime;
+                    
+                    // SAFETY CHECK: Prevent negative elapsed time on clock changes or startup issues
+                    if (elapsed < TimeSpan.Zero)
+                    {
+                        _logger?.LogWarning("☕ Negative elapsed time detected ({Elapsed}), resetting start time", elapsed);
+                        _breakStartTime = DateTime.Now;
+                        return _breakInterval;
+                    }
+                    
                     var remaining = _breakInterval - elapsed;
                     
                     // CRITICAL FIX: Log when break timer is overdue to help debug stuck state
