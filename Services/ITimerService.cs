@@ -29,6 +29,7 @@ namespace EyeRest.Services
         Task ResumeAsync();
         Task SmartPauseAsync(string reason);
         Task SmartResumeAsync();
+        Task SmartResumeAsync(string reason);
         Task SmartSessionResetAsync(string reason); // NEW: Reset timers for fresh working session
         Task PauseForDurationAsync(TimeSpan duration, string reason); // NEW: Manual pause for specific duration
         Task ResetEyeRestTimer();
@@ -37,18 +38,29 @@ namespace EyeRest.Services
         Task RestartEyeRestTimerAfterCompletion();
         Task RestartBreakTimerAfterCompletion();
         
-        // Injection method to avoid circular dependency
+        // Injection methods to avoid circular dependency
         void SetNotificationService(INotificationService notificationService);
-        
+        void SetUserPresenceService(IUserPresenceService userPresenceService);
+
         // Methods for NotificationService to start countdown timers after popup creation
         void StartEyeRestWarningTimer();
         void StartBreakWarningTimer();
         
         // Smart coordination methods
         void SmartResumeBreakTimerAfterEyeRest();
+        void SmartResumeEyeRestTimerAfterBreak();
         
         // Power management methods
         Task RecoverFromSystemResumeAsync(string reason); // NEW: Recover timers after system resume from standby/hibernate
+        
+        // Emergency recovery methods
+        Task<bool> ForceTimerRecoveryAsync(string reason = "Timer events not firing"); // NEW: Emergency recovery when timer events fail to fire
+
+        // Processing flag management for synchronization
+        void ClearEyeRestProcessingFlag(); // SYNC FIX: Clear processing flag after popup completion
+        void ClearBreakProcessingFlag(); // SYNC FIX: Clear processing flag after popup completion
+        void ClearEyeRestWarningProcessingFlag(); // SYNC FIX: Clear warning processing flag after warning completion
+        void ClearBreakWarningProcessingFlag(); // SYNC FIX: Clear warning processing flag after warning completion
     }
 
     public class TimerEventArgs : EventArgs

@@ -68,6 +68,13 @@ namespace EyeRest.Services
         /// <param name="pauseDuration">How long timers have been paused</param>
         /// <param name="reason">Reason timers were paused</param>
         Task ShowPauseReminderToastAsync(TimeSpan pauseDuration, string reason);
+        
+        /// <summary>
+        /// Show Windows toast notification for automatic recovery events
+        /// </summary>
+        /// <param name="recoveryType">Type of recovery (e.g., "Zombie Popup Recovery", "Timer Recovery")</param>
+        /// <param name="details">Additional details about the recovery</param>
+        Task ShowRecoveryNotificationAsync(string recoveryType, string details);
     }
 
     /// <summary>

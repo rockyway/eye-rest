@@ -1,0 +1,394 @@
+[STARTUP] Starting EyeRest at 18:04:28.850
+[18:04:28 DBG] Microsoft.Extensions.Hosting.Internal.Host: Hosting starting
+[18:04:28 INF] Microsoft.Hosting.Lifetime: Application started. Press Ctrl+C to shut down.
+[18:04:28 INF] Microsoft.Hosting.Lifetime: Hosting environment: Production
+[18:04:28 INF] Microsoft.Hosting.Lifetime: Content root path: bin\Release\net8.0-windows10.0.19041.0\
+[18:04:28 DBG] Microsoft.Extensions.Hosting.Internal.Host: Hosting started
+[18:04:28 FTL] EyeRest.App: ?? APPLICATION STARTUP INITIATED - Process ID: 110972, Time: 18:04:28.871
+[18:04:28 FTL] EyeRest.App: ?? Host started successfully, initializing services...
+[18:04:28 INF] EyeRest.Services.AnalyticsService: ?? Analytics database path: %USERPROFILE%\AppData\Roaming\EyeRest\Analytics\eyerest_analytics.db
+[18:04:28 INF] EyeRest.Services.TimerService: TimerService initialized
+[18:04:28 INF] EyeRest.Services.NotificationService: ?? ZOMBIE FIX: NotificationService initialized with clean popup references
+[18:04:28 INF] EyeRest.ViewModels.AnalyticsDashboardViewModel: ?? Initializing Analytics Dashboard ViewModel
+[18:04:28 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Starting async configuration loading to prevent deadlock
+[18:04:28 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Configuration loading started - UI will update when loaded
+[18:04:29 INF] EyeRest.Services.IconService: Generated default eye-themed icon.
+[18:04:29 FTL] EyeRest.App: ?? PHASE 1: Initializing system tray service at 18:04:29.164
+[18:04:29 INF] EyeRest.Services.SystemTrayService: ??? Enhanced system tray service initialized with advanced controls
+[18:04:29 INF] EyeRest.Services.SystemTrayService: System tray icon is now visible with Active state.
+[18:04:29 FTL] EyeRest.App: ? System tray service initialized successfully
+[18:04:29 FTL] EyeRest.App: ?? PHASE 2: Setting up event handlers at 18:04:29.275
+[18:04:29 FTL] EyeRest.App: ? System tray events wired up
+[18:04:29 FTL] EyeRest.App: ?? PHASE 3: Configuring main window at 18:04:29.275
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? LoadConfigurationImmediatelyAsync called - loading config to update UI ASAP
+[18:04:29 FTL] EyeRest.App: ? Main window shown successfully
+[18:04:29 FTL] EyeRest.App: ?? PHASE 4: Starting application orchestrator at 18:04:29.780
+[18:04:29 FTL] EyeRest.Services.ApplicationOrchestrator: ?? ORCHESTRATOR INITIALIZATION STARTED at 18:04:29.782 - Process ID: 110972
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ?? Initializing comprehensive application orchestrator with advanced features
+[18:04:29 ERR] EyeRest.Services.AnalyticsService: Error recording session start
+Microsoft.Data.Sqlite.SqliteException (0x80004005): SQLite Error 1: 'table UserSessions has no column named InactiveTime'.
+   at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(Int32 rc, sqlite3 db)
+   at Microsoft.Data.Sqlite.SqliteCommand.PrepareAndEnumerateStatements()+MoveNext()
+   at Microsoft.Data.Sqlite.SqliteCommand.GetStatements()+MoveNext()
+   at Microsoft.Data.Sqlite.SqliteDataReader.NextResult()
+   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader(CommandBehavior behavior)
+   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader()
+   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteScalar()
+   at EyeRest.Services.AnalyticsService.RecordSessionStartAsync() in Services\AnalyticsService.cs:line 133
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ? Core timer events subscribed
+[18:04:29 INF] EyeRest.Services.TimerService: NotificationService injected into TimerService
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ? Bidirectional service injection completed for external countdown control and timer recovery
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ? Advanced service events subscribed
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ? System tray events subscribed
+[18:04:29 INF] EyeRest.Services.UserPresenceService: Starting user presence monitoring
+[18:04:29 INF] EyeRest.Services.UserPresenceService: ? Power setting notifications registered successfully
+[18:04:29 INF] EyeRest.Services.UserPresenceService: ? Session and power notifications registered successfully
+[18:04:29 INF] EyeRest.Services.UserPresenceService: User presence monitoring started successfully
+[18:04:29 INF] EyeRest.Services.PauseReminderService: ?? Initializing hourly pause reminder service with Windows Toast notifications
+[18:04:29 INF] EyeRest.Services.UserPresenceService: ??? Monitor turned on - user marked as present
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration loaded successfully
+[18:04:29 FTL] EyeRest.Services.TimerService: ?? SYSTEM RESUME RECOVERY: Attempting timer recovery - Monitor power on - potential system resume
+[18:04:29 INF] EyeRest.Services.TimerService: ?? Skipping recovery during initial startup - Monitor power on - potential system resume
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration loaded successfully
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration loaded successfully
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration loaded successfully
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration loaded successfully
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? BEFORE UPDATE: Current UI values - EyeRest 20min/20sec, Break 55min/5min
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? FROM CONFIG: Loading values - EyeRest 20min/20sec, Break 55min/5min
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Settings changed - debouncing timer restart...
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: SaveOverlayOpacityAsync called with value: 80%
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: SaveAudioVolumeAsync called with value: 100
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Applying Light theme globally to entire application
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: SaveStartupSettingAsync called with value: True
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: SaveCustomSoundPathAsync called with value: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: SaveStartMinimizedAsync called with value: True
+[18:04:29 ERR] EyeRest.Services.ConfigurationService: Error saving configuration
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+[18:04:29 ERR] EyeRest.Services.ConfigurationService: Error saving configuration
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+[18:04:29 ERR] EyeRest.Services.ConfigurationService: Error saving configuration
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+[18:04:29 ERR] EyeRest.Services.ConfigurationService: Error saving configuration
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+[18:04:29 ERR] EyeRest.ViewModels.MainWindowViewModel: Failed to auto-save audio volume setting
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+   at EyeRest.ViewModels.MainWindowViewModel.SaveAudioVolumeAsync() in ViewModels\MainWindowViewModel.cs:line 1108
+[18:04:29 ERR] EyeRest.ViewModels.MainWindowViewModel: Failed to auto-save startup setting
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+   at EyeRest.ViewModels.MainWindowViewModel.SaveStartupSettingAsync(Boolean startWithWindows) in ViewModels\MainWindowViewModel.cs:line 2091
+[18:04:29 ERR] EyeRest.ViewModels.MainWindowViewModel: Failed to auto-save start minimized setting
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+   at EyeRest.ViewModels.MainWindowViewModel.SaveStartMinimizedAsync(Boolean startMinimized) in ViewModels\MainWindowViewModel.cs:line 2166
+[18:04:29 ERR] EyeRest.ViewModels.MainWindowViewModel: Failed to auto-save custom sound path
+System.IO.IOException: The process cannot access the file '%USERPROFILE%\AppData\Roaming\EyeRest\config.json' because it is being used by another process.
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.File.Create(String path)
+   at EyeRest.Services.ConfigurationService.SaveConfigurationAsync(AppConfiguration config) in Services\ConfigurationService.cs:line 87
+   at EyeRest.ViewModels.MainWindowViewModel.SaveCustomSoundPathAsync(String customSoundPath) in ViewModels\MainWindowViewModel.cs:line 2281
+[18:04:29 INF] EyeRest.Services.AudioService: ?? Audio configuration updated - Enabled: True, Volume: 100%, Custom Path: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:29 INF] EyeRest.Services.AudioService: ?? ? New custom sound file validated: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration saved successfully
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: Auto-saved overlay opacity to 80%
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Updated AnalyticsDashboardViewModel.IsDarkMode to False
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Refreshed window: Eye-rest Settings - Stopped
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? ? Light theme applied successfully to entire application including all windows and dashboard UI
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? AFTER UPDATE: UI now shows - EyeRest 20min/20sec, Break 55min/5min
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? ? All UI properties updated from configuration - PropertyChanged notifications sent
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: Configuration loaded successfully
+[18:04:29 INF] EyeRest.ViewModels.AnalyticsDashboardViewModel: Analytics configuration loaded successfully
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? BEFORE UPDATE: Current UI values - EyeRest 20min/20sec, Break 55min/5min
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? FROM CONFIG: Loading values - EyeRest 20min/20sec, Break 55min/5min
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Applying Light theme globally to entire application
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Updated AnalyticsDashboardViewModel.IsDarkMode to False
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Refreshed window: Eye-rest Settings - Stopped
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? ? Light theme applied successfully to entire application including all windows and dashboard UI
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: SaveAutoOpenSettingAsync called with value: True
+[18:04:29 INF] EyeRest.Services.AudioService: ?? Audio configuration updated - Enabled: True, Volume: 100%, Custom Path: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:29 INF] EyeRest.Services.AudioService: ?? ? New custom sound file validated: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration saved successfully
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: Auto-open dashboard setting successfully saved to main config: True
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? AFTER UPDATE: UI now shows - EyeRest 20min/20sec, Break 55min/5min
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? ? All UI properties updated from configuration - PropertyChanged notifications sent
+[18:04:29 INF] EyeRest.ViewModels.MainWindowViewModel: ?? ? Configuration loaded immediately on window load - UI updated
+[18:04:29 INF] EyeRest.Services.AudioService: ?? Audio configuration loaded - Enabled: True, Volume: 100%, Custom Path: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:29 INF] EyeRest.Services.AudioService: ?? ? Custom sound file validated: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:29 INF] EyeRest.Services.PauseReminderService: ?? Windows Toast notification system initialized
+[18:04:29 INF] EyeRest.ViewModels.AnalyticsDashboardViewModel: ?? Loading analytics dashboard data for period 2025-07-24 to 2025-08-23
+[18:04:29 INF] EyeRest.ViewModels.AnalyticsDashboardViewModel: ? Analytics dashboard data loaded successfully
+[18:04:29 INF] EyeRest.ViewModels.AnalyticsDashboardViewModel: ? Analytics Dashboard ViewModel initialized successfully
+[18:04:29 DBG] EyeRest.Services.PauseReminderService: ?? Pause reminder timers initialized on UI thread
+[18:04:29 INF] EyeRest.Services.PauseReminderService: ? Pause reminder service initialized successfully
+[18:04:29 INF] EyeRest.Services.PauseReminderService: ?? Starting pause reminder monitoring
+[18:04:29 INF] EyeRest.Services.PauseReminderService: ? Pause reminder monitoring started successfully
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ? Advanced monitoring services started
+[18:04:29 DBG] EyeRest.Services.SystemTrayService: ?? Icon visual updated for state: Active
+[18:04:29 INF] EyeRest.Services.SystemTrayService: ??? Tray icon updated: Active
+[18:04:29 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Ready | Next eye rest: 1s | Next break: 1s
+[18:04:29 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Ready
+[18:04:29 FTL] EyeRest.Services.ApplicationOrchestrator: ?? Starting timer service at 18:04:29.913
+[18:04:29 INF] EyeRest.Services.TimerService: ?? Starting timer service...
+[18:04:29 INF] EyeRest.Services.ConfigurationService: Configuration loaded successfully
+[18:04:29 INF] EyeRest.Services.TimerService: Configuration loaded - Eye rest: 20 min/20 sec, Break: 55 min/5 min
+[18:04:29 INF] EyeRest.Services.TimerService: Eye rest timer initialized - interval: 1185s (warning at 15s before 20min target)
+[18:04:29 INF] EyeRest.Services.TimerService: ?? Break timer initialized - interval: 54.5m (warning at 30s before 55min target)
+[18:04:29 INF] EyeRest.Services.TimerService: ?? Break timer: Enabled=False, Interval=54.5m, Event handlers registered
+[18:04:29 INF] EyeRest.Services.TimerService: ??? Eye rest fallback timer initialized - will trigger at 20m + 5s if primary fails
+[18:04:29 INF] EyeRest.Services.TimerService: ? Break fallback timer initialized - will trigger at 55m + 5s if primary fails
+[18:04:29 INF] EyeRest.Services.TimerService: ?? Health monitor initialized - checking timer health every minute
+[18:04:29 DBG] EyeRest.Services.SystemTrayService: ?? Icon visual updated for state: Active
+[18:04:29 INF] EyeRest.Services.SystemTrayService: ??? Tray icon updated: Active
+[18:04:29 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Ready | Next eye rest: 1s | Next break: 1s
+[18:04:29 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ?? Tray icon updated: Running=True, Paused=False, SmartPaused=False, ManuallyPaused=False
+[18:04:29 ERR] EyeRest.Services.AnalyticsService: Error recording session start
+Microsoft.Data.Sqlite.SqliteException (0x80004005): SQLite Error 1: 'table UserSessions has no column named InactiveTime'.
+   at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(Int32 rc, sqlite3 db)
+   at Microsoft.Data.Sqlite.SqliteCommand.PrepareAndEnumerateStatements()+MoveNext()
+   at Microsoft.Data.Sqlite.SqliteCommand.GetStatements()+MoveNext()
+   at Microsoft.Data.Sqlite.SqliteDataReader.NextResult()
+   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader(CommandBehavior behavior)
+   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader()
+   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteScalar()
+   at EyeRest.Services.AnalyticsService.RecordSessionStartAsync() in Services\AnalyticsService.cs:line 133
+[18:04:29 INF] EyeRest.Services.TimerService: ? Timer service started successfully
+[18:04:29 FTL] EyeRest.Services.ApplicationOrchestrator: ? Timer service started successfully - timers are now active
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ??? System tray timer update started - tooltip will show live timer details
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ?? Session validation timer started (15-minute intervals)
+[18:04:29 FTL] EyeRest.Services.ApplicationOrchestrator: ? ORCHESTRATOR INITIALIZATION COMPLETED at 18:04:29.922 - ALL SERVICES ACTIVE
+[18:04:29 INF] EyeRest.Services.ApplicationOrchestrator: ?? Comprehensive application orchestrator initialized successfully - ALL ADVANCED FEATURES ACTIVE
+[18:04:29 FTL] EyeRest.App: ? APPLICATION STARTUP COMPLETED SUCCESSFULLY at 18:04:29.922
+[18:04:29 FTL] EyeRest.App: ?? APPLICATION STARTUP SEQUENCE COMPLETED - All services initialized and running at 18:04:29.922
+[18:04:31 INF] EyeRest.ViewModels.MainWindowViewModel: SaveTimerSettingAsync called - auto-saving timer configuration
+[18:04:31 INF] EyeRest.Services.AudioService: ?? Audio configuration updated - Enabled: True, Volume: 100%, Custom Path: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:31 INF] EyeRest.Services.AudioService: ?? ? New custom sound file validated: %USERPROFILE%\Downloads\tic-tac-81751.mp3
+[18:04:31 INF] EyeRest.Services.PauseReminderService: ?? Updating pause reminder settings from configuration change
+[18:04:31 INF] EyeRest.Services.PauseReminderService: ? Pause reminder settings updated successfully
+[18:04:31 INF] EyeRest.Services.ConfigurationService: Configuration saved successfully
+[18:04:31 INF] EyeRest.ViewModels.MainWindowViewModel: Auto-saved timer settings to main config
+[18:04:31 INF] EyeRest.ViewModels.MainWindowViewModel: ?? Debounced timer restart completed after user finished editing
+[18:04:34 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Ready | Next eye rest: 1s | Next break: 1s
+[18:04:34 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:04:34 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 55s | Next break: 54m 55s
+[18:04:34 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 55s, Break: 54m 55s
+[18:04:34 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:55, Break: 54:55
+[18:04:39 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 55s | Next break: 54m 55s
+[18:04:39 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:04:39 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 50s | Next break: 54m 50s
+[18:04:39 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 50s, Break: 54m 50s
+[18:04:39 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:50, Break: 54:50
+[18:04:44 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 50s | Next break: 54m 50s
+[18:04:44 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:04:44 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 44s | Next break: 54m 44s
+[18:04:44 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 44s, Break: 54m 44s
+[18:04:44 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:44, Break: 54:44
+[18:04:49 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 44s | Next break: 54m 44s
+[18:04:49 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:04:49 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 39s | Next break: 54m 39s
+[18:04:49 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 39s, Break: 54m 39s
+[18:04:49 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:39, Break: 54:39
+[18:04:54 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 39s | Next break: 54m 39s
+[18:04:54 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:04:54 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 34s | Next break: 54m 34s
+[18:04:54 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 34s, Break: 54m 34s
+[18:04:54 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:34, Break: 54:34
+[18:04:59 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 34s | Next break: 54m 34s
+[18:04:59 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:04:59 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 29s | Next break: 54m 29s
+[18:04:59 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 29s, Break: 54m 29s
+[18:04:59 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:29, Break: 54:29
+[18:05:04 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 29s | Next break: 54m 29s
+[18:05:04 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:04 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 24s | Next break: 54m 24s
+[18:05:04 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 24s, Break: 54m 24s
+[18:05:04 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:24, Break: 54:24
+[18:05:09 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 24s | Next break: 54m 24s
+[18:05:09 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:09 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 19s | Next break: 54m 19s
+[18:05:09 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 19s, Break: 54m 19s
+[18:05:09 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:19, Break: 54:19
+[18:05:14 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 19s | Next break: 54m 19s
+[18:05:14 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:14 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 14s | Next break: 54m 14s
+[18:05:14 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 14s, Break: 54m 14s
+[18:05:14 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:14, Break: 54:14
+[18:05:19 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 14s | Next break: 54m 14s
+[18:05:19 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:19 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 9s | Next break: 54m 9s
+[18:05:19 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 9s, Break: 54m 9s
+[18:05:19 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:09, Break: 54:09
+[18:05:24 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 9s | Next break: 54m 9s
+[18:05:24 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:24 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 4s | Next break: 54m 4s
+[18:05:24 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 19m 4s, Break: 54m 4s
+[18:05:24 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 19:04, Break: 54:04
+[18:05:29 INF] EyeRest.Services.PerformanceMonitor: Performance Metrics - Memory: 293MB, CPU: 0.5%, Uptime: 00:01:00
+[18:05:29 WRN] EyeRest.Services.PerformanceMonitor: Memory usage (293MB) exceeds 50MB requirement
+[18:05:29 INF] EyeRest.Services.PerformanceMonitor: Garbage collection performed - Memory reduced from 293MB to 293MB
+[18:05:29 FTL] EyeRest.Services.TimerService: ?? HEALTH CHECK at 18:05:29.916 - Last heartbeat: 60.0s ago
+[18:05:29 FTL] EyeRest.Services.TimerService: ?? SERVICE STATUS: Running=True, Paused=False, SmartPaused=False
+[18:05:29 FTL] EyeRest.Services.TimerService: ?? TIMER STATUS: EyeRest=True, Break=True
+[18:05:29 FTL] EyeRest.Services.TimerService: ?? PROCESS STATUS: ID=110972, Memory=293MB
+[18:05:29 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 19m 4s | Next break: 54m 4s
+[18:05:29 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:29 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 59s | Next break: 53m 59s
+[18:05:29 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 59s, Break: 53m 59s
+[18:05:29 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:59, Break: 53:59
+[18:05:34 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 59s | Next break: 53m 59s
+[18:05:34 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:34 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 54s | Next break: 53m 54s
+[18:05:34 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 54s, Break: 53m 54s
+[18:05:34 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:54, Break: 53:54
+[18:05:39 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 54s | Next break: 53m 54s
+[18:05:39 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:39 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 49s | Next break: 53m 49s
+[18:05:39 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 49s, Break: 53m 49s
+[18:05:39 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:49, Break: 53:49
+[18:05:44 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 49s | Next break: 53m 49s
+[18:05:44 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:44 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 44s | Next break: 53m 44s
+[18:05:44 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 44s, Break: 53m 44s
+[18:05:44 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:44, Break: 53:44
+[18:05:49 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 44s | Next break: 53m 44s
+[18:05:49 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:49 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 39s | Next break: 53m 39s
+[18:05:49 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 39s, Break: 53m 39s
+[18:05:49 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:39, Break: 53:39
+[18:05:54 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 39s | Next break: 53m 39s
+[18:05:54 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:54 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 34s | Next break: 53m 34s
+[18:05:54 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 34s, Break: 53m 34s
+[18:05:54 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:34, Break: 53:34
+[18:05:59 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 34s | Next break: 53m 34s
+[18:05:59 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:05:59 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 29s | Next break: 53m 29s
+[18:05:59 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 29s, Break: 53m 29s
+[18:05:59 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:29, Break: 53:29
+[18:06:04 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 29s | Next break: 53m 29s
+[18:06:04 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:04 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 24s | Next break: 53m 24s
+[18:06:04 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 24s, Break: 53m 24s
+[18:06:04 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:24, Break: 53:24
+[18:06:09 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 24s | Next break: 53m 24s
+[18:06:09 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:09 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 19s | Next break: 53m 19s
+[18:06:09 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 19s, Break: 53m 19s
+[18:06:09 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:19, Break: 53:19
+[18:06:14 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 19s | Next break: 53m 19s
+[18:06:14 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:14 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 14s | Next break: 53m 14s
+[18:06:14 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 14s, Break: 53m 14s
+[18:06:14 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:14, Break: 53:14
+[18:06:19 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 14s | Next break: 53m 14s
+[18:06:19 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:19 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 9s | Next break: 53m 9s
+[18:06:19 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 9s, Break: 53m 9s
+[18:06:19 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:09, Break: 53:09
+[18:06:24 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 9s | Next break: 53m 9s
+[18:06:24 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:24 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 4s | Next break: 53m 4s
+[18:06:24 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 18m 4s, Break: 53m 4s
+[18:06:24 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 18:04, Break: 53:04
+[18:06:29 FTL] EyeRest.Services.TimerService: ?? HEALTH CHECK at 18:06:29.930 - Last heartbeat: 120.0s ago
+[18:06:29 FTL] EyeRest.Services.TimerService: ?? SERVICE STATUS: Running=True, Paused=False, SmartPaused=False
+[18:06:29 FTL] EyeRest.Services.TimerService: ?? TIMER STATUS: EyeRest=True, Break=True
+[18:06:29 FTL] EyeRest.Services.TimerService: ?? PROCESS STATUS: ID=110972, Memory=306MB
+[18:06:29 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 18m 4s | Next break: 53m 4s
+[18:06:29 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:29 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 59s | Next break: 52m 59s
+[18:06:29 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 59s, Break: 52m 59s
+[18:06:29 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:59, Break: 52:59
+[18:06:34 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 59s | Next break: 52m 59s
+[18:06:34 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:34 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 54s | Next break: 52m 54s
+[18:06:34 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 54s, Break: 52m 54s
+[18:06:34 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:54, Break: 52:54
+[18:06:39 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 54s | Next break: 52m 54s
+[18:06:39 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:39 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 49s | Next break: 52m 49s
+[18:06:39 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 49s, Break: 52m 49s
+[18:06:39 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:49, Break: 52:49
+[18:06:44 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 49s | Next break: 52m 49s
+[18:06:44 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:44 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 44s | Next break: 52m 44s
+[18:06:44 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 44s, Break: 52m 44s
+[18:06:44 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:44, Break: 52:44
+[18:06:49 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 44s | Next break: 52m 44s
+[18:06:49 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:49 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 39s | Next break: 52m 39s
+[18:06:49 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 39s, Break: 52m 39s
+[18:06:49 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:39, Break: 52:39
+[18:06:54 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 39s | Next break: 52m 39s
+[18:06:54 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:54 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 34s | Next break: 52m 34s
+[18:06:54 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 34s, Break: 52m 34s
+[18:06:54 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:34, Break: 52:34
+[18:06:59 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 34s | Next break: 52m 34s
+[18:06:59 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:06:59 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 29s | Next break: 52m 29s
+[18:06:59 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 29s, Break: 52m 29s
+[18:06:59 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:29, Break: 52:29
+[18:07:04 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 29s | Next break: 52m 29s
+[18:07:04 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:07:04 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 24s | Next break: 52m 24s
+[18:07:04 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 24s, Break: 52m 24s
+[18:07:04 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:24, Break: 52:24
+[18:07:09 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 24s | Next break: 52m 24s
+[18:07:09 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:07:09 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 19s | Next break: 52m 19s
+[18:07:09 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 19s, Break: 52m 19s
+[18:07:09 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:19, Break: 52:19
+[18:07:14 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 19s | Next break: 52m 19s
+[18:07:14 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:07:14 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 14s | Next break: 52m 14s
+[18:07:14 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 14s, Break: 52m 14s
+[18:07:14 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:14, Break: 52:14
+[18:07:19 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 14s | Next break: 52m 14s
+[18:07:19 DBG] EyeRest.Services.SystemTrayService: ??? Timer status updated: Running
+[18:07:19 DBG] EyeRest.Services.SystemTrayService: ??? Tooltip updated: EyeRest - Running | Next eye rest: 17m 9s | Next break: 52m 9s
+[18:07:19 DBG] EyeRest.Services.SystemTrayService: ??? Timer details updated - Eye rest: 17m 9s, Break: 52m 9s
+[18:07:19 DBG] EyeRest.Services.ApplicationOrchestrator: ??? Tray tooltip updated - Eye rest: 17:09, Break: 52:09

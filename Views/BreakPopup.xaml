@@ -65,10 +65,11 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Main Message -->
-            <TextBlock Text="Time for a Break!" 
-                       FontSize="32" 
-                       FontWeight="Bold" 
+            <!-- Main Message - Updated for Done Screen -->
+            <TextBlock x:Name="MainMessageText"
+                       Text="Time for a Break!"
+                       FontSize="32"
+                       FontWeight="Bold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,15"/>
@@ -122,10 +123,18 @@
                 </ProgressBar.Triggers>
             </ProgressBar>
 
-            <!-- Time Remaining -->
-            <TextBlock x:Name="TimeRemainingText" 
-                       Text="5 minutes remaining" 
-                       FontSize="16" 
+            <!-- Timer Label (Dynamic: "Time Remaining" vs "Time Extended") -->
+            <TextBlock x:Name="TimerLabelText"
+                       Text="remaining"
+                       FontSize="14"
+                       Foreground="#666666"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,5"/>
+
+            <!-- Time Remaining / Extended -->
+            <TextBlock x:Name="TimeRemainingText"
+                       Text="5 minutes remaining"
+                       FontSize="16"
                        Foreground="#666666"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,15"/>
@@ -213,12 +222,21 @@
                        Margin="0,10,0,0"
                        Visibility="Collapsed"/>
 
-            <!-- Click hint -->
-            <TextBlock Text="Click anywhere to close" 
-                       FontSize="12" 
-                       Foreground="#888888"
-                       HorizontalAlignment="Center"
-                       Margin="0,5,0,0"/>
+            <!-- Drag and close instructions -->
+            <StackPanel HorizontalAlignment="Center" 
+                        Margin="0,5,0,0">
+                <TextBlock Text="💡 Drag window to move • Click anywhere to close" 
+                           FontSize="12" 
+                           Foreground="#888888"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"/>
+                <TextBlock Text="Perfect for working on critical tasks" 
+                           FontSize="10" 
+                           Foreground="#AAAAAA"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,2,0,0"/>
+            </StackPanel>
         </StackPanel>
     </Border>
 </UserControl>

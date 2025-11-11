@@ -13,12 +13,18 @@ namespace EyeRest.Services
         private readonly Dispatcher _dispatcher;
         private readonly IScreenOverlayService _screenOverlayService;
         private readonly IConfigurationService _configurationService;
+        private readonly IPauseReminderService _pauseReminderService;
+        private readonly IAudioService _audioService;
         private BasePopupWindow? _currentPopup;
         private readonly object _lockObject = new object();
         private readonly object _popupLock = new object(); // POPUP FIX: Dedicated lock for popup instance management
         private bool _isClosing = false; // Track if we're in the process of closing
         private bool _overlayVisible = false; // Track if overlay is currently visible
         private bool _isTestMode = false; // Track if we're in test mode to prevent analytics recording
+        private bool _isBreakCompletionInProgress = false; // CRITICAL FIX: Prevent race conditions in break completion
+        private bool _isBreakPopupActive = false; // Track if break popup is active
+        private bool _isWaitingForBreakConfirmation = false; // Track if waiting for user confirmation after break
+        private bool _userTookBreakAction = false; // Track if user clicked any action button
         
         // References to active warning popups for external countdown control
         private EyeRestWarningPopup? _activeEyeRestWarningPopup;
@@ -48,15 +54,20 @@ namespace EyeRest.Services
             }
         }
         
-        // POPUP FIX: Helper method to check if any popup is currently active
-        public bool IsAnyPopupActive => IsEyeRestWarningActive || IsBreakWarningActive;
+        // GLOBAL POPUP MUTEX: Comprehensive check for ANY active popup
+        public bool IsAnyPopupActive => _currentPopup != null || IsEyeRestWarningActive || IsBreakWarningActive || _isBreakPopupActive || _isWaitingForBreakConfirmation;
+        
+        // Track if break popup is active (including waiting for confirmation)
+        public bool IsBreakActive => _isBreakPopupActive || _isWaitingForBreakConfirmation;
 
-        public NotificationService(ILogger<NotificationService> logger, Dispatcher dispatcher, IScreenOverlayService screenOverlayService, IConfigurationService configurationService)
+        public NotificationService(ILogger<NotificationService> logger, Dispatcher dispatcher, IScreenOverlayService screenOverlayService, IConfigurationService configurationService, IPauseReminderService pauseReminderService, IAudioService audioService)
         {
             _logger = logger;
             _dispatcher = dispatcher;
             _screenOverlayService = screenOverlayService;
             _configurationService = configurationService;
+            _pauseReminderService = pauseReminderService;
+            _audioService = audioService;
             
             // CRITICAL FIX: Defensive initialization cleanup to prevent stale popup references
             // This prevents zombie popup issues from persisting across app restarts
@@ -77,15 +88,31 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation($"ShowEyeRestWarningAsync called with timeUntilBreak: {timeUntilBreak.TotalSeconds} seconds");
+
+                // GLOBAL POPUP MUTEX: Block if any other popup is already active
+                if (IsAnyPopupActive && _currentPopup != null)
+                {
+                    _logger.LogWarning("🚫 GLOBAL POPUP MUTEX: Eye rest warning blocked - another popup is already active. Current popup type: {PopupType}", _currentPopup.GetType().Name);
+                    return;
+                }
                 
                 await _dispatcher.InvokeAsync(() =>
                 {
                     lock (_lockObject)
                     {
                         _logger.LogInformation("Entered dispatcher invoke for eye rest warning");
-                        
-                        // Close any existing popup
-                        CloseCurrentPopup();
+
+                        // CRITICAL FIX: Only close warning popups, NOT active break popups
+                        // This prevents the eye rest warning from killing the running break popup
+                        if (!_isBreakPopupActive)
+                        {
+                            _logger.LogInformation("No active break popup - safe to close current popup");
+                            CloseCurrentPopup();
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ BREAK POPUP PROTECTION: Active break popup detected - NOT closing current popup to preserve break session");
+                        }
 
                         // CRITICAL FIX: Always create fresh popup to prevent stale event handlers
                         _logger.LogInformation("Creating fresh EyeRestWarningPopup to prevent stale event handlers");
@@ -206,10 +233,17 @@ namespace EyeRest.Services
         public async Task ShowEyeRestReminderAsync(TimeSpan duration)
         {
             var tcs = new TaskCompletionSource<bool>();
-            
+
             try
             {
                 _logger.LogInformation($"ShowEyeRestReminderAsync called with duration: {duration.TotalSeconds} seconds");
+
+                // GLOBAL POPUP MUTEX: Block if break popup is already active (eye rest has lower priority than breaks)
+                if (_isBreakPopupActive || _isWaitingForBreakConfirmation)
+                {
+                    _logger.LogWarning("🚫 GLOBAL POPUP MUTEX: Eye rest reminder blocked - break popup has priority and is already active");
+                    return;
+                }
                 
                 await _dispatcher.InvokeAsync(() =>
                 {
@@ -238,30 +272,89 @@ namespace EyeRest.Services
                         
                         _currentPopup = popupWindow;
 
+                        // CRITICAL FIX: Store event handlers so we can unregister them later
+                        EventHandler? completedHandler = null;
+                        EventHandler? closedHandler = null;
+
                         // Handle completion - this will complete the Task when popup is actually closed
-                        eyeRestPopup.Completed += (s, e) =>
+                        completedHandler = (s, e) =>
                         {
                             _logger.LogInformation("Eye rest popup completed event fired");
-                            Application.Current.Dispatcher.Invoke(() =>
+
+                            // CRITICAL FIX: Defensive check - only act if this popup is still current
+                            if (_currentPopup == popupWindow)
                             {
-                                CloseCurrentPopup();
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    // Unregister handlers BEFORE closing to prevent re-entry
+                                    if (completedHandler != null)
+                                    {
+                                        eyeRestPopup.Completed -= completedHandler;
+                                        _logger.LogDebug("🔧 Unregistered eye rest Completed handler");
+                                    }
+                                    if (closedHandler != null && popupWindow != null)
+                                    {
+                                        popupWindow.PopupClosed -= closedHandler;
+                                        _logger.LogDebug("🔧 Unregistered eye rest PopupClosed handler");
+                                    }
+
+                                    CloseCurrentPopup();
+                                    if (!tcs.Task.IsCompleted)
+                                    {
+                                        tcs.SetResult(true); // Signal that the eye rest is actually complete
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                _logger.LogWarning("⚠️ STALE HANDLER: Eye rest completed handler fired but popup is no longer current");
+                                _logger.LogCritical("🔧 STALE HANDLER FIX: Completing task anyway to prevent stuck global lock and allow flag clearing");
                                 if (!tcs.Task.IsCompleted)
                                 {
-                                    tcs.SetResult(true); // Signal that the eye rest is actually complete
+                                    tcs.SetResult(true); // CRITICAL: Complete task to allow await to return and flags to be cleared
                                 }
-                            });
+                            }
                         };
 
                         // Handle window closed
-                        popupWindow.PopupClosed += (s, e) =>
+                        closedHandler = (s, e) =>
                         {
                             _logger.LogInformation("Eye rest popup window closed event fired");
-                            eyeRestPopup.StopCountdown();
-                            if (!tcs.Task.IsCompleted)
+
+                            // CRITICAL FIX: Defensive check - only act if this popup is still current
+                            if (_currentPopup == popupWindow)
                             {
-                                tcs.SetResult(true); // Ensure task completes even if closed by other means
+                                // Unregister handlers to prevent future stale events
+                                if (completedHandler != null)
+                                {
+                                    eyeRestPopup.Completed -= completedHandler;
+                                    _logger.LogDebug("🔧 Unregistered eye rest Completed handler from PopupClosed");
+                                }
+                                if (closedHandler != null)
+                                {
+                                    popupWindow.PopupClosed -= closedHandler;
+                                    _logger.LogDebug("🔧 Unregistered eye rest PopupClosed handler");
+                                }
+
+                                eyeRestPopup.StopCountdown();
+                                if (!tcs.Task.IsCompleted)
+                                {
+                                    tcs.SetResult(true); // Ensure task completes even if closed by other means
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("⚠️ STALE HANDLER: Eye rest PopupClosed handler fired but popup is no longer current");
+                                _logger.LogCritical("🔧 STALE HANDLER FIX: Completing task anyway to prevent stuck global lock and allow flag clearing");
+                                if (!tcs.Task.IsCompleted)
+                                {
+                                    tcs.SetResult(true); // CRITICAL: Complete task to allow await to return and flags to be cleared
+                                }
                             }
                         };
+
+                        eyeRestPopup.Completed += completedHandler;
+                        popupWindow.PopupClosed += closedHandler;
 
                         // Show popup and start countdown
                         _logger.LogInformation("About to show eye rest popup window");
@@ -293,14 +386,30 @@ namespace EyeRest.Services
 
         public async Task ShowBreakWarningAsync(TimeSpan timeUntilBreak)
         {
+            // GLOBAL POPUP MUTEX: Block if any other popup is already active
+            if (IsAnyPopupActive && _currentPopup != null)
+            {
+                _logger.LogWarning("🚫 GLOBAL POPUP MUTEX: Break warning blocked - another popup is already active. Current popup type: {PopupType}", _currentPopup.GetType().Name);
+                return;
+            }
+
             try
             {
                 await _dispatcher.InvokeAsync(() =>
                 {
                     lock (_lockObject)
                     {
-                        // Close any existing popup
-                        CloseCurrentPopup();
+                        // CRITICAL FIX: Only close warning popups, NOT active break popups
+                        // This prevents the break warning from killing the running break popup
+                        if (!_isBreakPopupActive)
+                        {
+                            _logger.LogInformation("No active break popup - safe to close current popup");
+                            CloseCurrentPopup();
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ BREAK POPUP PROTECTION: Active break popup detected - NOT closing current popup to preserve break session");
+                        }
 
                         // CRITICAL FIX: Always create fresh popup to prevent stale event handlers
                         _logger.LogInformation("Creating fresh BreakWarningPopup to prevent stale event handlers");
@@ -402,11 +511,24 @@ namespace EyeRest.Services
 
         public async Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress)
         {
+            // GLOBAL POPUP MUTEX: Block if any other popup is already active (except break warnings which this supersedes)
+            if (IsAnyPopupActive && _currentPopup != null && !IsBreakWarningActive)
+            {
+                _logger.LogWarning("🚫 GLOBAL POPUP MUTEX: Break reminder blocked - another non-warning popup is already active. Current popup type: {PopupType}", _currentPopup.GetType().Name);
+                return BreakAction.Skipped; // Return appropriate action for break reminder
+            }
+
             var tcs = new TaskCompletionSource<BreakAction>();
 
             try
             {
                 _logger.LogInformation($"🎯 ShowBreakReminderAsync START - Duration: {duration.TotalMinutes} minutes, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+                _logger.LogCritical($"🔄 POPUP LIFECYCLE: Break popup initiated - IsBreakActive: {IsBreakActive}, PopupCount: {(_currentPopup != null ? 1 : 0)}");
+                
+                // Mark break as active and reset user action flag
+                _isBreakPopupActive = true;
+                _userTookBreakAction = false;  // Reset flag at start
+                _logger.LogCritical($"🔄 POPUP LIFECYCLE: Break state initialized - IsBreakPopupActive: {_isBreakPopupActive}, UserTookBreakAction: {_userTookBreakAction}");
                 
                 // Load configuration before entering the lock
                 var breakConfig = await _configurationService.LoadConfigurationAsync();
@@ -459,44 +581,72 @@ namespace EyeRest.Services
                             throw;
                         }
 
+                        // CRITICAL FIX: Store event handlers so we can unregister them and add defensive checks
+                        EventHandler<BreakAction>? actionHandler = null;
+                        EventHandler? closedHandler = null;
+
                         // Handle action selection
                         _logger.LogInformation("🎯 Subscribing to ActionSelected event");
-                        breakPopup.ActionSelected += async (s, action) =>
+                        actionHandler = async (s, action) =>
                         {
                             _logger.LogInformation($"🎯 ActionSelected event fired with action: {action}");
-                            
+
+                            // CRITICAL FIX: Defensive check - only act if this popup is still current
+                            if (_currentPopup != popupWindow)
+                            {
+                                _logger.LogWarning($"⚠️ STALE HANDLER: Break ActionSelected handler fired but popup is no longer current - action: {action}");
+                                _logger.LogCritical("🔧 STALE HANDLER FIX: Completing task anyway to prevent stuck global lock and allow flag clearing");
+                                if (!tcs.Task.IsCompleted)
+                                {
+                                    tcs.SetResult(action); // CRITICAL: Complete task to allow await to return and flags to be cleared
+                                }
+                                return;
+                            }
+
                             if (action == BreakAction.ConfirmedAfterCompletion)
                             {
-                                // User confirmed after break completion
-                                Application.Current.Dispatcher.Invoke(async () =>
+                                // User confirmed after break completion - let ApplicationOrchestrator handle timer logic
+                                Application.Current.Dispatcher.Invoke(() =>
                                 {
                                     try
                                     {
-                                        _logger.LogInformation("🎯 User confirmed break completion");
-                                        CloseCurrentPopup();
-                                        
-                                        if (_timerService != null)
+                                        _logger.LogInformation("🎯 User confirmed break completion - closing popup and letting ApplicationOrchestrator handle timer restart");
+
+                                        // Unregister handlers BEFORE closing
+                                        if (actionHandler != null)
                                         {
-                                            if (breakConfig.Break.ResetTimersOnBreakConfirmation)
-                                            {
-                                                // Reset timers for fresh session
-                                                await _timerService.SmartSessionResetAsync("User confirmed break completion");
-                                                _logger.LogInformation("🎯 Timers reset for fresh session after break confirmation");
-                                            }
-                                            else
-                                            {
-                                                // Just resume timers
-                                                await _timerService.ResumeAsync();
-                                                _logger.LogInformation("🎯 Timers resumed after break confirmation");
-                                            }
+                                            breakPopup.ActionSelected -= actionHandler;
+                                            _logger.LogDebug("🔧 Unregistered break ActionSelected handler");
                                         }
-                                        
-                                        tcs.SetResult(BreakAction.ConfirmedAfterCompletion);
+                                        if (closedHandler != null)
+                                        {
+                                            popupWindow.PopupClosed -= closedHandler;
+                                            _logger.LogDebug("🔧 Unregistered break PopupClosed handler");
+                                        }
+
+                                        _userTookBreakAction = true;  // User took action
+                                        _isWaitingForBreakConfirmation = false;
+                                        _isBreakPopupActive = false;
+                                        CloseCurrentPopup();
+
+                                        // CRITICAL FIX: Check if task is already completed before setting result
+                                        if (!tcs.Task.IsCompleted)
+                                        {
+                                            tcs.SetResult(BreakAction.ConfirmedAfterCompletion);
+                                        }
+                                        else
+                                        {
+                                            _logger.LogWarning("🎯 Task already completed - skipping SetResult for ConfirmedAfterCompletion");
+                                        }
                                     }
                                     catch (Exception ex)
                                     {
                                         _logger.LogError(ex, "🎯 Error handling break confirmation");
-                                        tcs.SetResult(BreakAction.ConfirmedAfterCompletion);
+                                        // CRITICAL FIX: Only set result if not already completed
+                                        if (!tcs.Task.IsCompleted)
+                                        {
+                                            tcs.SetResult(BreakAction.ConfirmedAfterCompletion);
+                                        }
                                     }
                                 });
                             }
@@ -506,30 +656,91 @@ namespace EyeRest.Services
                                 Application.Current.Dispatcher.Invoke(() =>
                                 {
                                     _logger.LogInformation($"🎯 In ActionSelected dispatcher - calling CloseCurrentPopup for action: {action}");
+
+                                    // Unregister handlers BEFORE closing
+                                    if (actionHandler != null)
+                                    {
+                                        breakPopup.ActionSelected -= actionHandler;
+                                        _logger.LogDebug("🔧 Unregistered break ActionSelected handler");
+                                    }
+                                    if (closedHandler != null)
+                                    {
+                                        popupWindow.PopupClosed -= closedHandler;
+                                        _logger.LogDebug("🔧 Unregistered break PopupClosed handler");
+                                    }
+
+                                    _userTookBreakAction = true;  // User took action
+                                    _isWaitingForBreakConfirmation = false;
+                                    _isBreakPopupActive = false;
                                     CloseCurrentPopup();
                                     _logger.LogInformation($"🎯 Setting TaskCompletionSource result to: {action}");
-                                    tcs.SetResult(action);
+
+                                    // CRITICAL FIX: Check if task is already completed before setting result
+                                    if (!tcs.Task.IsCompleted)
+                                    {
+                                        tcs.SetResult(action);
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning($"🎯 Task already completed - skipping SetResult for action: {action}");
+                                    }
                                 });
                             }
                         };
+                        breakPopup.ActionSelected += actionHandler;
 
                         // Handle window closed
                         _logger.LogInformation("🎯 Subscribing to PopupClosed event");
-                        popupWindow.PopupClosed += (s, e) =>
+                        closedHandler = (s, e) =>
                         {
                             _logger.LogInformation("🎯 PopupClosed event fired");
+
+                            // CRITICAL FIX: Defensive check - only act if this popup is still current
+                            if (_currentPopup != popupWindow)
+                            {
+                                _logger.LogWarning("⚠️ STALE HANDLER: Break PopupClosed handler fired but popup is no longer current");
+                                _logger.LogCritical("🔧 STALE HANDLER FIX: Completing task anyway to prevent stuck global lock and allow flag clearing");
+                                if (!tcs.Task.IsCompleted)
+                                {
+                                    tcs.SetResult(BreakAction.Skipped); // CRITICAL: Complete task to allow await to return and flags to be cleared
+                                }
+                                return;
+                            }
+
                             _logger.LogInformation("🎯 Stopping countdown from PopupClosed event");
                             breakPopup.StopCountdown();
-                            if (!tcs.Task.IsCompleted)
+
+                            // Unregister handlers to prevent future stale events
+                            if (actionHandler != null)
                             {
-                                _logger.LogInformation("🎯 Task not completed, setting result to Skipped");
+                                breakPopup.ActionSelected -= actionHandler;
+                                _logger.LogDebug("🔧 Unregistered break ActionSelected handler from PopupClosed");
+                            }
+                            if (closedHandler != null)
+                            {
+                                popupWindow.PopupClosed -= closedHandler;
+                                _logger.LogDebug("🔧 Unregistered break PopupClosed handler");
+                            }
+
+                            // CRITICAL FIX: Don't automatically return Skipped if waiting for confirmation
+                            if (_isWaitingForBreakConfirmation)
+                            {
+                                _logger.LogInformation("🎯 CRITICAL: Popup closed while waiting for confirmation - not setting result (window close prevented)");
+                                return;  // Don't set result - window close should be prevented
+                            }
+
+                            // Only set result to Skipped if task not completed and user didn't take any action
+                            if (!tcs.Task.IsCompleted && !_userTookBreakAction)
+                            {
+                                _logger.LogInformation("🎯 Task not completed and no user action - setting result to Skipped");
                                 tcs.SetResult(BreakAction.Skipped);
                             }
                             else
                             {
-                                _logger.LogInformation($"🎯 Task already completed with result: {tcs.Task.Result}");
+                                _logger.LogInformation($"🎯 Task already completed with result: {tcs.Task.Result} or user took action");
                             }
                         };
+                        popupWindow.PopupClosed += closedHandler;
 
                         // Show popup and start countdown with error handling
                         try
@@ -537,31 +748,64 @@ namespace EyeRest.Services
                             _logger.LogInformation("🎯 About to call popupWindow.Show()");
                             popupWindow.Show();
                             _logger.LogInformation($"🎯 popupWindow.Show() completed - IsVisible: {popupWindow.IsVisible}, WindowState: {popupWindow.WindowState}");
-                            
+
+                            // CRITICAL FIX: Ensure the break popup is brought to foreground and activated
+                            _logger.LogInformation("🎯 Activating and focusing break popup window");
+                            popupWindow.Activate();
+                            popupWindow.Focus();
+                            _logger.LogInformation($"🎯 Break popup activated - IsActive: {popupWindow.IsActive}, IsFocused: {popupWindow.IsFocused}");
+
                             _logger.LogInformation($"🎯 Calling StartCountdown with duration: {duration.TotalMinutes} minutes");
                             
                             // Create a progress callback that handles break completion for confirmation mode
                             var progressWithCompletion = new Progress<double>(value =>
                             {
                                 progress?.Report(value);
-                                
-                                // CRITICAL: When break completes (progress = 1.0) and confirmation is required, pause timers
+
+                                // CRITICAL FIX: Enhanced break completion handling with race condition protection
                                 if (value >= 1.0 && breakConfig.Break.RequireConfirmationAfterBreak)
                                 {
+                                    // CRITICAL FIX: Prevent multiple completion triggers during recovery scenarios
+                                    lock (_lockObject)
+                                    {
+                                        if (_isBreakCompletionInProgress)
+                                        {
+                                            _logger.LogWarning("🎯 Break completion already in progress - skipping duplicate trigger");
+                                            return;
+                                        }
+                                        _isBreakCompletionInProgress = true;
+                                    }
+
+                                    // P1 FIX: Set flag SYNCHRONOUSLY before Done screen appears to prevent recovery routines
+                                    // from closing the popup during the async task delay window
+                                    _isWaitingForBreakConfirmation = true;
+                                    _logger.LogCritical("🎯 P1 FIX: Set _isWaitingForBreakConfirmation=true SYNCHRONOUSLY to prevent Done screen auto-close");
+
                                     // Break countdown finished - pause timers while waiting for user confirmation
                                     Task.Run(async () =>
                                     {
                                         try
                                         {
+                                            // CRITICAL FIX: Add delay to prevent race conditions with system resume recovery
+                                            await Task.Delay(100); // Brief delay to ensure proper sequencing
+
                                             if (_timerService != null)
                                             {
-                                                await _timerService.PauseAsync();
-                                                _logger.LogInformation("🎯 Break completed - timers paused while waiting for user confirmation");
+                                                // Use SmartPause instead of regular pause to properly track state
+                                                await _timerService.SmartPauseAsync("Waiting for break confirmation");
+                                                _logger.LogInformation("🎯 Break completed - timers smart-paused while waiting for user confirmation");
                                             }
                                         }
                                         catch (Exception ex)
                                         {
                                             _logger.LogError(ex, "🎯 Error pausing timers after break completion");
+                                        }
+                                        finally
+                                        {
+                                            lock (_lockObject)
+                                            {
+                                                _isBreakCompletionInProgress = false;
+                                            }
                                         }
                                     });
                                 }
@@ -592,6 +836,19 @@ namespace EyeRest.Services
                     await _screenOverlayService.ShowOverlayAsync(opacity);
                     _overlayVisible = true;
                     _logger.LogInformation($"🎯 Successfully showed overlay with {opacityPercent}% opacity");
+
+                    // CRITICAL FIX: Ensure the break popup is on top of the overlay
+                    await _dispatcher.InvokeAsync(() =>
+                    {
+                        if (_currentPopup != null)
+                        {
+                            _logger.LogInformation("🎯 Bringing break popup to front after overlay shown");
+                            _currentPopup.Topmost = true;  // Ensure it's on top
+                            _currentPopup.Activate();
+                            _currentPopup.Focus();
+                            _logger.LogInformation($"🎯 Break popup re-activated - Topmost: {_currentPopup.Topmost}, IsActive: {_currentPopup.IsActive}");
+                        }
+                    });
                 }
                 catch (Exception overlayEx)
                 {
@@ -599,13 +856,34 @@ namespace EyeRest.Services
                 }
                 
                 _logger.LogInformation("🎯 Waiting for break action result...");
-                var result = await tcs.Task;
+
+                // P0 FIX: Wait INDEFINITELY for user to click Done - no timeout!
+                // The Done screen must remain visible until explicit user confirmation
+                _logger.LogCritical("🎯 P0 FIX: Done screen waiting indefinitely for user confirmation - NO TIMEOUT");
+
+                // Wait for user to click Done button - no timeout, no auto-close
+                BreakAction result;
+                _logger.LogCritical($"🔄 POPUP LIFECYCLE: Waiting for user action on break popup (indefinite wait)...");
+                result = await tcs.Task;
+                _logger.LogCritical($"🔄 POPUP LIFECYCLE: User action received - Result: {result}");
+                
+                // Clear break active flags when done
+                _logger.LogCritical($"🔄 POPUP LIFECYCLE: Clearing break state - IsBreakPopupActive: {_isBreakPopupActive} → false, IsWaitingForBreakConfirmation: {_isWaitingForBreakConfirmation} → false");
+                _isBreakPopupActive = false;
+                _isWaitingForBreakConfirmation = false;
+                
                 _logger.LogInformation($"🎯 ShowBreakReminderAsync COMPLETE - Result: {result}");
                 return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🎯 ERROR in ShowBreakReminderAsync");
+                
+                // Clear break active flags on error
+                _logger.LogCritical($"🔄 POPUP LIFECYCLE ERROR: Clearing break state due to exception - IsBreakPopupActive: {_isBreakPopupActive} → false, IsWaitingForBreakConfirmation: {_isWaitingForBreakConfirmation} → false");
+                _isBreakPopupActive = false;
+                _isWaitingForBreakConfirmation = false;
+                
                 tcs.SetException(ex);
                 return await tcs.Task;
             }
@@ -666,29 +944,32 @@ namespace EyeRest.Services
 
         private void CloseCurrentPopup()
         {
-            // Log stack trace to see what's calling this
-            var stackTrace = new System.Diagnostics.StackTrace(true);
-            _logger.LogInformation($"🔴 CloseCurrentPopup called from:\n{stackTrace}");
+            // Log stack trace at debug level for troubleshooting
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                var stackTrace = new System.Diagnostics.StackTrace(true);
+                _logger.LogDebug($"🔴 CloseCurrentPopup called from:\n{stackTrace}");
+            }
             
             if (_currentPopup != null && !_isClosing)
             {
-                _logger.LogInformation($"🔴 Closing popup - HashCode: {_currentPopup.GetHashCode()}, IsLoaded: {_currentPopup.IsLoaded}, IsVisible: {_currentPopup.IsVisible}");
+                _logger.LogDebug($"🔴 Closing popup - HashCode: {_currentPopup.GetHashCode()}, IsLoaded: {_currentPopup.IsLoaded}, IsVisible: {_currentPopup.IsVisible}");
                 
                 _isClosing = true;
                 var popupToClose = _currentPopup;
-                _currentPopup = null; // Clear reference immediately to prevent race conditions
+                // DON'T clear reference yet - wait until after close
                 
                 // Hide overlay if it was visible
                 if (_overlayVisible)
                 {
-                    _logger.LogInformation("🔴 Hiding overlay after break popup close");
+                    _logger.LogDebug("🔴 Hiding overlay after break popup close");
                     Task.Run(async () =>
                     {
                         try
                         {
                             await _screenOverlayService.HideOverlayAsync();
                             _overlayVisible = false;
-                            _logger.LogInformation("🔴 Successfully hid overlay");
+                            _logger.LogDebug("🔴 Successfully hid overlay");
                         }
                         catch (Exception ex)
                         {
@@ -699,25 +980,38 @@ namespace EyeRest.Services
                 
                 try
                 {
+                    // CRITICAL FIX: If this is a BreakPopup, ensure force close is set
+                    if (popupToClose is BasePopupWindow baseWindow && baseWindow.ContentArea?.Content is BreakPopup breakPopup)
+                    {
+                        _logger.LogDebug("🔴 Setting force close on BreakPopup before closing");
+                        // Use reflection or make a public method to set force close
+                        var forceCloseField = typeof(BreakPopup).GetField("_forceClose", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        if (forceCloseField != null)
+                        {
+                            forceCloseField.SetValue(breakPopup, true);
+                            _logger.LogDebug("🔴 Force close flag set successfully");
+                        }
+                    }
+                    
                     // Check if window is still valid before closing
                     if (popupToClose.IsLoaded && popupToClose.IsVisible)
                     {
-                        _logger.LogInformation($"🔴 Popup is loaded and visible, proceeding to close: {popupToClose.GetType().Name}");
+                        _logger.LogDebug($"🔴 Popup is loaded and visible, proceeding to close: {popupToClose.GetType().Name}");
                         
-                        // Use dispatcher to ensure clean close on UI thread
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        // CRITICAL FIX: Use Invoke instead of BeginInvoke for synchronous execution
+                        Application.Current.Dispatcher.Invoke(new Action(() =>
                         {
                             try
                             {
                                 if (popupToClose.IsLoaded)
                                 {
-                                    _logger.LogInformation($"🔴 Calling Close() on popup window");
+                                    _logger.LogDebug($"🔴 Calling Close() on popup window");
                                     popupToClose.Close();
-                                    _logger.LogInformation("🔴 Popup Close() called successfully");
+                                    _logger.LogDebug("🔴 Popup Close() called successfully");
                                 }
                                 else
                                 {
-                                    _logger.LogInformation("🔴 Popup no longer loaded in dispatcher invoke");
+                                    _logger.LogDebug("🔴 Popup no longer loaded in dispatcher invoke");
                                 }
                             }
                             catch (Exception ex)
@@ -726,26 +1020,29 @@ namespace EyeRest.Services
                             }
                             finally
                             {
+                                _currentPopup = null; // NOW clear the reference after close
                                 _isClosing = false;
-                                _logger.LogInformation("🔴 CloseCurrentPopup completed, _isClosing reset to false");
+                                _logger.LogDebug("🔴 CloseCurrentPopup completed, references cleared");
                             }
-                        }), System.Windows.Threading.DispatcherPriority.Normal);
+                        }), System.Windows.Threading.DispatcherPriority.Send); // Use Send for immediate execution
                     }
                     else
                     {
-                        _logger.LogInformation($"🔴 Popup already closed or not loaded - IsLoaded: {popupToClose.IsLoaded}, IsVisible: {popupToClose.IsVisible}");
+                        _logger.LogDebug($"🔴 Popup already closed or not loaded - IsLoaded: {popupToClose.IsLoaded}, IsVisible: {popupToClose.IsVisible}");
+                        _currentPopup = null;
                         _isClosing = false;
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "🔴 ERROR occurred while closing popup window");
+                    _currentPopup = null;
                     _isClosing = false;
                 }
             }
             else
             {
-                _logger.LogInformation($"🔴 CloseCurrentPopup - No popup to close (_currentPopup: {_currentPopup != null}, _isClosing: {_isClosing})");
+                _logger.LogDebug($"🔴 CloseCurrentPopup - No popup to close (_currentPopup: {_currentPopup != null}, _isClosing: {_isClosing})");
             }
         }
 

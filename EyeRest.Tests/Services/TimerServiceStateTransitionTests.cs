@@ -19,6 +19,7 @@ namespace EyeRest.Tests.Services
         private readonly Mock<ILogger<TimerService>> _mockLogger;
         private readonly Mock<IConfigurationService> _mockConfigService;
         private readonly Mock<IAnalyticsService> _mockAnalyticsService;
+        private readonly Mock<IPauseReminderService> _mockPauseReminderService;
         private readonly FakeTimerFactory _fakeTimerFactory;
         private readonly CancellationTokenSource _cancellationTokenSource;
 
@@ -27,6 +28,7 @@ namespace EyeRest.Tests.Services
             _mockLogger = new Mock<ILogger<TimerService>>();
             _mockConfigService = new Mock<IConfigurationService>();
             _mockAnalyticsService = new Mock<IAnalyticsService>();
+            _mockPauseReminderService = new Mock<IPauseReminderService>();
             _fakeTimerFactory = new FakeTimerFactory();
             _cancellationTokenSource = new CancellationTokenSource();
         }
@@ -569,7 +571,7 @@ namespace EyeRest.Tests.Services
             _mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(config);
 
-            return new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory);
+            return new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object);
         }
 
         public void Dispose()
