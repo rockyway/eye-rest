@@ -1808,17 +1808,28 @@ namespace EyeRest.ViewModels
 
                 themeDict.Source = new Uri(themeUri);
 
-                // Apply theme to main application resources
-                Application.Current.Resources.MergedDictionaries.Clear();
+                // Find and replace the custom theme dictionary (don't clear ModernWpf resources)
+                var appResources = Application.Current.Resources.MergedDictionaries;
 
-                // Re-add ModernWpf resources first
-                Application.Current.Resources.MergedDictionaries.Add(new ModernWpf.Controls.XamlControlsResources());
+                // Remove only the old custom theme, keep ModernWpf resources
+                var oldTheme = appResources.FirstOrDefault(d =>
+                    d.Source != null &&
+                    (d.Source.ToString().Contains("LightTheme.xaml") ||
+                     d.Source.ToString().Contains("DarkTheme.xaml")));
 
-                // Then add custom theme
-                Application.Current.Resources.MergedDictionaries.Add(themeDict);
+                if (oldTheme != null)
+                {
+                    appResources.Remove(oldTheme);
+                }
 
-                // Also add common converters back
-                Application.Current.Resources["BooleanToVisibilityConverter"] = new EyeRest.Converters.BooleanToVisibilityConverter();
+                // Add the new custom theme
+                appResources.Add(themeDict);
+
+                // Also add common converters back if needed
+                if (!Application.Current.Resources.Contains("BooleanToVisibilityConverter"))
+                {
+                    Application.Current.Resources["BooleanToVisibilityConverter"] = new EyeRest.Converters.BooleanToVisibilityConverter();
+                }
 
                 // Update AnalyticsDashboardViewModel for dashboard UI
                 if (AnalyticsDashboardViewModel != null)
@@ -1826,85 +1837,41 @@ namespace EyeRest.ViewModels
                     AnalyticsDashboardViewModel.IsDarkMode = isDarkMode;
                     _logger.LogInformation($"🎨 Updated AnalyticsDashboardViewModel.IsDarkMode to {isDarkMode}");
                 }
-                
-                // Force complete refresh of all windows and their content
+
+                // Force visual refresh for all windows (without clearing resources)
                 foreach (Window window in Application.Current.Windows)
                 {
                     try
                     {
-                        // Force the window to re-evaluate all DynamicResource bindings
-                        window.Resources.MergedDictionaries.Clear();
-                        window.InvalidateVisual();
-                        window.UpdateLayout();
-                        
-                        // For AnalyticsWindow specifically, ensure its UserControl refreshes
-                        if (window.GetType().Name == "AnalyticsWindow")
-                        {
-                            _logger.LogInformation("🎨 Forcing refresh of AnalyticsWindow and its content");
-                            
-                            // Find the AnalyticsDashboardView inside the window
-                            if (window.Content?.GetType().Name == "AnalyticsDashboardView")
-                            {
-                                // Clear and re-add resources to force refresh
-                                var dashboardView = window.Content as FrameworkElement;
-                                if (dashboardView != null)
-                                {
-                                    dashboardView.Resources.MergedDictionaries.Clear();
-                                    dashboardView.InvalidateVisual();
-                                    dashboardView.UpdateLayout();
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, $"⚠️ Failed to refresh window {window.GetType().Name}");
-                    }
-                    try
-                    {
-                        // Clear and reapply resources at window level
-                        var originalTitle = window.Title;
-                        
-                        // Special handling for AnalyticsWindow - reapply theme resources
+                        // Special handling for AnalyticsWindow
                         if (window is EyeRest.Views.AnalyticsWindow analyticsWindow)
                         {
-                            // Call the window's ApplyCurrentTheme method to properly update theme resources
                             analyticsWindow.ApplyCurrentTheme();
-                            
-                            _logger.LogInformation($"🎨 Applied theme resources to AnalyticsWindow: {originalTitle}");
+                            _logger.LogInformation($"🎨 Applied theme resources to AnalyticsWindow: {window.Title}");
                         }
-                        
-                        // Force complete visual tree refresh for all windows
+
+                        // Force visual tree refresh without clearing resources
                         window.InvalidateVisual();
                         window.InvalidateMeasure();
                         window.InvalidateArrange();
                         window.UpdateLayout();
-                        
-                        // Force style refresh by temporarily changing and restoring a property
-                        var originalOpacity = window.Opacity;
-                        window.Opacity = 0.99;
-                        window.Opacity = originalOpacity;
-                        
-                        _logger.LogInformation($"🎨 Refreshed window: {originalTitle}");
+
+                        _logger.LogInformation($"🎨 Refreshed window: {window.Title}");
                     }
                     catch (Exception windowEx)
                     {
-                        _logger.LogWarning(windowEx, $"🎨 Failed to refresh individual window: {window.Title}");
+                        _logger.LogWarning(windowEx, $"🎨 Failed to refresh window: {window.Title}");
                     }
                 }
-                
-                // Force garbage collection to ensure old theme resources are released
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                
-                _logger.LogInformation($"🎨 ✅ {(isDarkMode ? "Dark" : "Light")} theme applied successfully to entire application including all windows and dashboard UI");
+
+                _logger.LogInformation($"🎨 ✅ {(isDarkMode ? "Dark" : "Light")} theme applied successfully to entire application");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🎨 ❌ Failed to apply theme globally");
-                
+
                 // Show user-friendly error message
-                MessageBox.Show($"Failed to apply {(isDarkMode ? "dark" : "light")} theme: {ex.Message}", 
+                MessageBox.Show($"Failed to apply {(isDarkMode ? "dark" : "light")} theme: {ex.Message}",
                     "Theme Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
