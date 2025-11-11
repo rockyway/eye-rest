@@ -271,7 +271,113 @@ namespace EyeRest.Services
                 _breakWarningTimer?.Stop();
                 _eyeRestFallbackTimer?.Stop();
                 _breakFallbackTimer?.Stop();
-                
+
+                // CRITICAL FIX: Stop and dispose warning fallback timers to prevent orphaned handlers
+                // These timers may be running with captured state from old warning handlers
+                _logger.LogCritical("🧹 SESSION RESET: Disposing warning fallback timers to prevent orphaned handlers");
+                try
+                {
+                    if (_eyeRestWarningFallbackTimer != null)
+                    {
+                        _eyeRestWarningFallbackTimer.Stop();
+                        _eyeRestWarningFallbackTimer = null;
+                        _logger.LogCritical("🧹 SESSION RESET: Eye rest warning fallback timer disposed");
+                    }
+                    if (_breakWarningFallbackTimer != null)
+                    {
+                        _breakWarningFallbackTimer.Stop();
+                        _breakWarningFallbackTimer = null;
+                        _logger.LogCritical("🧹 SESSION RESET: Break warning fallback timer disposed");
+                    }
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.LogWarning(fallbackEx, "🧹 SESSION RESET: Warning when disposing fallback timers (non-critical)");
+                }
+
+                // CRITICAL FIX: Force complete any active warning popups to prevent frozen countdowns
+                // This prevents orphaned warning handlers from continuing to update stale popup references
+                _logger.LogCritical("🧹 SESSION RESET: Forcing completion of any active warning popups");
+                try
+                {
+                    // Get the notification service type to access private warning popup fields
+                    var notificationServiceType = _notificationService?.GetType();
+                    if (notificationServiceType != null)
+                    {
+                        // Get reference to active eye rest warning popup
+                        var activeEyeRestWarningField = notificationServiceType.GetField(
+                            "_activeEyeRestWarningPopup",
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                        var activeEyeRestWarningPopup = activeEyeRestWarningField?.GetValue(_notificationService);
+                        if (activeEyeRestWarningPopup != null)
+                        {
+                            _logger.LogCritical("🧹 SESSION RESET: Active eye rest warning popup found - forcing completion");
+                            try
+                            {
+                                // Get the WarningCompleted event
+                                var warningCompletedEvent = activeEyeRestWarningPopup.GetType()
+                                    .GetEvent("WarningCompleted",
+                                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+
+                                if (warningCompletedEvent != null)
+                                {
+                                    // Invoke the event using reflection
+                                    var raiseMethod = warningCompletedEvent.GetRaiseMethod(true);
+                                    if (raiseMethod != null)
+                                    {
+                                        raiseMethod.Invoke(activeEyeRestWarningPopup,
+                                            new object[] { activeEyeRestWarningPopup, EventArgs.Empty });
+                                        _logger.LogCritical("🧹 SESSION RESET: Eye rest warning popup completion event forced");
+                                    }
+                                }
+                            }
+                            catch (Exception warnEx)
+                            {
+                                _logger.LogWarning(warnEx, "🧹 SESSION RESET: Could not force eye rest warning completion (non-critical)");
+                            }
+                        }
+
+                        // Get reference to active break warning popup
+                        var activeBreakWarningField = notificationServiceType.GetField(
+                            "_activeBreakWarningPopup",
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                        var activeBreakWarningPopup = activeBreakWarningField?.GetValue(_notificationService);
+                        if (activeBreakWarningPopup != null)
+                        {
+                            _logger.LogCritical("🧹 SESSION RESET: Active break warning popup found - forcing completion");
+                            try
+                            {
+                                // Get the WarningCompleted event
+                                var warningCompletedEvent = activeBreakWarningPopup.GetType()
+                                    .GetEvent("WarningCompleted",
+                                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+
+                                if (warningCompletedEvent != null)
+                                {
+                                    // Invoke the event using reflection
+                                    var raiseMethod = warningCompletedEvent.GetRaiseMethod(true);
+                                    if (raiseMethod != null)
+                                    {
+                                        raiseMethod.Invoke(activeBreakWarningPopup,
+                                            new object[] { activeBreakWarningPopup, EventArgs.Empty });
+                                        _logger.LogCritical("🧹 SESSION RESET: Break warning popup completion event forced");
+                                    }
+                                }
+                            }
+                            catch (Exception warnEx)
+                            {
+                                _logger.LogWarning(warnEx, "🧹 SESSION RESET: Could not force break warning completion (non-critical)");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "🧹 SESSION RESET: Error forcing warning popup completion (non-critical)");
+                }
+
                 // CRITICAL FIX: Reset all timer states for fresh session with manual pause cleanup
                 IsSmartPaused = false;
                 IsPaused = false;
@@ -326,6 +432,36 @@ namespace EyeRest.Services
                 ClearEyeRestWarningProcessingFlag();
                 ClearBreakWarningProcessingFlag();
                 _logger.LogCritical("🔄 SESSION RESET: Cleared all event processing flags to prevent stale lock state");
+
+                // CRITICAL P0 FIX: Clear break completion state to prevent orphaned completion events
+                // This prevents force-closed break popups from triggering smart pause later if their orphaned timer fires
+                // Without this, a break popup closed during session reset could still have a running timer that fires
+                // 5+ minutes later and triggers "Waiting for break confirmation" smart pause with no visible popup
+                try
+                {
+                    var notificationServiceType = _notificationService?.GetType();
+                    var waitingForBreakField = notificationServiceType?.GetField(
+                        "_isWaitingForBreakConfirmation",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var completionInProgressField = notificationServiceType?.GetField(
+                        "_isBreakCompletionInProgress",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                    if (waitingForBreakField != null)
+                    {
+                        waitingForBreakField.SetValue(_notificationService, false);
+                        _logger.LogCritical("🔄 SESSION RESET: Cleared _isWaitingForBreakConfirmation flag to prevent orphaned completion events");
+                    }
+                    if (completionInProgressField != null)
+                    {
+                        completionInProgressField.SetValue(_notificationService, false);
+                        _logger.LogCritical("🔄 SESSION RESET: Cleared _isBreakCompletionInProgress flag to prevent orphaned completion events");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "🔄 SESSION RESET: Error clearing break completion state (non-critical) - this may cause stuck state if orphaned timers fire");
+                }
 
                 // Reset timer start times for fresh session
                 _eyeRestStartTime = DateTime.Now;

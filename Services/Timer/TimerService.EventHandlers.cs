@@ -660,6 +660,18 @@ namespace EyeRest.Services
                         var elapsed = DateTime.Now - startTime;
                         var remaining = warningDuration - elapsed;
 
+                        // CRITICAL FIX: Detect orphaned warning handler (stale state after session reset)
+                        // If remaining time is significantly negative (more than 1 second overdue), this indicates
+                        // that the handler is still running with a captured startTime from BEFORE session reset
+                        if (remaining.TotalSeconds < -1)
+                        {
+                            _logger.LogCritical($"🚨 ORPHANED HANDLER DETECTED: Eye rest warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
+                            _logger.LogCritical($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
+                            _logger.LogCritical($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
+                            hasTriggered = true; // Mark as triggered to prevent further execution
+                            return;
+                        }
+
                         // CRITICAL FIX: Use more tolerant timing check to handle precision issues
                         // If remaining time is <= 50ms or negative, consider warning complete
                         if (remaining.TotalMilliseconds <= 50)
@@ -842,7 +854,7 @@ namespace EyeRest.Services
                 var warningDuration = TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
                 var startTime = DateTime.Now;
                 var hasTriggered = false; // Prevent multiple triggers
-                
+
                 // Create a new event handler to avoid accumulating handlers
                 EventHandler<EventArgs> warningTickHandler = (sender, e) =>
                 {
@@ -852,6 +864,18 @@ namespace EyeRest.Services
 
                         var elapsed = DateTime.Now - startTime;
                         var remaining = warningDuration - elapsed;
+
+                        // CRITICAL FIX: Detect orphaned warning handler (stale state after session reset)
+                        // If remaining time is significantly negative (more than 1 second overdue), this indicates
+                        // that the handler is still running with a captured startTime from BEFORE session reset
+                        if (remaining.TotalSeconds < -1)
+                        {
+                            _logger.LogCritical($"🚨 ORPHANED HANDLER DETECTED: Break warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
+                            _logger.LogCritical($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
+                            _logger.LogCritical($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
+                            hasTriggered = true; // Mark as triggered to prevent further execution
+                            return;
+                        }
 
                         // CRITICAL FIX: Use more tolerant timing check to handle precision issues
                         // If remaining time is <= 50ms or negative, consider warning complete
