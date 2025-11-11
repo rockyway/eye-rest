@@ -390,12 +390,39 @@ namespace EyeRest.Services
                     _logger.LogInformation("🔧 Eye rest warning FALLBACK timer FORCE-STOPPED during break delay (was {State})", wasEnabled ? "running" : "stopped");
                 }
 
+                // CRITICAL FIX: Stop break warning timers during delay (was missing, causing popup to reappear)
+                // The break warning timer countdown must be stopped to prevent it from firing during the delay period
+                if (_breakWarningTimer != null)
+                {
+                    var wasEnabled = _breakWarningTimer.IsEnabled;
+                    _breakWarningTimer.Stop();
+                    _logger.LogInformation("🔧 Break WARNING timer FORCE-STOPPED during break delay (was {State})", wasEnabled ? "running" : "stopped");
+                }
+
+                // CRITICAL FIX: Stop break warning fallback timer during delay (was missing, causing popup to reappear)
+                if (_breakWarningFallbackTimer != null)
+                {
+                    var wasEnabled = _breakWarningFallbackTimer.IsEnabled;
+                    _breakWarningFallbackTimer.Stop();
+                    _logger.LogInformation("🔧 Break warning FALLBACK timer FORCE-STOPPED during break delay (was {State})", wasEnabled ? "running" : "stopped");
+                }
+
                 // CRITICAL FIX: Clear all eye rest processing flags to prevent state conflicts
                 _isEyeRestWarningProcessing = false;
                 _isAnyEyeRestWarningProcessing = false;
                 _isEyeRestEventProcessing = false;
                 _isAnyEyeRestEventProcessing = false;
                 _logger.LogInformation("🔧 Eye rest processing flags cleared during break delay");
+
+                // CRITICAL FIX: Clear break processing flags to prevent stale break handlers from interfering with delay
+                _isBreakWarningProcessing = false;
+                _isAnyBreakWarningProcessing = false;
+                _isBreakEventProcessing = false;
+                lock (_globalBreakLock)
+                {
+                    _isAnyBreakEventProcessing = false;
+                }
+                _logger.LogInformation("🔧 Break processing flags cleared during break delay");
 
                 // CRITICAL FIX: Set the flag to prevent eye rest timer from restarting during delay
                 // This prevents RestartEyeRestTimerAfterCompletion from restarting the timer
