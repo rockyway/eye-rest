@@ -4,6 +4,7 @@ namespace EyeRest.Services
     {
         bool IsStartupEnabled();
         void EnableStartup();
+        void EnableStartup(bool startMinimized);
         void DisableStartup();
     }
 }
