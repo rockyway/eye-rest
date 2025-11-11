@@ -765,6 +765,16 @@ namespace EyeRest.Services
                                 // CRITICAL FIX: Enhanced break completion handling with race condition protection
                                 if (value >= 1.0 && breakConfig.Break.RequireConfirmationAfterBreak)
                                 {
+                                    // CRITICAL P0 FIX: Verify popup is still active before triggering completion
+                                    // Prevents orphaned timers from triggering smart pause after popup force-closed during session reset
+                                    // Without this check, a timer that wasn't stopped during CloseCurrentPopup could fire 5+ minutes later
+                                    // and trigger SmartPause with no visible popup, leaving the system stuck in "Waiting for break confirmation"
+                                    if (_currentPopup == null || !(_currentPopup is BasePopupWindow baseWindow && baseWindow.ContentArea?.Content is BreakPopup))
+                                    {
+                                        _logger.LogWarning("🎯 ORPHANED EVENT IGNORED: Break completion callback fired but popup no longer active (likely force-closed during session reset) - ignoring to prevent stuck state");
+                                        return;
+                                    }
+
                                     // CRITICAL FIX: Prevent multiple completion triggers during recovery scenarios
                                     lock (_lockObject)
                                     {
@@ -990,6 +1000,19 @@ namespace EyeRest.Services
                         {
                             forceCloseField.SetValue(breakPopup, true);
                             _logger.LogDebug("🔴 Force close flag set successfully");
+                        }
+
+                        // CRITICAL P0 FIX: Stop BreakPopup countdown timer before closing window
+                        // Without this, the timer continues running and fires orphaned completion callback 5 minutes later
+                        // This was causing system to get stuck in "Smart Paused (Waiting for break confirmation)" with no visible popup
+                        try
+                        {
+                            breakPopup.StopCountdown();
+                            _logger.LogCritical("🔴 CRITICAL P0 FIX: Stopped BreakPopup countdown timer before force close to prevent orphaned completion events");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "🔴 Exception stopping BreakPopup countdown (non-critical)");
                         }
                     }
                     

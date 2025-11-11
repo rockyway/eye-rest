@@ -433,6 +433,36 @@ namespace EyeRest.Services
                 ClearBreakWarningProcessingFlag();
                 _logger.LogCritical("🔄 SESSION RESET: Cleared all event processing flags to prevent stale lock state");
 
+                // CRITICAL P0 FIX: Clear break completion state to prevent orphaned completion events
+                // This prevents force-closed break popups from triggering smart pause later if their orphaned timer fires
+                // Without this, a break popup closed during session reset could still have a running timer that fires
+                // 5+ minutes later and triggers "Waiting for break confirmation" smart pause with no visible popup
+                try
+                {
+                    var notificationServiceType = _notificationService?.GetType();
+                    var waitingForBreakField = notificationServiceType?.GetField(
+                        "_isWaitingForBreakConfirmation",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var completionInProgressField = notificationServiceType?.GetField(
+                        "_isBreakCompletionInProgress",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                    if (waitingForBreakField != null)
+                    {
+                        waitingForBreakField.SetValue(_notificationService, false);
+                        _logger.LogCritical("🔄 SESSION RESET: Cleared _isWaitingForBreakConfirmation flag to prevent orphaned completion events");
+                    }
+                    if (completionInProgressField != null)
+                    {
+                        completionInProgressField.SetValue(_notificationService, false);
+                        _logger.LogCritical("🔄 SESSION RESET: Cleared _isBreakCompletionInProgress flag to prevent orphaned completion events");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "🔄 SESSION RESET: Error clearing break completion state (non-critical) - this may cause stuck state if orphaned timers fire");
+                }
+
                 // Reset timer start times for fresh session
                 _eyeRestStartTime = DateTime.Now;
                 _breakStartTime = DateTime.Now;
