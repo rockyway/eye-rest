@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -152,6 +153,13 @@ namespace EyeRest
         {
             base.OnStartup(e);
 
+            // Parse command-line arguments
+            bool startMinimizedFromArgs = e.Args.Contains("--minimized");
+            if (startMinimizedFromArgs)
+            {
+                Console.WriteLine($"[STARTUP] Command-line argument --minimized detected");
+            }
+
             // CRITICAL: Check for single instance before initialization
             bool isNewInstance;
             try
@@ -173,7 +181,7 @@ namespace EyeRest
                     "Application Already Running",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
-                    
+
                 Current.Shutdown(0);
                 return;
             }
@@ -211,9 +219,23 @@ namespace EyeRest
                 // Handle window closing to minimize to tray instead
                 mainWindow.Closing += OnMainWindowClosing;
 
-                // Show the main window initially
-                mainWindow.Show();
-                _logger.LogCritical($"✅ Main window shown successfully");
+                // Check if we should start minimized
+                var configService = _host.Services.GetRequiredService<IConfigurationService>();
+                var config = await configService.LoadConfigurationAsync();
+                bool shouldStartMinimized = startMinimizedFromArgs || config.Application.StartMinimized;
+
+                if (shouldStartMinimized)
+                {
+                    _logger.LogCritical($"✅ Starting minimized to system tray (command-line: {startMinimizedFromArgs}, config: {config.Application.StartMinimized})");
+                    // Don't show the window, it will remain hidden in system tray
+                }
+                else
+                {
+                    // Show the main window
+                    mainWindow.Show();
+                    _logger.LogCritical($"✅ Main window shown successfully");
+                }
+
                 _logger.LogCritical($"🚀 PHASE 4: Starting application orchestrator at {DateTime.Now:HH:mm:ss.fff}");
                 // Initialize the application orchestrator to start all services
                 var orchestrator = _host.Services.GetRequiredService<IApplicationOrchestrator>();

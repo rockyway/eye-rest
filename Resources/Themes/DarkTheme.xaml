@@ -8,11 +8,18 @@
     <SolidColorBrush x:Key="WarningBrush" Color="#FFB74D"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="#E57373"/>
     <SolidColorBrush x:Key="BackgroundBrush" Color="#121212"/>
+    <SolidColorBrush x:Key="BackgroundLightBrush" Color="#1E1E1E"/>
     <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1E1E"/>
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#B0B0B0"/>
     <SolidColorBrush x:Key="ControlBorderBrush" Color="#404040"/>
     <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#2A2A2A"/>
+
+    <!-- Additional brushes for better UI hierarchy and ModernWpf integration -->
+    <SolidColorBrush x:Key="InfoBrush" Color="#90CAF9"/>
+    <SolidColorBrush x:Key="InfoBackgroundBrush" Color="#1A237E"/>
+    <SolidColorBrush x:Key="InfoBorderBrush" Color="#42A5F5"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#81C784"/>
 
     <!-- Button Styles -->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
@@ -74,7 +81,7 @@
                     <Border Background="{TemplateBinding Background}"
                             CornerRadius="4"
                             Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" 
+                        <ContentPresenter HorizontalAlignment="Center"
                                         VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -83,6 +90,41 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter Property="Background" Value="#2E7D32"/>
+                            <Setter Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#424242"/>
+                            <Setter Property="Foreground" Value="#757575"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Info Button Style -->
+    <Style x:Key="InfoButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+        <Setter Property="Background" Value="{DynamicResource InfoBrush}"/>
+        <Setter Property="Foreground" Value="#121212"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#42A5F5"/>
                             <Setter Property="RenderTransform">
                                 <Setter.Value>
                                     <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -1794,107 +1795,84 @@ namespace EyeRest.ViewModels
             try
             {
                 _logger.LogInformation($"🎨 Applying {(isDarkMode ? "Dark" : "Light")} theme globally to entire application");
-                
+
+                // Apply ModernWpf theme (Windows 11 styling)
+                ModernWpf.ThemeManager.Current.ApplicationTheme = isDarkMode
+                    ? ModernWpf.ApplicationTheme.Dark
+                    : ModernWpf.ApplicationTheme.Light;
+
                 // Create new resource dictionary for the selected theme
                 var themeDict = new ResourceDictionary();
-                string themeUri = isDarkMode 
-                    ? "pack://application:,,,/Resources/Themes/DarkTheme.xaml" 
+                string themeUri = isDarkMode
+                    ? "pack://application:,,,/Resources/Themes/DarkTheme.xaml"
                     : "pack://application:,,,/Resources/Themes/LightTheme.xaml";
-                
+
                 themeDict.Source = new Uri(themeUri);
-                
-                // Apply theme to main application resources
-                Application.Current.Resources.MergedDictionaries.Clear();
-                Application.Current.Resources.MergedDictionaries.Add(themeDict);
-                
-                // Also add common converters back
-                Application.Current.Resources["BooleanToVisibilityConverter"] = new EyeRest.Converters.BooleanToVisibilityConverter();
-                
+
+                // Find and replace the custom theme dictionary (don't clear ModernWpf resources)
+                var appResources = Application.Current.Resources.MergedDictionaries;
+
+                // Remove only the old custom theme, keep ModernWpf resources
+                var oldTheme = appResources.FirstOrDefault(d =>
+                    d.Source != null &&
+                    (d.Source.ToString().Contains("LightTheme.xaml") ||
+                     d.Source.ToString().Contains("DarkTheme.xaml")));
+
+                if (oldTheme != null)
+                {
+                    appResources.Remove(oldTheme);
+                }
+
+                // Add the new custom theme
+                appResources.Add(themeDict);
+
+                // Also add common converters back if needed
+                if (!Application.Current.Resources.Contains("BooleanToVisibilityConverter"))
+                {
+                    Application.Current.Resources["BooleanToVisibilityConverter"] = new EyeRest.Converters.BooleanToVisibilityConverter();
+                }
+
                 // Update AnalyticsDashboardViewModel for dashboard UI
                 if (AnalyticsDashboardViewModel != null)
                 {
                     AnalyticsDashboardViewModel.IsDarkMode = isDarkMode;
                     _logger.LogInformation($"🎨 Updated AnalyticsDashboardViewModel.IsDarkMode to {isDarkMode}");
                 }
-                
-                // Force complete refresh of all windows and their content
+
+                // Force visual refresh for all windows (without clearing resources)
                 foreach (Window window in Application.Current.Windows)
                 {
                     try
                     {
-                        // Force the window to re-evaluate all DynamicResource bindings
-                        window.Resources.MergedDictionaries.Clear();
-                        window.InvalidateVisual();
-                        window.UpdateLayout();
-                        
-                        // For AnalyticsWindow specifically, ensure its UserControl refreshes
-                        if (window.GetType().Name == "AnalyticsWindow")
-                        {
-                            _logger.LogInformation("🎨 Forcing refresh of AnalyticsWindow and its content");
-                            
-                            // Find the AnalyticsDashboardView inside the window
-                            if (window.Content?.GetType().Name == "AnalyticsDashboardView")
-                            {
-                                // Clear and re-add resources to force refresh
-                                var dashboardView = window.Content as FrameworkElement;
-                                if (dashboardView != null)
-                                {
-                                    dashboardView.Resources.MergedDictionaries.Clear();
-                                    dashboardView.InvalidateVisual();
-                                    dashboardView.UpdateLayout();
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, $"⚠️ Failed to refresh window {window.GetType().Name}");
-                    }
-                    try
-                    {
-                        // Clear and reapply resources at window level
-                        var originalTitle = window.Title;
-                        
-                        // Special handling for AnalyticsWindow - reapply theme resources
+                        // Special handling for AnalyticsWindow
                         if (window is EyeRest.Views.AnalyticsWindow analyticsWindow)
                         {
-                            // Call the window's ApplyCurrentTheme method to properly update theme resources
                             analyticsWindow.ApplyCurrentTheme();
-                            
-                            _logger.LogInformation($"🎨 Applied theme resources to AnalyticsWindow: {originalTitle}");
+                            _logger.LogInformation($"🎨 Applied theme resources to AnalyticsWindow: {window.Title}");
                         }
-                        
-                        // Force complete visual tree refresh for all windows
+
+                        // Force visual tree refresh without clearing resources
                         window.InvalidateVisual();
                         window.InvalidateMeasure();
                         window.InvalidateArrange();
                         window.UpdateLayout();
-                        
-                        // Force style refresh by temporarily changing and restoring a property
-                        var originalOpacity = window.Opacity;
-                        window.Opacity = 0.99;
-                        window.Opacity = originalOpacity;
-                        
-                        _logger.LogInformation($"🎨 Refreshed window: {originalTitle}");
+
+                        _logger.LogInformation($"🎨 Refreshed window: {window.Title}");
                     }
                     catch (Exception windowEx)
                     {
-                        _logger.LogWarning(windowEx, $"🎨 Failed to refresh individual window: {window.Title}");
+                        _logger.LogWarning(windowEx, $"🎨 Failed to refresh window: {window.Title}");
                     }
                 }
-                
-                // Force garbage collection to ensure old theme resources are released
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                
-                _logger.LogInformation($"🎨 ✅ {(isDarkMode ? "Dark" : "Light")} theme applied successfully to entire application including all windows and dashboard UI");
+
+                _logger.LogInformation($"🎨 ✅ {(isDarkMode ? "Dark" : "Light")} theme applied successfully to entire application");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🎨 ❌ Failed to apply theme globally");
-                
+
                 // Show user-friendly error message
-                MessageBox.Show($"Failed to apply {(isDarkMode ? "dark" : "light")} theme: {ex.Message}", 
+                MessageBox.Show($"Failed to apply {(isDarkMode ? "dark" : "light")} theme: {ex.Message}",
                     "Theme Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -2011,24 +1989,26 @@ namespace EyeRest.ViewModels
             try
             {
                 _logger.LogInformation($"SaveStartupSettingAsync called with value: {startWithWindows}");
-                
+
                 // Update configuration and save
                 _configuration.Application.StartWithWindows = startWithWindows;
                 await _configurationService.SaveConfigurationAsync(_configuration);
-                
+
                 // Handle Windows startup registry setting
                 if (startWithWindows)
                 {
-                    _startupManager.EnableStartup();
+                    // Pass the StartMinimized setting to the startup manager
+                    _startupManager.EnableStartup(_configuration.Application.StartMinimized);
+                    _logger.LogInformation($"Startup enabled with minimized flag: {_configuration.Application.StartMinimized}");
                 }
                 else
                 {
                     _startupManager.DisableStartup();
                 }
-                
+
                 // Update original configuration to prevent false unsaved changes
                 _originalConfiguration.Application.StartWithWindows = startWithWindows;
-                
+
                 _logger.LogInformation($"Auto-saved startup setting: {startWithWindows}");
             }
             catch (Exception ex)
@@ -2087,11 +2067,18 @@ namespace EyeRest.ViewModels
             try
             {
                 _logger.LogInformation($"SaveStartMinimizedAsync called with value: {startMinimized}");
-                
+
                 _configuration.Application.StartMinimized = startMinimized;
                 await _configurationService.SaveConfigurationAsync(_configuration);
                 _originalConfiguration.Application.StartMinimized = startMinimized;
-                
+
+                // If StartWithWindows is enabled, update the registry to reflect the new minimized state
+                if (_configuration.Application.StartWithWindows)
+                {
+                    _startupManager.EnableStartup(startMinimized);
+                    _logger.LogInformation($"Updated startup registry with minimized flag: {startMinimized}");
+                }
+
                 _logger.LogInformation($"Auto-saved start minimized: {startMinimized}");
             }
             catch (Exception ex)

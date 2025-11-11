@@ -76,23 +76,33 @@ namespace EyeRest.Services
         {
             const int maxRetries = 3;
             var retryDelay = TimeSpan.FromMilliseconds(100);
-            
+
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
                 try
                 {
                     var validatedConfig = ValidateConfiguration(config);
-                    
+
                     var options = new JsonSerializerOptions
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                         WriteIndented = true
                     };
 
+                    // Ensure directory exists with proper permissions
+                    var directory = Path.GetDirectoryName(_configFilePath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                    {
+                        _logger.LogInformation("Creating configuration directory: {Directory}", directory);
+                        Directory.CreateDirectory(directory);
+                    }
+
                     // CRITICAL FIX: Atomic file write using temporary file + move operation
                     // This prevents corruption and file locking issues
                     var tempFilePath = _configFilePath + ".tmp";
                     var backupFilePath = _configFilePath + ".backup";
+
+                    _logger.LogDebug("Saving configuration to temp file: {TempFile}", tempFilePath);
 
                     // Step 1: Write to temporary file
                     using (var stream = File.Create(tempFilePath))
@@ -100,6 +110,8 @@ namespace EyeRest.Services
                         await JsonSerializer.SerializeAsync(stream, validatedConfig, options);
                         await stream.FlushAsync(); // Ensure data is written to disk
                     }
+
+                    _logger.LogDebug("Temp file written successfully, size: {Size} bytes", new FileInfo(tempFilePath).Length);
 
                     // Step 2: Create backup of existing file (if it exists)
                     if (File.Exists(_configFilePath))
@@ -109,9 +121,11 @@ namespace EyeRest.Services
                             File.Delete(backupFilePath); // Remove old backup
                         }
                         File.Copy(_configFilePath, backupFilePath);
+                        _logger.LogDebug("Created backup: {BackupFile}", backupFilePath);
                     }
 
                     // Step 3: Atomic replace - move temp file to final location
+                    _logger.LogDebug("Moving temp file to final location: {ConfigFile}", _configFilePath);
                     File.Move(tempFilePath, _configFilePath, overwrite: true);
 
                     // Step 4: Clean up backup file after successful write
@@ -136,11 +150,28 @@ namespace EyeRest.Services
                     _logger.LogInformation("Configuration saved successfully on attempt {Attempt}", attempt);
                     return; // Success - exit retry loop
                 }
+                catch (UnauthorizedAccessException uaEx)
+                {
+                    _logger.LogError(uaEx, "Access denied saving configuration. Config path: {Path}, Attempt: {Attempt}/{MaxRetries}",
+                        _configFilePath, attempt, maxRetries);
+
+                    if (attempt == maxRetries)
+                    {
+                        _logger.LogError("Failed to save configuration after {MaxRetries} attempts due to access denied. " +
+                            "Check folder permissions for: {Directory}",
+                            maxRetries, Path.GetDirectoryName(_configFilePath));
+                        throw;
+                    }
+
+                    // Wait before retry
+                    await Task.Delay(retryDelay);
+                    retryDelay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * 2);
+                }
                 catch (IOException ioEx) when (ioEx.Message.Contains("being used by another process") && attempt < maxRetries)
                 {
-                    _logger.LogWarning("Configuration file locked on attempt {Attempt}/{MaxRetries}, retrying in {DelayMs}ms: {Error}", 
+                    _logger.LogWarning("Configuration file locked on attempt {Attempt}/{MaxRetries}, retrying in {DelayMs}ms: {Error}",
                         attempt, maxRetries, retryDelay.TotalMilliseconds, ioEx.Message);
-                    
+
                     // Wait before retry with exponential backoff
                     await Task.Delay(retryDelay);
                     retryDelay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * 2); // Exponential backoff
@@ -148,7 +179,7 @@ namespace EyeRest.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error saving configuration on attempt {Attempt}/{MaxRetries}", attempt, maxRetries);
-                    
+
                     if (attempt == maxRetries)
                     {
                         // Clean up any temporary files on final failure
@@ -164,10 +195,10 @@ namespace EyeRest.Services
                         {
                             // Ignore cleanup errors
                         }
-                        
+
                         throw; // Re-throw on final attempt
                     }
-                    
+
                     // Wait before retry
                     await Task.Delay(retryDelay);
                     retryDelay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * 2);
