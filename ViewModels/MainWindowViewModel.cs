@@ -1794,22 +1794,32 @@ namespace EyeRest.ViewModels
             try
             {
                 _logger.LogInformation($"🎨 Applying {(isDarkMode ? "Dark" : "Light")} theme globally to entire application");
-                
+
+                // Apply ModernWpf theme (Windows 11 styling)
+                ModernWpf.ThemeManager.Current.ApplicationTheme = isDarkMode
+                    ? ModernWpf.ApplicationTheme.Dark
+                    : ModernWpf.ApplicationTheme.Light;
+
                 // Create new resource dictionary for the selected theme
                 var themeDict = new ResourceDictionary();
-                string themeUri = isDarkMode 
-                    ? "pack://application:,,,/Resources/Themes/DarkTheme.xaml" 
+                string themeUri = isDarkMode
+                    ? "pack://application:,,,/Resources/Themes/DarkTheme.xaml"
                     : "pack://application:,,,/Resources/Themes/LightTheme.xaml";
-                
+
                 themeDict.Source = new Uri(themeUri);
-                
+
                 // Apply theme to main application resources
                 Application.Current.Resources.MergedDictionaries.Clear();
+
+                // Re-add ModernWpf resources first
+                Application.Current.Resources.MergedDictionaries.Add(new ModernWpf.Controls.XamlControlsResources());
+
+                // Then add custom theme
                 Application.Current.Resources.MergedDictionaries.Add(themeDict);
-                
+
                 // Also add common converters back
                 Application.Current.Resources["BooleanToVisibilityConverter"] = new EyeRest.Converters.BooleanToVisibilityConverter();
-                
+
                 // Update AnalyticsDashboardViewModel for dashboard UI
                 if (AnalyticsDashboardViewModel != null)
                 {
@@ -2011,24 +2021,26 @@ namespace EyeRest.ViewModels
             try
             {
                 _logger.LogInformation($"SaveStartupSettingAsync called with value: {startWithWindows}");
-                
+
                 // Update configuration and save
                 _configuration.Application.StartWithWindows = startWithWindows;
                 await _configurationService.SaveConfigurationAsync(_configuration);
-                
+
                 // Handle Windows startup registry setting
                 if (startWithWindows)
                 {
-                    _startupManager.EnableStartup();
+                    // Pass the StartMinimized setting to the startup manager
+                    _startupManager.EnableStartup(_configuration.Application.StartMinimized);
+                    _logger.LogInformation($"Startup enabled with minimized flag: {_configuration.Application.StartMinimized}");
                 }
                 else
                 {
                     _startupManager.DisableStartup();
                 }
-                
+
                 // Update original configuration to prevent false unsaved changes
                 _originalConfiguration.Application.StartWithWindows = startWithWindows;
-                
+
                 _logger.LogInformation($"Auto-saved startup setting: {startWithWindows}");
             }
             catch (Exception ex)
@@ -2087,11 +2099,18 @@ namespace EyeRest.ViewModels
             try
             {
                 _logger.LogInformation($"SaveStartMinimizedAsync called with value: {startMinimized}");
-                
+
                 _configuration.Application.StartMinimized = startMinimized;
                 await _configurationService.SaveConfigurationAsync(_configuration);
                 _originalConfiguration.Application.StartMinimized = startMinimized;
-                
+
+                // If StartWithWindows is enabled, update the registry to reflect the new minimized state
+                if (_configuration.Application.StartWithWindows)
+                {
+                    _startupManager.EnableStartup(startMinimized);
+                    _logger.LogInformation($"Updated startup registry with minimized flag: {startMinimized}");
+                }
+
                 _logger.LogInformation($"Auto-saved start minimized: {startMinimized}");
             }
             catch (Exception ex)

@@ -34,6 +34,11 @@ namespace EyeRest.Services
 
         public void EnableStartup()
         {
+            EnableStartup(startMinimized: false);
+        }
+
+        public void EnableStartup(bool startMinimized)
+        {
             try
             {
                 var executablePath = GetExecutablePath();
@@ -43,10 +48,31 @@ namespace EyeRest.Services
                     return;
                 }
 
+                // Build command with optional --minimized argument
+                var command = startMinimized
+                    ? $"\"{executablePath}\" --minimized"
+                    : $"\"{executablePath}\"";
+
+                _logger.LogInformation($"Registering startup with command: {command}");
+
                 using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, true);
-                key?.SetValue(ApplicationName, $"\"{executablePath}\"");
-                
-                _logger.LogInformation("Startup enabled successfully");
+                if (key == null)
+                {
+                    _logger.LogError("Failed to open registry key for writing");
+                    throw new InvalidOperationException("Cannot access Windows startup registry key");
+                }
+
+                key.SetValue(ApplicationName, command);
+
+                // Verify the registry write was successful
+                var verifyValue = key.GetValue(ApplicationName) as string;
+                if (verifyValue != command)
+                {
+                    _logger.LogError($"Registry verification failed. Expected: {command}, Got: {verifyValue}");
+                    throw new InvalidOperationException("Failed to verify registry write");
+                }
+
+                _logger.LogInformation($"Startup enabled successfully (minimized: {startMinimized})");
             }
             catch (Exception ex)
             {
