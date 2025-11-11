@@ -121,7 +121,7 @@ namespace EyeRest.ViewModels
             ExitApplicationCommand = new RelayCommand(ExitApplication);
             ShowAnalyticsCommand = new RelayCommand(ShowAnalyticsWindow);
             BrowseCustomAudioCommand = new RelayCommand(BrowseCustomAudio);
-            TestCustomAudioCommand = new RelayCommand(async () => await TestCustomAudio(), () => !string.IsNullOrEmpty(CustomSoundPath));
+            TestCustomAudioCommand = new RelayCommand(async () => await TestAudio());
             
             // DEBUG: Test commands for popup debugging
             TestWarningCommand = new RelayCommand(async () => await TestWarningPopup());
@@ -1941,48 +1941,65 @@ namespace EyeRest.ViewModels
         }
 
         /// <summary>
-        /// Test play the selected custom audio file using the AudioService
+        /// Test play audio - either custom audio file or default eye rest sounds
         /// </summary>
-        private async Task TestCustomAudio()
+        private async Task TestAudio()
         {
             try
             {
-                _logger.LogInformation("🔊 Testing custom audio file through AudioService...");
-                
-                // Use the AudioService to test the custom sound (same method used by the app)
+                // Get the AudioService
                 var audioService = App.ServiceProvider?.GetService(typeof(IAudioService)) as IAudioService;
                 if (audioService == null)
                 {
                     throw new InvalidOperationException("AudioService not available");
                 }
-                
-                await audioService.PlayCustomSoundTestAsync();
-                
-                // Show success message
-                var fileName = !string.IsNullOrEmpty(CustomSoundPath) ? System.IO.Path.GetFileName(CustomSoundPath) : "Unknown";
-                MessageBox.Show($"✅ Custom audio test successful!\n\nFile: {fileName}\nVolume: {AudioVolume}%\n\nThis is the same sound that will be used for app notifications.", 
-                    "Audio Test Successful", MessageBoxButton.OK, MessageBoxImage.Information);
-                
-                _logger.LogInformation("🔊 ✅ Custom audio test completed successfully");
+
+                if (!string.IsNullOrEmpty(CustomSoundPath))
+                {
+                    // Test custom audio
+                    _logger.LogInformation("🔊 Testing custom audio file through AudioService...");
+                    await audioService.PlayCustomSoundTestAsync();
+
+                    // Show success message for custom audio
+                    var fileName = System.IO.Path.GetFileName(CustomSoundPath);
+                    MessageBox.Show($"✅ Custom audio test successful!\n\nFile: {fileName}\nVolume: {AudioVolume}%\n\nThis is the same sound that will be used for app notifications.",
+                        "Audio Test Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    _logger.LogInformation("🔊 ✅ Custom audio test completed successfully");
+                }
+                else
+                {
+                    // Test default eye rest sounds
+                    _logger.LogInformation("🔊 Testing default eye rest sounds through AudioService...");
+                    await audioService.TestEyeRestAudioAsync();
+
+                    // Show success message for default audio
+                    MessageBox.Show($"✅ Default audio test successful!\n\nPlayed eye rest start and end sounds\nVolume: {AudioVolume}%\n\nThese are the same sounds used when eye rest popup shows and closes.",
+                        "Audio Test Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    _logger.LogInformation("🔊 ✅ Default eye rest audio test completed successfully");
+                }
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning(ex, "🔊 Custom audio test failed - configuration issue");
+                _logger.LogWarning(ex, "🔊 Audio test failed - configuration issue");
                 MessageBox.Show($"⚠️ {ex.Message}", "Audio Test Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (FileNotFoundException ex)
             {
-                _logger.LogError(ex, "🔊 Custom audio test failed - file not found");
+                _logger.LogError(ex, "🔊 Audio test failed - file not found");
                 MessageBox.Show($"❌ {ex.Message}\n\nPlease select a different audio file.", "Audio File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
-                
+
                 // Clear the invalid path
                 CustomSoundPath = null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "🔊 Custom audio test failed");
-                MessageBox.Show($"❌ Failed to play the selected audio file:\n{ex.Message}\n\nPlease try a different audio file or check that the file format is supported (WAV, MP3, WMA).", 
-                    "Audio Test Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                _logger.LogError(ex, "🔊 Audio test failed");
+                string message = !string.IsNullOrEmpty(CustomSoundPath)
+                    ? $"❌ Failed to play the selected audio file:\n{ex.Message}\n\nPlease try a different audio file or check that the file format is supported (WAV, MP3, WMA)."
+                    : $"❌ Failed to play default eye rest sounds:\n{ex.Message}\n\nPlease check your audio settings and ensure system sounds are not muted.";
+                MessageBox.Show(message, "Audio Test Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

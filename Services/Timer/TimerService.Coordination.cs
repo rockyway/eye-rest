@@ -41,31 +41,40 @@ namespace EyeRest.Services
         /// </summary>
         public void SmartResumeEyeRestTimerAfterBreak()
         {
-            if (_eyeRestTimerPausedForBreak && !_isBreakNotificationActive)
+            // CRITICAL FIX: Check for ALL break-related activity to ensure proper resumption
+            if (_eyeRestTimerPausedForBreak && !_isBreakNotificationActive &&
+                !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing &&
+                !_isBreakEventProcessing && !_isAnyBreakEventProcessing)
             {
                 _logger.LogInformation("🔄 Smart coordination: Resuming eye rest timer after break completion");
                 _eyeRestTimerPausedForBreak = false;
-                
-                // Restore timer with remaining time
-                if (_eyeRestRemainingTime > TimeSpan.Zero)
+
+                // BREAK PRIORITY FIX: Always reset eye rest timer to full interval after break to prevent conflicts
+                // Use shared calculation method for consistency
+                var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateEyeRestTimerInterval();
+
+                _eyeRestInterval = interval;
+                _eyeRestTimer.Interval = _eyeRestInterval;
+                _eyeRestTimer.Start();
+                _eyeRestStartTime = DateTime.Now;
+
+                if (isReduced)
                 {
-                    _eyeRestTimer.Interval = _eyeRestRemainingTime;
-                    _eyeRestTimer.Start();
-                    _eyeRestStartTime = DateTime.Now;
-                    _logger.LogInformation($"🔄 Eye rest timer resumed with {_eyeRestRemainingTime.TotalMinutes:F1} minutes remaining");
+                    _logger.LogInformation("🔄 Eye rest timer reset after break - REDUCED interval: {IntervalMinutes:F1}m (triggers warning {WarningSeconds}s before {TotalMinutes}min target)",
+                        _eyeRestInterval.TotalMinutes, warningSeconds, totalMinutes);
                 }
                 else
                 {
-                    // No remaining time, reset to full interval
-                    _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes) - 
-                                     TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
-                    _eyeRestTimer.Interval = _eyeRestInterval;
-                    _eyeRestTimer.Start();
-                    _eyeRestStartTime = DateTime.Now;
-                    _logger.LogInformation($"🔄 Eye rest timer reset to full interval: {_eyeRestInterval.TotalMinutes:F1} minutes");
+                    _logger.LogInformation("🔄 Eye rest timer reset after break - FULL interval: {IntervalMinutes:F1}m (no warning)",
+                        _eyeRestInterval.TotalMinutes);
                 }
-                
+
                 _eyeRestRemainingTime = TimeSpan.Zero;
+            }
+            else if (_eyeRestTimerPausedForBreak)
+            {
+                _logger.LogDebug("🔄 Eye rest timer resume blocked - break activity still ongoing. Break states: NotificationActive={BreakNotification}, WarningProcessing={WarningProcessing}, GlobalWarning={GlobalWarning}, EventProcessing={EventProcessing}, GlobalEvent={GlobalEvent}",
+                    _isBreakNotificationActive, _isBreakWarningProcessing, _isAnyBreakWarningProcessing, _isBreakEventProcessing, _isAnyBreakEventProcessing);
             }
         }
         

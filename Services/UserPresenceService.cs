@@ -56,7 +56,19 @@ namespace EyeRest.Services
         public bool IsUserPresent => _currentState == UserPresenceState.Present;
         public UserPresenceState CurrentState => _currentState;
         public TimeSpan TotalAwayTime => _totalAwayTime;
-        
+
+        /// <summary>
+        /// Get the duration of the last away period (for extended idle detection)
+        /// Returns TimeSpan.Zero if user was not away or data not available
+        /// </summary>
+        public TimeSpan GetLastAwayDuration()
+        {
+            lock (_stateLock)
+            {
+                return _totalAwayTime;
+            }
+        }
+
         public TimeSpan IdleTime
         {
             get
@@ -424,7 +436,10 @@ namespace EyeRest.Services
                             {
                                 try
                                 {
+                                    // Add a brief delay to ensure system is stable after unlock
+                                    await Task.Delay(1000);
                                     await _timerService.RecoverFromSystemResumeAsync("Session unlocked - potential system resume");
+                                    _logger.LogCritical($"🔓 Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -450,7 +465,10 @@ namespace EyeRest.Services
                             {
                                 try
                                 {
+                                    // Add a brief delay to ensure system is stable after console connect
+                                    await Task.Delay(1000);
                                     await _timerService.RecoverFromSystemResumeAsync("Console connected - potential system resume");
+                                    _logger.LogCritical($"💻 Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -499,7 +517,10 @@ namespace EyeRest.Services
                             {
                                 try
                                 {
+                                    // Add a brief delay to ensure system is stable after monitor power on
+                                    await Task.Delay(1000);
                                     await _timerService.RecoverFromSystemResumeAsync("Monitor power on - potential system resume");
+                                    _logger.LogCritical($"🖥️ Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                                 }
                                 catch (Exception ex)
                                 {

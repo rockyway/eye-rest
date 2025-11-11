@@ -96,9 +96,10 @@ namespace EyeRest.Services
                 
                 // Inject services into each other for bidirectional communication
                 _timerService.SetNotificationService(_notificationService);
+                _timerService.SetUserPresenceService(_userPresenceService); // FIX: Enable extended idle detection
                 _notificationService.SetTimerService(_timerService);
                 _userPresenceService.SetTimerService(_timerService); // NEW: Enable timer recovery after system resume
-                _logger.LogInformation("✅ Bidirectional service injection completed for external countdown control and timer recovery");
+                _logger.LogInformation("✅ Bidirectional service injection completed for external countdown control, timer recovery, and extended idle detection");
 
                 // Wire up advanced service events
                 _userPresenceService.UserPresenceChanged += OnUserPresenceChanged;
@@ -289,9 +290,12 @@ namespace EyeRest.Services
 
                 // Restart the timer after eye rest completes
                 await _timerService.RestartEyeRestTimerAfterCompletion();
-                
+
                 // CRITICAL FIX: Resume break timer that was paused during eye rest
                 _timerService.SmartResumeBreakTimerAfterEyeRest();
+
+                // SYNC FIX: Clear processing flag to allow backup triggers again
+                _timerService.ClearEyeRestProcessingFlag();
 
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                 _systemTrayService.UpdateTimerStatus("Running");
@@ -301,6 +305,9 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "❌ Error handling eye rest reminder");
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Error);
+
+                // SYNC FIX: Clear processing flag on error to prevent permanent blocking
+                _timerService.ClearEyeRestProcessingFlag();
             }
         }
 
@@ -362,6 +369,9 @@ namespace EyeRest.Services
                             _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break completed event");
                         }
                         await _timerService.RestartBreakTimerAfterCompletion();
+
+                        // BREAK PRIORITY FIX: Resume eye rest timer after break completion
+                        _timerService.SmartResumeEyeRestTimerAfterBreak();
                         break;
                     case BreakAction.DelayOneMinute:
                         _logger.LogInformation("🟢 Break delayed by 1 minute");
@@ -398,8 +408,88 @@ namespace EyeRest.Services
                             _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break skipped event");
                         }
                         await _timerService.RestartBreakTimerAfterCompletion();
+
+                        // BREAK PRIORITY FIX: Resume eye rest timer after break completion
+                        _timerService.SmartResumeEyeRestTimerAfterBreak();
+                        break;
+                    case BreakAction.ConfirmedAfterCompletion:
+                        _logger.LogInformation("🟢 Break completion confirmed by user");
+                        if (!_notificationService.IsTestMode)
+                        {
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break confirmed completion event");
+                        }
+                        
+                        // Resume from smart pause first (was paused while waiting for confirmation)
+                        if (_timerService.IsSmartPaused)
+                        {
+                            _logger.LogInformation("🟢 Resuming from smart pause before handling timer restart");
+                            await _timerService.SmartResumeAsync();
+                        }
+                        
+                        // Handle timer restart based on configuration
+                        if (config.Break.ResetTimersOnBreakConfirmation)
+                        {
+                            _logger.LogInformation("🟢 ResetTimersOnBreakConfirmation enabled - performing fresh session reset");
+                            await _timerService.SmartSessionResetAsync("User confirmed break completion");
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🟢 ResetTimersOnBreakConfirmation disabled - restarting break timer only");
+                            await _timerService.RestartBreakTimerAfterCompletion();
+
+                            // BREAK PRIORITY FIX: Resume eye rest timer after break completion (when not doing full reset)
+                            _timerService.SmartResumeEyeRestTimerAfterBreak();
+                        }
+                        break;
+                    case BreakAction.CompletedWithoutConfirmation:
+                        _logger.LogInformation("🟡 Break auto-completed without user confirmation (timeout)");
+                        if (!_notificationService.IsTestMode)
+                        {
+                            // Record as completed but with auto-timeout indicator
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break auto-completion event");
+                        }
+                        
+                        // Resume from smart pause first (was paused while waiting for confirmation)
+                        if (_timerService.IsSmartPaused)
+                        {
+                            _logger.LogInformation("🟡 Resuming from smart pause after auto-timeout");
+                            await _timerService.SmartResumeAsync();
+                        }
+                        
+                        // Handle timer restart based on configuration (same as confirmed completion)
+                        if (config.Break.ResetTimersOnBreakConfirmation)
+                        {
+                            _logger.LogInformation("🟡 Auto-completion: Performing fresh session reset");
+                            await _timerService.SmartSessionResetAsync("Break auto-completed without confirmation");
+                        }
+                        else
+                        {
+                            _logger.LogInformation("🟡 Auto-completion: Restarting break timer only");
+                            await _timerService.RestartBreakTimerAfterCompletion();
+
+                            // BREAK PRIORITY FIX: Resume eye rest timer after break completion (when not doing full reset)
+                            _timerService.SmartResumeEyeRestTimerAfterBreak();
+                        }
+                        break;
+                    default:
+                        _logger.LogWarning($"🟠 Unhandled break action: {result}");
+                        await _timerService.RestartBreakTimerAfterCompletion();
+
+                        // BREAK PRIORITY FIX: Resume eye rest timer after break completion
+                        _timerService.SmartResumeEyeRestTimerAfterBreak();
                         break;
                 }
+
+                // SYNC FIX: Clear processing flag to allow backup triggers again
+                _timerService.ClearBreakProcessingFlag();
 
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                 _logger.LogInformation("🟢 Break reminder completed - OnBreakDue handler finished");
@@ -408,6 +498,9 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "🟢 ERROR handling break reminder in OnBreakDue");
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Error);
+
+                // SYNC FIX: Clear processing flag on error to prevent permanent blocking
+                _timerService.ClearBreakProcessingFlag();
             }
         }
 
@@ -509,10 +602,19 @@ namespace EyeRest.Services
                 
                 // CRITICAL FIX: Clear any active popups on presence state change
                 // This prevents popups from staying visible when user is away
+                // IMPORTANT: Don't close break popups that require user confirmation
                 if (e.CurrentState != UserPresenceState.Present)
                 {
-                    _logger.LogCritical($"👤 USER PRESENCE: User no longer present - clearing active popups");
-                    _notificationService.HideAllNotifications();
+                    // Check if we have an active break popup waiting for confirmation
+                    if (_notificationService.IsBreakActive)
+                    {
+                        _logger.LogCritical($"👤 USER PRESENCE: User no longer present but break is active - keeping popup open for confirmation");
+                    }
+                    else
+                    {
+                        _logger.LogCritical($"👤 USER PRESENCE: User no longer present - clearing active popups");
+                        await _notificationService.HideAllNotifications();
+                    }
                 }
                 
                 // ENHANCED: Handle session activity tracking based on presence
@@ -542,8 +644,25 @@ namespace EyeRest.Services
                         var resumeReason = "User returned";
                         await _analyticsService.ResumeSessionAsync(resumeReason);
                         
+                        // CRITICAL FIX: Also check for manual pause state and clear it when user returns
+                        if (_timerService.IsManuallyPaused)
+                        {
+                            _logger.LogCritical($"👤 USER PRESENT FIX: Manual pause active when user returned - clearing manual pause state");
+                            
+                            // Clear manual pause state explicitly when user returns
+                            // This prevents the "Paused (Manual)" UI display bug after extended away periods
+                            try
+                            {
+                                await _timerService.ResumeAsync(); // This will clear manual pause and restart service
+                                _logger.LogCritical($"👤 MANUAL PAUSE CLEARED: Timer service resumed, IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "👤 Failed to clear manual pause on user return");
+                            }
+                        }
                         // Also resume timers if they were smart-paused
-                        if (_timerService.IsSmartPaused)
+                        else if (_timerService.IsSmartPaused)
                         {
                             await _timerService.SmartResumeAsync();
                             _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
@@ -551,6 +670,22 @@ namespace EyeRest.Services
                             
                             // Notify pause reminder service
                             await _pauseReminderService.OnTimersResumedAsync();
+                        }
+                        // CRITICAL FIX: Ensure service is running even if no pause states detected
+                        else if (!_timerService.IsRunning)
+                        {
+                            _logger.LogCritical($"👤 USER PRESENT FIX: Timer service stopped with no pause states - ensuring service restart");
+                            try
+                            {
+                                await _timerService.StartAsync();
+                                _logger.LogCritical($"👤 SERVICE RESTART: Timer service started, IsRunning={_timerService.IsRunning}");
+                                _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
+                                _systemTrayService.UpdateTimerStatus("Running");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "👤 Failed to start timer service on user return");
+                            }
                         }
                         
                         // ENHANCED: Log current session metrics and validate tracking integrity
@@ -586,16 +721,16 @@ namespace EyeRest.Services
                     _logger.LogWarning("Extended away session event received with null arguments");
                     return;
                 }
-                
+
                 var config = await _configurationService.LoadConfigurationAsync();
-                
+
                 _logger.LogCritical($"🔥 EXTENDED AWAY SESSION DETECTED!");
                 _logger.LogCritical($"🔥 Away duration: {e.TotalAwayTime.TotalMinutes:F1} minutes");
                 _logger.LogCritical($"🔥 Away start: {e.AwayStartTime:HH:mm:ss}, Return: {e.ReturnTime:HH:mm:ss}");
                 _logger.LogCritical($"🔥 Config - EnableSmartSessionReset: {config.UserPresence.EnableSmartSessionReset}");
                 _logger.LogCritical($"🔥 Config - ExtendedAwayThresholdMinutes: {config.UserPresence.ExtendedAwayThresholdMinutes}");
                 _logger.LogCritical($"🔥 Config - ShowSessionResetNotification: {config.UserPresence.ShowSessionResetNotification}");
-                
+
                 // Check if smart session reset is enabled
                 if (!config.UserPresence.EnableSmartSessionReset)
                 {
@@ -603,11 +738,13 @@ namespace EyeRest.Services
                     return;
                 }
 
+                // P0 FIX: Unconditionally reset to fresh session when extended away detected
+                // Even if timer events were due before absence, clear them and start fresh per requirements
                 _logger.LogInformation($"⚡ Extended away session detected: {e.TotalAwayTime.TotalMinutes:F1} minutes away - initiating smart session reset");
-                
+
                 var reason = $"Extended away ({e.TotalAwayTime.TotalMinutes:F0}min) - fresh session";
-                
-                // Perform smart session reset
+
+                // Perform smart session reset unconditionally per P0 requirement
                 await _timerService.SmartSessionResetAsync(reason);
                 
                 // Update system tray to show fresh session
@@ -1026,20 +1163,44 @@ namespace EyeRest.Services
                         var userPresent = _userPresenceService.IsUserPresent;
                         var timerState = _timerService.IsRunning;
                         
-                        // Validate coordination between services
-                        if (userPresent && !timerState && !_timerService.IsManuallyPaused)
+                        // ENHANCED: Validate coordination between services with manual pause state detection
+                        var isSmartPaused = _timerService.IsSmartPaused;
+                        var isPaused = _timerService.IsPaused;
+                        
+                        if (userPresent && !timerState)
                         {
-                            _logger.LogWarning($"🔍 VALIDATION: User present but timers stopped - investigating recovery");
-                            
-                            // Attempt to recover timers if user is present but timers aren't running
-                            try
+                            if (!_timerService.IsManuallyPaused && !isSmartPaused && !isPaused)
                             {
-                                await _timerService.RecoverFromSystemResumeAsync("Session validation detected stopped timers");
-                                _logger.LogInformation($"🔍 VALIDATION: Timer recovery attempted");
+                                _logger.LogCritical($"🚨 MANUAL PAUSE COORDINATION ISSUE DETECTED: User present, timers stopped, but no pause states active");
+                                _logger.LogCritical($"🚨 This indicates manual pause was cleared during recovery but timer service coordination failed");
+                                _logger.LogCritical($"🚨 State: IsRunning={timerState}, IsManuallyPaused={_timerService.IsManuallyPaused}, IsSmartPaused={isSmartPaused}, IsPaused={isPaused}");
+                                
+                                // Direct restart instead of recovery to avoid complex recovery logic
+                                try
+                                {
+                                    _logger.LogCritical($"🔧 MANUAL PAUSE COORDINATION FIX: Attempting direct timer service restart");
+                                    await _timerService.StartAsync();
+                                    _logger.LogCritical($"🔧 MANUAL PAUSE COORDINATION SUCCESS: Timer service restarted after clearing pause states: IsRunning={_timerService.IsRunning}");
+                                }
+                                catch (Exception startEx)
+                                {
+                                    _logger.LogError(startEx, "🔧 COORDINATION FIX: Direct restart failed, trying recovery");
+                                    
+                                    // Fallback to recovery if direct start fails
+                                    try
+                                    {
+                                        await _timerService.RecoverFromSystemResumeAsync("Orchestrator coordination fix - direct start failed");
+                                        _logger.LogInformation($"🔧 COORDINATION FIX: Recovery fallback completed");
+                                    }
+                                    catch (Exception recoveryEx)
+                                    {
+                                        _logger.LogError(recoveryEx, "🔧 COORDINATION FIX: Both direct start and recovery failed");
+                                    }
+                                }
                             }
-                            catch (Exception recoveryEx)
+                            else
                             {
-                                _logger.LogError(recoveryEx, "🔍 VALIDATION: Timer recovery failed");
+                                _logger.LogInformation($"🔍 VALIDATION: User present but timers stopped due to pause state - Manual={_timerService.IsManuallyPaused}, Smart={isSmartPaused}, Paused={isPaused}");
                             }
                         }
                         

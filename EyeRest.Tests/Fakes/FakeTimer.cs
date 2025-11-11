@@ -74,6 +74,38 @@ namespace EyeRest.Tests.Fakes
             }
         }
 
+        /// <summary>
+        /// Advances simulated time for extended idle scenario testing
+        /// This simulates time passing without actually firing tick events
+        /// </summary>
+        /// <param name="timeSpan">Amount of time to advance</param>
+        public void AdvanceTime(TimeSpan timeSpan)
+        {
+            // For testing purposes, advancing time doesn't automatically trigger ticks
+            // Tests need to explicitly call FireTick() to simulate timer behavior
+            // This method exists for compatibility with FakeTimerFactory.AdvanceTime
+        }
+
+        /// <summary>
+        /// Forces the timer to be disabled (simulates the bug where timers become disabled)
+        /// </summary>
+        public void ForceDisable()
+        {
+            if (!_disposed)
+            {
+                _isEnabled = false;
+                // Don't increment StopCount as this is a forced disable, not a normal stop
+            }
+        }
+
+        /// <summary>
+        /// Alternative name for FireTick for test compatibility
+        /// </summary>
+        public void RaiseTickEvent()
+        {
+            FireTick();
+        }
+
         public void Dispose()
         {
             if (!_disposed)

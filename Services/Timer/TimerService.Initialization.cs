@@ -17,24 +17,23 @@ namespace EyeRest.Services
             {
                 _eyeRestTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
                 _eyeRestTimer.Tick += OnEyeRestTimerTick;
-                
-                // CRITICAL FIX: Use FULL interval - warning is handled by separate warning timer
-                var totalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;
-                var warningSeconds = _configuration?.EyeRest?.WarningSeconds ?? 15;
-                var interval = TimeSpan.FromMinutes(totalMinutes);  // Full 20 minutes, not reduced!
-                
-                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
-                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
-                if (interval > maxInterval)
-                {
-                    _logger.LogWarning("⚠️ Eye rest interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
-                        interval.TotalMinutes, maxInterval.TotalMinutes);
-                    interval = maxInterval;
-                }
-                
+
+                // Use shared calculation method to ensure consistency with restart logic
+                var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateEyeRestTimerInterval();
+
                 _eyeRestTimer.Interval = interval;
-                _logger.LogInformation("Eye rest timer initialized - interval: {TotalSeconds}s FULL (will show {WarningSeconds}s warning before {TotalMinutes}min target)", 
-                    interval.TotalSeconds, warningSeconds, totalMinutes);
+                _eyeRestInterval = interval; // Store calculated interval
+
+                if (isReduced)
+                {
+                    _logger.LogInformation("🔧 Eye rest timer initialized - REDUCED interval: {IntervalMinutes:F1}m (triggers warning {WarningSeconds}s before {TotalMinutes}min target)",
+                        interval.TotalMinutes, warningSeconds, totalMinutes);
+                }
+                else
+                {
+                    _logger.LogInformation("🔧 Eye rest timer initialized - FULL interval: {IntervalMinutes:F1}m (warnings disabled or invalid)",
+                        interval.TotalMinutes);
+                }
             }
         }
 
@@ -58,24 +57,23 @@ namespace EyeRest.Services
                 _breakTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
                 _breakTimer.Tick += OnBreakTimerTick;
                 
-                // CRITICAL FIX: Use FULL interval - warning is handled by separate warning timer
-                var totalMinutes = _configuration?.Break?.IntervalMinutes ?? 55;
-                var warningSeconds = _configuration?.Break?.WarningSeconds ?? 30;
-                var interval = TimeSpan.FromMinutes(totalMinutes);  // Full 55 minutes, not reduced!
-                
-                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
-                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
-                if (interval > maxInterval)
+                // Use shared calculation method to ensure consistency with restart logic
+                var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
+
+                _breakTimer.Interval = interval;
+
+                if (isReduced)
                 {
-                    _logger.LogWarning("⚠️ Break interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
-                        interval.TotalMinutes, maxInterval.TotalMinutes);
-                    interval = maxInterval;
+                    _logger.LogInformation("🔧 Break timer initialized - REDUCED interval: {IntervalMinutes:F1}m (triggers warning {WarningSeconds}s before {TotalMinutes}min target)",
+                        interval.TotalMinutes, warningSeconds, totalMinutes);
+                }
+                else
+                {
+                    _logger.LogInformation("🔧 Break timer initialized - FULL interval: {IntervalMinutes:F1}m (warnings disabled or invalid)",
+                        interval.TotalMinutes);
                 }
                 
-                _breakTimer.Interval = interval;
-                _logger.LogInformation("🔧 Break timer initialized - interval: {TotalMinutes}m FULL (will show {WarningSeconds}s warning before {ConfiguredMinutes}min target)", 
-                    interval.TotalMinutes, warningSeconds, totalMinutes);
-                _logger.LogInformation("🔧 Break timer: Enabled={IsEnabled}, Interval={Interval}m, Event handlers registered", 
+                _logger.LogInformation("🔧 Break timer: Enabled={IsEnabled}, Interval={Interval:F1}m, Event handlers registered", 
                     _breakTimer.IsEnabled, _breakTimer.Interval.TotalMinutes);
             }
         }
@@ -163,8 +161,23 @@ namespace EyeRest.Services
                 // Force trigger eye rest if not already active
                 if (!_isEyeRestNotificationActive)
                 {
-                    TriggerEyeRest();
-                    _logger.LogInformation("✅ FALLBACK: Eye rest triggered successfully");
+                    // TIMELINE FIX: Check if enough time has passed since last trigger
+                    if (!ShouldAllowEyeRestFallback())
+                    {
+                        _logger.LogInformation("🕒 INIT FALLBACK BLOCKED: Eye rest initialization fallback blocked - insufficient time since last trigger");
+                    }
+                    // BREAK PRIORITY FIX: Check break priority before initialization fallback trigger
+                    else if (_isBreakNotificationActive || _isBreakWarningProcessing || _isAnyBreakWarningProcessing ||
+                        _isBreakEventProcessing || _isAnyBreakEventProcessing)
+                    {
+                        _logger.LogInformation("🔄 INIT FALLBACK BLOCKED: Eye rest initialization fallback blocked - break event has priority. Pausing eye rest timer.");
+                        SmartPauseEyeRestTimerForBreak();
+                    }
+                    else
+                    {
+                        TriggerEyeRest();
+                        _logger.LogInformation("✅ FALLBACK: Eye rest triggered successfully");
+                    }
                 }
                 else
                 {

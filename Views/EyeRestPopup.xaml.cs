@@ -19,13 +19,37 @@ namespace EyeRest.Views
         {
             InitializeComponent();
             
-            // Allow ESC key to close popup
+            // CRITICAL FIX: Robust input handling with multiple fallback mechanisms
             Loaded += (s, e) =>
             {
-                var window = Window.GetWindow(this);
-                if (window != null)
+                try
                 {
-                    window.PreviewKeyDown += Window_PreviewKeyDown;
+                    // Primary: Window-level key handling
+                    var window = Window.GetWindow(this);
+                    if (window != null)
+                    {
+                        window.PreviewKeyDown += Window_PreviewKeyDown;
+                        System.Diagnostics.Debug.WriteLine($"🔑 EyeRestPopup: Window key handler attached to {window.GetType().Name}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🚨 EyeRestPopup: Window.GetWindow returned null - input handling may be compromised");
+                    }
+                    
+                    // BACKUP: Direct UserControl key handling as fallback
+                    this.PreviewKeyDown += UserControl_PreviewKeyDown;
+                    this.KeyDown += UserControl_KeyDown;
+                    
+                    // CRITICAL: Ensure focus and input capability
+                    this.Focusable = true;
+                    this.IsTabStop = true;
+                    this.Focus();
+                    
+                    System.Diagnostics.Debug.WriteLine($"🔑 EyeRestPopup: Comprehensive input handling initialized");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚨 EyeRestPopup: Error setting up input handling: {ex.Message}");
                 }
             };
         }
@@ -126,15 +150,58 @@ namespace EyeRest.Views
         {
             if (e.Key == System.Windows.Input.Key.Escape)
             {
+                System.Diagnostics.Debug.WriteLine($"🔑 EyeRestPopup: ESC key pressed via Window_PreviewKeyDown");
+                HandleEscapeKey();
+                e.Handled = true;
+            }
+        }
+        
+        private void UserControl_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                System.Diagnostics.Debug.WriteLine($"🔑 EyeRestPopup: ESC key pressed via UserControl_PreviewKeyDown");
+                HandleEscapeKey();
+                e.Handled = true;
+            }
+        }
+        
+        private void UserControl_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                System.Diagnostics.Debug.WriteLine($"🔑 EyeRestPopup: ESC key pressed via UserControl_KeyDown");
+                HandleEscapeKey();
+                e.Handled = true;
+            }
+        }
+        
+        private void HandleEscapeKey()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔑 EyeRestPopup: HandleEscapeKey called - stopping countdown and closing");
                 StopCountdown();
                 Completed?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"🚨 EyeRestPopup: Error handling escape key: {ex.Message}");
             }
         }
 
         private void CloseButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            StopCountdown();
-            Completed?.Invoke(this, EventArgs.Empty);
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔑 EyeRestPopup: Close button clicked - stopping countdown and closing");
+                StopCountdown();
+                Completed?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"🚨 EyeRestPopup: Error handling close button click: {ex.Message}");
+            }
         }
     }
 }

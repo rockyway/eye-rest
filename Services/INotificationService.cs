@@ -30,6 +30,8 @@ namespace EyeRest.Services
         // Status check properties for backup trigger coordination
         bool IsBreakWarningActive { get; }
         bool IsEyeRestWarningActive { get; }
+        bool IsAnyPopupActive { get; }
+        bool IsBreakActive { get; }  // Track if break popup is active (including waiting for confirmation)
     }
 
     public enum BreakAction
@@ -38,6 +40,7 @@ namespace EyeRest.Services
         DelayOneMinute,
         DelayFiveMinutes,
         Skipped,
-        ConfirmedAfterCompletion  // User confirmed after break completion (when RequireConfirmationAfterBreak is enabled)
+        ConfirmedAfterCompletion,  // User confirmed after break completion (when RequireConfirmationAfterBreak is enabled)
+        CompletedWithoutConfirmation  // Break auto-completed due to timeout without user confirmation
     }
 }

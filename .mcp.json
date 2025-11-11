@@ -1,0 +1,37 @@
+{
+  "mcpServers": {    
+    "context7": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
+      "env": {}
+    },
+    "ragsearch": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "D:/sources/demo/ragsearch/dist/index.js"
+      ],
+      "env": {
+        "EMBEDDING_PROVIDER": "ollama",
+        "OLLAMA_URL": "http://localhost:11434",
+        "MILVUS_URL": "http://localhost:19530"
+      }
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+         "/c",
+         "npx",
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    }
+  }
+}

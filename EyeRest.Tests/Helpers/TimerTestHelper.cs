@@ -95,17 +95,19 @@ namespace EyeRest.Tests.Helpers
             out Mock<ILogger<TimerService>> mockLogger,
             out Mock<IConfigurationService> mockConfigService,
             out Mock<IAnalyticsService> mockAnalyticsService,
-            out FakeTimerFactory fakeTimerFactory)
+            out FakeTimerFactory fakeTimerFactory,
+            out Mock<IPauseReminderService> mockPauseReminderService)
         {
             mockLogger = new Mock<ILogger<TimerService>>();
             mockConfigService = new Mock<IConfigurationService>();
             mockAnalyticsService = new Mock<IAnalyticsService>();
+            mockPauseReminderService = new Mock<IPauseReminderService>();
             fakeTimerFactory = new FakeTimerFactory();
 
             mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(config);
 
-            return new TimerService(mockLogger.Object, mockConfigService.Object, mockAnalyticsService.Object, fakeTimerFactory);
+            return new TimerService(mockLogger.Object, mockConfigService.Object, mockAnalyticsService.Object, fakeTimerFactory, mockPauseReminderService.Object);
         }
 
         /// <summary>
@@ -113,7 +115,7 @@ namespace EyeRest.Tests.Helpers
         /// </summary>
         public static TimerService CreateTimerService(AppConfiguration config)
         {
-            return CreateTimerService(config, out _, out _, out _, out _);
+            return CreateTimerService(config, out _, out _, out _, out _, out _);
         }
 
         /// <summary>

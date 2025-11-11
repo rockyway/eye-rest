@@ -17,6 +17,8 @@ namespace EyeRest.Tests.Integration
         private readonly Mock<IConfigurationService> _mockConfigService;
         private readonly Mock<IScreenOverlayService> _mockScreenOverlayService;
         private readonly Mock<IAnalyticsService> _mockAnalyticsService;
+        private readonly Mock<IPauseReminderService> _mockPauseReminderService;
+        private readonly Mock<IAudioService> _mockAudioService;
         private readonly FakeTimerFactory _fakeTimerFactory;
         private readonly TimerService _timerService;
         private readonly NotificationService _notificationService;
@@ -29,6 +31,8 @@ namespace EyeRest.Tests.Integration
             _mockConfigService = new Mock<IConfigurationService>();
             _mockScreenOverlayService = new Mock<IScreenOverlayService>();
             _mockAnalyticsService = new Mock<IAnalyticsService>();
+            _mockPauseReminderService = new Mock<IPauseReminderService>();
+            _mockAudioService = new Mock<IAudioService>();
             _fakeTimerFactory = new FakeTimerFactory();
 
             _testConfig = new AppConfiguration
@@ -50,8 +54,8 @@ namespace EyeRest.Tests.Integration
             _mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(_testConfig);
 
-            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory);
-            _notificationService = new NotificationService(_mockNotificationLogger.Object, System.Windows.Threading.Dispatcher.CurrentDispatcher, _mockScreenOverlayService.Object, _mockConfigService.Object);
+            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object);
+            _notificationService = new NotificationService(_mockNotificationLogger.Object, System.Windows.Threading.Dispatcher.CurrentDispatcher, _mockScreenOverlayService.Object, _mockConfigService.Object, _mockPauseReminderService.Object, _mockAudioService.Object);
         }
 
         [Fact]

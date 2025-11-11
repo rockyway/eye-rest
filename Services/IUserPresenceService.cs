@@ -12,12 +12,18 @@ namespace EyeRest.Services
         TimeSpan IdleTime { get; }
         UserPresenceState CurrentState { get; }
         TimeSpan TotalAwayTime { get; } // NEW: Track total time away
-        
+
         Task StartMonitoringAsync();
         Task StopMonitoringAsync();
-        
+
         // NEW: Timer recovery integration
         void SetTimerService(ITimerService timerService);
+
+        /// <summary>
+        /// Get the duration of the last away period (for extended idle detection)
+        /// Returns TimeSpan.Zero if user was not away or data not available
+        /// </summary>
+        TimeSpan GetLastAwayDuration();
     }
 
     public class UserPresenceEventArgs : EventArgs

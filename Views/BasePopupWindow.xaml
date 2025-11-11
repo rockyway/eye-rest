@@ -7,7 +7,10 @@
         ShowInTaskbar="False"
         AllowsTransparency="True"
         Background="Transparent">
-    <Grid Background="Transparent">
+    <Grid Background="Transparent" 
+          MouseLeftButtonDown="Grid_MouseLeftButtonDown"
+          MouseEnter="Grid_MouseEnter"
+          MouseLeave="Grid_MouseLeave">
         <ContentPresenter x:Name="ContentArea" 
                          HorizontalAlignment="Center" 
                          VerticalAlignment="Center"/>
