@@ -463,6 +463,36 @@ namespace EyeRest.Services
                     _logger.LogWarning(ex, "🔄 SESSION RESET: Error clearing break completion state (non-critical) - this may cause stuck state if orphaned timers fire");
                 }
 
+                // CRITICAL P0 FIX: Clear UserPresenceService idle tracking state
+                // Prevents stale _idleStartTime from causing incorrect extended idle detection after session reset
+                // Without this, a session reset during idle period could later trigger extended away detection
+                // when user returns, using a stale idle start time from before the reset
+                try
+                {
+                    var userPresenceServiceType = _userPresenceService?.GetType();
+                    var idleStartTimeField = userPresenceServiceType?.GetField(
+                        "_idleStartTime",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var hasBeenAwayExtendedField = userPresenceServiceType?.GetField(
+                        "_hasBeenAwayExtended",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                    if (idleStartTimeField != null)
+                    {
+                        idleStartTimeField.SetValue(_userPresenceService, default(DateTime));
+                        _logger.LogCritical("🔄 P0 FIX - SESSION RESET: Cleared _idleStartTime tracking to prevent stale idle detection");
+                    }
+                    if (hasBeenAwayExtendedField != null)
+                    {
+                        hasBeenAwayExtendedField.SetValue(_userPresenceService, false);
+                        _logger.LogCritical("🔄 P0 FIX - SESSION RESET: Reset _hasBeenAwayExtended flag for fresh session");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "🔄 P0 FIX - SESSION RESET: Error clearing idle tracking state (non-critical) - may cause incorrect extended away detection");
+                }
+
                 // Reset timer start times for fresh session
                 _eyeRestStartTime = DateTime.Now;
                 _breakStartTime = DateTime.Now;

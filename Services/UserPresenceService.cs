@@ -22,6 +22,7 @@ namespace EyeRest.Services
         
         // NEW: Extended away tracking
         private DateTime _awayStartTime;
+        private DateTime _idleStartTime;  // P0 FIX: Track when user went idle for extended idle detection
         private TimeSpan _totalAwayTime;
         private bool _hasBeenAwayExtended;
         private IntPtr _sessionNotificationHandle;
@@ -580,7 +581,16 @@ namespace EyeRest.Services
                 _hasBeenAwayExtended = false;
                 _logger.LogDebug($"🏃 User going away - tracking start time: {_awayStartTime:HH:mm:ss}");
             }
-            
+
+            // P0 FIX: User is going idle (Present → Idle)
+            // Track idle start time to detect extended idle periods (e.g., user leaves PC without locking)
+            else if (previousState == UserPresenceState.Present && newState == UserPresenceState.Idle)
+            {
+                _idleStartTime = now;
+                _hasBeenAwayExtended = false;
+                _logger.LogInformation($"⏱️ P0 FIX - IDLE START: User went idle at {now:HH:mm:ss} - tracking for extended idle detection");
+            }
+
             // User is returning (Away/SystemSleep → Present)
             else if ((previousState == UserPresenceState.Away || previousState == UserPresenceState.SystemSleep) &&
                      newState == UserPresenceState.Present)
@@ -611,6 +621,48 @@ namespace EyeRest.Services
                     
                     // Reset tracking for next away period
                     _awayStartTime = default(DateTime);
+                }
+            }
+
+            // P0 FIX: User is returning from idle (Idle → Present)
+            // Check if idle duration exceeds extended away threshold to trigger session reset
+            // This handles the common case where user leaves PC idle without locking session
+            else if (previousState == UserPresenceState.Idle && newState == UserPresenceState.Present)
+            {
+                if (_idleStartTime != default(DateTime))
+                {
+                    var idleDuration = now - _idleStartTime;
+                    _totalAwayTime = idleDuration;
+
+                    _logger.LogInformation($"⏱️ P0 FIX - IDLE END: User was idle for {idleDuration.TotalMinutes:F1} minutes (threshold: {extendedAwayThresholdMinutes}min)");
+
+                    // Check if this was an extended idle period requiring smart session reset
+                    if (idleDuration.TotalMinutes >= extendedAwayThresholdMinutes && !_hasBeenAwayExtended)
+                    {
+                        _hasBeenAwayExtended = true;
+                        _logger.LogCritical($"⚡ P0 FIX - EXTENDED IDLE DETECTED: {idleDuration.TotalMinutes:F1} minutes idle (threshold: {extendedAwayThresholdMinutes}min) - triggering smart session reset");
+
+                        var extendedAwayArgs = new ExtendedAwayEventArgs
+                        {
+                            TotalAwayTime = idleDuration,
+                            AwayStartTime = _idleStartTime,
+                            ReturnTime = now,
+                            AwayState = previousState  // Idle
+                        };
+
+                        ExtendedAwaySessionDetected?.Invoke(this, extendedAwayArgs);
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"⏱️ P0 FIX - IDLE DURATION OK: {idleDuration.TotalMinutes:F1} minutes is below threshold {extendedAwayThresholdMinutes}min - no session reset needed");
+                    }
+
+                    // Reset idle tracking for next idle period
+                    _idleStartTime = default(DateTime);
+                }
+                else
+                {
+                    _logger.LogWarning($"⏱️ P0 FIX - IDLE END: User returned from idle but _idleStartTime was not set (unexpected state)");
                 }
             }
             }
