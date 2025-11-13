@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "ragsearch": {
+      "type": "stdio",
+      "command": "rs-mcp",
+      "env": {
+        "EMBEDDING_PROVIDER": "ollama",
+        "OLLAMA_URL": "http://localhost:11434",
+        "MILVUS_URL": "http://localhost:19530"
+      }
+    }
+  }
+}
