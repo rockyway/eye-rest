@@ -938,7 +938,19 @@ namespace EyeRest.Services
                             }
                             _activeEyeRestWarningPopup = null;
                         }
-                        
+
+                        // CRITICAL P0 FIX: Clear break popup active flags to prevent stale state blocking future popups
+                        // Without this, a session reset that closes a break popup leaves _isBreakPopupActive=true forever,
+                        // blocking all future eye rest popups with "GLOBAL POPUP MUTEX: break popup has priority"
+                        // This was causing the "infinite eye rest freeze at 1 second" bug where eye rest was blocked
+                        // by a stale break popup flag from 9 hours ago (01:13 → 10:00)
+                        if (_isBreakPopupActive || _isWaitingForBreakConfirmation)
+                        {
+                            _logger.LogCritical($"🧟 P0 FIX: Clearing stale break popup flags - IsBreakPopupActive: {_isBreakPopupActive} → false, IsWaitingForBreakConfirmation: {_isWaitingForBreakConfirmation} → false");
+                            _isBreakPopupActive = false;
+                            _isWaitingForBreakConfirmation = false;
+                        }
+
                         _logger.LogInformation("✅ ZOMBIE FIX: All popup references cleared and validated");
                     }
                 });
@@ -1013,6 +1025,17 @@ namespace EyeRest.Services
                         catch (Exception ex)
                         {
                             _logger.LogWarning(ex, "🔴 Exception stopping BreakPopup countdown (non-critical)");
+                        }
+
+                        // CRITICAL P0 FIX: Clear break popup active flags when force-closing break popup
+                        // This prevents the "infinite eye rest freeze at 1 second" bug where _isBreakPopupActive stays true
+                        // after session reset, blocking all future eye rest popups for hours/days
+                        // Defense-in-depth: HideAllNotifications also clears these, but this adds extra safety
+                        if (_isBreakPopupActive || _isWaitingForBreakConfirmation)
+                        {
+                            _logger.LogCritical($"🔴 P0 FIX: Clearing break popup flags on force-close - IsBreakPopupActive: {_isBreakPopupActive} → false, IsWaitingForBreakConfirmation: {_isWaitingForBreakConfirmation} → false");
+                            _isBreakPopupActive = false;
+                            _isWaitingForBreakConfirmation = false;
                         }
                     }
                     

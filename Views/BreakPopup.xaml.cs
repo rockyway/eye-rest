@@ -229,7 +229,7 @@ namespace EyeRest.Views
 
             _forwardTimerDisplay = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(100)  // Update 10 times per second for smooth display
+                Interval = TimeSpan.FromMilliseconds(20)  // Update 2 times per second for smooth display
             };
 
             _forwardTimerDisplay.Tick += (s, e) =>
@@ -239,12 +239,10 @@ namespace EyeRest.Views
                     return;  // Safety check
                 }
 
-                // Calculate elapsed time since Done screen was shown (plus 10 seconds)
                 var elapsedSinceDone = DateTime.Now - _doneScreenStartTime;
-                var totalExtendedTime = elapsedSinceDone.Add(TimeSpan.FromSeconds(10));
 
-                var minutes = (int)totalExtendedTime.TotalMinutes;
-                var seconds = (int)totalExtendedTime.Seconds;
+                var minutes = (int)elapsedSinceDone.TotalMinutes;
+                var seconds = elapsedSinceDone.Seconds;
 
                 // Update display
                 MinutesDisplay.Text = minutes.ToString();
