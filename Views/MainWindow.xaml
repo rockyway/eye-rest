@@ -5,10 +5,13 @@
         xmlns:converters="clr-namespace:EyeRest.Converters"
         xmlns:local="clr-namespace:EyeRest.Views"
         ui:WindowHelper.UseModernWindowStyle="True"
+        ui:TitleBar.IsIconVisible="True"
+        Icon="/Resources/app.ico"
         Title="{Binding WindowTitle}"
-        Height="950"
-        Width="600"
-        MinHeight="920"
+        Height="860"
+        Width="700"
+        MinHeight="800"
+        MinWidth="680"
         MaxHeight="1100"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip"
@@ -21,9 +24,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto" MinHeight="120"/>
+            <RowDefinition Height="Auto" MinHeight="100"/>
             <RowDefinition Height="Auto" MinHeight="40"/>
-            <RowDefinition Height="Auto" MinHeight="50"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -111,37 +113,27 @@
                     <StackPanel>
                         <!-- Basic Settings -->
                         <GroupBox Header="Basic Settings" Margin="0,0,0,15" Padding="15">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="Remind every:" VerticalAlignment="Center" Width="100"/>
+                                    <TextBox Text="{Binding EyeRestIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="10,0,10,0"/>
+                                    <TextBlock Text="minutes" VerticalAlignment="Center"/>
+                                </StackPanel>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Remind every:" VerticalAlignment="Center" Margin="0,5"/>
-                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EyeRestIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="minutes" VerticalAlignment="Center" Margin="5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="Rest for:" VerticalAlignment="Center" Width="100"/>
+                                    <TextBox Text="{Binding EyeRestDurationSeconds, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="10,0,10,0"/>
+                                    <TextBlock Text="seconds" VerticalAlignment="Center"/>
+                                </StackPanel>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Rest for:" VerticalAlignment="Center" Margin="0,5"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EyeRestDurationSeconds, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="seconds" VerticalAlignment="Center" Margin="5"/>
-
-                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" 
-                                          Content="Play sound at start" 
-                                          IsChecked="{Binding EyeRestStartSoundEnabled}" 
+                                <CheckBox Content="Play sound at start"
+                                          IsChecked="{Binding EyeRestStartSoundEnabled}"
                                           Margin="0,15,0,5"/>
 
-                                <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" 
-                                          Content="Play sound at end" 
-                                          IsChecked="{Binding EyeRestEndSoundEnabled}" 
+                                <CheckBox Content="Play sound at end"
+                                          IsChecked="{Binding EyeRestEndSoundEnabled}"
                                           Margin="0,5"/>
-                            </Grid>
+                            </StackPanel>
                         </GroupBox>
 
                         <!-- Warning Settings -->
@@ -171,17 +163,19 @@
                         <!-- Test Controls -->
                         <GroupBox Header="Test Controls" Padding="15">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                <Button Content="Test Eye Warning" 
-                                        Command="{Binding TestWarningCommand}" 
+                                <Button Content="Test Eye Remind"
+                                        Command="{Binding TestWarningCommand}"
                                         Style="{DynamicResource TestWarningButtonStyle}"
-                                        Width="130"
-                                        Margin="0,0,10,0"/>
-                                
-                                <Button Content="Test Eye Rest" 
-                                        Command="{Binding TestPopupCommand}" 
+                                        Width="160"
+                                        Margin="0,0,10,0"
+                                        ToolTip="Test the eye rest warning notification"/>
+
+                                <Button Content="Test Eye Rest"
+                                        Command="{Binding TestPopupCommand}"
                                         Style="{DynamicResource TestEyeRestButtonStyle}"
                                         Width="130"
-                                        Margin="0"/>
+                                        Margin="0"
+                                        ToolTip="Test the eye rest popup"/>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
@@ -194,25 +188,19 @@
                     <StackPanel>
                         <!-- Basic Settings -->
                         <GroupBox Header="Basic Settings" Margin="0,0,0,15" Padding="15">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="Work for:" VerticalAlignment="Center" Width="100"/>
+                                    <TextBox Text="{Binding BreakIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="10,0,10,0"/>
+                                    <TextBlock Text="minutes" VerticalAlignment="Center"/>
+                                </StackPanel>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Work for:" VerticalAlignment="Center" Margin="0,5"/>
-                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BreakIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="minutes" VerticalAlignment="Center" Margin="5"/>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Break for:" VerticalAlignment="Center" Margin="0,5"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BreakDurationMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left" Margin="10,5"/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="minutes" VerticalAlignment="Center" Margin="5"/>
-                            </Grid>
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="Break for:" VerticalAlignment="Center" Width="100"/>
+                                    <TextBox Text="{Binding BreakDurationMinutes, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="10,0,10,0"/>
+                                    <TextBlock Text="minutes" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
                         </GroupBox>
 
                         <!-- Warning Settings -->
@@ -298,17 +286,19 @@
                         <!-- Test Controls -->
                         <GroupBox Header="Test Controls" Padding="15">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                <Button Content="Test Break Warning" 
-                                        Command="{Binding TestBreakWarningCommand}" 
+                                <Button Content="Test Break Remind"
+                                        Command="{Binding TestBreakWarningCommand}"
                                         Style="{DynamicResource TestBreakWarningButtonStyle}"
-                                        Width="130"
-                                        Margin="0,0,10,0"/>
-                                
-                                <Button Content="Test Break" 
-                                        Command="{Binding TestBreakCommand}" 
+                                        Width="160"
+                                        Margin="0,0,10,0"
+                                        ToolTip="Test the break warning notification"/>
+
+                                <Button Content="Test Break"
+                                        Command="{Binding TestBreakCommand}"
                                         Style="{DynamicResource TestBreakButtonStyle}"
                                         Width="130"
-                                        Margin="0"/>
+                                        Margin="0"
+                                        ToolTip="Test the break popup"/>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
@@ -444,60 +434,60 @@
                         </GroupBox>
 
                         <!-- Audio Settings -->
-                        <GroupBox Header="Audio Settings" Margin="0,0,0,15" Padding="15">
+                        <GroupBox Header="Audio Settings" Margin="0,0,0,15" Padding="15,15,15,20">
                             <StackPanel>
-                                <TextBlock Text="Configure sound notifications for eye rest and break reminders:" 
-                                           TextWrapping="Wrap" 
+                                <TextBlock Text="Configure sound notifications for eye rest and break reminders:"
+                                           TextWrapping="Wrap"
                                            Margin="0,0,0,15"
                                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                
-                                <CheckBox Content="Enable audio notifications" 
-                                          IsChecked="{Binding AudioEnabled}" 
+
+                                <CheckBox Content="Enable audio notifications"
+                                          IsChecked="{Binding AudioEnabled}"
                                           Margin="0,0,0,10"/>
-                                
+
                                 <StackPanel IsEnabled="{Binding AudioEnabled}">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <TextBlock Text="Volume:" VerticalAlignment="Center" Width="100"/>
-                                        <Slider Value="{Binding AudioVolume}" 
-                                                Minimum="0" 
-                                                Maximum="100" 
-                                                Width="200" 
-                                                TickFrequency="10" 
+                                        <Slider Value="{Binding AudioVolume}"
+                                                Minimum="0"
+                                                Maximum="100"
+                                                Width="200"
+                                                TickFrequency="10"
                                                 IsSnapToTickEnabled="True"
                                                 Margin="10,0"/>
-                                        <TextBlock Text="{Binding AudioVolume}" 
-                                                   VerticalAlignment="Center" 
-                                                   Margin="15,0,5,0" 
+                                        <TextBlock Text="{Binding AudioVolume}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="15,0,5,0"
                                                    Width="30"/>
                                         <TextBlock Text="%" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    
+
                                     <!-- Custom Audio Selection -->
                                     <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
                                         <TextBlock Text="Custom Audio:" VerticalAlignment="Center" Width="100"/>
-                                        <TextBox Text="{Binding CustomSoundPath}" 
+                                        <TextBox Text="{Binding CustomSoundPath}"
                                                  IsReadOnly="True"
-                                                 Width="200" 
+                                                 Width="200"
                                                  Margin="10,0"
                                                  VerticalAlignment="Center"
                                                  Background="{DynamicResource BackgroundLightBrush}"
                                                  ToolTip="Path to custom audio file"/>
-                                        <Button Content="📁 Browse" 
-                                                Command="{Binding BrowseCustomAudioCommand}" 
+                                        <Button Content="Browse..."
+                                                Command="{Binding BrowseCustomAudioCommand}"
                                                 Style="{DynamicResource InfoButtonStyle}"
-                                                Width="80"
-                                                Height="25"
-                                                Margin="5,0"
+                                                Width="120"
+                                                Height="35"
+                                                Margin="10,0,0,5"
                                                 ToolTip="Select custom audio file (.wav, .mp3, .wma)"/>
                                     </StackPanel>
-                                    
-                                    <Button Content="🔊 Test Audio" 
-                                            Command="{Binding TestCustomAudioCommand}" 
+
+                                    <Button Content="Test Audio"
+                                            Command="{Binding TestCustomAudioCommand}"
                                             Style="{DynamicResource InfoButtonStyle}"
-                                            Width="120"
-                                            Height="30"
+                                            Width="140"
+                                            Height="36"
                                             HorizontalAlignment="Left"
-                                            Margin="0,5,0,0"
+                                            Margin="0,10,0,10"
                                             ToolTip="Test the selected audio file"/>
                                 </StackPanel>
                             </StackPanel>
@@ -506,30 +496,48 @@
                         <!-- Application Settings -->
                         <GroupBox Header="Application Settings" Margin="0,0,0,15" Padding="15">
                             <StackPanel>
-                                <TextBlock Text="Configure application behavior and startup options:" 
-                                           TextWrapping="Wrap" 
+                                <TextBlock Text="Configure application behavior and startup options:"
+                                           TextWrapping="Wrap"
                                            Margin="0,0,0,15"
                                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                
-                                <CheckBox Content="Start with Windows" 
-                                          IsChecked="{Binding StartWithWindows}" 
+
+                                <CheckBox Content="Start with Windows"
+                                          IsChecked="{Binding StartWithWindows}"
                                           Margin="0,0,0,10"
                                           ToolTip="Automatically start the application when Windows starts"/>
-                                
-                                <CheckBox Content="Start minimized to system tray" 
-                                          IsChecked="{Binding StartMinimized}" 
+
+                                <CheckBox Content="Start minimized to system tray"
+                                          IsChecked="{Binding StartMinimized}"
                                           Margin="0,0,0,10"
                                           ToolTip="Start the application minimized to the system tray"/>
-                                
-                                <CheckBox Content="Minimize to tray instead of closing" 
-                                          IsChecked="{Binding MinimizeToTray}" 
+
+                                <CheckBox Content="Minimize to tray instead of closing"
+                                          IsChecked="{Binding MinimizeToTray}"
                                           Margin="0,0,0,10"
                                           ToolTip="Minimize to system tray when closing the main window"/>
-                                
-                                <CheckBox Content="Show tray notifications" 
-                                          IsChecked="{Binding ShowTrayNotifications}" 
+
+                                <CheckBox Content="Show tray notifications"
+                                          IsChecked="{Binding ShowTrayNotifications}"
                                           Margin="0,0,0,10"
                                           ToolTip="Show balloon tip notifications in the system tray"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Restore Defaults -->
+                        <GroupBox Header="Reset Settings" Margin="0,0,0,15" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="Reset all settings to their default values:"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,15"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                                <Button Content="Restore Defaults"
+                                        Command="{Binding RestoreDefaultsCommand}"
+                                        Style="{DynamicResource WarningButtonStyle}"
+                                        Width="160"
+                                        Height="35"
+                                        HorizontalAlignment="Left"
+                                        ToolTip="Reset all settings to their default values"/>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
@@ -577,59 +585,115 @@
             </TabItem>
         </TabControl>
 
-        <!-- Timer Controls - Organized in 3 Lines -->
+        <!-- Timer Controls - Organized in 2 Lines -->
         <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,15,0,10">
-            
-            <!-- Line 1: Primary Controls -->
+
+            <!-- Line 1: Start, Stop, Pause, Resume - All on same row -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
-                <Button Content="Start Timers" 
-                        Command="{Binding StartTimersCommand}" 
+                <Button Command="{Binding StartTimersCommand}"
                         Style="{DynamicResource AccentButtonStyle}"
-                        Width="130"
+                        Width="120"
                         Height="35"
-                        Margin="8,0"/>
-                
-                <Button Content="Stop Timers" 
-                        Command="{Binding StopTimersCommand}" 
+                        Margin="5,0">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="▶" Margin="0,0,5,0"/>
+                            <TextBlock Text="Start"/>
+                        </StackPanel>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="{Binding StartButtonTooltip}"/>
+                    </Button.ToolTip>
+                </Button>
+
+                <Button Command="{Binding StopTimersCommand}"
                         Style="{DynamicResource ErrorButtonStyle}"
-                        Width="130"
+                        Width="120"
                         Height="35"
-                        Margin="8,0"/>
-            </StackPanel>
-            
-            <!-- Line 2: Pause/Resume Controls -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
-                <Button Content="⏸️ Pause" 
-                        Command="{Binding PauseTimersCommand}" 
+                        Margin="5,0">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="■" Margin="0,0,5,0"/>
+                            <TextBlock Text="Stop"/>
+                        </StackPanel>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="{Binding StopButtonTooltip}"/>
+                    </Button.ToolTip>
+                </Button>
+
+                <Button Command="{Binding PauseTimersCommand}"
                         Style="{DynamicResource WarningButtonStyle}"
-                        Width="130"
+                        Width="120"
                         Height="35"
-                        Margin="8,0"
-                        IsEnabled="{Binding CanPauseTimers}"
-                        ToolTip="Pause timers manually (can be resumed anytime)"/>
-                
-                <Button Content="▶️ Resume" 
-                        Command="{Binding ResumeTimersCommand}" 
+                        Margin="5,0"
+                        IsEnabled="{Binding CanPauseTimers}">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⏸" Margin="0,0,5,0"/>
+                            <TextBlock Text="Pause"/>
+                        </StackPanel>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="{Binding PauseButtonTooltip}"/>
+                    </Button.ToolTip>
+                </Button>
+
+                <Button Command="{Binding ResumeTimersCommand}"
                         Style="{DynamicResource SuccessButtonStyle}"
-                        Width="130"
+                        Width="120"
                         Height="35"
-                        Margin="8,0"
-                        IsEnabled="{Binding CanResumeTimers}"
-                        ToolTip="Resume paused timers"/>
+                        Margin="5,0"
+                        IsEnabled="{Binding CanResumeTimers}">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="↻" Margin="0,0,5,0"/>
+                            <TextBlock Text="Resume"/>
+                        </StackPanel>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="{Binding ResumeButtonTooltip}"/>
+                    </Button.ToolTip>
+                </Button>
             </StackPanel>
-            
-            <!-- Line 3: Meeting Control -->
+
+            <!-- Line 2: Meeting Controls - 30m and 1h on same row -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Content="🎥 Meeting (30m)" 
-                        Command="{Binding PauseForMeetingCommand}" 
+                <Button Command="{Binding PauseForMeetingCommand}"
                         Style="{DynamicResource InfoButtonStyle}"
                         Width="160"
                         Height="35"
-                        Margin="8,0"
-                        IsEnabled="{Binding CanPauseMeeting}"
-                        ToolTip="Pause timers for 30 minutes for meetings (auto-resumes)"/>
+                        Margin="5,0"
+                        IsEnabled="{Binding CanPauseMeeting}">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🎥" Margin="0,0,5,0"/>
+                            <TextBlock Text="Meeting (30m)"/>
+                        </StackPanel>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="{Binding Meeting30mButtonTooltip}"/>
+                    </Button.ToolTip>
+                </Button>
+
+                <Button Command="{Binding PauseForMeeting1hCommand}"
+                        Style="{DynamicResource InfoButtonStyle}"
+                        Width="160"
+                        Height="35"
+                        Margin="5,0"
+                        IsEnabled="{Binding CanPauseMeeting}">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🎥" Margin="0,0,5,0"/>
+                            <TextBlock Text="Meeting (1h)"/>
+                        </StackPanel>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="{Binding Meeting1hButtonTooltip}"/>
+                    </Button.ToolTip>
+                </Button>
             </StackPanel>
-            
+
         </StackPanel>
 
         <!-- Error Message -->
@@ -649,16 +713,6 @@
                                Style="{DynamicResource ErrorTextStyle}"/>
                 </StackPanel>
             </Border>
-        </StackPanel>
-
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,15">
-            <Button Content="Restore Defaults" 
-                    Command="{Binding RestoreDefaultsCommand}" 
-                    Style="{DynamicResource WarningButtonStyle}"
-                    Width="120"
-                    Height="35"
-                    Margin="10,0"/>
         </StackPanel>
 
     </Grid>

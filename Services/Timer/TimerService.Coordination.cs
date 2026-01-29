@@ -54,8 +54,8 @@ namespace EyeRest.Services
                 var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateEyeRestTimerInterval();
 
                 _eyeRestInterval = interval;
-                _eyeRestTimer.Interval = _eyeRestInterval;
-                _eyeRestTimer.Start();
+                _eyeRestTimer!.Interval = _eyeRestInterval;
+                _eyeRestTimer!.Start();
                 _eyeRestStartTime = DateTime.Now;
 
                 if (isReduced)
@@ -112,26 +112,36 @@ namespace EyeRest.Services
             {
                 _logger.LogInformation("🔄 Smart coordination: Resuming break timer after eye rest completion");
                 _breakTimerPausedForEyeRest = false;
-                
+
                 // Restore timer with remaining time
                 if (_breakRemainingTime > TimeSpan.Zero)
                 {
-                    _breakTimer.Interval = _breakRemainingTime;
-                    _breakTimer.Start();
+                    _breakTimer!.Interval = _breakRemainingTime;
+                    _breakTimer!.Start();
                     _breakStartTime = DateTime.Now;
                     _logger.LogInformation($"🔄 Break timer resumed with {_breakRemainingTime.TotalMinutes:F1} minutes remaining");
                 }
                 else
                 {
-                    // No remaining time, reset to full interval
-                    _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes) - 
-                                   TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
-                    _breakTimer.Interval = _breakInterval;
-                    _breakTimer.Start();
+                    // No remaining time, reset to full interval using shared calculation method
+                    var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
+                    _breakInterval = interval;
+                    _breakTimer!.Interval = _breakInterval;
+                    _breakTimer!.Start();
                     _breakStartTime = DateTime.Now;
-                    _logger.LogInformation($"🔄 Break timer reset to full interval: {_breakInterval.TotalMinutes:F1} minutes");
+
+                    if (isReduced)
+                    {
+                        _logger.LogInformation("🔄 Break timer reset after eye rest - REDUCED interval: {IntervalMinutes:F1}m (triggers warning {WarningSeconds}s before {TotalMinutes}min target)",
+                            _breakInterval.TotalMinutes, warningSeconds, totalMinutes);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("🔄 Break timer reset after eye rest - FULL interval: {IntervalMinutes:F1}m (no warning)",
+                            _breakInterval.TotalMinutes);
+                    }
                 }
-                
+
                 _breakRemainingTime = TimeSpan.Zero;
             }
         }

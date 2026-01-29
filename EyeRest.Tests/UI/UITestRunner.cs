@@ -128,7 +128,7 @@ namespace EyeRest.Tests.UI
                 {
                     testResult.Status = UITestStatus.Failed;
                     testResult.Message = testEx.InnerException?.Message ?? testEx.Message;
-                    testResult.StackTrace = testEx.InnerException?.StackTrace ?? testEx.StackTrace;
+                    testResult.StackTrace = testEx.InnerException?.StackTrace ?? testEx.StackTrace ?? string.Empty;
                 }
 
                 // Execute TearDown if present
@@ -164,7 +164,7 @@ namespace EyeRest.Tests.UI
             {
                 testResult.Status = UITestStatus.Error;
                 testResult.Message = $"Test execution error: {ex.Message}";
-                testResult.StackTrace = ex.StackTrace;
+                testResult.StackTrace = ex.StackTrace ?? string.Empty;
                 testResult.ExecutionTime = TimeSpan.Zero;
                 testResult.EndTime = DateTime.Now;
 

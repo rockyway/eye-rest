@@ -247,7 +247,7 @@ namespace EyeRest.Services
                             RegisterPowerNotifications();
                             
                             // Subclass the window to receive messages
-                            _originalWndProc = SetWindowLongPtr(_mainWindowHandle, -4, Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
+                            _originalWndProc = SetWindowLongPtr(_mainWindowHandle, -4, Marshal.GetFunctionPointerForDelegate(_wndProcDelegate!));
                             
                             _logger.LogInformation("✅ Session and power notifications registered successfully");
                             return true;

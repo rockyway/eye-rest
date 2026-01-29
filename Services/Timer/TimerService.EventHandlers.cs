@@ -310,26 +310,18 @@ namespace EyeRest.Services
                     return;
                 }
 
-                // THREAD SAFETY: Global lock to prevent ALL warning systems from interfering
-                lock (_globalEyeRestWarningLock)
+                // ATOMIC FLAG OPERATION: Use Interlocked.CompareExchange for race-free check-and-set
+                var previousValue = System.Threading.Interlocked.CompareExchange(ref _atomicEyeRestWarningProcessing, 1, 0);
+                if (previousValue == 1)
                 {
-                    if (_isAnyEyeRestWarningProcessing)
-                    {
-                        _logger.LogWarning("⚠️ GLOBAL LOCK PREVENTION: Eye rest warning already processing globally - ignoring duplicate trigger");
-                        return;
-                    }
-                    _isAnyEyeRestWarningProcessing = true;
+                    _logger.LogWarning("⚠️ ATOMIC LOCK PREVENTION: Eye rest warning already processing - ignoring duplicate trigger");
+                    return;
                 }
 
-                // SYNC FIX: Set instance warning processing flag to prevent backup trigger race conditions
-                if (_isEyeRestWarningProcessing)
+                // Also update legacy flags for backward compatibility
+                lock (_globalEyeRestWarningLock)
                 {
-                    _logger.LogWarning("⚠️ INSTANCE LOCK PREVENTION: Eye rest warning already processing - ignoring duplicate trigger");
-                    lock (_globalEyeRestWarningLock)
-                    {
-                        _isAnyEyeRestWarningProcessing = false;
-                    }
-                    return;
+                    _isAnyEyeRestWarningProcessing = true;
                 }
                 _isEyeRestWarningProcessing = true;
 
@@ -352,12 +344,15 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "Error triggering eye rest warning");
 
-                // CRITICAL FIX: Clear processing flags on error to prevent stuck state
+                // CRITICAL FIX: Clear all processing flags on error to prevent stuck state
                 _isEyeRestWarningProcessing = false;
                 lock (_globalEyeRestWarningLock)
                 {
                     _isAnyEyeRestWarningProcessing = false;
                 }
+
+                // ATOMIC FLAG: Clear atomic flag on error
+                System.Threading.Interlocked.Exchange(ref _atomicEyeRestWarningProcessing, 0);
             }
         }
 
@@ -376,26 +371,19 @@ namespace EyeRest.Services
                     return;
                 }
 
-                // THREAD SAFETY: Global lock to prevent ALL timer systems from interfering
-                lock (_globalEyeRestLock)
+                // ATOMIC FLAG OPERATION: Use Interlocked.CompareExchange to atomically check and set
+                // This eliminates the race window between checking and setting the flag
+                var previousValue = System.Threading.Interlocked.CompareExchange(ref _atomicEyeRestProcessing, 1, 0);
+                if (previousValue == 1)
                 {
-                    if (_isAnyEyeRestEventProcessing)
-                    {
-                        _logger.LogWarning("👁️ GLOBAL LOCK PREVENTION: Eye rest event already processing globally - ignoring duplicate trigger");
-                        return;
-                    }
-                    _isAnyEyeRestEventProcessing = true;
+                    _logger.LogWarning("👁️ ATOMIC LOCK PREVENTION: Eye rest event already processing - ignoring duplicate trigger");
+                    return;
                 }
 
-                // SYNC FIX: Set instance processing flag to prevent backup trigger race conditions
-                if (_isEyeRestEventProcessing)
+                // Also update the legacy flags for backward compatibility with other code paths
+                lock (_globalEyeRestLock)
                 {
-                    _logger.LogWarning("👁️ INSTANCE LOCK PREVENTION: Eye rest event already processing - ignoring duplicate trigger");
-                    lock (_globalEyeRestLock)
-                    {
-                        _isAnyEyeRestEventProcessing = false;
-                    }
-                    return;
+                    _isAnyEyeRestEventProcessing = true;
                 }
                 _isEyeRestEventProcessing = true;
 
@@ -440,13 +428,16 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "Error triggering eye rest");
                 _isEyeRestNotificationActive = false;
-                _isEyeRestEventProcessing = false; // SYNC FIX: Clear instance processing flag on error
+                _isEyeRestEventProcessing = false;
 
-                // THREAD SAFETY: Clear global processing flag on error
+                // THREAD SAFETY: Clear all processing flags on error
                 lock (_globalEyeRestLock)
                 {
                     _isAnyEyeRestEventProcessing = false;
                 }
+
+                // ATOMIC FLAG: Clear atomic flag on error
+                System.Threading.Interlocked.Exchange(ref _atomicEyeRestProcessing, 0);
             }
         }
 
@@ -461,26 +452,18 @@ namespace EyeRest.Services
                     return;
                 }
 
-                // THREAD SAFETY: Global lock to prevent ALL warning systems from interfering
-                lock (_globalBreakWarningLock)
+                // ATOMIC FLAG OPERATION: Use Interlocked.CompareExchange for race-free check-and-set
+                var previousValue = System.Threading.Interlocked.CompareExchange(ref _atomicBreakWarningProcessing, 1, 0);
+                if (previousValue == 1)
                 {
-                    if (_isAnyBreakWarningProcessing)
-                    {
-                        _logger.LogWarning("⚠️ GLOBAL LOCK PREVENTION: Break warning already processing globally - ignoring duplicate trigger");
-                        return;
-                    }
-                    _isAnyBreakWarningProcessing = true;
+                    _logger.LogWarning("⚠️ ATOMIC LOCK PREVENTION: Break warning already processing - ignoring duplicate trigger");
+                    return;
                 }
 
-                // SYNC FIX: Set instance warning processing flag to prevent backup trigger race conditions
-                if (_isBreakWarningProcessing)
+                // Also update legacy flags for backward compatibility
+                lock (_globalBreakWarningLock)
                 {
-                    _logger.LogWarning("⚠️ INSTANCE LOCK PREVENTION: Break warning already processing - ignoring duplicate trigger");
-                    lock (_globalBreakWarningLock)
-                    {
-                        _isAnyBreakWarningProcessing = false;
-                    }
-                    return;
+                    _isAnyBreakWarningProcessing = true;
                 }
                 _isBreakWarningProcessing = true;
 
@@ -507,12 +490,15 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "Error triggering break warning");
 
-                // CRITICAL FIX: Clear processing flags on error to prevent stuck state
+                // CRITICAL FIX: Clear all processing flags on error to prevent stuck state
                 _isBreakWarningProcessing = false;
                 lock (_globalBreakWarningLock)
                 {
                     _isAnyBreakWarningProcessing = false;
                 }
+
+                // ATOMIC FLAG: Clear atomic flag on error
+                System.Threading.Interlocked.Exchange(ref _atomicBreakWarningProcessing, 0);
             }
         }
 
@@ -520,26 +506,19 @@ namespace EyeRest.Services
         {
             try
             {
-                // THREAD SAFETY: Global lock to prevent ALL timer systems from interfering
-                lock (_globalBreakLock)
+                // ATOMIC FLAG OPERATION: Use Interlocked.CompareExchange to atomically check and set
+                // This eliminates the race window between checking and setting the flag
+                var previousValue = System.Threading.Interlocked.CompareExchange(ref _atomicBreakProcessing, 1, 0);
+                if (previousValue == 1)
                 {
-                    if (_isAnyBreakEventProcessing)
-                    {
-                        _logger.LogWarning("☕ GLOBAL LOCK PREVENTION: Break event already processing globally - ignoring duplicate trigger");
-                        return;
-                    }
-                    _isAnyBreakEventProcessing = true;
+                    _logger.LogWarning("☕ ATOMIC LOCK PREVENTION: Break event already processing - ignoring duplicate trigger");
+                    return;
                 }
 
-                // SYNC FIX: Set instance processing flag to prevent backup trigger race conditions
-                if (_isBreakEventProcessing)
+                // Also update the legacy flags for backward compatibility with other code paths
+                lock (_globalBreakLock)
                 {
-                    _logger.LogWarning("☕ INSTANCE LOCK PREVENTION: Break event already processing - ignoring duplicate trigger");
-                    lock (_globalBreakLock)
-                    {
-                        _isAnyBreakEventProcessing = false;
-                    }
-                    return;
+                    _isAnyBreakEventProcessing = true;
                 }
                 _isBreakEventProcessing = true;
 
@@ -575,13 +554,16 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "Error triggering break");
                 _isBreakNotificationActive = false;
-                _isBreakEventProcessing = false; // SYNC FIX: Clear instance processing flag on error
+                _isBreakEventProcessing = false;
 
-                // THREAD SAFETY: Clear global processing flag on error
+                // THREAD SAFETY: Clear all processing flags on error
                 lock (_globalBreakLock)
                 {
                     _isAnyBreakEventProcessing = false;
                 }
+
+                // ATOMIC FLAG: Clear atomic flag on error
+                System.Threading.Interlocked.Exchange(ref _atomicBreakProcessing, 0);
             }
         }
 

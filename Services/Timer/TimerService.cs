@@ -247,20 +247,13 @@ namespace EyeRest.Services
             _breakWarningFallbackTimer?.Stop();
             _breakWarningFallbackTimer = null;
 
-            // Dispose fallback timers with event handler detachment
-            if (_eyeRestFallbackTimer != null)
-            {
-                _eyeRestFallbackTimer.Stop();
-                _eyeRestFallbackTimer.Tick -= OnEyeRestFallbackTimerTick;
-                _eyeRestFallbackTimer = null;
-            }
+            // CONSOLIDATION: Fallback timers deprecated (no event handlers to detach)
+            // Just null them out for cleanup
+            _eyeRestFallbackTimer?.Stop();
+            _eyeRestFallbackTimer = null;
 
-            if (_breakFallbackTimer != null)
-            {
-                _breakFallbackTimer.Stop();
-                _breakFallbackTimer.Tick -= OnBreakFallbackTimerTick;
-                _breakFallbackTimer = null;
-            }
+            _breakFallbackTimer?.Stop();
+            _breakFallbackTimer = null;
 
             // Dispose pause timer with event handler detachment
             if (_manualPauseTimer != null)
@@ -290,7 +283,10 @@ namespace EyeRest.Services
                 _isAnyEyeRestEventProcessing = false;
             }
 
-            _logger.LogDebug("🔄 Eye rest processing flags cleared (instance + global)");
+            // ATOMIC FLAG: Clear atomic flag for race-free synchronization
+            System.Threading.Interlocked.Exchange(ref _atomicEyeRestProcessing, 0);
+
+            _logger.LogDebug("🔄 Eye rest processing flags cleared (instance + global + atomic)");
         }
 
         /// <summary>
@@ -306,7 +302,10 @@ namespace EyeRest.Services
                 _isAnyBreakEventProcessing = false;
             }
 
-            _logger.LogDebug("🔄 Break processing flags cleared (instance + global)");
+            // ATOMIC FLAG: Clear atomic flag for race-free synchronization
+            System.Threading.Interlocked.Exchange(ref _atomicBreakProcessing, 0);
+
+            _logger.LogDebug("🔄 Break processing flags cleared (instance + global + atomic)");
         }
 
         /// <summary>
@@ -322,7 +321,10 @@ namespace EyeRest.Services
                 _isAnyEyeRestWarningProcessing = false;
             }
 
-            _logger.LogDebug("🔄 Eye rest warning processing flags cleared (instance + global)");
+            // ATOMIC FLAG: Clear atomic flag for race-free synchronization
+            System.Threading.Interlocked.Exchange(ref _atomicEyeRestWarningProcessing, 0);
+
+            _logger.LogDebug("🔄 Eye rest warning processing flags cleared (instance + global + atomic)");
         }
 
         /// <summary>
@@ -338,7 +340,10 @@ namespace EyeRest.Services
                 _isAnyBreakWarningProcessing = false;
             }
 
-            _logger.LogDebug("🔄 Break warning processing flags cleared (instance + global)");
+            // ATOMIC FLAG: Clear atomic flag for race-free synchronization
+            System.Threading.Interlocked.Exchange(ref _atomicBreakWarningProcessing, 0);
+
+            _logger.LogDebug("🔄 Break warning processing flags cleared (instance + global + atomic)");
         }
 
         #endregion

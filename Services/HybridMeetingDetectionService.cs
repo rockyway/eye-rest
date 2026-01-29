@@ -25,7 +25,9 @@ namespace EyeRest.Services
         // Track which detection methods are available
         private bool _windowDetectionAvailable = true;
         private bool _networkDetectionAvailable = false;
+#pragma warning disable CS0414 // Field is assigned but never used - reserved for future network-primary mode
         private bool _useNetworkAsPrimary = true;
+#pragma warning restore CS0414
 
         public event EventHandler<MeetingStateEventArgs>? MeetingStateChanged;
 

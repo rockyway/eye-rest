@@ -293,8 +293,8 @@ namespace EyeRest.Tests.Services
                 It.IsAny<LogLevel>(),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => true),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
                 .Callback<LogLevel, EventId, object, Exception, Delegate>((level, eventId, state, exception, formatter) =>
                 {
                     logMessages.Add(formatter.DynamicInvoke(state, exception)?.ToString() ?? "");
@@ -361,7 +361,7 @@ namespace EyeRest.Tests.Services
                 BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.NotNull(method);
             
-            method.Invoke(timerService, new object[] { null, EventArgs.Empty });
+            method!.Invoke(timerService, new object?[] { null, EventArgs.Empty });
         }
 
         private AppConfiguration CreateTestConfiguration(int eyeRestSeconds, int breakSeconds)

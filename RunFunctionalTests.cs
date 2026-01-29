@@ -16,7 +16,7 @@ namespace EyeRest
     /// </summary>
     public class SimpleFunctionalTestRunner
     {
-        public static async Task<int> Main(string[] args)
+        public static async Task<int> RunTests(string[] args)
         {
             Console.WriteLine("=== EyeRest Functional Test Runner ===");
             Console.WriteLine();
@@ -209,8 +209,8 @@ namespace EyeRest
                 // Test default configuration
                 var defaultConfig = await configService.GetDefaultConfiguration();
                 Assert(defaultConfig != null, "Default configuration should not be null");
-                Assert(defaultConfig.EyeRest.IntervalMinutes > 0, "Eye rest interval should be positive");
-                Assert(defaultConfig.Break.IntervalMinutes > 0, "Break interval should be positive");
+                Assert(defaultConfig!.EyeRest.IntervalMinutes > 0, "Eye rest interval should be positive");
+                Assert(defaultConfig!.Break.IntervalMinutes > 0, "Break interval should be positive");
 
                 // Test configuration loading
                 var loadedConfig = await configService.LoadConfigurationAsync();
@@ -218,7 +218,7 @@ namespace EyeRest
 
                 await host.StopAsync();
 
-                return new TestResult(true, $"Configuration loaded - Eye rest: {loadedConfig.EyeRest.IntervalMinutes}min, Break: {loadedConfig.Break.IntervalMinutes}min");
+                return new TestResult(true, $"Configuration loaded - Eye rest: {loadedConfig!.EyeRest.IntervalMinutes}min, Break: {loadedConfig!.Break.IntervalMinutes}min");
             }
             catch (Exception ex)
             {

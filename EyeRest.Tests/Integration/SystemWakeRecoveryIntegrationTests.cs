@@ -173,7 +173,7 @@ namespace EyeRest.Tests.Integration
                 var pauseMethod = typeof(TimerService).GetMethod("PauseForDurationAsync");
                 if (pauseMethod != null)
                 {
-                    await (Task)pauseMethod.Invoke(timerService, new object[] { TimeSpan.FromMinutes(60), "Integration Test Meeting" });
+                    await (Task)pauseMethod.Invoke(timerService, new object[] { TimeSpan.FromMinutes(60), "Integration Test Meeting" })!;
                     _output.WriteLine("2. Manual pause activated for 60 minutes");
                 }
                 
@@ -182,7 +182,7 @@ namespace EyeRest.Tests.Integration
                 var recoveryMethod = typeof(TimerService).GetMethod("RecoverFromSystemResumeAsync");
                 if (recoveryMethod != null)
                 {
-                    await (Task)recoveryMethod.Invoke(timerService, new object[] { "Integration Test - System wake after extended sleep" });
+                    await (Task)recoveryMethod.Invoke(timerService, new object[] { "Integration Test - System wake after extended sleep" })!;
                 }
                 
                 // Wait for recovery to complete
@@ -283,7 +283,7 @@ namespace EyeRest.Tests.Integration
                 var pauseMethod = typeof(TimerService).GetMethod("PauseForDurationAsync");
                 if (pauseMethod != null)
                 {
-                    await (Task)pauseMethod.Invoke(timerService, new object[] { TimeSpan.FromMinutes(30), "Test manual pause" });
+                    await (Task)pauseMethod.Invoke(timerService, new object[] { TimeSpan.FromMinutes(30), "Test manual pause" })!;
                 }
                 
                 // Verify manual pause is active
@@ -298,7 +298,7 @@ namespace EyeRest.Tests.Integration
                 var resumeMethod = typeof(TimerService).GetMethod("ResumeAsync");
                 if (resumeMethod != null)
                 {
-                    await (Task)resumeMethod.Invoke(timerService, null);
+                    await (Task)resumeMethod.Invoke(timerService, null)!;
                 }
                 
                 // Assert - Manual pause should be cleared and service running
