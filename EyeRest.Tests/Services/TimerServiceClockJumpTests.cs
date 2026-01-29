@@ -80,9 +80,9 @@ namespace EyeRest.Tests.Services
             _loggerMock.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("CLOCK JUMP DETECTION: Timestamps cleared for fresh session")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("CLOCK JUMP DETECTION: Timestamps cleared for fresh session")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
 
             // Verify analytics event was recorded
@@ -136,9 +136,9 @@ namespace EyeRest.Tests.Services
             _loggerMock.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART SESSION RESET COMPLETED")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART SESSION RESET COMPLETED")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
 

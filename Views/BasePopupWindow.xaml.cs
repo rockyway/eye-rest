@@ -86,7 +86,7 @@ namespace EyeRest.Views
             Debug.WriteLine($"🟡 BasePopupWindow visibility: IsVisible={IsVisible}, Visibility={Visibility}, WindowState={WindowState}");
         }
         
-        private void OnClosing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             Debug.WriteLine($"🟡 BasePopupWindow CLOSING event - HashCode: {GetHashCode()}, Cancel: {e.Cancel}");
             
@@ -105,22 +105,22 @@ namespace EyeRest.Views
             Debug.WriteLine($"🟡 Closing called from:\n{stackTrace}");
         }
         
-        private void OnClosed(object sender, EventArgs e)
+        private void OnClosed(object? sender, EventArgs e)
         {
             Debug.WriteLine($"🟡 BasePopupWindow CLOSED event - HashCode: {GetHashCode()}");
         }
         
-        private void OnActivated(object sender, EventArgs e)
+        private void OnActivated(object? sender, EventArgs e)
         {
             Debug.WriteLine($"🟡 BasePopupWindow ACTIVATED - HashCode: {GetHashCode()}");
         }
         
-        private void OnDeactivated(object sender, EventArgs e)
+        private void OnDeactivated(object? sender, EventArgs e)
         {
             Debug.WriteLine($"🟡 BasePopupWindow DEACTIVATED - HashCode: {GetHashCode()}");
         }
         
-        private void OnStateChanged(object sender, EventArgs e)
+        private void OnStateChanged(object? sender, EventArgs e)
         {
             Debug.WriteLine($"🟡 BasePopupWindow STATE CHANGED - HashCode: {GetHashCode()}, WindowState: {WindowState}");
         }

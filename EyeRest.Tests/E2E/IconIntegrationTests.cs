@@ -135,8 +135,8 @@ namespace EyeRest.Tests.E2E
             Assert.NotNull(windowIcon);
             
             // Icons should have same dimensions (indicating same source)
-            Assert.Equal(sourceIcon.Width, 32); // Standard icon size
-            Assert.Equal(sourceIcon.Height, 32); // Standard icon size
+            Assert.Equal(32, sourceIcon.Width); // Standard icon size
+            Assert.Equal(32, sourceIcon.Height); // Standard icon size
             
             _output.WriteLine($"✅ Source icon: {sourceIcon.Width}x{sourceIcon.Height}");
             _output.WriteLine($"✅ Window icon: {windowIcon.PixelWidth}x{windowIcon.PixelHeight}");

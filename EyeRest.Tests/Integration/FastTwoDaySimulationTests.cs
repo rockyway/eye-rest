@@ -27,7 +27,7 @@ namespace EyeRest.Tests.Integration
         private readonly Mock<IConfigurationService> _configMock;
         private readonly Mock<IPauseReminderService> _pauseReminderMock;
         private readonly AppConfiguration _configuration;
-        private TimerService _timerService;
+        private TimerService _timerService = null!;
         
         // Virtual time tracking
         private DateTime _virtualTime;

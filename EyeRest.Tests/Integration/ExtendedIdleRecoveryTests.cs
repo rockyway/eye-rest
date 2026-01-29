@@ -83,9 +83,9 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Timer service started successfully")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.AtLeastOnce);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("Timer service started successfully")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.AtLeastOnce);
 
             // Act: Simulate short idle (2 minutes - less than extended away threshold)
             await _timerService.SmartPauseAsync("User idle - short break");
@@ -117,9 +117,9 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART RESUME: Restored eye rest timer interval")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART RESUME: Restored eye rest timer interval")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }
 
         [Fact]
@@ -135,9 +135,9 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Timer service started successfully")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.AtLeastOnce);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("Timer service started successfully")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.AtLeastOnce);
 
             // Act: Simulate extended idle (10 minutes - more than 5 minute threshold)
             await _timerService.SmartPauseAsync("User idle - extended away");
@@ -174,9 +174,9 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART SESSION RESET COMPLETED")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART SESSION RESET COMPLETED")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }
 
         [Fact]
@@ -207,16 +207,16 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART RESUME FIX: Eye rest timer is null or disabled")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART RESUME FIX: Eye rest timer is null or disabled")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
                 
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART RESUME FIX: Break timer is null or disabled")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART RESUME FIX: Break timer is null or disabled")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }
 
         [Fact]
@@ -243,16 +243,16 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("TIMER STATE FAILURE")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("TIMER STATE FAILURE")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
                 
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("TIMER STATE RECOVERY")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("TIMER STATE RECOVERY")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }
 
         [Fact]
@@ -281,16 +281,16 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART SESSION RESET FIX: Eye rest timer is null")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART SESSION RESET FIX: Eye rest timer is null")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
                 
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART SESSION RESET FIX: Break timer is null")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART SESSION RESET FIX: Break timer is null")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }
 
         [Fact]
@@ -343,9 +343,9 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART SESSION RESET COMPLETED")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART SESSION RESET COMPLETED")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }
 
         [Fact]
@@ -383,9 +383,9 @@ namespace EyeRest.Tests.Integration
             _mockLogger.Verify(x => x.Log(
                 LogLevel.Critical,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SMART PAUSE: Preserved eye rest remaining time")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.Is<It.IsAnyType>((v, t) => (v.ToString() ?? "").Contains("SMART PAUSE: Preserved eye rest remaining time")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }
     }
 }

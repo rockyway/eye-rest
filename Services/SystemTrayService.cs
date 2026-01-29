@@ -224,7 +224,7 @@ namespace EyeRest.Services
                     _pauseMenuItem.Enabled = true;
                     _pauseMenuItem.Text = "⏸️ Pause Timers";
                     _resumeMenuItem.Enabled = false;
-                    _pauseForMeetingMenuItem.Enabled = true;
+                    if (_pauseForMeetingMenuItem != null) _pauseForMeetingMenuItem.Enabled = true;
                     break;
                     
                 case TrayIconState.Paused:
@@ -246,7 +246,7 @@ namespace EyeRest.Services
                     _pauseMenuItem.Text = "⏸️ Meeting Pause (Manual)";
                     _resumeMenuItem.Enabled = true;
                     _resumeMenuItem.Text = "▶️ Resume Timers";
-                    _pauseForMeetingMenuItem.Enabled = false;
+                    if (_pauseForMeetingMenuItem != null) _pauseForMeetingMenuItem.Enabled = false;
                     break;
                     
                 case TrayIconState.MeetingMode:
@@ -437,23 +437,10 @@ namespace EyeRest.Services
         
         private void OnExit(object? sender, EventArgs e)
         {
-            // Show confirmation dialog
-            var result = MessageBox.Show(
-                "Are you sure you want to exit EyeRest?\n\nThis will stop all break reminders.",
-                "Confirm Exit",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2);
-            
-            if (result == DialogResult.Yes)
-            {
-                _logger.LogInformation("🎛️ User confirmed exit from system tray - shutting down application");
-                System.Windows.Application.Current.Shutdown();
-            }
-            else
-            {
-                _logger.LogInformation("🎛️ User cancelled exit from system tray");
-            }
+            // Just raise the exit event - confirmation is handled by App.xaml.cs OnExitRequested
+            // This avoids showing duplicate confirmation dialogs
+            _logger.LogInformation("🎛️ Exit requested from system tray - delegating to ExitRequested handler");
+            ExitRequested?.Invoke(this, EventArgs.Empty);
         }
 
         public void Dispose()

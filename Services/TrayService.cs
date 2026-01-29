@@ -37,7 +37,7 @@ namespace EyeRest.Services
             _notifyIcon.Visible = true;
         }
 
-        private void OnWindowStateChanged(object sender, EventArgs e)
+        private void OnWindowStateChanged(object? sender, EventArgs e)
         {
             if (_mainWindow?.WindowState == WindowState.Minimized)
             {
@@ -45,17 +45,17 @@ namespace EyeRest.Services
             }
         }
 
-        private void OnNotifyIconDoubleClick(object sender, EventArgs e)
+        private void OnNotifyIconDoubleClick(object? sender, EventArgs e)
         {
             ShowRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        private void OnShowClicked(object sender, EventArgs e)
+        private void OnShowClicked(object? sender, EventArgs e)
         {
             ShowRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        private void OnExitClicked(object sender, EventArgs e)
+        private void OnExitClicked(object? sender, EventArgs e)
         {
             ExitRequested?.Invoke(this, EventArgs.Empty);
         }

@@ -118,6 +118,7 @@ namespace EyeRest.ViewModels
             PauseTimersCommand = new RelayCommand(async () => await PauseTimers(), () => CanPauseTimers);
             ResumeTimersCommand = new RelayCommand(async () => await ResumeTimers(), () => CanResumeTimers);
             PauseForMeetingCommand = new RelayCommand(async () => await PauseForMeeting(), () => CanPauseMeeting);
+            PauseForMeeting1hCommand = new RelayCommand(async () => await PauseForMeeting1h(), () => CanPauseMeeting);
             
             ExitApplicationCommand = new RelayCommand(ExitApplication);
             ShowAnalyticsCommand = new RelayCommand(ShowAnalyticsWindow);
@@ -538,10 +539,45 @@ namespace EyeRest.ViewModels
 
         // NEW: Can-Execute Properties for Pause/Resume Commands
         public bool CanPauseTimers => _timerService.IsRunning && !_timerService.IsPaused && !_timerService.IsSmartPaused && !_timerService.IsManuallyPaused;
-        
+
         public bool CanResumeTimers => _timerService.IsRunning && (_timerService.IsPaused || _timerService.IsManuallyPaused);
-        
+
         public bool CanPauseMeeting => _timerService.IsRunning && !_timerService.IsManuallyPaused;
+
+        // Tooltip Properties for Control Buttons
+        public string StartButtonTooltip => _timerService.IsRunning
+            ? "Timers are already running"
+            : "Start the eye rest and break timers";
+
+        public string StopButtonTooltip => !_timerService.IsRunning
+            ? "Timers are not running"
+            : "Stop all timers";
+
+        public string PauseButtonTooltip => !CanPauseTimers
+            ? (_timerService.IsPaused || _timerService.IsManuallyPaused
+                ? "Timers are already paused"
+                : !_timerService.IsRunning
+                    ? "Timers are not running"
+                    : "Cannot pause timers")
+            : "Pause timers manually (can be resumed anytime)";
+
+        public string ResumeButtonTooltip => !CanResumeTimers
+            ? (!_timerService.IsRunning
+                ? "Timers are not running"
+                : "Timers are not paused")
+            : "Resume paused timers";
+
+        public string Meeting30mButtonTooltip => !CanPauseMeeting
+            ? (!_timerService.IsRunning
+                ? "Timers are not running"
+                : "Meeting pause is already active")
+            : "Pause timers for 30 minutes for meetings (auto-resumes)";
+
+        public string Meeting1hButtonTooltip => !CanPauseMeeting
+            ? (!_timerService.IsRunning
+                ? "Timers are not running"
+                : "Meeting pause is already active")
+            : "Pause timers for 1 hour for meetings (auto-resumes)";
 
         // Error Indicator Properties
         public string ErrorMessage
@@ -735,6 +771,7 @@ namespace EyeRest.ViewModels
         public ICommand PauseTimersCommand { get; }
         public ICommand ResumeTimersCommand { get; }
         public ICommand PauseForMeetingCommand { get; }
+        public ICommand PauseForMeeting1hCommand { get; }
         
         public ICommand ExitApplicationCommand { get; }
         public ICommand ShowAnalyticsCommand { get; }
@@ -1110,17 +1147,36 @@ namespace EyeRest.ViewModels
         {
             try
             {
+                // Show confirmation dialog before restoring defaults
+                var result = MessageBox.Show(
+                    "Are you sure you want to restore all settings to defaults? This cannot be undone.",
+                    "Restore Defaults",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    _logger.LogInformation("User cancelled restore defaults");
+                    return;
+                }
+
                 var defaultConfig = await _configurationService.GetDefaultConfiguration();
                 _configuration = defaultConfig;
                 UpdatePropertiesFromConfiguration();
                 CheckForChanges();
-                
-                _logger.LogInformation("Settings restored to defaults");
+
+                // Save the restored defaults
+                await _configurationService.SaveConfigurationAsync(_configuration);
+                _originalConfiguration = CloneConfiguration(_configuration);
+
+                _logger.LogInformation("Settings restored to defaults and saved");
+                MessageBox.Show("All settings have been restored to their default values.",
+                    "Restore Complete", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to restore default settings");
-                MessageBox.Show("Failed to restore default settings.", "Error", 
+                MessageBox.Show("Failed to restore default settings.", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1200,7 +1256,7 @@ namespace EyeRest.ViewModels
                 UpdateTimerStatus();
                 RefreshCanExecuteStates();
                 _logger.LogInformation("Timers paused for 30-minute meeting from UI");
-                
+
                 // Show confirmation to user
                 MessageBox.Show("Timers paused for 30 minutes.\nThey will automatically resume when the time is up.",
                     "Meeting Pause Active", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1213,11 +1269,40 @@ namespace EyeRest.ViewModels
             }
         }
 
+        private async Task PauseForMeeting1h()
+        {
+            try
+            {
+                await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(60), "Manual 1-hour meeting pause from UI");
+                UpdateTimerStatus();
+                RefreshCanExecuteStates();
+                _logger.LogInformation("Timers paused for 60-minute meeting from UI");
+
+                // Show confirmation to user
+                MessageBox.Show("Timers paused for 1 hour.\nThey will automatically resume when the time is up.",
+                    "Meeting Pause Active", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to pause timers for 1-hour meeting");
+                MessageBox.Show("Failed to pause timers for meeting.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void RefreshCanExecuteStates()
         {
             OnPropertyChanged(nameof(CanPauseTimers));
             OnPropertyChanged(nameof(CanResumeTimers));
             OnPropertyChanged(nameof(CanPauseMeeting));
+
+            // Also refresh tooltips since they depend on state
+            OnPropertyChanged(nameof(StartButtonTooltip));
+            OnPropertyChanged(nameof(StopButtonTooltip));
+            OnPropertyChanged(nameof(PauseButtonTooltip));
+            OnPropertyChanged(nameof(ResumeButtonTooltip));
+            OnPropertyChanged(nameof(Meeting30mButtonTooltip));
+            OnPropertyChanged(nameof(Meeting1hButtonTooltip));
         }
 
         private void OnTimerServicePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -2131,8 +2216,8 @@ namespace EyeRest.ViewModels
         private void DebouncedSaveTimerSetting()
         {
             // Reset the timer - this delays the actual save until user stops typing
-            _settingsDebounceTimer.Stop();
-            _settingsDebounceTimer.Start();
+            _settingsDebounceTimer?.Stop();
+            _settingsDebounceTimer?.Start();
             _logger.LogInformation("🔧 Settings changed - debouncing timer restart...");
         }
 

@@ -317,8 +317,8 @@ namespace EyeRest.Services
                 PauseDuration = pauseDuration,
                 PauseReason = _currentPauseReason,
                 RemindersShown = _reminderCount,
-                NextReminderTime = isPaused ? 
-                    _pauseStartTime.Value.AddHours((_reminderCount + 1) * _settings.PauseReminderIntervalHours) : 
+                NextReminderTime = isPaused ?
+                    _pauseStartTime!.Value.AddHours((_reminderCount + 1) * _settings.PauseReminderIntervalHours) :
                     null,
                 TimeUntilAutoResume = timeUntilAutoResume,
                 IsNearingAutoResume = timeUntilAutoResume.TotalHours <= 1
@@ -414,10 +414,8 @@ namespace EyeRest.Services
         {
             try
             {
-                // Set application identifier for Windows Toast notifications
-                var appId = "EyeRestApplication";
-                
-                // This would typically require app registration, but for development we'll use a basic approach
+                // Windows Toast notification system initialization
+                // Note: Full app registration requires more setup, using basic approach for development
                 _logger.LogInformation("🔔 Windows Toast notification system initialized");
             }
             catch (Exception ex)

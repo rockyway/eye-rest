@@ -285,11 +285,12 @@ namespace EyeRest
         {
             // Show confirmation dialog for system tray exit
             var result = MessageBox.Show(
-                "Are you sure you want to exit Eye-rest?",
+                "Are you sure you want to exit Eye-rest?\n\nThis will stop all break reminders.",
                 "Confirm Exit",
                 MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-            
+                MessageBoxImage.Question,
+                MessageBoxResult.No);
+
             if (result == MessageBoxResult.No)
             {
                 return; // User cancelled exit

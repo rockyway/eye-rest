@@ -11,7 +11,7 @@ namespace EyeRest.Tests
     /// </summary>
     public class UITestExecutor
     {
-        public static async Task<int> Main(string[] args)
+        public static async Task<int> RunUITests(string[] args)
         {
             Console.WriteLine("🖥️ EyeRest UI Test Suite");
             Console.WriteLine("========================");

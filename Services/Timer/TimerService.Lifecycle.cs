@@ -43,8 +43,8 @@ namespace EyeRest.Services
                 // CRITICAL FIX: Use the intervals that were already calculated during initialization
                 // The timers already have the correct intervals set (reduced for warnings if enabled)
                 // Store the timer intervals for reference, but don't override them
-                _eyeRestInterval = _eyeRestTimer.Interval;
-                _breakInterval = _breakTimer.Interval;
+                _eyeRestInterval = _eyeRestTimer!.Interval;
+                _breakInterval = _breakTimer!.Interval;
 
                 // Log the actual intervals being used
                 _logger.LogInformation("📊 Timer intervals after initialization - Eye rest: {EyeRestInterval:F1}m, Break: {BreakInterval:F1}m",
@@ -84,19 +84,12 @@ namespace EyeRest.Services
                 // Mark initial startup as complete (set after timers are running)
                 _hasCompletedInitialStartup = true;
                 
-                // CRITICAL FIX: Delay initialization of fallback timers to avoid early triggers
-                // Start them after a short delay when system is stable
-                Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
-                {
-                    if (IsRunning)
-                    {
-                        _logger.LogInformation("🔧 Initializing fallback timers after startup delay");
-                        InitializeEyeRestFallbackTimer();
-                        InitializeBreakFallbackTimer();
-                        _eyeRestFallbackTimer?.Start();
-                        _breakFallbackTimer?.Start();
-                    }
-                }, TaskScheduler.FromCurrentSynchronizationContext());
+                // CONSOLIDATION FIX: Removed redundant fallback timers (_eyeRestFallbackTimer, _breakFallbackTimer)
+                // These were causing duplicate event triggers because they fired 5 seconds after main timers.
+                // Protection is now provided by:
+                // 1. Warning fallback timers (fire 2s after warning period if warning timer fails)
+                // 2. Health monitor (emergency backup for truly stuck timers)
+                // This eliminates the "7+ timer systems" race condition.
                 
                 await _analyticsService.RecordSessionStartAsync();
                 
@@ -160,21 +153,23 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation("🔄 Resetting eye rest timer");
-                
+
                 if (_eyeRestTimer != null)
                 {
                     _eyeRestTimer.Stop();
-                    
+
                     // Clear notification state
                     _isEyeRestNotificationActive = false;
-                    
-                    // CRITICAL FIX: Use FULL interval consistently - warning is handled by separate warning timer
-                    _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes);
+
+                    // CRITICAL FIX: Use shared calculation method for consistency with initialization
+                    // This ensures warning time is properly subtracted so the timer fires at the correct time
+                    var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateEyeRestTimerInterval();
+                    _eyeRestInterval = interval;
                     _eyeRestTimer.Interval = _eyeRestInterval;
-                    
+
                     // Clear any remaining time
                     _eyeRestRemainingTime = TimeSpan.Zero;
-                    
+
                     // Start if not paused
                     if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
                     {
@@ -183,11 +178,20 @@ namespace EyeRest.Services
                     }
                     else
                     {
-                        // Store the full interval as remaining time for when we resume
+                        // Store the calculated interval as remaining time for when we resume
                         _eyeRestRemainingTime = _eyeRestInterval;
                     }
-                    
-                    _logger.LogInformation("Eye rest timer reset to {Minutes} minutes", _configuration.EyeRest.IntervalMinutes);
+
+                    if (isReduced)
+                    {
+                        _logger.LogInformation("Eye rest timer reset - REDUCED interval: {IntervalMinutes:F1}m (triggers warning {WarningSeconds}s before {TotalMinutes}min target)",
+                            _eyeRestInterval.TotalMinutes, warningSeconds, totalMinutes);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Eye rest timer reset - FULL interval: {IntervalMinutes:F1}m (warnings disabled)",
+                            _eyeRestInterval.TotalMinutes);
+                    }
                 }
             }
             catch (Exception ex)
@@ -202,22 +206,24 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation("🔄 Resetting break timer");
-                
+
                 if (_breakTimer != null)
                 {
                     _breakTimer.Stop();
-                    
+
                     // Clear notification and delay states
                     _isBreakNotificationActive = false;
                     IsBreakDelayed = false;
-                    
-                    // CRITICAL FIX: Use FULL interval consistently - warning is handled by separate warning timer
-                    _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes);
+
+                    // CRITICAL FIX: Use shared calculation method for consistency with initialization
+                    // This ensures warning time is properly subtracted so the timer fires at the correct time
+                    var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
+                    _breakInterval = interval;
                     _breakTimer.Interval = _breakInterval;
-                    
+
                     // Clear any remaining time
                     _breakRemainingTime = TimeSpan.Zero;
-                    
+
                     // Start if not paused
                     if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
                     {
@@ -227,11 +233,20 @@ namespace EyeRest.Services
                     }
                     else
                     {
-                        // Store the full interval as remaining time for when we resume
+                        // Store the calculated interval as remaining time for when we resume
                         _breakRemainingTime = _breakInterval;
                     }
-                    
-                    _logger.LogInformation("Break timer reset to {Minutes} minutes", _configuration.Break.IntervalMinutes);
+
+                    if (isReduced)
+                    {
+                        _logger.LogInformation("Break timer reset - REDUCED interval: {IntervalMinutes:F1}m (triggers warning {WarningSeconds}s before {TotalMinutes}min target)",
+                            _breakInterval.TotalMinutes, warningSeconds, totalMinutes);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Break timer reset - FULL interval: {IntervalMinutes:F1}m (warnings disabled)",
+                            _breakInterval.TotalMinutes);
+                    }
                 }
             }
             catch (Exception ex)
@@ -375,14 +390,8 @@ namespace EyeRest.Services
                     _logger.LogInformation("🔧 Eye rest WARNING timer FORCE-STOPPED during break delay (was {State})", wasEnabled ? "running" : "stopped");
                 }
 
-                // CRITICAL FIX: FORCE stop fallback timers (ALWAYS, not conditionally)
-                if (_eyeRestFallbackTimer != null)
-                {
-                    var wasEnabled = _eyeRestFallbackTimer.IsEnabled;
-                    _eyeRestFallbackTimer.Stop();
-                    _logger.LogInformation("🔧 Eye rest FALLBACK timer FORCE-STOPPED during break delay (was {State})", wasEnabled ? "running" : "stopped");
-                }
-
+                // CONSOLIDATION: _eyeRestFallbackTimer removed (was causing race conditions)
+                // Warning fallback timer still needed to protect warning phase
                 if (_eyeRestWarningFallbackTimer != null)
                 {
                     var wasEnabled = _eyeRestWarningFallbackTimer.IsEnabled;
@@ -457,13 +466,29 @@ namespace EyeRest.Services
 
                     if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
                     {
-                        // Trigger break immediately after delay
-                        _logger.LogInformation("Delay period ended - triggering break now");
-                        TriggerBreak();
+                        // CRITICAL FIX: Use warning flow instead of direct TriggerBreak()
+                        // This ensures users get the 30-second warning before break starts,
+                        // maintaining consistent user experience regardless of how break was initiated
+                        _logger.LogInformation("Delay period ended - starting break warning flow for consistent user experience");
 
-                        // CRITICAL FIX: Resume eye rest timer after break delay ends
-                        // The eye rest timer will be properly coordinated when break starts
-                        // (it gets paused again during the actual break via _eyeRestTimerPausedForBreak)
+                        // Check if warnings are enabled
+                        var warningEnabled = _configuration?.Break?.WarningEnabled ?? true;
+                        var warningSeconds = _configuration?.Break?.WarningSeconds ?? 30;
+
+                        if (warningEnabled && warningSeconds > 0)
+                        {
+                            // Use the proper warning flow
+                            StartBreakWarningTimer();
+                        }
+                        else
+                        {
+                            // Warnings disabled - trigger break directly
+                            _logger.LogInformation("Break warnings disabled - triggering break directly after delay");
+                            TriggerBreak();
+                        }
+
+                        // Note: Eye rest timer coordination is handled by SmartPauseEyeRestTimerForBreak()
+                        // which is called in TriggerBreakWarning() and TriggerBreak()
                     }
                 };
 

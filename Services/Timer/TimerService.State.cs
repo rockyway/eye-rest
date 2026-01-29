@@ -11,17 +11,40 @@ namespace EyeRest.Services
     public partial class TimerService
     {
         #region Core Timer Objects
-        
+
+        // TIMER ARCHITECTURE (after consolidation):
+        // =========================================
+        // 1. Main timers: _eyeRestTimer, _breakTimer
+        //    - Fire at configured intervals (minus warning time)
+        //    - Start warning countdown when they fire
+        //
+        // 2. Warning timers: _eyeRestWarningTimer, _breakWarningTimer
+        //    - 100ms tick interval for countdown display
+        //    - Trigger popup when countdown completes
+        //
+        // 3. Warning fallback timers: _eyeRestWarningFallbackTimer, _breakWarningFallbackTimer
+        //    - Fire 2s after warning period if warning timer fails
+        //    - Ensures popup always shows even if warning timer hangs
+        //
+        // 4. Health monitor: _healthMonitorTimer
+        //    - Emergency backup (fires only when heartbeat stale >2min)
+        //    - Detects completely stuck timer infrastructure
+        //
+        // REMOVED (to prevent race conditions):
+        // - _eyeRestFallbackTimer, _breakFallbackTimer were removed
+        //   (they fired 5s after expected, causing duplicate triggers)
+
         private ITimer? _eyeRestTimer;
         private ITimer? _eyeRestWarningTimer;
         private ITimer? _breakTimer;
         private ITimer? _breakWarningTimer;
-        
-        // Fallback timers to prevent stuck state
+
+        // DEPRECATED: These fallback timers are no longer used to prevent race conditions
+        // Kept as fields for backward compatibility with Dispose() cleanup
         private ITimer? _eyeRestFallbackTimer;
         private ITimer? _breakFallbackTimer;
 
-        // Warning countdown fallback timers (to prevent ghost timers)
+        // Warning countdown fallback timers (active - provide backup for warning phase)
         private DispatcherTimer? _eyeRestWarningFallbackTimer;
         private DispatcherTimer? _breakWarningFallbackTimer;
         
@@ -71,12 +94,13 @@ namespace EyeRest.Services
         private bool _breakTimerPausedForEyeRest;
 
         // Processing state to prevent backup trigger race conditions
-        private bool _isEyeRestEventProcessing;
-        private bool _isBreakEventProcessing;
+        // Using volatile for visibility across threads, combined with Interlocked operations for atomicity
+        private volatile bool _isEyeRestEventProcessing;
+        private volatile bool _isBreakEventProcessing;
 
         // Warning processing state to prevent duplicate warning triggers
-        private bool _isEyeRestWarningProcessing;
-        private bool _isBreakWarningProcessing;
+        private volatile bool _isEyeRestWarningProcessing;
+        private volatile bool _isBreakWarningProcessing;
 
         // THREAD SAFETY: Static locks to prevent ALL timer systems from interfering
         private static readonly object _globalEyeRestLock = new object();
@@ -89,6 +113,12 @@ namespace EyeRest.Services
         private static readonly object _globalBreakWarningLock = new object();
         private static volatile bool _isAnyEyeRestWarningProcessing = false;
         private static volatile bool _isAnyBreakWarningProcessing = false;
+
+        // ATOMIC FLAG OPERATIONS: Use integer for Interlocked operations (0 = false, 1 = true)
+        private static int _atomicEyeRestProcessing = 0;
+        private static int _atomicBreakProcessing = 0;
+        private static int _atomicEyeRestWarningProcessing = 0;
+        private static int _atomicBreakWarningProcessing = 0;
         
         // Clock jump detection fields
         private DateTime _lastEyeRestTick = DateTime.MinValue;

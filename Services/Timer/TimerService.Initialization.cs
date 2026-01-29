@@ -93,134 +93,32 @@ namespace EyeRest.Services
 
         #endregion
 
-        #region Fallback Timer Initialization
+        #region Fallback Timer Initialization (DEPRECATED)
+
+        // CONSOLIDATION FIX: These fallback timers have been deprecated/removed.
+        // They were causing duplicate event triggers by firing 5 seconds after main timers.
+        //
+        // Timer protection is now provided by:
+        // 1. Warning fallback timers (_eyeRestWarningFallbackTimer, _breakWarningFallbackTimer)
+        //    - Fire 2s after warning period if warning timer fails
+        // 2. Health monitor (OnHealthMonitorTick)
+        //    - Emergency backup for truly stuck timers (>10 minutes without heartbeat)
+        //
+        // Methods kept for backward compatibility but are no-ops:
 
         private void InitializeEyeRestFallbackTimer()
         {
-            if (_eyeRestFallbackTimer == null)
-            {
-                _eyeRestFallbackTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
-                
-                // Set to trigger 5 seconds after the expected time
-                var totalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;
-                var fallbackInterval = TimeSpan.FromMinutes(totalMinutes).Add(TimeSpan.FromSeconds(5));
-                
-                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
-                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
-                if (fallbackInterval > maxInterval)
-                {
-                    _logger.LogWarning("⚠️ Eye rest fallback interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
-                        fallbackInterval.TotalMinutes, maxInterval.TotalMinutes);
-                    fallbackInterval = maxInterval;
-                }
-                
-                _eyeRestFallbackTimer.Interval = fallbackInterval;
-                _eyeRestFallbackTimer.Tick += OnEyeRestFallbackTimerTick;
-                
-                _logger.LogInformation("👁️ Eye rest fallback timer initialized - will trigger at {Minutes}m + 5s if primary fails", 
-                    totalMinutes);
-            }
+            // DEPRECATED: No longer creates fallback timer to prevent race conditions
+            _logger.LogDebug("👁️ Eye rest fallback timer initialization skipped (consolidated into warning fallback + health monitor)");
         }
 
         private void InitializeBreakFallbackTimer()
         {
-            if (_breakFallbackTimer == null)
-            {
-                _breakFallbackTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
-                
-                // Set to trigger 5 seconds after the expected time
-                var totalMinutes = _configuration?.Break?.IntervalMinutes ?? 55;
-                var fallbackInterval = TimeSpan.FromMinutes(totalMinutes).Add(TimeSpan.FromSeconds(5));
-                
-                // CRITICAL FIX: Validate interval doesn't exceed DispatcherTimer maximum capacity
-                var maxInterval = TimeSpan.FromMilliseconds(int.MaxValue);
-                if (fallbackInterval > maxInterval)
-                {
-                    _logger.LogWarning("⚠️ Break fallback interval {TotalMinutes}m exceeds DispatcherTimer max capacity. Clamping to {MaxMinutes}m", 
-                        fallbackInterval.TotalMinutes, maxInterval.TotalMinutes);
-                    fallbackInterval = maxInterval;
-                }
-                
-                _breakFallbackTimer.Interval = fallbackInterval;
-                _breakFallbackTimer.Tick += OnBreakFallbackTimerTick;
-                
-                _logger.LogInformation("☕ Break fallback timer initialized - will trigger at {Minutes}m + 5s if primary fails", 
-                    totalMinutes);
-            }
+            // DEPRECATED: No longer creates fallback timer to prevent race conditions
+            _logger.LogDebug("☕ Break fallback timer initialization skipped (consolidated into warning fallback + health monitor)");
         }
 
-        private void OnEyeRestFallbackTimerTick(object? sender, EventArgs e)
-        {
-            try
-            {
-                _logger.LogWarning("⚠️ FALLBACK: Eye rest timer didn't fire on time - forcing trigger");
-                UpdateHeartbeatFromOperation("EyeRestFallback");
-                
-                _eyeRestFallbackTimer?.Stop();
-                
-                // Force trigger eye rest if not already active
-                if (!_isEyeRestNotificationActive)
-                {
-                    // TIMELINE FIX: Check if enough time has passed since last trigger
-                    if (!ShouldAllowEyeRestFallback())
-                    {
-                        _logger.LogInformation("🕒 INIT FALLBACK BLOCKED: Eye rest initialization fallback blocked - insufficient time since last trigger");
-                    }
-                    // BREAK PRIORITY FIX: Check break priority before initialization fallback trigger
-                    else if (_isBreakNotificationActive || _isBreakWarningProcessing || _isAnyBreakWarningProcessing ||
-                        _isBreakEventProcessing || _isAnyBreakEventProcessing)
-                    {
-                        _logger.LogInformation("🔄 INIT FALLBACK BLOCKED: Eye rest initialization fallback blocked - break event has priority. Pausing eye rest timer.");
-                        SmartPauseEyeRestTimerForBreak();
-                    }
-                    else
-                    {
-                        TriggerEyeRest();
-                        _logger.LogInformation("✅ FALLBACK: Eye rest triggered successfully");
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation("ℹ️ FALLBACK: Eye rest already active, skipping");
-                }
-                
-                // Reset fallback timer for next cycle
-                _eyeRestFallbackTimer?.Start();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in eye rest fallback timer");
-            }
-        }
-
-        private void OnBreakFallbackTimerTick(object? sender, EventArgs e)
-        {
-            try
-            {
-                _logger.LogWarning("⚠️ FALLBACK: Break timer didn't fire on time - forcing trigger");
-                UpdateHeartbeatFromOperation("BreakFallback");
-                
-                _breakFallbackTimer?.Stop();
-                
-                // Force trigger break if not already active
-                if (!_isBreakNotificationActive && !IsBreakDelayed)
-                {
-                    TriggerBreak();
-                    _logger.LogInformation("✅ FALLBACK: Break triggered successfully");
-                }
-                else
-                {
-                    _logger.LogInformation("ℹ️ FALLBACK: Break already active or delayed, skipping");
-                }
-                
-                // Reset fallback timer for next cycle
-                _breakFallbackTimer?.Start();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in break fallback timer");
-            }
-        }
+        // Event handlers removed - no longer needed
 
         #endregion
     }

@@ -21,7 +21,9 @@ namespace EyeRest.Tests.UI
     {
         private Application? _application;
         private Window? _mainWindow;
+#pragma warning disable CS0169 // Field is never used - reserved for future process tracking
         private Process? _applicationProcess;
+#pragma warning restore CS0169
         private readonly string _applicationPath;
         private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(10);
         

@@ -14,6 +14,15 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
 
+    <!-- Application icon for taskbar and explorer -->
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
+
+    <!-- Treat warnings as errors for code quality -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Suppress NuGet package compatibility warnings for legacy .NET Framework packages -->
+    <NoWarn>NU1701</NoWarn>
+    <!-- High DPI mode configuration -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <ItemGroup>

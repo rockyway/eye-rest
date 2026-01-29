@@ -261,8 +261,17 @@ namespace EyeRest.Services
                 }
                 
                 // BACKUP TRIGGER SYSTEM: Fire overdue events if no active popups
-                // This catches cases where timer recovery doesn't help but events still need to fire
-                // CRITICAL FIX: Also trigger when timer service is stopped (!IsRunning) with overdue events
+                // CONSOLIDATION FIX: This is now the ONLY backup trigger system after removing fallback timers.
+                // It should only trigger in true emergency scenarios (timers completely stuck).
+                //
+                // Previous systems removed to prevent race conditions:
+                // - _eyeRestFallbackTimer, _breakFallbackTimer (fired 5s after expected)
+                //
+                // This system only triggers when:
+                // 1. Timer is truly overdue (past FULL interval, not just warning period)
+                // 2. No heartbeat for extended period (indicating true timer failure)
+                // 3. No active popups or processing in progress
+                //
                 // Use direct timer state check instead of TimeUntil* since those now return defaults when !IsRunning
                 var serviceStoppedWithDueEvents = !IsRunning && (eyeRestOverdue || breakOverdue);
                 var serviceRunningButNotPaused = IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && !IsBreakDelayed;
@@ -270,15 +279,21 @@ namespace EyeRest.Services
                 if (!hangDetected && (serviceRunningButNotPaused || serviceStoppedWithDueEvents))
                 {
                     var hasActivePopups = _notificationService?.IsAnyPopupActive ?? false;
+
+                    // CONSOLIDATION FIX: Add additional heartbeat staleness check to prevent normal operation triggers
+                    // Only trigger backup if heartbeat is stale (indicating timer infrastructure failure)
+                    // This prevents race conditions where main timer is about to fire
+                    var heartbeatStaleForBackup = timeSinceLastHeartbeat.TotalMinutes >= 2.0;
+
                     // For running service, check TimeUntil* properties. For stopped service, check direct overdue state
                     // THREAD SAFETY: Check both instance and global processing flags to prevent ALL race conditions
                     // ENHANCED: Also check warning processing flags to prevent interference with warning systems
                     // CRITICAL FIX: Account for warning periods when determining if fallback trigger is needed
-                    var needsEyeRestTrigger = IsRunning ? (IsEyeRestTrulyOverdue() && !_isEyeRestNotificationActive && !_isEyeRestEventProcessing && !_isAnyEyeRestEventProcessing && !_isEyeRestWarningProcessing && !_isAnyEyeRestWarningProcessing) :
+                    var needsEyeRestTrigger = IsRunning ? (IsEyeRestTrulyOverdue() && !_isEyeRestNotificationActive && !_isEyeRestEventProcessing && !_isAnyEyeRestEventProcessing && !_isEyeRestWarningProcessing && !_isAnyEyeRestWarningProcessing && heartbeatStaleForBackup) :
                                              (eyeRestOverdue && !_isEyeRestNotificationActive && !_isEyeRestEventProcessing && !_isAnyEyeRestEventProcessing && !_isEyeRestWarningProcessing && !_isAnyEyeRestWarningProcessing);
-                    var needsBreakTrigger = IsRunning ? (IsBreakTrulyOverdue() && !_isBreakNotificationActive && !_isBreakEventProcessing && !_isAnyBreakEventProcessing && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing) :
+                    var needsBreakTrigger = IsRunning ? (IsBreakTrulyOverdue() && !_isBreakNotificationActive && !_isBreakEventProcessing && !_isAnyBreakEventProcessing && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing && heartbeatStaleForBackup) :
                                            (breakOverdue && !_isBreakNotificationActive && !_isBreakEventProcessing && !_isAnyBreakEventProcessing && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing);
-                    
+
                     // CRITICAL FIX: Add startup grace period check to prevent early triggers
                     var serviceUptime = DateTime.Now - (_eyeRestStartTime != DateTime.MinValue ? _eyeRestStartTime : DateTime.Now);
                     if (serviceUptime < TimeSpan.FromSeconds(30))
@@ -286,7 +301,7 @@ namespace EyeRest.Services
                         _logger.LogInformation($"🛡️ STARTUP PROTECTION: Ignoring backup triggers during startup grace period (uptime={serviceUptime.TotalSeconds:F1}s)");
                         return;
                     }
-                    
+
                     if ((needsEyeRestTrigger || needsBreakTrigger) && !hasActivePopups)
                     {
                         var triggerReason = serviceStoppedWithDueEvents ? "SERVICE_STOPPED_WITH_DUE_EVENTS" : "SERVICE_RUNNING_BUT_NO_POPUPS";
@@ -315,8 +330,8 @@ namespace EyeRest.Services
                                 // This prevents double triggers when backup system manually triggers
                                 var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateEyeRestTimerInterval();
                                 _eyeRestInterval = interval;
-                                _eyeRestTimer.Interval = _eyeRestInterval;
-                                _eyeRestTimer.Start();
+                                _eyeRestTimer!.Interval = _eyeRestInterval;
+                                _eyeRestTimer!.Start();
                                 _eyeRestStartTime = DateTime.Now;
 
                                 _logger.LogCritical("🔄 BACKUP RESET: Eye rest timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
@@ -333,8 +348,8 @@ namespace EyeRest.Services
                             // This prevents double triggers when backup system manually triggers
                             var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
                             _breakInterval = interval;
-                            _breakTimer.Interval = _breakInterval;
-                            _breakTimer.Start();
+                            _breakTimer!.Interval = _breakInterval;
+                            _breakTimer!.Start();
                             _breakStartTime = DateTime.Now;
 
                             _logger.LogCritical("🔄 BACKUP RESET: Break timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
@@ -1379,14 +1394,15 @@ namespace EyeRest.Services
         private void RecreateTimerInstances()
         {
             _logger.LogInformation($"🔄 Recreating fresh timer instances");
-            
-            // Recreate all timers
+
+            // Recreate core timers only (fallback timers deprecated to prevent race conditions)
             InitializeEyeRestTimer();
             InitializeBreakTimer();
             InitializeEyeRestWarningTimer();
             InitializeBreakWarningTimer();
-            InitializeEyeRestFallbackTimer();
-            InitializeBreakFallbackTimer();
+
+            // Note: Eye rest/break fallback timers removed to consolidate timer systems
+            // Protection now provided by warning fallback timers + health monitor
         }
 
         private void CompensateElapsedTime(TimeSpan eyeRestElapsed, TimeSpan breakElapsed)
