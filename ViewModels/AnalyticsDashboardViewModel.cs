@@ -1450,6 +1450,8 @@ namespace EyeRest.ViewModels
     {
         public int Days { get; set; }
         public string DisplayName { get; set; } = string.Empty;
+
+        public override string ToString() => DisplayName;
     }
 
     #endregion

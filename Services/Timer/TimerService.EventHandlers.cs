@@ -531,10 +531,20 @@ namespace EyeRest.Services
                 _logger.LogInformation("🔄 BREAK PRIORITY: Ensuring eye rest timer is paused during break popup");
                 SmartPauseEyeRestTimerForBreak();
 
+                // CRITICAL FIX: Stop ALL warning timers during break popup to prevent any other popup from firing
+                // This ensures no eye rest reminder interrupts the break
+                _logger.LogInformation("🔄 BREAK PRIORITY: Stopping all warning timers during break popup");
+                _eyeRestWarningTimer?.Stop();
+                _eyeRestWarningFallbackTimer?.Stop();
+                _eyeRestWarningFallbackTimer = null;
+                _isEyeRestNotificationActive = false;
+                ClearEyeRestWarningProcessingFlag();
+                _logger.LogInformation("🔄 BREAK PRIORITY: Eye rest warning timers stopped - no interruptions during break");
+
                 // CRITICAL FIX: Don't set _isBreakNotificationActive here - it should already be set when warning started
                 // This prevents duplicate state setting that can cause blocking issues
 
-                // Stop warning timer
+                // Stop break warning timer
                 _breakWarningTimer?.Stop();
                 
                 var duration = TimeSpan.FromMinutes(_configuration.Break.DurationMinutes);
@@ -602,11 +612,88 @@ namespace EyeRest.Services
             else
             {
                 // Invoke on UI thread
-                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => 
+                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
                     StartBreakWarningTimerInternal();
                 }));
             }
+        }
+
+        /// <summary>
+        /// Stops the eye rest warning timer when user dismisses the warning popup early.
+        /// CRITICAL: This prevents the infinite loop where dismissed warning still triggers main popup.
+        /// </summary>
+        public void StopEyeRestWarningTimer()
+        {
+            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            {
+                StopEyeRestWarningTimerInternal();
+            }
+            else
+            {
+                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    StopEyeRestWarningTimerInternal();
+                }));
+            }
+        }
+
+        private void StopEyeRestWarningTimerInternal()
+        {
+            _logger.LogInformation("⏹️ Stopping eye rest warning timer - popup dismissed early");
+
+            // Stop the main warning timer
+            _eyeRestWarningTimer?.Stop();
+
+            // Stop the fallback timer
+            _eyeRestWarningFallbackTimer?.Stop();
+            _eyeRestWarningFallbackTimer = null;
+
+            // Clear notification active state
+            _isEyeRestNotificationActive = false;
+
+            // Clear processing flags
+            ClearEyeRestWarningProcessingFlag();
+
+            _logger.LogInformation("⏹️ Eye rest warning timer stopped - user dismissed popup before warning period completed");
+        }
+
+        /// <summary>
+        /// Stops the break warning timer when user dismisses the warning popup early.
+        /// CRITICAL: This prevents the infinite loop where dismissed warning still triggers main popup.
+        /// </summary>
+        public void StopBreakWarningTimer()
+        {
+            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            {
+                StopBreakWarningTimerInternal();
+            }
+            else
+            {
+                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    StopBreakWarningTimerInternal();
+                }));
+            }
+        }
+
+        private void StopBreakWarningTimerInternal()
+        {
+            _logger.LogInformation("⏹️ Stopping break warning timer - popup dismissed early");
+
+            // Stop the main warning timer
+            _breakWarningTimer?.Stop();
+
+            // Stop the fallback timer
+            _breakWarningFallbackTimer?.Stop();
+            _breakWarningFallbackTimer = null;
+
+            // Note: Don't clear _isBreakNotificationActive here as that's for the actual break popup, not warning
+
+            // Clear processing flags
+            ClearBreakWarningProcessingFlag();
+
+            _logger.LogInformation("⏹️ Break warning timer stopped - user dismissed popup before warning period completed");
         }
 
         private void StartEyeRestWarningTimerInternal()

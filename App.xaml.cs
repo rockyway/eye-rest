@@ -22,7 +22,10 @@ namespace EyeRest
     {
         private readonly IHost _host;
         private static Mutex? _instanceMutex;
+        private static EventWaitHandle? _activateSignal;
+        private static CancellationTokenSource? _signalListenerCts;
         private const string MUTEX_NAME = "Global\\EyeRest_SingleInstance_Mutex_UniqueGUID_{B6F2E234-8A4B-4C5D-9E7F-3A8B1C6D4E2F}";
+        private const string SIGNAL_NAME = "Global\\EyeRest_Activate_Signal_{B6F2E234-8A4B-4C5D-9E7F-3A8B1C6D4E2F}";
 
         private ILogger<App>? _logger;
         private DispatcherTimer? _countdownTimer;
@@ -175,15 +178,33 @@ namespace EyeRest
 
             if (!isNewInstance)
             {
-                Console.WriteLine($"[STARTUP] Another instance of EyeRest is already running. Exiting.");
-                MessageBox.Show(
-                    "EyeRest is already running.\n\nCheck the system tray for the EyeRest icon.",
-                    "Application Already Running",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                Console.WriteLine($"[STARTUP] Another instance of EyeRest is already running. Signaling existing instance to activate.");
+
+                // Signal the existing instance to bring its window to foreground
+                try
+                {
+                    using var signal = EventWaitHandle.OpenExisting(SIGNAL_NAME);
+                    signal.Set();
+                    Console.WriteLine($"[STARTUP] Activation signal sent to existing instance.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[STARTUP] Failed to signal existing instance: {ex.Message}");
+                }
 
                 Current.Shutdown(0);
                 return;
+            }
+
+            // Create activation signal for other instances to use
+            try
+            {
+                _activateSignal = new EventWaitHandle(false, EventResetMode.AutoReset, SIGNAL_NAME);
+                StartActivationSignalListener();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[STARTUP] Failed to create activation signal: {ex.Message}");
             }
 
             Console.WriteLine($"[STARTUP] Starting EyeRest at {DateTime.Now:HH:mm:ss.fff} (Single instance confirmed)");
@@ -273,11 +294,65 @@ namespace EyeRest
             {
                 mainWindow.UpdateCountdown();
             }
-            
+
             // REMOVED: Backup trigger system that was causing race conditions
             // Now relying on proper TimerService event handling
         }
-        
+
+        private void StartActivationSignalListener()
+        {
+            _signalListenerCts = new CancellationTokenSource();
+            var token = _signalListenerCts.Token;
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested && _activateSignal != null)
+                    {
+                        // Wait for signal with timeout to allow checking cancellation
+                        if (_activateSignal.WaitOne(1000))
+                        {
+                            Console.WriteLine($"[SIGNAL] Received activation signal from another instance");
+
+                            // Activate main window on UI thread
+                            Dispatcher.BeginInvoke(() =>
+                            {
+                                ActivateMainWindow();
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SIGNAL] Activation signal listener error: {ex.Message}");
+                }
+            }, token);
+        }
+
+        private void ActivateMainWindow()
+        {
+            if (MainWindow != null)
+            {
+                _logger?.LogInformation("Activating main window from external signal");
+
+                // Show the window if hidden
+                MainWindow.Show();
+
+                // Restore if minimized
+                if (MainWindow.WindowState == WindowState.Minimized)
+                {
+                    MainWindow.WindowState = WindowState.Normal;
+                }
+
+                // Bring to foreground
+                MainWindow.Activate();
+                MainWindow.Topmost = true;  // Temporarily set topmost to ensure it comes to front
+                MainWindow.Topmost = false; // Reset topmost
+                MainWindow.Focus();
+            }
+        }
+
         // REMOVED: Backup trigger system that was causing race conditions
         // All popup triggering now handled by proper TimerService events
 
@@ -311,20 +386,8 @@ namespace EyeRest
                 await _host.StopAsync(TimeSpan.FromSeconds(5));
             }
 
-            // CRITICAL: Clean up mutex on shutdown
-            if (_instanceMutex != null)
-            {
-                try
-                {
-                    _instanceMutex.ReleaseMutex();
-                    _instanceMutex.Dispose();
-                    _instanceMutex = null;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[SHUTDOWN] Error releasing mutex: {ex.Message}");
-                }
-            }
+            // CRITICAL: Clean up signal listener and mutex on shutdown
+            CleanupSingleInstanceResources();
 
             Current.Shutdown();
         }
@@ -352,27 +415,54 @@ namespace EyeRest
         protected override async void OnExit(ExitEventArgs e)
         {
             _countdownTimer?.Stop();
-            
+
             using (_host)
             {
                 await _host.StopAsync(TimeSpan.FromSeconds(5));
             }
 
-            // CRITICAL: Clean up mutex on application exit
-            if (_instanceMutex != null)
-            {
-                try
-                {
-                    _instanceMutex.ReleaseMutex();
-                    _instanceMutex.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[EXIT] Error releasing mutex: {ex.Message}");
-                }
-            }
+            // CRITICAL: Clean up signal listener and mutex on application exit
+            CleanupSingleInstanceResources();
 
             base.OnExit(e);
+        }
+
+        private static void CleanupSingleInstanceResources()
+        {
+            // Stop signal listener
+            try
+            {
+                _signalListenerCts?.Cancel();
+                _signalListenerCts?.Dispose();
+                _signalListenerCts = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CLEANUP] Error stopping signal listener: {ex.Message}");
+            }
+
+            // Clean up activation signal
+            try
+            {
+                _activateSignal?.Dispose();
+                _activateSignal = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CLEANUP] Error disposing activation signal: {ex.Message}");
+            }
+
+            // Clean up mutex
+            try
+            {
+                _instanceMutex?.ReleaseMutex();
+                _instanceMutex?.Dispose();
+                _instanceMutex = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CLEANUP] Error releasing mutex: {ex.Message}");
+            }
         }
 
         private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
