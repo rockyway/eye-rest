@@ -302,6 +302,25 @@ namespace EyeRest.Services
                         return;
                     }
 
+                    // CRITICAL FIX: Check for extended away period before firing backup triggers
+                    // If user was away for extended period (>= ExtendedAwayThreshold), they already took a natural break
+                    // In this case, skip the backup trigger and let smart session reset handle it
+                    var extendedAwayThresholdMinutes = _configuration?.UserPresence?.ExtendedAwayThresholdMinutes ?? 30;
+
+                    // Use heartbeat staleness as indicator of extended away (system was idle/sleeping)
+                    if (timeSinceLastHeartbeat.TotalMinutes >= extendedAwayThresholdMinutes)
+                    {
+                        _logger.LogCritical($"🌙 EXTENDED AWAY DETECTED: Heartbeat stale for {timeSinceLastHeartbeat.TotalMinutes:F1}min >= threshold {extendedAwayThresholdMinutes}min");
+                        _logger.LogCritical($"🌙 User already took natural break - skipping backup trigger, initiating smart session reset instead");
+
+                        // Trigger smart session reset instead of firing overdue events
+                        _ = Task.Run(async () =>
+                        {
+                            await SmartSessionResetAsync($"Extended away detected - heartbeat stale for {timeSinceLastHeartbeat.TotalMinutes:F1}min (natural break taken)");
+                        });
+                        return;
+                    }
+
                     if ((needsEyeRestTrigger || needsBreakTrigger) && !hasActivePopups)
                     {
                         var triggerReason = serviceStoppedWithDueEvents ? "SERVICE_STOPPED_WITH_DUE_EVENTS" : "SERVICE_RUNNING_BUT_NO_POPUPS";
