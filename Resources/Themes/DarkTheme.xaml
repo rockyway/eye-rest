@@ -2,11 +2,12 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Dark Theme Color Palette - Enhanced for Better Contrast -->
-    <SolidColorBrush x:Key="PrimaryBrush" Color="#90CAF9"/>
-    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#64B5F6"/>
-    <SolidColorBrush x:Key="AccentBrush" Color="#81C784"/>
-    <SolidColorBrush x:Key="WarningBrush" Color="#FFB74D"/>
-    <SolidColorBrush x:Key="ErrorBrush" Color="#E57373"/>
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#1976D2"/>
+    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#1565C0"/>
+    <SolidColorBrush x:Key="PrimaryLightBrush" Color="#42A5F5"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#66BB6A"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#FFA726"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#EF5350"/>
     <SolidColorBrush x:Key="BackgroundBrush" Color="#121212"/>
     <SolidColorBrush x:Key="BackgroundLightBrush" Color="#1E1E1E"/>
     <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1E1E"/>
@@ -16,15 +17,15 @@
     <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#2A2A2A"/>
 
     <!-- Additional brushes for better UI hierarchy and ModernWpf integration -->
-    <SolidColorBrush x:Key="InfoBrush" Color="#90CAF9"/>
-    <SolidColorBrush x:Key="InfoBackgroundBrush" Color="#1A237E"/>
-    <SolidColorBrush x:Key="InfoBorderBrush" Color="#42A5F5"/>
-    <SolidColorBrush x:Key="SuccessBrush" Color="#81C784"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#1E88E5"/>
+    <SolidColorBrush x:Key="InfoBackgroundBrush" Color="#0D47A1"/>
+    <SolidColorBrush x:Key="InfoBorderBrush" Color="#1976D2"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#66BB6A"/>
 
     <!-- Button Styles -->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
-        <Setter Property="Foreground" Value="#121212"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="16,8"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -35,7 +36,7 @@
                     <Border Background="{TemplateBinding Background}"
                             CornerRadius="4"
                             Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" 
+                        <ContentPresenter HorizontalAlignment="Center"
                                         VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -109,7 +110,7 @@
     <!-- Info Button Style -->
     <Style x:Key="InfoButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
         <Setter Property="Background" Value="{DynamicResource InfoBrush}"/>
-        <Setter Property="Foreground" Value="#121212"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -124,7 +125,7 @@
                             <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#42A5F5"/>
+                            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
                             <Setter Property="RenderTransform">
                                 <Setter.Value>
                                     <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
@@ -155,14 +156,14 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <Border Grid.Row="0" 
-                                Background="{DynamicResource PrimaryBrush}" 
+                        <Border Grid.Row="0"
+                                Background="{DynamicResource PrimaryBrush}"
                                 CornerRadius="4,4,0,0"
                                 Padding="8,4">
-                            <ContentPresenter ContentSource="Header" 
-                                            TextElement.Foreground="#121212"/>
+                            <ContentPresenter ContentSource="Header"
+                                            TextElement.Foreground="#FFFFFF"/>
                         </Border>
-                        <Border Grid.Row="1" 
+                        <Border Grid.Row="1"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="1,0,1,1"
                                 Background="{DynamicResource SurfaceBrush}"
@@ -285,8 +286,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TabItem">
-                    <Border Name="Border" Background="{TemplateBinding Background}" 
-                            BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1,1,1,0" 
+                    <Border Name="Border" Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1,1,1,0"
                             CornerRadius="4,4,0,0" Margin="2,0">
                         <ContentPresenter x:Name="ContentSite"
                                         VerticalAlignment="Center"
@@ -297,11 +298,11 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
-                            <Setter Property="Foreground" Value="#121212"/>
+                            <Setter Property="Foreground" Value="#FFFFFF"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
-                            <Setter Property="Foreground" Value="#121212"/>
+                            <Setter Property="Foreground" Value="#FFFFFF"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -473,10 +474,10 @@
                             <RowDefinition x:Name="RowDefinition1" Height="*"/>
                         </Grid.RowDefinitions>
                         <TabPanel x:Name="HeaderPanel" Grid.Column="0" IsItemsHost="true" Margin="2,2,2,0" Grid.Row="0" KeyboardNavigation.TabIndex="1" Panel.ZIndex="1"/>
-                        <Border x:Name="ContentPanel" 
-                                Background="{DynamicResource BackgroundBrush}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
+                        <Border x:Name="ContentPanel"
+                                Background="{DynamicResource BackgroundBrush}"
+                                BorderBrush="{DynamicResource PrimaryBrush}"
+                                BorderThickness="0,1,0,0" 
                                 Grid.Column="0" 
                                 KeyboardNavigation.DirectionalNavigation="Contained" 
                                 Grid.Row="1" 
@@ -571,20 +572,20 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border Background="{TemplateBinding Background}" 
-                            BorderBrush="{TemplateBinding BorderBrush}" 
-                            BorderThickness="{TemplateBinding BorderThickness}" 
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
-                            <Setter Property="Foreground" Value="#121212"/>
+                            <Setter Property="Foreground" Value="#FFFFFF"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
-                            <Setter Property="Foreground" Value="#121212"/>
+                            <Setter Property="Foreground" Value="#FFFFFF"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -707,7 +708,7 @@
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource BackgroundBrush}"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -763,10 +764,11 @@
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
-                <Setter Property="Foreground" Value="#121212"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
             </Trigger>
         </Style.Triggers>
     </Style>

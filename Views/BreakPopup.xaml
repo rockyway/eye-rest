@@ -127,7 +127,7 @@
             <TextBlock x:Name="TimerLabelText"
                        Text="remaining"
                        FontSize="14"
-                       Foreground="#666666"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,5"/>
 
@@ -135,15 +135,15 @@
             <TextBlock x:Name="TimeRemainingText"
                        Text="5 minutes remaining"
                        FontSize="16"
-                       Foreground="#666666"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,15"/>
 
             <!-- Stretching Resources -->
-            <TextBlock Text="Stretching Resources:" 
-                       FontSize="14" 
+            <TextBlock Text="Stretching Resources:"
+                       FontSize="14"
                        FontWeight="SemiBold"
-                       Foreground="#2E7D32"
+                       Foreground="{DynamicResource AccentBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,8"/>
 
@@ -223,16 +223,16 @@
                        Visibility="Collapsed"/>
 
             <!-- Drag and close instructions -->
-            <StackPanel HorizontalAlignment="Center" 
+            <StackPanel HorizontalAlignment="Center"
                         Margin="0,5,0,0">
-                <TextBlock Text="💡 Drag window to move • Click anywhere to close" 
-                           FontSize="12" 
-                           Foreground="#888888"
+                <TextBlock Text="Drag window to move - Click anywhere to close"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"/>
-                <TextBlock Text="Perfect for working on critical tasks" 
-                           FontSize="10" 
-                           Foreground="#AAAAAA"
+                <TextBlock Text="Perfect for working on critical tasks"
+                           FontSize="10"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
                            Margin="0,2,0,0"/>

@@ -67,17 +67,17 @@
             </ProgressBar>
             
             <!-- Time Remaining -->
-            <TextBlock x:Name="TimeRemainingText" 
-                       Text="20 seconds remaining" 
-                       FontSize="14" 
-                       Foreground="#666666"
+            <TextBlock x:Name="TimeRemainingText"
+                       Text="20 seconds remaining"
+                       FontSize="14"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,10,0,0"/>
-            
+
             <!-- Skip hint -->
-            <TextBlock Text="Press ESC to skip" 
-                       FontSize="12" 
-                       Foreground="#888888"
+            <TextBlock Text="Press ESC to skip"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,10,0,0"/>
         </StackPanel>

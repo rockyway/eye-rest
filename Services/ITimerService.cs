@@ -42,9 +42,11 @@ namespace EyeRest.Services
         void SetNotificationService(INotificationService notificationService);
         void SetUserPresenceService(IUserPresenceService userPresenceService);
 
-        // Methods for NotificationService to start countdown timers after popup creation
+        // Methods for NotificationService to start/stop countdown timers after popup creation
         void StartEyeRestWarningTimer();
         void StartBreakWarningTimer();
+        void StopEyeRestWarningTimer(); // Stop warning timer when popup is dismissed early
+        void StopBreakWarningTimer(); // Stop warning timer when popup is dismissed early
         
         // Smart coordination methods
         void SmartResumeBreakTimerAfterEyeRest();

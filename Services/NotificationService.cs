@@ -162,7 +162,15 @@ namespace EyeRest.Services
                             try
                             {
                                 _logger.LogInformation("🧹 POPUP FIX: Eye rest warning popup closed event fired");
-                                
+
+                                // CRITICAL FIX: Stop the warning timer to prevent infinite loop
+                                // When user dismisses warning early, timer was still running and would trigger main popup
+                                if (_timerService != null && !_isTestMode)
+                                {
+                                    _logger.LogInformation("⏹️ Stopping eye rest warning timer - popup dismissed");
+                                    _timerService.StopEyeRestWarningTimer();
+                                }
+
                                 // CRITICAL FIX: Immediate cleanup - no delays to prevent race conditions
                                 // Backup trigger system removed, so immediate cleanup is safe
                                 _logger.LogInformation("🧹 POPUP FIX: Immediate popup close cleanup starting");
@@ -189,16 +197,17 @@ namespace EyeRest.Services
                             eyeRestWarningPopup.StartCountdown((int)timeUntilBreak.TotalSeconds);
                             _logger.LogInformation("Countdown started successfully");
                             
-                            // CRITICAL FIX: Start timer countdown ONLY if not already running
+                            // CRITICAL FIX: Start timer countdown ONLY if not already running AND not in test mode
                             // This prevents the UI desync issue while ensuring countdown works
-                            if (_timerService != null)
+                            // In test mode, the test method provides its own timer - don't start TimerService timer
+                            if (_timerService != null && !_isTestMode)
                             {
                                 // Check if we need to start the countdown timer
                                 var timerServiceType = _timerService.GetType();
-                                var isEyeRestWarningTimerEnabledField = timerServiceType.GetField("_eyeRestWarningTimer", 
+                                var isEyeRestWarningTimerEnabledField = timerServiceType.GetField("_eyeRestWarningTimer",
                                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                                 var eyeRestWarningTimer = isEyeRestWarningTimerEnabledField?.GetValue(_timerService) as System.Windows.Threading.DispatcherTimer;
-                                
+
                                 if (eyeRestWarningTimer?.IsEnabled != true)
                                 {
                                     _logger.LogInformation("Starting eye rest warning countdown timer - not currently running");
@@ -208,6 +217,10 @@ namespace EyeRest.Services
                                 {
                                     _logger.LogInformation("Eye rest warning timer already running - skipping duplicate start");
                                 }
+                            }
+                            else if (_isTestMode)
+                            {
+                                _logger.LogInformation("🧪 TEST MODE: Skipping TimerService timer start - test method will provide its own timer");
                             }
                             
                             _logger.LogInformation($"Eye rest warning shown for {timeUntilBreak.TotalSeconds} seconds");
@@ -464,7 +477,15 @@ namespace EyeRest.Services
                             try
                             {
                                 _logger.LogInformation("🧹 POPUP FIX: Break warning popup closed event fired");
-                                
+
+                                // CRITICAL FIX: Stop the warning timer to prevent infinite loop
+                                // When user dismisses warning early, timer was still running and would trigger main popup
+                                if (_timerService != null && !_isTestMode)
+                                {
+                                    _logger.LogInformation("⏹️ Stopping break warning timer - popup dismissed");
+                                    _timerService.StopBreakWarningTimer();
+                                }
+
                                 // CRITICAL FIX: Immediate cleanup - no delays to prevent race conditions
                                 // Backup trigger system removed, so immediate cleanup is safe
                                 _logger.LogInformation("🧹 POPUP FIX: Break warning popup close cleanup starting");
@@ -1135,17 +1156,89 @@ namespace EyeRest.Services
         
         /// <summary>
         /// Test mode - Show eye rest warning without recording analytics
+        /// Uses a dedicated test timer to drive the countdown since TimerService isn't involved
         /// </summary>
         public async Task ShowEyeRestWarningTestAsync(TimeSpan timeUntilBreak)
         {
             _isTestMode = true;
+            DispatcherTimer? testTimer = null;
+            var startTime = DateTime.Now;
+            var testCompleted = new TaskCompletionSource<bool>();
+
+            // Cleanup action to stop test timer and complete task
+            void CleanupTestTimer()
+            {
+                if (testTimer != null)
+                {
+                    testTimer.Stop();
+                    _logger.LogInformation("🧪 TEST MODE: Eye rest warning test timer stopped");
+                }
+                testCompleted.TrySetResult(true);
+            }
+
             try
             {
                 _logger.LogInformation("🧪 TEST MODE: Showing eye rest warning popup (analytics disabled)");
                 await ShowEyeRestWarningAsync(timeUntilBreak);
+
+                // Subscribe to popup close events for proper cleanup
+                if (_activeEyeRestWarningPopup != null)
+                {
+                    _activeEyeRestWarningPopup.WarningCompleted += (s, e) => CleanupTestTimer();
+                }
+                if (_currentPopup != null)
+                {
+                    _currentPopup.PopupClosed += (s, e) => CleanupTestTimer();
+                }
+
+                // Create a test timer to drive the countdown since TimerService isn't involved
+                testTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(100)
+                };
+
+                testTimer.Tick += (s, e) =>
+                {
+                    var elapsed = DateTime.Now - startTime;
+                    var remaining = timeUntilBreak - elapsed;
+
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        // Update with zero to trigger popup completion and close
+                        UpdateEyeRestWarningCountdown(TimeSpan.Zero);
+                        CleanupTestTimer();
+
+                        // Close the popup after countdown completes
+                        _dispatcher.InvokeAsync(() =>
+                        {
+                            if (_currentPopup != null && _activeEyeRestWarningPopup != null)
+                            {
+                                _logger.LogInformation("🧪 TEST MODE: Closing eye rest warning popup after countdown complete");
+                                CloseCurrentPopup();
+                            }
+                        });
+                        return;
+                    }
+
+                    if (_activeEyeRestWarningPopup == null)
+                    {
+                        CleanupTestTimer();
+                        return;
+                    }
+
+                    // Update the popup countdown display
+                    UpdateEyeRestWarningCountdown(remaining);
+                };
+
+                testTimer.Start();
+                _logger.LogInformation($"🧪 TEST MODE: Started test countdown timer for {timeUntilBreak.TotalSeconds}s");
+
+                // Wait for the countdown to complete or popup to close
+                await testCompleted.Task;
             }
             finally
             {
+                testTimer?.Stop();
                 _isTestMode = false;
             }
         }
@@ -1169,17 +1262,89 @@ namespace EyeRest.Services
 
         /// <summary>
         /// Test mode - Show break warning without recording analytics
+        /// Uses a dedicated test timer to drive the countdown since TimerService isn't involved
         /// </summary>
         public async Task ShowBreakWarningTestAsync(TimeSpan timeUntilBreak)
         {
             _isTestMode = true;
+            DispatcherTimer? testTimer = null;
+            var startTime = DateTime.Now;
+            var testCompleted = new TaskCompletionSource<bool>();
+
+            // Cleanup action to stop test timer and complete task
+            void CleanupTestTimer()
+            {
+                if (testTimer != null)
+                {
+                    testTimer.Stop();
+                    _logger.LogInformation("🧪 TEST MODE: Break warning test timer stopped");
+                }
+                testCompleted.TrySetResult(true);
+            }
+
             try
             {
                 _logger.LogInformation("🧪 TEST MODE: Showing break warning popup (analytics disabled)");
                 await ShowBreakWarningAsync(timeUntilBreak);
+
+                // Subscribe to popup close events for proper cleanup
+                if (_activeBreakWarningPopup != null)
+                {
+                    _activeBreakWarningPopup.Completed += (s, e) => CleanupTestTimer();
+                }
+                if (_currentPopup != null)
+                {
+                    _currentPopup.PopupClosed += (s, e) => CleanupTestTimer();
+                }
+
+                // Create a test timer to drive the countdown since TimerService isn't involved
+                testTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(100)
+                };
+
+                testTimer.Tick += (s, e) =>
+                {
+                    var elapsed = DateTime.Now - startTime;
+                    var remaining = timeUntilBreak - elapsed;
+
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        // Update with zero to trigger popup completion and close
+                        UpdateBreakWarningCountdown(TimeSpan.Zero);
+                        CleanupTestTimer();
+
+                        // Close the popup after countdown completes
+                        _dispatcher.InvokeAsync(() =>
+                        {
+                            if (_currentPopup != null && _activeBreakWarningPopup != null)
+                            {
+                                _logger.LogInformation("🧪 TEST MODE: Closing break warning popup after countdown complete");
+                                CloseCurrentPopup();
+                            }
+                        });
+                        return;
+                    }
+
+                    if (_activeBreakWarningPopup == null)
+                    {
+                        CleanupTestTimer();
+                        return;
+                    }
+
+                    // Update the popup countdown display
+                    UpdateBreakWarningCountdown(remaining);
+                };
+
+                testTimer.Start();
+                _logger.LogInformation($"🧪 TEST MODE: Started test countdown timer for {timeUntilBreak.TotalSeconds}s");
+
+                // Wait for the countdown to complete or popup to close
+                await testCompleted.Task;
             }
             finally
             {
+                testTimer?.Stop();
                 _isTestMode = false;
             }
         }

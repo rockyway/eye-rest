@@ -368,10 +368,10 @@ namespace EyeRest.Services
                         {
                             _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break completed event");
                         }
-                        await _timerService.RestartBreakTimerAfterCompletion();
 
-                        // BREAK PRIORITY FIX: Resume eye rest timer after break completion
-                        _timerService.SmartResumeEyeRestTimerAfterBreak();
+                        // FRESH SESSION: Always reset all timers after break for a fresh working session
+                        _logger.LogInformation("🔄 FRESH SESSION: Resetting all timers after break completion");
+                        await _timerService.SmartSessionResetAsync("Break completed - starting fresh session");
                         break;
                     case BreakAction.DelayOneMinute:
                         _logger.LogInformation("🟢 Break delayed by 1 minute");
@@ -407,10 +407,10 @@ namespace EyeRest.Services
                         {
                             _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break skipped event");
                         }
-                        await _timerService.RestartBreakTimerAfterCompletion();
 
-                        // BREAK PRIORITY FIX: Resume eye rest timer after break completion
-                        _timerService.SmartResumeEyeRestTimerAfterBreak();
+                        // FRESH SESSION: Always reset all timers after break skip for a fresh working session
+                        _logger.LogInformation("🔄 FRESH SESSION: Resetting all timers after break skip");
+                        await _timerService.SmartSessionResetAsync("Break skipped - starting fresh session");
                         break;
                     case BreakAction.ConfirmedAfterCompletion:
                         _logger.LogInformation("🟢 Break completion confirmed by user");
@@ -422,28 +422,17 @@ namespace EyeRest.Services
                         {
                             _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break confirmed completion event");
                         }
-                        
+
                         // Resume from smart pause first (was paused while waiting for confirmation)
                         if (_timerService.IsSmartPaused)
                         {
                             _logger.LogInformation("🟢 Resuming from smart pause before handling timer restart");
                             await _timerService.SmartResumeAsync();
                         }
-                        
-                        // Handle timer restart based on configuration
-                        if (config.Break.ResetTimersOnBreakConfirmation)
-                        {
-                            _logger.LogInformation("🟢 ResetTimersOnBreakConfirmation enabled - performing fresh session reset");
-                            await _timerService.SmartSessionResetAsync("User confirmed break completion");
-                        }
-                        else
-                        {
-                            _logger.LogInformation("🟢 ResetTimersOnBreakConfirmation disabled - restarting break timer only");
-                            await _timerService.RestartBreakTimerAfterCompletion();
 
-                            // BREAK PRIORITY FIX: Resume eye rest timer after break completion (when not doing full reset)
-                            _timerService.SmartResumeEyeRestTimerAfterBreak();
-                        }
+                        // FRESH SESSION: Always reset all timers after break confirmation for a fresh working session
+                        _logger.LogInformation("🔄 FRESH SESSION: Resetting all timers after break confirmation");
+                        await _timerService.SmartSessionResetAsync("User confirmed break completion - starting fresh session");
                         break;
                     case BreakAction.CompletedWithoutConfirmation:
                         _logger.LogInformation("🟡 Break auto-completed without user confirmation (timeout)");
@@ -456,35 +445,23 @@ namespace EyeRest.Services
                         {
                             _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for break auto-completion event");
                         }
-                        
+
                         // Resume from smart pause first (was paused while waiting for confirmation)
                         if (_timerService.IsSmartPaused)
                         {
                             _logger.LogInformation("🟡 Resuming from smart pause after auto-timeout");
                             await _timerService.SmartResumeAsync();
                         }
-                        
-                        // Handle timer restart based on configuration (same as confirmed completion)
-                        if (config.Break.ResetTimersOnBreakConfirmation)
-                        {
-                            _logger.LogInformation("🟡 Auto-completion: Performing fresh session reset");
-                            await _timerService.SmartSessionResetAsync("Break auto-completed without confirmation");
-                        }
-                        else
-                        {
-                            _logger.LogInformation("🟡 Auto-completion: Restarting break timer only");
-                            await _timerService.RestartBreakTimerAfterCompletion();
 
-                            // BREAK PRIORITY FIX: Resume eye rest timer after break completion (when not doing full reset)
-                            _timerService.SmartResumeEyeRestTimerAfterBreak();
-                        }
+                        // FRESH SESSION: Always reset all timers after break auto-completion for a fresh working session
+                        _logger.LogInformation("🔄 FRESH SESSION: Resetting all timers after break auto-completion");
+                        await _timerService.SmartSessionResetAsync("Break auto-completed - starting fresh session");
                         break;
                     default:
                         _logger.LogWarning($"🟠 Unhandled break action: {result}");
-                        await _timerService.RestartBreakTimerAfterCompletion();
-
-                        // BREAK PRIORITY FIX: Resume eye rest timer after break completion
-                        _timerService.SmartResumeEyeRestTimerAfterBreak();
+                        // FRESH SESSION: Reset all timers for any unhandled action
+                        _logger.LogInformation("🔄 FRESH SESSION: Resetting all timers for unhandled break action");
+                        await _timerService.SmartSessionResetAsync("Break action completed - starting fresh session");
                         break;
                 }
 

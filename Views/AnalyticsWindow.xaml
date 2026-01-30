@@ -90,6 +90,26 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TabPanel Grid.Row="0" IsItemsHost="True" Panel.ZIndex="1"/>
+                            <Border Grid.Row="1"
+                                    BorderBrush="{DynamicResource PrimaryBrush}"
+                                    BorderThickness="1,1,1,1"
+                                    Background="Transparent"
+                                    Margin="0,0,0,0">
+                                <ContentPresenter ContentSource="SelectedContent" Margin="16"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         
         <!-- Tab Item Style -->
@@ -105,25 +125,31 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Border" 
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8,8,0,0"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter x:Name="ContentSite"
-                                            VerticalAlignment="Center"
-                                            HorizontalAlignment="Center"
-                                            ContentSource="Header"/>
-                        </Border>
+                        <Grid x:Name="TabGrid" Margin="0,0,0,0">
+                            <Border x:Name="Border"
+                                    Background="Transparent"
+                                    BorderBrush="{DynamicResource PrimaryBrush}"
+                                    BorderThickness="0"
+                                    CornerRadius="8,8,0,0"
+                                    Padding="{TemplateBinding Padding}"
+                                    Margin="0,0,0,0">
+                                <ContentPresenter x:Name="ContentSite"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"
+                                                ContentSource="Header"/>
+                            </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+                                <Setter TargetName="Border" Property="BorderThickness" Value="1,1,1,0"/>
+                                <Setter TargetName="TabGrid" Property="Margin" Value="0,0,0,-1"/>
                                 <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Panel.ZIndex" Value="2"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#F9F9F9"/>
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -179,7 +205,7 @@
         
         <!-- Privacy Notice Style -->
         <Style x:Key="PrivacyNoticeStyle" TargetType="Border">
-            <Setter Property="Background" Value="#E8F5E8"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="CornerRadius" Value="8"/>
@@ -332,13 +358,13 @@
             </Grid.RowDefinitions>
 
         <!-- Loading Overlay -->
-        <Grid Grid.RowSpan="3" 
-              Background="#80FFFFFF" 
+        <Grid Grid.RowSpan="3"
+              Background="#80000000"
               Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"
               Panel.ZIndex="1000">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ProgressBar IsIndeterminate="True" Width="200" Height="6" Margin="0,0,0,10"/>
-                <TextBlock Text="Loading analytics data..." FontSize="14" HorizontalAlignment="Center"/>
+                <TextBlock Text="Loading analytics data..." FontSize="14" HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
             </StackPanel>
         </Grid>
 
@@ -401,10 +427,10 @@
                                    VerticalAlignment="Center" 
                                    Margin="0,0,16,0"/>
                         
-                        <Border Background="#F9F8F7" 
-                                CornerRadius="6" 
+                        <Border Background="{DynamicResource ControlBackgroundBrush}"
+                                CornerRadius="6"
                                 Padding="16,8"
-                                BorderBrush="{DynamicResource PrimaryBrush}"
+                                BorderBrush="{DynamicResource ControlBorderBrush}"
                                 BorderThickness="1">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="From:" 
@@ -446,26 +472,26 @@
                                    VerticalAlignment="Center" 
                                    Margin="0,0,16,0"/>
                         
-                        <Button Content="📄 JSON" 
-                                Command="{Binding ExportDataCommand}" 
+                        <Button Content="📄 JSON"
+                                Command="{Binding ExportDataCommand}"
                                 CommandParameter="JSON"
                                 Style="{StaticResource ExportButtonStyle}"
-                                Width="100" 
-                                Height="36"
+                                Width="100"
+                                Height="40"
                                 ToolTip="Export structured data as JSON format"/>
-                        <Button Content="📊 CSV" 
-                                Command="{Binding ExportDataCommand}" 
+                        <Button Content="📊 CSV"
+                                Command="{Binding ExportDataCommand}"
                                 CommandParameter="CSV"
                                 Style="{StaticResource ExportButtonStyle}"
-                                Width="100" 
-                                Height="36"
+                                Width="100"
+                                Height="40"
                                 ToolTip="Export data for spreadsheet analysis"/>
-                        <Button Content="🌐 HTML" 
-                                Command="{Binding ExportDataCommand}" 
+                        <Button Content="🌐 HTML"
+                                Command="{Binding ExportDataCommand}"
                                 CommandParameter="HTML"
                                 Style="{StaticResource ExportButtonStyle}"
-                                Width="100" 
-                                Height="36"
+                                Width="100"
+                                Height="40"
                                 ToolTip="Export formatted HTML report"/>
                     </StackPanel>
                 </Grid>
@@ -503,11 +529,11 @@
                                    Style="{StaticResource MetricValueStyle}"
                                    Foreground="{Binding HealthStatusColor}"/>
                         <TextBlock Text="Compliance Rate" Style="{StaticResource MetricLabelStyle}"/>
-                        <ProgressBar Value="{Binding ComplianceRateValue}" 
-                                     Maximum="100" 
-                                     Height="4" 
+                        <ProgressBar Value="{Binding ComplianceRateValue}"
+                                     Maximum="100"
+                                     Height="4"
                                      Margin="0,8,0,0"
-                                     Background="#E0E0E0"
+                                     Background="{DynamicResource ControlBorderBrush}"
                                      Foreground="{Binding HealthStatusColor}"/>
                     </StackPanel>
                 </Border>
@@ -613,7 +639,7 @@
                             </StackPanel>
                             
                             <!-- Professional Chart Container -->
-                            <Border Background="#FAFAFA" 
+                            <Border Background="{DynamicResource SurfaceBrush}" 
                                     CornerRadius="4" 
                                     BorderBrush="{DynamicResource PrimaryBrush}"
                                     BorderThickness="1"
@@ -651,7 +677,7 @@
                             </StackPanel>
                             
                             <!-- Professional Pie Chart Container -->
-                            <Border Background="#FAFAFA" 
+                            <Border Background="{DynamicResource SurfaceBrush}" 
                                     CornerRadius="4" 
                                     BorderBrush="{DynamicResource PrimaryBrush}"
                                     BorderThickness="1"
@@ -685,7 +711,7 @@
                             </StackPanel>
                             
                             <!-- Professional Bar Chart Container -->
-                            <Border Background="#FAFAFA" 
+                            <Border Background="{DynamicResource SurfaceBrush}" 
                                     CornerRadius="4" 
                                     BorderBrush="{DynamicResource PrimaryBrush}"
                                     BorderThickness="1"
@@ -729,7 +755,7 @@
                             </StackPanel>
                             
                             <!-- Professional Heatmap Container -->
-                            <Border Background="#FAFAFA" 
+                            <Border Background="{DynamicResource SurfaceBrush}" 
                                     CornerRadius="4" 
                                     BorderBrush="{DynamicResource PrimaryBrush}"
                                     BorderThickness="1"
@@ -803,29 +829,29 @@
                         <!-- Last Week Card -->
                         <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="{Binding LastWeekComplianceText}" 
+                                <TextBlock Text="{Binding LastWeekComplianceText}"
                                            Style="{StaticResource MetricValueStyle}"
-                                           Foreground="#666666"/>
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 <TextBlock Text="Last Week" Style="{StaticResource MetricLabelStyle}"/>
                             </StackPanel>
                         </Border>
-                        
+
                         <!-- Best Week Card -->
                         <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="{Binding BestWeekComplianceText}" 
+                                <TextBlock Text="{Binding BestWeekComplianceText}"
                                            Style="{StaticResource MetricValueStyle}"
-                                           Foreground="#4CAF50"/>
+                                           Foreground="{DynamicResource AccentBrush}"/>
                                 <TextBlock Text="Best Week" Style="{StaticResource MetricLabelStyle}"/>
                             </StackPanel>
                         </Border>
-                        
+
                         <!-- Weekly Average Card -->
                         <Border Grid.Column="3" Style="{StaticResource MetricCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="{Binding WeeklyAverageComplianceText}" 
+                                <TextBlock Text="{Binding WeeklyAverageComplianceText}"
                                            Style="{StaticResource MetricValueStyle}"
-                                           Foreground="#2196F3"/>
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
                                 <TextBlock Text="12-Week Average" Style="{StaticResource MetricLabelStyle}"/>
                             </StackPanel>
                         </Border>
@@ -901,29 +927,29 @@
                         <!-- Last Month Card -->
                         <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="{Binding LastMonthComplianceText}" 
+                                <TextBlock Text="{Binding LastMonthComplianceText}"
                                            Style="{StaticResource MetricValueStyle}"
-                                           Foreground="#666666"/>
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 <TextBlock Text="Last Month" Style="{StaticResource MetricLabelStyle}"/>
                             </StackPanel>
                         </Border>
-                        
+
                         <!-- Best Month Card -->
                         <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="{Binding BestMonthComplianceText}" 
+                                <TextBlock Text="{Binding BestMonthComplianceText}"
                                            Style="{StaticResource MetricValueStyle}"
-                                           Foreground="#4CAF50"/>
+                                           Foreground="{DynamicResource AccentBrush}"/>
                                 <TextBlock Text="Best Month" Style="{StaticResource MetricLabelStyle}"/>
                             </StackPanel>
                         </Border>
-                        
+
                         <!-- Monthly Average Card -->
                         <Border Grid.Column="3" Style="{StaticResource MetricCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="{Binding MonthlyAverageComplianceText}" 
+                                <TextBlock Text="{Binding MonthlyAverageComplianceText}"
                                            Style="{StaticResource MetricValueStyle}"
-                                           Foreground="#2196F3"/>
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
                                 <TextBlock Text="6-Month Average" Style="{StaticResource MetricLabelStyle}"/>
                             </StackPanel>
                         </Border>
@@ -936,7 +962,7 @@
                               IsReadOnly="True"
                               GridLinesVisibility="Horizontal"
                               HeadersVisibility="Column"
-                              AlternatingRowBackground="#F9F9F9">
+                              AlternatingRowBackground="{DynamicResource ControlBackgroundBrush}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Month" Binding="{Binding MonthText}" Width="120"/>
                             <DataGridTextColumn Header="Days Active" Binding="{Binding DaysActive}" Width="100"/>
@@ -980,7 +1006,7 @@
                               IsReadOnly="True"
                               GridLinesVisibility="Horizontal"
                               HeadersVisibility="Column"
-                              AlternatingRowBackground="#F9F9F9">
+                              AlternatingRowBackground="{DynamicResource ControlBackgroundBrush}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Date" Binding="{Binding DateText}" Width="100"/>
                             <DataGridTextColumn Header="Breaks Due" Binding="{Binding BreaksDue}" Width="90"/>
@@ -1044,10 +1070,10 @@
                                     <TextBlock Text="days" VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <TextBlock Text="Analytics data helps improve your break compliance and overall eye health. All data is stored locally and never shared." 
-                                           TextWrapping="Wrap" 
-                                           Foreground="#666666" 
-                                           FontSize="12" 
+                                <TextBlock Text="Analytics data helps improve your break compliance and overall eye health. All data is stored locally and never shared."
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           FontSize="12"
                                            Margin="0,10,0,0"/>
                             </StackPanel>
                         </GroupBox>
@@ -1068,9 +1094,9 @@
                                         HorizontalAlignment="Left"
                                         Margin="0,0,0,10"/>
 
-                                <TextBlock Text="⚠️ Warning: This will permanently delete all analytics data and cannot be undone." 
-                                           TextWrapping="Wrap" 
-                                           Foreground="#D32F2F" 
+                                <TextBlock Text="Warning: This will permanently delete all analytics data and cannot be undone."
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource ErrorBrush}"
                                            FontSize="12"/>
                             </StackPanel>
                         </GroupBox>
@@ -1080,40 +1106,42 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                     <TextBlock Text="Database Location:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBlock Text="{Binding DatabasePath}" 
-                                               FontFamily="Consolas" 
-                                               Background="#F5F5F5" 
-                                               Padding="5,2" 
+                                    <TextBlock Text="{Binding DatabasePath}"
+                                               FontFamily="Consolas"
+                                               Background="{DynamicResource ControlBackgroundBrush}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Padding="5,2"
                                                VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                     <TextBlock Text="Current Size:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                     <TextBlock Text="{Binding DatabaseSizeText}" VerticalAlignment="Center"/>
                                 </StackPanel>
-                                <TextBlock Text="This database contains all your analytics data and is never synchronized or uploaded anywhere." 
-                                           TextWrapping="Wrap" 
-                                           Foreground="#666666" 
-                                           FontSize="12" 
+                                <TextBlock Text="This database contains all your analytics data and is never synchronized or uploaded anywhere."
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           FontSize="12"
                                            Margin="0,5,0,0"/>
                             </StackPanel>
                         </GroupBox>
                         
                         <!-- Error/Status Message Display -->
-                        <Border Background="#FFEBEE" 
-                                BorderBrush="#F44336" 
-                                BorderThickness="1" 
-                                CornerRadius="4" 
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource ErrorBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
                                 Padding="15"
                                 Margin="0,20,0,0"
                                 Visibility="{Binding ErrorMessage, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="ℹ️" 
-                                           FontSize="16" 
-                                           VerticalAlignment="Center" 
+                                <TextBlock Text="ℹ️"
+                                           FontSize="16"
+                                           VerticalAlignment="Center"
                                            Margin="0,0,10,0"/>
-                                <TextBlock Text="{Binding ErrorMessage}" 
+                                <TextBlock Text="{Binding ErrorMessage}"
                                            TextWrapping="Wrap"
-                                           VerticalAlignment="Center"/>
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
                             </StackPanel>
                         </Border>
                 </StackPanel>
