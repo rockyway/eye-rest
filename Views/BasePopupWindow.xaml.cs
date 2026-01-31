@@ -249,26 +249,30 @@ namespace EyeRest.Views
                 var activationAttempts = 0;
                 var maxAttempts = 3;
                 
+                // CRITICAL FIX: Send ALT key BEFORE any activation attempts to unlock SetForegroundWindow
+                Debug.WriteLine("🟡 PRE-ACTIVATION: Sending ALT key to unlock SetForegroundWindow");
+                SendAltKeyToUnlockSetForeground();
+
                 while (activationAttempts < maxAttempts && !IsActive)
                 {
                     activationAttempts++;
                     Debug.WriteLine($"🟡 Popup activation attempt #{activationAttempts}");
-                    
+
                     try
                     {
                         // Progressive activation strategy
                         Activate();
                         Focus();
-                        
+
                         // Use Win32 API with enhanced error handling
                         var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
                         if (hwnd != IntPtr.Zero)
                         {
-                            // CRITICAL FIX: Use HWND_TOP instead of HWND_TOPMOST for better Z-order control
-                            SetForegroundWindow(hwnd);
+                            // Use ForceForegroundWindow with AttachThreadInput workaround
+                            ForceForegroundWindow(hwnd);
                             ShowWindow(hwnd, SW_SHOW);
                             SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-                            
+
                             // FINAL: Set topmost only after positioning
                             if (activationAttempts == maxAttempts)
                             {
@@ -276,13 +280,13 @@ namespace EyeRest.Views
                                 Debug.WriteLine($"🟡 Final attempt: Set Topmost=true");
                             }
                         }
-                        
+
                         if (IsActive)
                         {
                             Debug.WriteLine($"🟡 Popup successfully activated on attempt #{activationAttempts}");
                             break;
                         }
-                        
+
                         if (activationAttempts < maxAttempts)
                         {
                             System.Threading.Thread.Sleep(50); // Brief delay between attempts
@@ -331,31 +335,69 @@ namespace EyeRest.Views
         #region Win32 API for forcing popup to foreground
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
-        
+
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        
+
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-        
+
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool IsWindowVisible(IntPtr hWnd);
-        
+
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool IsIconic(IntPtr hWnd);
-        
+
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool BringWindowToTop(IntPtr hWnd);
-        
+
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-        
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr processId);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct INPUT
+        {
+            public uint type;
+            public KEYBDINPUT ki;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+            public uint padding1;
+            public uint padding2;
+        }
+
+        private const uint INPUT_KEYBOARD = 1;
+        private const ushort VK_MENU = 0x12; // ALT key
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public struct RECT
         {
             public int Left, Top, Right, Bottom;
         }
-        
+
         private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         private static readonly IntPtr HWND_TOP = new IntPtr(0);
         private const int SW_SHOW = 5;
@@ -363,6 +405,70 @@ namespace EyeRest.Views
         private const uint SWP_NOMOVE = 0x0002;
         private const uint SWP_NOSIZE = 0x0001;
         private const uint SWP_SHOWWINDOW = 0x0040;
+
+        /// <summary>
+        /// CRITICAL FIX: Send ALT key to bypass SetForegroundWindow restrictions
+        /// Windows allows SetForegroundWindow after ALT key is pressed
+        /// Source: https://gist.github.com/Aetopia/1581b40f00cc0cadc93a0e8ccb65dc8c
+        /// </summary>
+        private static void SendAltKeyToUnlockSetForeground()
+        {
+            var inputs = new INPUT[2];
+
+            // ALT key down
+            inputs[0].type = INPUT_KEYBOARD;
+            inputs[0].ki.wVk = VK_MENU;
+
+            // ALT key up
+            inputs[1].type = INPUT_KEYBOARD;
+            inputs[1].ki.wVk = VK_MENU;
+            inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
+            SendInput(2, inputs, System.Runtime.InteropServices.Marshal.SizeOf<INPUT>());
+        }
+
+        /// <summary>
+        /// CRITICAL FIX: Force window to foreground using AttachThreadInput workaround
+        /// Attaches our thread to the foreground thread to gain focus permission
+        /// Source: https://shlomio.wordpress.com/2012/09/04/solved-setforegroundwindow-win32-api-not-always-works/
+        /// </summary>
+        private static bool ForceForegroundWindow(IntPtr hWnd)
+        {
+            uint currentThreadId = GetCurrentThreadId();
+            IntPtr foregroundWindow = GetForegroundWindow();
+            uint foregroundThreadId = GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
+
+            bool attached = false;
+            bool result = false;
+
+            try
+            {
+                // If we're not the foreground thread, attach to it
+                if (currentThreadId != foregroundThreadId)
+                {
+                    attached = AttachThreadInput(currentThreadId, foregroundThreadId, true);
+                    Debug.WriteLine($"🟡 AttachThreadInput: attached={attached}, current={currentThreadId}, foreground={foregroundThreadId}");
+                }
+
+                // Now try to bring window to foreground
+                BringWindowToTop(hWnd);
+                ShowWindow(hWnd, SW_SHOW);
+                result = SetForegroundWindow(hWnd);
+
+                Debug.WriteLine($"🟡 ForceForegroundWindow: SetForegroundWindow result={result}");
+            }
+            finally
+            {
+                // CRITICAL: Always detach the thread input to avoid deadlocks
+                if (attached)
+                {
+                    AttachThreadInput(currentThreadId, foregroundThreadId, false);
+                    Debug.WriteLine($"🟡 AttachThreadInput: detached");
+                }
+            }
+
+            return result;
+        }
         #endregion
         
         /// <summary>
@@ -405,48 +511,57 @@ namespace EyeRest.Views
         /// <summary>
         /// CRITICAL FIX: Force window to foreground using multiple recovery strategies
         /// Essential for post-resume popup visibility
+        /// Uses SendInput ALT key hack and AttachThreadInput workaround
         /// </summary>
         public void ForceToForeground()
         {
             try
             {
                 Debug.WriteLine($"🟡 FORCE FOREGROUND: Starting recovery for HashCode: {GetHashCode()}");
-                
+
                 var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
                 if (hwnd == IntPtr.Zero)
                 {
                     Debug.WriteLine("🟡 FORCE FOREGROUND: Invalid window handle");
                     return;
                 }
-                
+
+                // Stage 0: CRITICAL - Send ALT key to unlock SetForegroundWindow
+                // Windows allows SetForegroundWindow after ALT key press
+                Debug.WriteLine("🟡 FORCE FOREGROUND: Stage 0 - ALT key unlock");
+                SendAltKeyToUnlockSetForeground();
+
                 // Multi-stage recovery process
                 Debug.WriteLine("🟡 FORCE FOREGROUND: Stage 1 - Window state recovery");
-                
+
                 // Stage 1: Reset window state (fixes post-resume state corruption)
                 this.WindowState = WindowState.Minimized;
                 System.Threading.Thread.Sleep(50); // Brief delay for state change
                 this.WindowState = WindowState.Normal;
-                
+
                 // Stage 2: Force Z-order and visibility
                 Debug.WriteLine("🟡 FORCE FOREGROUND: Stage 2 - Z-order recovery");
                 this.Topmost = false;
                 this.Topmost = true;
-                
-                // Stage 3: Win32 API recovery
-                Debug.WriteLine("🟡 FORCE FOREGROUND: Stage 3 - Win32 API recovery");
+
+                // Stage 3: Win32 API recovery with AttachThreadInput workaround
+                Debug.WriteLine("🟡 FORCE FOREGROUND: Stage 3 - Win32 API recovery with AttachThreadInput");
                 ShowWindow(hwnd, SW_RESTORE);
-                BringWindowToTop(hwnd);
-                SetForegroundWindow(hwnd);
-                
+                ForceForegroundWindow(hwnd);
+
                 // Stage 4: WPF activation
                 Debug.WriteLine("🟡 FORCE FOREGROUND: Stage 4 - WPF activation");
                 this.Activate();
                 this.Focus();
-                
+
+                // Stage 5: Final SetForegroundWindow attempt after all preparation
+                Debug.WriteLine("🟡 FORCE FOREGROUND: Stage 5 - Final SetForegroundWindow");
+                SetForegroundWindow(hwnd);
+
                 // Verify recovery success
                 bool visible = VerifyWindowIsActuallyVisible();
-                Debug.WriteLine($"🟡 FORCE FOREGROUND: Recovery completed - Visible: {visible}, Active: {IsActive}");
-                
+                Debug.WriteLine($"🟡 FORCE FOREGROUND: Recovery completed - Visible: {visible}, Active: {IsActive}, IsFocused: {IsFocused}");
+
                 if (!visible)
                 {
                     Debug.WriteLine("🟡 FORCE FOREGROUND: WARNING - Window still not visible after recovery");
