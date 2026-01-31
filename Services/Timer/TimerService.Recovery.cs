@@ -61,6 +61,19 @@ namespace EyeRest.Services
                     return;
                 }
                 
+                // CRITICAL FIX: Update heartbeat when service is running normally with active timers
+                // This prevents false "extended away" detection when user is actively using the computer
+                // Heartbeat should only become stale when timers are actually hung/disabled
+                var timersAreActive = (_eyeRestTimer?.IsEnabled ?? false) || (_breakTimer?.IsEnabled ?? false);
+                var serviceRunningNormally = IsRunning && !IsPaused && !IsSmartPaused && timersAreActive;
+
+                if (serviceRunningNormally)
+                {
+                    UpdateHeartbeat();
+                    timeSinceLastHeartbeat = TimeSpan.Zero; // Recalculate since we just updated
+                    _logger.LogDebug($"❤️ HEARTBEAT REFRESHED: Service running normally with active timers");
+                }
+
                 // Log current process and memory status
                 using (var process = System.Diagnostics.Process.GetCurrentProcess())
                 {
