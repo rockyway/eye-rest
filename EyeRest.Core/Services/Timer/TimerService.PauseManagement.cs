@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using EyeRest.Models;
 

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using EyeRest.Services;
+using EyeRest.Services.Abstractions;
 using EyeRest.Models;
 using Microsoft.Extensions.Logging;
 
@@ -26,16 +27,17 @@ namespace EyeRest.Services
         // private readonly IMeetingDetectionManager _meetingDetectionManager;
         private readonly IAnalyticsService _analyticsService;
         private readonly IPauseReminderService _pauseReminderService;
+        private readonly ITimerFactory _timerFactory;
         private readonly ILogger<ApplicationOrchestrator> _logger;
-        
+
         // State tracking
         private bool _isInitialized = false;
-        
+
         // ENHANCED: Timer for updating system tray tooltip with timer details
-        private System.Windows.Threading.DispatcherTimer? _trayUpdateTimer;
-        
+        private ITimer? _trayUpdateTimer;
+
         // NEW: Timer for validating session activity tracking integrity
-        private System.Windows.Threading.DispatcherTimer? _sessionValidationTimer;
+        private ITimer? _sessionValidationTimer;
 
         public ApplicationOrchestrator(
             ITimerService timerService,
@@ -48,6 +50,7 @@ namespace EyeRest.Services
             // IMeetingDetectionManager meetingDetectionManager, // DISABLED: Meeting detection needs improvement
             IAnalyticsService analyticsService,
             IPauseReminderService pauseReminderService,
+            ITimerFactory timerFactory,
             ILogger<ApplicationOrchestrator> logger)
         {
             _timerService = timerService;
@@ -60,6 +63,7 @@ namespace EyeRest.Services
             // _meetingDetectionManager = meetingDetectionManager; // DISABLED: Meeting detection needs improvement
             _analyticsService = analyticsService;
             _pauseReminderService = pauseReminderService;
+            _timerFactory = timerFactory;
             _logger = logger;
         }
 
@@ -993,11 +997,9 @@ namespace EyeRest.Services
         {
             try
             {
-                _trayUpdateTimer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromSeconds(5) // Update every 5 seconds
-                };
-                
+                _trayUpdateTimer = _timerFactory.CreateTimer();
+                _trayUpdateTimer.Interval = TimeSpan.FromSeconds(5); // Update every 5 seconds
+
                 _trayUpdateTimer.Tick += UpdateTrayTimerDetails;
                 _trayUpdateTimer.Start();
                 
@@ -1123,11 +1125,9 @@ namespace EyeRest.Services
         {
             try
             {
-                _sessionValidationTimer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMinutes(15) // Validate every 15 minutes
-                };
-                
+                _sessionValidationTimer = _timerFactory.CreateTimer();
+                _sessionValidationTimer.Interval = TimeSpan.FromMinutes(15); // Validate every 15 minutes
+
                 _sessionValidationTimer.Tick += async (sender, e) =>
                 {
                     try

@@ -1,5 +1,4 @@
 using System;
-using System.Windows.Threading;
 using EyeRest.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +9,9 @@ namespace EyeRest.Services
     /// </summary>
     public partial class TimerService
     {
+        // Dispatcher service for UI thread operations (platform-agnostic)
+        private readonly IDispatcherService _dispatcherService;
+
         #region Core Timer Objects
 
         // TIMER ARCHITECTURE (after consolidation):
@@ -45,8 +47,8 @@ namespace EyeRest.Services
         private ITimer? _breakFallbackTimer;
 
         // Warning countdown fallback timers (active - provide backup for warning phase)
-        private DispatcherTimer? _eyeRestWarningFallbackTimer;
-        private DispatcherTimer? _breakWarningFallbackTimer;
+        private ITimer? _eyeRestWarningFallbackTimer;
+        private ITimer? _breakWarningFallbackTimer;
         
         // Manual pause timer
         private ITimer? _manualPauseTimer;

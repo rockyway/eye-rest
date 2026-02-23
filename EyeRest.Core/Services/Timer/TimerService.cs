@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using System.Windows.Threading;
 using EyeRest.Models;
 using EyeRest.Services.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -43,15 +42,17 @@ namespace EyeRest.Services
             IConfigurationService configurationService,
             IAnalyticsService analyticsService,
             ITimerFactory timerFactory,
-            IPauseReminderService pauseReminderService)
+            IPauseReminderService pauseReminderService,
+            IDispatcherService dispatcherService)
         {
             _logger = logger;
             _configurationService = configurationService;
             _analyticsService = analyticsService;
             _timerFactory = timerFactory;
             _pauseReminderService = pauseReminderService;
+            _dispatcherService = dispatcherService;
             _configuration = new AppConfiguration(); // Will be loaded in StartAsync
-            
+
             _logger.LogInformation("TimerService initialized with testable timer factory");
         }
 

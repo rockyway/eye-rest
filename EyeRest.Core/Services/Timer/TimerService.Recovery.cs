@@ -1260,42 +1260,42 @@ namespace EyeRest.Services
             try
             {
                 // Use Dispatcher.BeginInvoke to safely access UI thread objects
-                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                _dispatcherService.BeginInvoke(() =>
                 {
                     try
                     {
                         _logger.LogCritical("🆘 EMERGENCY FALLBACK: Checking for overdue timer events");
-                        
+
                         if (!IsRunning) return;
-                        
+
                         var eyeRestRemaining = TimeUntilNextEyeRest;
                         var breakRemaining = TimeUntilNextBreak;
-                        
+
                         // Trigger overdue eye rest events
                         if (eyeRestRemaining <= TimeSpan.Zero && !_isEyeRestNotificationActive && _eyeRestWarningTimer?.IsEnabled != true)
                         {
                             _logger.LogCritical($"🆘 FALLBACK: Triggering overdue eye rest (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
                             OnEyeRestTimerTick(this, EventArgs.Empty);
                         }
-                        
-                        // Trigger overdue break events  
+
+                        // Trigger overdue break events
                         if (breakRemaining <= TimeSpan.Zero && !_isBreakNotificationActive && _breakWarningTimer?.IsEnabled != true)
                         {
                             _logger.LogCritical($"🆘 FALLBACK: Triggering overdue break (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
                             OnBreakTimerTick(this, EventArgs.Empty);
                         }
-                        
+
                         // Update heartbeat to show fallback system is working
                         UpdateHeartbeat();
                         _logger.LogCritical("🆘 FALLBACK: Heartbeat updated, system functioning via emergency timer");
-                        
-                        // RECOVERY ATTEMPT: Try to restore DispatcherTimer functionality every 5 minutes (30 ticks)
+
+                        // RECOVERY ATTEMPT: Try to restore timer functionality every 5 minutes (30 ticks)
                         _emergencyFallbackTickCount++;
                         if (_emergencyFallbackTickCount >= 30) // 30 ticks * 10 seconds = 5 minutes
                         {
                             _emergencyFallbackTickCount = 0;
-                            _logger.LogCritical("🔧 FALLBACK RECOVERY: Attempting to restore DispatcherTimer functionality after 5 minutes");
-                            
+                            _logger.LogCritical("🔧 FALLBACK RECOVERY: Attempting to restore timer functionality after 5 minutes");
+
                             // Try to restore normal timer operation in background
                             _ = Task.Run(async () =>
                             {
@@ -1304,12 +1304,12 @@ namespace EyeRest.Services
                                     var (isWorking, issue) = await TestTimerFunctionality();
                                     if (isWorking)
                                     {
-                                        _logger.LogCritical("✅ FALLBACK RECOVERY SUCCESS: DispatcherTimer system restored - deactivating emergency fallback");
-                                        
+                                        _logger.LogCritical("✅ FALLBACK RECOVERY SUCCESS: Timer system restored - deactivating emergency fallback");
+
                                         // Dispose emergency fallback timer
                                         _emergencyFallbackTimer?.Dispose();
                                         _emergencyFallbackTimer = null;
-                                        
+
                                         // Recreate and start normal timers
                                         InitializeEyeRestTimer();
                                         InitializeBreakTimer();
@@ -1331,7 +1331,7 @@ namespace EyeRest.Services
                     {
                         _logger.LogError(ex, "🆘 Error in emergency fallback timer callback");
                     }
-                }));
+                });
             }
             catch (Exception ex)
             {
