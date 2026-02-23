@@ -63,7 +63,8 @@ namespace EyeRest.Tests.Integration
                 _mockConfigService.Object,
                 _mockAnalyticsService.Object,
                 _fakeTimerFactory,
-                _mockPauseReminderService.Object);
+                _mockPauseReminderService.Object,
+                new Fakes.FakeDispatcherService());
         }
 
         [Fact]

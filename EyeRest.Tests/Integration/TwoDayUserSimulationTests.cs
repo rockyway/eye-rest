@@ -586,7 +586,7 @@ namespace EyeRest.Tests.Integration
         
         public DateTime CurrentTime { get; private set; } = DateTime.Now;
 
-        public EyeRestTimer CreateTimer(System.Windows.Threading.DispatcherPriority priority = System.Windows.Threading.DispatcherPriority.Normal)
+        public EyeRestTimer CreateTimer(TimerPriority priority = TimerPriority.Normal)
         {
             var timer = new VirtualTimer(this);
             _timers.Add(timer);

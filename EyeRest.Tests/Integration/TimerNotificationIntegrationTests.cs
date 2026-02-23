@@ -54,7 +54,7 @@ namespace EyeRest.Tests.Integration
             _mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(_testConfig);
 
-            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object);
+            _timerService = new TimerService(_mockTimerLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object, new Fakes.FakeDispatcherService());
             _notificationService = new NotificationService(_mockNotificationLogger.Object, System.Windows.Threading.Dispatcher.CurrentDispatcher, _mockScreenOverlayService.Object, _mockConfigService.Object, _mockPauseReminderService.Object, _mockAudioService.Object);
         }
 

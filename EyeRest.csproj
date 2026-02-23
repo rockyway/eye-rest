@@ -29,7 +29,7 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
-    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="9.0.0" />
 
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
@@ -54,15 +54,18 @@
     <Compile Remove="EyeRest.Tests\**" />
     <Compile Remove="EyeRest.Abstractions\**" />
     <Compile Remove="EyeRest.Core\**" />
+    <Compile Remove="EyeRest.Platform.Windows\**" />
     <Compile Update="Converters\BooleanToVisibilityConverter.cs">
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Remove="EyeRest.Tests\**" />
     <EmbeddedResource Remove="EyeRest.Abstractions\**" />
     <EmbeddedResource Remove="EyeRest.Core\**" />
+    <EmbeddedResource Remove="EyeRest.Platform.Windows\**" />
     <None Remove="EyeRest.Tests\**" />
     <None Remove="EyeRest.Abstractions\**" />
     <None Remove="EyeRest.Core\**" />
+    <None Remove="EyeRest.Platform.Windows\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -73,6 +76,7 @@
   <ItemGroup>
     <ProjectReference Include="EyeRest.Abstractions\EyeRest.Abstractions.csproj" />
     <ProjectReference Include="EyeRest.Core\EyeRest.Core.csproj" />
+    <ProjectReference Include="EyeRest.Platform.Windows\EyeRest.Platform.Windows.csproj" />
   </ItemGroup>
 
 </Project>

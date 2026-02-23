@@ -52,15 +52,16 @@ namespace EyeRest.Tests.Services
 
             // Create a mock timer factory for testing
             var timerFactoryMock = new Mock<ITimerFactory>();
-            timerFactoryMock.Setup(x => x.CreateTimer(It.IsAny<System.Windows.Threading.DispatcherPriority>()))
+            timerFactoryMock.Setup(x => x.CreateTimer(It.IsAny<TimerPriority>()))
                 .Returns(() => new Mock<EyeRest.Services.Abstractions.ITimer>().Object);
-            
+
             _timerService = new TimerService(
                 _loggerMock.Object,
                 _configMock.Object,
                 _analyticsMock.Object,
                 timerFactoryMock.Object,
-                _pauseReminderMock.Object
+                _pauseReminderMock.Object,
+                new Fakes.FakeDispatcherService()
             );
             
             // Set notification service separately to avoid circular dependency
