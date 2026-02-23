@@ -2,11 +2,10 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
     <AssemblyTitle>Eye-rest</AssemblyTitle>
@@ -16,11 +15,6 @@
 
     <!-- Application icon for taskbar and explorer -->
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
-
-    <!-- Treat warnings as errors for code quality -->
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- Suppress NuGet package compatibility warnings for legacy .NET Framework packages -->
-    <NoWarn>NU1701</NoWarn>
     <!-- High DPI mode configuration -->
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
@@ -58,16 +52,23 @@
 
   <ItemGroup>
     <Compile Remove="EyeRest.Tests\**" />
+    <Compile Remove="EyeRest.Abstractions\**" />
     <Compile Update="Converters\BooleanToVisibilityConverter.cs">
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Remove="EyeRest.Tests\**" />
+    <EmbeddedResource Remove="EyeRest.Abstractions\**" />
     <None Remove="EyeRest.Tests\**" />
+    <None Remove="EyeRest.Abstractions\**" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="DiagnosticTeamsDetection.cs" />
     <Compile Remove="TestIconGeneration.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="EyeRest.Abstractions\EyeRest.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

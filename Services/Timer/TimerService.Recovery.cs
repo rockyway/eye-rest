@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
-using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using EyeRest.Models;
+using EyeRest.Services.Abstractions;
 
 namespace EyeRest.Services
 {
@@ -25,7 +25,7 @@ namespace EyeRest.Services
         {
             if (_healthMonitorTimer == null)
             {
-                _healthMonitorTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
+                _healthMonitorTimer = _timerFactory.CreateTimer(TimerPriority.Normal);
                 _healthMonitorTimer.Interval = TimeSpan.FromMinutes(1); // Check every minute
                 
                 _healthMonitorTimer.Tick += OnHealthMonitorTick;

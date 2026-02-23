@@ -8,9 +8,15 @@ namespace EyeRest.Services.Implementation
     /// </summary>
     public class ProductionTimerFactory : ITimerFactory
     {
-        public ITimer CreateTimer(DispatcherPriority priority = DispatcherPriority.Normal)
+        public ITimer CreateTimer(TimerPriority priority = TimerPriority.Normal)
         {
-            return new ProductionTimer(priority);
+            var wpfPriority = priority switch
+            {
+                TimerPriority.Background => DispatcherPriority.Background,
+                TimerPriority.Render => DispatcherPriority.Render,
+                _ => DispatcherPriority.Normal
+            };
+            return new ProductionTimer(wpfPriority);
         }
     }
 }
