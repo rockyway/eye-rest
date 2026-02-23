@@ -12,9 +12,6 @@ namespace EyeRest.Services
         private readonly Process _currentProcess;
         private readonly DateTime _startTime;
         private Timer? _monitoringTimer;
-#pragma warning disable CS0649 // Field is never assigned to - CPU counter disabled due to permission issues
-        private PerformanceCounter? _cpuCounter;
-#pragma warning restore CS0649
 
         public PerformanceMonitor(ILogger<PerformanceMonitor> logger)
         {
@@ -119,7 +116,6 @@ namespace EyeRest.Services
             try
             {
                 _monitoringTimer?.Dispose();
-                _cpuCounter?.Dispose();
                 _currentProcess?.Dispose();
             }
             catch (Exception ex)

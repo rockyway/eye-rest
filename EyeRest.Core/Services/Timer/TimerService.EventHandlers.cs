@@ -1,7 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using EyeRest.Models;
 
@@ -87,10 +85,10 @@ namespace EyeRest.Services
                 }
                 
                 // CRITICAL FIX: Ensure we're on UI thread for all timer operations
-                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() != true)
+                if (!_dispatcherService.CheckAccess())
                 {
                     _logger.LogCritical("👁️ TIMER EVENT: Not on UI thread - invoking on UI thread");
-                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => OnEyeRestTimerTick(sender, e)));
+                    _dispatcherService.BeginInvoke(() => OnEyeRestTimerTick(sender, e));
                     return;
                 }
                 
@@ -231,10 +229,10 @@ namespace EyeRest.Services
                 }
                 
                 // CRITICAL FIX: Ensure we're on UI thread for all timer operations
-                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() != true)
+                if (!_dispatcherService.CheckAccess())
                 {
                     _logger.LogCritical("☕ TIMER EVENT: Not on UI thread - invoking on UI thread");
-                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => OnBreakTimerTick(sender, e)));
+                    _dispatcherService.BeginInvoke(() => OnBreakTimerTick(sender, e));
                     return;
                 }
                 
@@ -583,39 +581,27 @@ namespace EyeRest.Services
 
         public void StartEyeRestWarningTimer()
         {
-            // CRITICAL FIX: DispatcherTimer must be created/manipulated on UI thread
-            // Remove Task.Run() that was causing thread safety violations and infinite loops
-            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            // CRITICAL FIX: Timer must be created/manipulated on UI thread
+            if (_dispatcherService.CheckAccess())
             {
-                // Already on UI thread
                 StartEyeRestWarningTimerInternal();
             }
             else
             {
-                // Invoke on UI thread
-                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => 
-                {
-                    StartEyeRestWarningTimerInternal();
-                }));
+                _dispatcherService.BeginInvoke(() => StartEyeRestWarningTimerInternal());
             }
         }
 
         public void StartBreakWarningTimer()
         {
-            // CRITICAL FIX: DispatcherTimer must be created/manipulated on UI thread
-            // Remove Task.Run() that was causing thread safety violations and infinite loops
-            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            // CRITICAL FIX: Timer must be created/manipulated on UI thread
+            if (_dispatcherService.CheckAccess())
             {
-                // Already on UI thread
                 StartBreakWarningTimerInternal();
             }
             else
             {
-                // Invoke on UI thread
-                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    StartBreakWarningTimerInternal();
-                }));
+                _dispatcherService.BeginInvoke(() => StartBreakWarningTimerInternal());
             }
         }
 
@@ -625,16 +611,13 @@ namespace EyeRest.Services
         /// </summary>
         public void StopEyeRestWarningTimer()
         {
-            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            if (_dispatcherService.CheckAccess())
             {
                 StopEyeRestWarningTimerInternal();
             }
             else
             {
-                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    StopEyeRestWarningTimerInternal();
-                }));
+                _dispatcherService.BeginInvoke(() => StopEyeRestWarningTimerInternal());
             }
         }
 
@@ -664,16 +647,13 @@ namespace EyeRest.Services
         /// </summary>
         public void StopBreakWarningTimer()
         {
-            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+            if (_dispatcherService.CheckAccess())
             {
                 StopBreakWarningTimerInternal();
             }
             else
             {
-                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    StopBreakWarningTimerInternal();
-                }));
+                _dispatcherService.BeginInvoke(() => StopBreakWarningTimerInternal());
             }
         }
 
@@ -756,14 +736,14 @@ namespace EyeRest.Services
                             ClearEyeRestWarningProcessingFlag();
 
                             // CRITICAL FIX: Ensure TriggerEyeRest is called on UI thread
-                            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                            if (_dispatcherService.CheckAccess())
                             {
                                 TriggerEyeRest();
                             }
                             else
                             {
                                 _logger.LogWarning("⏰ Eye rest warning timer handler not on UI thread - invoking TriggerEyeRest on UI thread");
-                                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => TriggerEyeRest()));
+                                _dispatcherService.BeginInvoke(() => TriggerEyeRest());
                             }
                         }
                         else
@@ -803,13 +783,13 @@ namespace EyeRest.Services
                                     return;
                                 }
 
-                                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                                if (_dispatcherService.CheckAccess())
                                 {
                                     TriggerEyeRest();
                                 }
                                 else
                                 {
-                                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => TriggerEyeRest()));
+                                    _dispatcherService.BeginInvoke(() => TriggerEyeRest());
                                 }
                             }
                             catch (Exception triggerEx)
@@ -835,7 +815,7 @@ namespace EyeRest.Services
                 _eyeRestWarningFallbackTimer?.Stop();
                 _eyeRestWarningFallbackTimer = null;
 
-                _eyeRestWarningFallbackTimer = new System.Windows.Threading.DispatcherTimer();
+                _eyeRestWarningFallbackTimer = _timerFactory.CreateTimer();
                 _eyeRestWarningFallbackTimer.Interval = warningDuration.Add(TimeSpan.FromSeconds(2)); // Warning duration + 2 second safety margin
                 _eyeRestWarningFallbackTimer.Tick += (sender, e) =>
                 {
@@ -870,13 +850,13 @@ namespace EyeRest.Services
                             _logger.LogWarning("⏰ FALLBACK ALLOWED: Forcing eye rest trigger after validation");
 
                             // Force trigger eye rest as fallback
-                            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                            if (_dispatcherService.CheckAccess())
                             {
                                 TriggerEyeRest();
                             }
                             else
                             {
-                                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => TriggerEyeRest()));
+                                _dispatcherService.BeginInvoke(() => TriggerEyeRest());
                             }
                         }
                         else
@@ -969,14 +949,14 @@ namespace EyeRest.Services
                             }
 
                             // CRITICAL FIX: Ensure TriggerBreak is called on UI thread
-                            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                            if (_dispatcherService.CheckAccess())
                             {
                                 TriggerBreak();
                             }
                             else
                             {
                                 _logger.LogWarning("⏰ Warning timer handler not on UI thread - invoking TriggerBreak on UI thread");
-                                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => TriggerBreak()));
+                                _dispatcherService.BeginInvoke(() => TriggerBreak());
                             }
                         }
                         else
@@ -1008,13 +988,13 @@ namespace EyeRest.Services
                                     _logger.LogInformation("🔄 BREAK ERROR RECOVERY: Cleared global break processing flag to allow break trigger");
                                 }
 
-                                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                                if (_dispatcherService.CheckAccess())
                                 {
                                     TriggerBreak();
                                 }
                                 else
                                 {
-                                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => TriggerBreak()));
+                                    _dispatcherService.BeginInvoke(() => TriggerBreak());
                                 }
                             }
                             catch (Exception triggerEx)
@@ -1041,7 +1021,7 @@ namespace EyeRest.Services
                 _breakWarningFallbackTimer?.Stop();
                 _breakWarningFallbackTimer = null;
 
-                _breakWarningFallbackTimer = new System.Windows.Threading.DispatcherTimer();
+                _breakWarningFallbackTimer = _timerFactory.CreateTimer();
                 _breakWarningFallbackTimer.Interval = warningDuration.Add(TimeSpan.FromSeconds(2)); // Warning duration + 2 second safety margin
                 _breakWarningFallbackTimer.Tick += (sender, e) =>
                 {
@@ -1066,13 +1046,13 @@ namespace EyeRest.Services
                             }
 
                             // Force trigger break as fallback
-                            if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                            if (_dispatcherService.CheckAccess())
                             {
                                 TriggerBreak();
                             }
                             else
                             {
-                                System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new Action(() => TriggerBreak()));
+                                _dispatcherService.BeginInvoke(() => TriggerBreak());
                             }
                         }
                         else

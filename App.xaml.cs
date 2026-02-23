@@ -101,6 +101,9 @@ namespace EyeRest
             // Register Dispatcher for NotificationService
             services.AddSingleton<Dispatcher>(_ => Dispatcher.CurrentDispatcher);
 
+            // Register platform-agnostic dispatcher service (WPF implementation)
+            services.AddSingleton<IDispatcherService>(sp => new WpfDispatcherService(System.Windows.Application.Current.Dispatcher));
+
             // Core Services
             services.AddSingleton<IConfigurationService, ConfigurationService>();
             
