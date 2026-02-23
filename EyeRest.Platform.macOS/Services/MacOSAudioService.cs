@@ -1,0 +1,125 @@
+using System;
+using System.Threading.Tasks;
+using EyeRest.Platform.macOS.Interop;
+using Microsoft.Extensions.Logging;
+
+namespace EyeRest.Services
+{
+    /// <summary>
+    /// macOS implementation of <see cref="IAudioService"/> using NSSound and NSBeep.
+    /// Uses named system sounds for different notification events.
+    /// </summary>
+    public class MacOSAudioService : IAudioService
+    {
+        private readonly ILogger<MacOSAudioService> _logger;
+        private readonly IConfigurationService _configurationService;
+
+        public MacOSAudioService(
+            ILogger<MacOSAudioService> logger,
+            IConfigurationService configurationService)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+        }
+
+        public bool IsAudioEnabled
+        {
+            get
+            {
+                try
+                {
+                    var config = _configurationService.LoadConfigurationAsync().GetAwaiter().GetResult();
+                    return config.Audio.Enabled;
+                }
+                catch
+                {
+                    return true;
+                }
+            }
+        }
+
+        public Task PlayEyeRestStartSound()
+        {
+            return PlaySoundAsync("Glass", "eye rest start");
+        }
+
+        public Task PlayEyeRestEndSound()
+        {
+            return PlaySoundAsync("Tink", "eye rest end");
+        }
+
+        public Task PlayBreakWarningSound()
+        {
+            return PlaySoundAsync("Blow", "break warning");
+        }
+
+        public Task PlayBreakStartSound()
+        {
+            return PlaySoundAsync("Submarine", "break start");
+        }
+
+        public Task PlayBreakEndSound()
+        {
+            return PlaySoundAsync("Tink", "break end");
+        }
+
+        public Task PlayCustomSoundTestAsync()
+        {
+            return PlaySoundAsync("Hero", "custom sound test");
+        }
+
+        public Task TestEyeRestAudioAsync()
+        {
+            return PlaySoundAsync("Glass", "eye rest audio test");
+        }
+
+        private Task PlaySoundAsync(string soundName, string context)
+        {
+            if (!IsAudioEnabled)
+            {
+                _logger.LogDebug("Audio disabled, skipping {Context} sound", context);
+                return Task.CompletedTask;
+            }
+
+            try
+            {
+                var pool = Foundation.CreateAutoreleasePool();
+                try
+                {
+                    var played = AppKit.PlaySystemSound(soundName);
+                    if (!played)
+                    {
+                        _logger.LogDebug(
+                            "Named sound '{SoundName}' not found, falling back to NSBeep for {Context}",
+                            soundName, context);
+                        AppKit.NSBeep();
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Played '{SoundName}' for {Context}", soundName, context);
+                    }
+                }
+                finally
+                {
+                    Foundation.DrainAutoreleasePool(pool);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to play sound for {Context}", context);
+
+                // Last resort: try NSBeep
+                try
+                {
+                    AppKit.NSBeep();
+                }
+                catch (Exception beepEx)
+                {
+                    _logger.LogError(beepEx, "NSBeep also failed");
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+}
