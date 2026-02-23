@@ -35,7 +35,7 @@ namespace EyeRest.Services
                     // Check if it's a valid icon file by trying to load it
                     using var fileStream = new FileStream(customIconPath, FileMode.Open, FileAccess.Read);
                     var firstBytes = new byte[4];
-                    fileStream.ReadExactly(firstBytes, 0, 4);
+                    fileStream.Read(firstBytes, 0, 4);
 
                     // ICO files start with 0x00 0x00 0x01 0x00
                     if (firstBytes[0] == 0x00 && firstBytes[1] == 0x00 &&

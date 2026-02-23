@@ -1,6 +1,6 @@
 using System;
-using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
+using EyeRest.Services.Abstractions;
 
 namespace EyeRest.Services
 {
@@ -15,7 +15,7 @@ namespace EyeRest.Services
         {
             if (_eyeRestTimer == null)
             {
-                _eyeRestTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
+                _eyeRestTimer = _timerFactory.CreateTimer(TimerPriority.Normal);
                 _eyeRestTimer.Tick += OnEyeRestTimerTick;
 
                 // Use shared calculation method to ensure consistency with restart logic
@@ -46,7 +46,7 @@ namespace EyeRest.Services
                 _eyeRestWarningTimer = null;
             }
             
-            _eyeRestWarningTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
+            _eyeRestWarningTimer = _timerFactory.CreateTimer(TimerPriority.Normal);
             // Event handler will be attached when the timer is started
         }
 
@@ -54,7 +54,7 @@ namespace EyeRest.Services
         {
             if (_breakTimer == null)
             {
-                _breakTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
+                _breakTimer = _timerFactory.CreateTimer(TimerPriority.Normal);
                 _breakTimer.Tick += OnBreakTimerTick;
                 
                 // Use shared calculation method to ensure consistency with restart logic
@@ -87,7 +87,7 @@ namespace EyeRest.Services
                 _breakWarningTimer = null;
             }
             
-            _breakWarningTimer = _timerFactory.CreateTimer(DispatcherPriority.Normal);
+            _breakWarningTimer = _timerFactory.CreateTimer(TimerPriority.Normal);
             // Event handler will be attached when the timer is started
         }
 
