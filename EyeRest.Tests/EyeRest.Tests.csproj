@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EyeRest.csproj" />
     <ProjectReference Include="..\EyeRest.Abstractions\EyeRest.Abstractions.csproj" />
+    <ProjectReference Include="..\EyeRest.Core\EyeRest.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
