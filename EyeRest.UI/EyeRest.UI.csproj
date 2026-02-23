@@ -36,11 +36,8 @@
     <ProjectReference Include="..\EyeRest.Platform.Windows\EyeRest.Platform.Windows.csproj" />
   </ItemGroup>
 
-  <!-- macOS platform reference (uncomment when EyeRest.Platform.macOS project exists) -->
-  <!--
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
   </ItemGroup>
-  -->
 
 </Project>
