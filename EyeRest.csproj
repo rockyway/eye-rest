@@ -32,7 +32,7 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
 
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
     <PackageReference Include="Microsoft.WindowsAPICodePack-Shell" Version="1.1.0" />
 
     <!-- Modern Windows 11 styling -->
@@ -53,13 +53,16 @@
   <ItemGroup>
     <Compile Remove="EyeRest.Tests\**" />
     <Compile Remove="EyeRest.Abstractions\**" />
+    <Compile Remove="EyeRest.Core\**" />
     <Compile Update="Converters\BooleanToVisibilityConverter.cs">
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Remove="EyeRest.Tests\**" />
     <EmbeddedResource Remove="EyeRest.Abstractions\**" />
+    <EmbeddedResource Remove="EyeRest.Core\**" />
     <None Remove="EyeRest.Tests\**" />
     <None Remove="EyeRest.Abstractions\**" />
+    <None Remove="EyeRest.Core\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -69,6 +72,7 @@
 
   <ItemGroup>
     <ProjectReference Include="EyeRest.Abstractions\EyeRest.Abstractions.csproj" />
+    <ProjectReference Include="EyeRest.Core\EyeRest.Core.csproj" />
   </ItemGroup>
 
 </Project>
