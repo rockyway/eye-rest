@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EyeRest.UI", "EyeRest.UI\Ey
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EyeRest.Platform.macOS", "EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj", "{797E5DA7-E2B1-4C9B-9264-2BB899859E20}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EyeRest.Tests.Avalonia", "EyeRest.Tests.Avalonia\EyeRest.Tests.Avalonia.csproj", "{4D7E68E3-4084-42D3-B08B-6CC64A69C546}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -116,6 +118,18 @@ Global
 		{797E5DA7-E2B1-4C9B-9264-2BB899859E20}.Release|x64.Build.0 = Release|Any CPU
 		{797E5DA7-E2B1-4C9B-9264-2BB899859E20}.Release|x86.ActiveCfg = Release|Any CPU
 		{797E5DA7-E2B1-4C9B-9264-2BB899859E20}.Release|x86.Build.0 = Release|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Debug|x64.Build.0 = Debug|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Debug|x86.Build.0 = Debug|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Release|x64.ActiveCfg = Release|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Release|x64.Build.0 = Release|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Release|x86.ActiveCfg = Release|Any CPU
+		{4D7E68E3-4084-42D3-B08B-6CC64A69C546}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

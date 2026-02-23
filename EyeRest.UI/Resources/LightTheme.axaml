@@ -1,0 +1,29 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Primary Colors -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3" />
+    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#1976D2" />
+    <SolidColorBrush x:Key="PrimaryLightBrush" Color="#BBDEFB" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#4CAF50" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#FF9800" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="#F44336" />
+    <SolidColorBrush x:Key="InfoBrush" Color="#2196F3" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#4CAF50" />
+
+    <!-- Background / Surface -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#FAFAFA" />
+    <SolidColorBrush x:Key="BackgroundLightBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#E0E0E0" />
+    <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FFFFFF" />
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#212121" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#757575" />
+
+    <!-- Info Panel -->
+    <SolidColorBrush x:Key="InfoBackgroundBrush" Color="#E3F2FD" />
+    <SolidColorBrush x:Key="InfoBorderBrush" Color="#90CAF9" />
+
+</ResourceDictionary>
