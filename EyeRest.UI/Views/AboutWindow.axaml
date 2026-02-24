@@ -2,53 +2,78 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="EyeRest.UI.Views.AboutWindow"
         Title="About Eye-Rest"
-        Width="320"
-        Height="300"
+        Width="360"
+        Height="340"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
-        SystemDecorations="Full"
-        ExtendClientAreaToDecorationsHint="False"
-        Background="{DynamicResource BackgroundBrush}"
-        Foreground="{DynamicResource TextPrimaryBrush}">
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        ExtendClientAreaToDecorationsHint="False">
 
-    <StackPanel Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+    <Border Background="{DynamicResource MeshGradientBrush}"
+            CornerRadius="24"
+            ClipToBounds="True">
+        <Grid>
+            <!-- Glass Card -->
+            <Border Background="{DynamicResource GlassCardBackground}"
+                    BorderBrush="{DynamicResource GlassCardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="16"
+                    Padding="24"
+                    Margin="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" Spacing="8">
 
-        <Image Source="avares://EyeRest.UI/Assets/app-icon.png"
-               Width="64" Height="64"
-               HorizontalAlignment="Center"
-               Margin="0,0,0,8"/>
+                    <Image Source="avares://EyeRest.UI/Assets/app-icon.png"
+                           Width="64" Height="64"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"/>
 
-        <TextBlock Text="Eye-Rest"
-                   FontSize="22"
-                   FontWeight="Bold"
-                   HorizontalAlignment="Center"
-                   Foreground="{DynamicResource PrimaryBrush}"/>
+                    <TextBlock Text="Eye-Rest"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource NavButtonActiveText}"/>
 
-        <TextBlock x:Name="VersionText"
-                   Text="Version 1.0.0"
-                   FontSize="13"
-                   HorizontalAlignment="Center"
-                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBlock x:Name="VersionText"
+                               Text="Version 1.0.0"
+                               FontSize="13"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource ContentSubtitleText}"/>
 
-        <TextBlock Text="Automated eye rest and break reminders to keep your eyes healthy while working."
-                   FontSize="13"
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   HorizontalAlignment="Center"
-                   MaxWidth="260"
-                   Margin="0,8,0,12"
-                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBlock Text="Automated eye rest and break reminders to keep your eyes healthy while working."
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               HorizontalAlignment="Center"
+                               MaxWidth="260"
+                               Margin="0,8,0,12"
+                               Foreground="{DynamicResource ContentSubtitleText}"/>
 
-        <Button Content="Close"
-                Width="100"
-                Height="32"
-                CornerRadius="6"
-                HorizontalAlignment="Center"
-                HorizontalContentAlignment="Center"
-                VerticalContentAlignment="Center"
-                Click="OnCloseClick"
-                Background="{DynamicResource PrimaryBrush}"
-                Foreground="White"/>
+                    <Button Classes="GradientStart"
+                            Width="120"
+                            HorizontalAlignment="Center"
+                            Click="OnCloseClick"
+                            Cursor="Hand">
+                        <TextBlock Text="Close"
+                                   HorizontalAlignment="Center" />
+                    </Button>
 
-    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Close Button (top-right) -->
+            <Button Classes="PopupCloseBtn"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,12,12,0"
+                    Click="OnCloseClick"
+                    ToolTip.Tip="Close">
+                <PathIcon Data="{DynamicResource CloseIcon}"
+                          Width="12" Height="12" />
+            </Button>
+        </Grid>
+    </Border>
 </Window>

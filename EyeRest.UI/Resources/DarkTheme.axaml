@@ -105,6 +105,12 @@
         <SolidColorBrush x:Key="StatusCardBorder" Color="#33475569" />
         <SolidColorBrush x:Key="ContentSubtitleText" Color="#9CA3AF" />
 
+        <!-- Popup Icon Circle Brushes -->
+        <SolidColorBrush x:Key="EyeRestIconCircle" Color="#4D1E40AF" />
+        <SolidColorBrush x:Key="BreakIconCircle" Color="#4DB45309" />
+        <SolidColorBrush x:Key="WarningIconCircle" Color="#4DA16207" />
+        <SolidColorBrush x:Key="CompletionIconCircle" Color="#4D166534" />
+
         <!-- FluentTheme ToggleSwitch resource overrides for glass UI -->
         <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#3B82F6" />
         <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#2563EB" />
