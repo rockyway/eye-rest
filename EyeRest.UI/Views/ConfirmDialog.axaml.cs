@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 
 namespace EyeRest.UI.Views;
@@ -12,6 +13,7 @@ public partial class ConfirmDialog : Window
         InitializeComponent();
         YesButton.Click += OnYesClick;
         NoButton.Click += OnNoClick;
+        KeyDown += OnKeyDown;
     }
 
     public ConfirmDialog(string message) : this()
@@ -34,5 +36,14 @@ public partial class ConfirmDialog : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            DialogResult = false;
+            Close();
+        }
     }
 }

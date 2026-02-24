@@ -15,7 +15,7 @@
                     Padding="40,30">
                 <Grid>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Spacing="16" Margin="0,0,24,0">
+                                Spacing="16">
                         <!-- Nested Glass Circles with Eye Icon -->
                         <Panel Width="100" Height="100" HorizontalAlignment="Center" Margin="0,0,0,10">
                             <Border Width="100" Height="100"
