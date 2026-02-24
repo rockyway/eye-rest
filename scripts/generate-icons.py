@@ -93,6 +93,41 @@ def draw_eye_icon(size: int, fill_color: tuple, border_color: tuple,
     return img
 
 
+def draw_tray_eye_icon(size: int, fill_color: tuple, border_color: tuple) -> Image.Image:
+    """
+    Draw a tray/menu bar eye icon that fills the full canvas (minimal padding).
+    The standard draw_eye_icon has ~20% padding which makes menu bar icons look small.
+    This version uses tighter coordinates so the eye fills ~95% of the space.
+    """
+    scale = 4
+    s = size * scale
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    def r(v: float) -> float:
+        """Scale from 32-unit coords to current canvas."""
+        return v * s / 32.0
+
+    # Eye fills nearly the full canvas with minimal padding
+    eye_rect = [r(0), r(3), r(32), r(29)]
+    draw.ellipse(eye_rect, fill=fill_color, outline=border_color, width=max(1, int(r(2))))
+
+    # White inner eye (proportionally larger)
+    inner_rect = [r(5), r(7), r(27), r(25)]
+    draw.ellipse(inner_rect, fill=(255, 255, 255, 255))
+
+    # Dark pupil
+    pupil_rect = [r(10), r(10), r(22), r(22)]
+    draw.ellipse(pupil_rect, fill=(33, 33, 33, 255))
+
+    # Highlight reflection
+    hl_rect = [r(11), r(11), r(15), r(15)]
+    draw.ellipse(hl_rect, fill=(255, 255, 255, 255))
+
+    img = img.resize((size, size), Image.LANCZOS)
+    return img
+
+
 # ---------------------------------------------------------------------------
 # State definitions (matching IconService.cs line 75-104)
 # ---------------------------------------------------------------------------
@@ -186,12 +221,13 @@ def make_icns(output_path: Path):
 # ---------------------------------------------------------------------------
 
 def make_tray_icons(output_dir: Path):
-    """Generate 18px and 36px (2x) state icons for macOS menu bar / tray."""
+    """Generate 22px and 44px (2x) state icons for macOS menu bar / tray.
+    Uses 22px to match the macOS menu bar max height (22pt)."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for state_name, (fill, border) in STATES.items():
-        for sz, suffix in [(18, ""), (36, "@2x")]:
-            img = draw_eye_icon(sz, fill, border)
+        for sz, suffix in [(22, ""), (44, "@2x")]:
+            img = draw_tray_eye_icon(sz, fill, border)
             filename = f"tray_{state_name}{suffix}.png"
             img.save(str(output_dir / filename), format="PNG")
 

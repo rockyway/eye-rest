@@ -268,7 +268,9 @@ public partial class App : Application
             TrayIconState.Error => "tray_error",
             _ => "tray_active"
         };
-        return new Uri($"avares://EyeRest.UI/Assets/TrayIcons/{name}@2x.png");
+        // Use 1x images (22px at 72 DPI = 22pt) so macOS renders at full menu bar size.
+        // @2x images (44px) caused Avalonia to downscale, making the icon appear small.
+        return new Uri($"avares://EyeRest.UI/Assets/TrayIcons/{name}.png");
     }
 
     /// <summary>
