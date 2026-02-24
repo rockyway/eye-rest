@@ -18,6 +18,15 @@ public partial class ConfirmDialog : Window
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
     }
 
+    protected override void OnOpened(System.EventArgs e)
+    {
+        base.OnOpened(e);
+        // Borderless transparent windows need explicit activation for keyboard input
+        Activate();
+        Focus();
+        Focusable = true;
+    }
+
     public ConfirmDialog(string message) : this()
     {
         MessageText.Text = message;
