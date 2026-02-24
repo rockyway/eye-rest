@@ -692,13 +692,13 @@ namespace EyeRest.Services
             
             if (_eyeRestWarningTimer != null && _notificationService != null)
             {
-                
+
                 var warningDuration = TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
                 var startTime = DateTime.Now;
                 var hasTriggered = false; // Prevent multiple triggers
-                
-                _eyeRestWarningTimer.Interval = TimeSpan.FromMilliseconds(100); // Update every 100ms for smooth countdown
-                
+
+                // NOTE: Interval is set AFTER timer recreation below (line ~810)
+
                 // Create a new event handler to avoid accumulating handlers
                 EventHandler<EventArgs> warningTickHandler = (sender, e) =>
                 {
@@ -806,7 +806,8 @@ namespace EyeRest.Services
                 InitializeEyeRestWarningTimer(); // Creates fresh timer with no handlers
                 oldTimer?.Dispose(); // Dispose old timer to prevent memory leaks
                 
-                // Now add the handler to the fresh timer
+                // Set interval and add handler to the fresh timer
+                _eyeRestWarningTimer.Interval = TimeSpan.FromMilliseconds(100); // 100ms for smooth countdown
                 _eyeRestWarningTimer.Tick += warningTickHandler;
 
                 // CRITICAL FIX: Add fallback timer to prevent stuck eye rest warnings
