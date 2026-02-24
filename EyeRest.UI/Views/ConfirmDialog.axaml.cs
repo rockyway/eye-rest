@@ -13,7 +13,6 @@ public partial class ConfirmDialog : Window
         InitializeComponent();
         YesButton.Click += OnYesClick;
         NoButton.Click += OnNoClick;
-        KeyDown += OnKeyDown;
     }
 
     public ConfirmDialog(string message) : this()
@@ -38,12 +37,15 @@ public partial class ConfirmDialog : Window
         Close();
     }
 
-    private void OnKeyDown(object? sender, KeyEventArgs e)
+    protected override void OnKeyDown(KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
             DialogResult = false;
             Close();
+            e.Handled = true;
+            return;
         }
+        base.OnKeyDown(e);
     }
 }
