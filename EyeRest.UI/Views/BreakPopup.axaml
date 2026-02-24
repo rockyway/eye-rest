@@ -104,9 +104,9 @@
                                  Margin="0,16,0,16"
                                  BorderThickness="0"/>
 
-                    <!-- Timer Label -->
+                    <!-- Timer Label (set to "time extended" by code-behind during forward timer) -->
                     <TextBlock Name="TimerLabelText"
-                               Text="remaining"
+                               Text=""
                                FontSize="14"
                                Foreground="{DynamicResource ContentSubtitleText}"
                                HorizontalAlignment="Center"
