@@ -16,5 +16,6 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="/Resources/LightTheme.axaml" />
+        <StyleInclude Source="/Resources/GlassStyles.axaml" />
     </Application.Styles>
 </Application>

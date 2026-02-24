@@ -2,6 +2,8 @@ using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using EyeRest.UI.Helpers;
 using EyeRest.UI.ViewModels;
@@ -45,6 +47,30 @@ public partial class MainWindow : Window
         }
     }
 
+    // Nav button click handler
+    private void NavButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm
+            && sender is Button btn
+            && btn.Tag is int index)
+        {
+            vm.SelectedTabIndex = index;
+        }
+    }
+
+    // Title bar drag
+    private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
+    }
+
+    // Windows caption button handlers
+    private void MinimizeButton_Click(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void MaximizeButton_Click(object? sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    private void CloseButton_Click(object? sender, RoutedEventArgs e) => Close();
+
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         if (App.IsExiting)
@@ -77,9 +103,6 @@ public partial class MainWindow : Window
         {
             MacOSNativeWindowHelper.DisableZoomButton(this);
         }
-        // On Windows, Avalonia respects MaxHeight/MinHeight constraints which already
-        // limit resize. The maximize button is visually present but won't go full-screen
-        // because MaxHeight is set in XAML.
     }
 
     protected override void OnClosed(EventArgs e)
