@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 
 namespace EyeRest.UI.Views;
 
@@ -21,10 +22,13 @@ public partial class ConfirmDialog : Window
     protected override void OnOpened(System.EventArgs e)
     {
         base.OnOpened(e);
-        // Borderless transparent windows need explicit activation for keyboard input
-        Activate();
-        Focus();
-        Focusable = true;
+        // Defer activation so the window is fully rendered before requesting focus
+        Dispatcher.UIThread.Post(() =>
+        {
+            Activate();
+            Focusable = true;
+            Focus();
+        }, DispatcherPriority.Input);
     }
 
     public ConfirmDialog(string message) : this()
