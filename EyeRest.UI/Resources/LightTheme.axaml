@@ -1,29 +1,190 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Primary Colors -->
-    <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3" />
-    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#1976D2" />
-    <SolidColorBrush x:Key="PrimaryLightBrush" Color="#BBDEFB" />
-    <SolidColorBrush x:Key="AccentBrush" Color="#4CAF50" />
-    <SolidColorBrush x:Key="WarningBrush" Color="#FF9800" />
-    <SolidColorBrush x:Key="ErrorBrush" Color="#F44336" />
-    <SolidColorBrush x:Key="InfoBrush" Color="#2196F3" />
-    <SolidColorBrush x:Key="SuccessBrush" Color="#4CAF50" />
+    <!-- ============================================================ -->
+    <!-- Light Theme - Brush Resources                                 -->
+    <!-- ============================================================ -->
+    <Styles.Resources>
+        <!-- Primary Colors -->
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#2196F3" />
+        <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#1976D2" />
+        <SolidColorBrush x:Key="PrimaryLightBrush" Color="#BBDEFB" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#4CAF50" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#FF9800" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#F44336" />
+        <SolidColorBrush x:Key="InfoBrush" Color="#2196F3" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#4CAF50" />
 
-    <!-- Background / Surface -->
-    <SolidColorBrush x:Key="BackgroundBrush" Color="#FAFAFA" />
-    <SolidColorBrush x:Key="BackgroundLightBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="ControlBorderBrush" Color="#E0E0E0" />
-    <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FFFFFF" />
+        <!-- Background / Surface -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#FAFAFA" />
+        <SolidColorBrush x:Key="BackgroundLightBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ControlBorderBrush" Color="#E0E0E0" />
+        <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FFFFFF" />
 
-    <!-- Text -->
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#212121" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#757575" />
+        <!-- Text -->
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#212121" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#616161" />
 
-    <!-- Info Panel -->
-    <SolidColorBrush x:Key="InfoBackgroundBrush" Color="#E3F2FD" />
-    <SolidColorBrush x:Key="InfoBorderBrush" Color="#90CAF9" />
+        <!-- Info Panel -->
+        <SolidColorBrush x:Key="InfoBackgroundBrush" Color="#E3F2FD" />
+        <SolidColorBrush x:Key="InfoBorderBrush" Color="#90CAF9" />
 
-</ResourceDictionary>
+        <!-- FluentTheme TextBox resource overrides -->
+        <SolidColorBrush x:Key="TextControlForeground" Color="#212121" />
+        <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#212121" />
+        <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#212121" />
+        <SolidColorBrush x:Key="TextControlForegroundDisabled" Color="#9E9E9E" />
+        <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#F5F5F5" />
+        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextControlBorderBrush" Color="#E0E0E0" />
+        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#1976D2" />
+        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#2196F3" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#9E9E9E" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#9E9E9E" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#BDBDBD" />
+
+        <!-- FluentTheme CheckBox resource overrides -->
+        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#2196F3" />
+        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#1976D2" />
+        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#1565C0" />
+        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#FFFFFF" />
+
+        <!-- FluentTheme Slider resource overrides -->
+        <SolidColorBrush x:Key="SliderTrackValueFill" Color="#2196F3" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#1976D2" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#1565C0" />
+        <SolidColorBrush x:Key="SliderThumbBackground" Color="#2196F3" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#1976D2" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#1565C0" />
+    </Styles.Resources>
+
+    <!-- ============================================================ -->
+    <!-- Control Styles                                                -->
+    <!-- ============================================================ -->
+
+    <!-- Window -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- TextBlock: High-contrast dark text on light background -->
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- Label -->
+    <Style Selector="Label">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- TextBox: Visible border, dark text, white background -->
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="TextBox:focus">
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+    </Style>
+    <Style Selector="TextBox:pointerover">
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryDarkBrush}" />
+    </Style>
+
+    <!-- CheckBox: Dark text for readability -->
+    <Style Selector="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- RadioButton -->
+    <Style Selector="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- TabControl -->
+    <Style Selector="TabControl">
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}" />
+    </Style>
+
+    <!-- TabItem: Blue when selected, dark text when not -->
+    <Style Selector="TabItem">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="14,8" />
+    </Style>
+    <Style Selector="TabItem:selected">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+    </Style>
+    <Style Selector="TabItem:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryDarkBrush}" />
+    </Style>
+
+    <!-- Slider -->
+    <Style Selector="Slider">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+    </Style>
+
+    <!-- ProgressBar -->
+    <Style Selector="ProgressBar">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Background" Value="#E0E0E0" />
+    </Style>
+
+    <!-- ComboBox -->
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
+    </Style>
+
+    <!-- ListBox -->
+    <Style Selector="ListBox">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
+    </Style>
+
+    <!-- ScrollViewer -->
+    <Style Selector="ScrollViewer">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- Button default: ensure text is readable -->
+    <Style Selector="Button">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- Override FluentTheme's ContentPresenter background in all button states -->
+    <!-- This ensures Button.Background property is visually applied -->
+    <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{TemplateBinding Background}" />
+        <Setter Property="Foreground" Value="{TemplateBinding Foreground}" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{TemplateBinding Background}" />
+        <Setter Property="Foreground" Value="{TemplateBinding Foreground}" />
+    </Style>
+    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{TemplateBinding Background}" />
+        <Setter Property="Foreground" Value="{TemplateBinding Foreground}" />
+    </Style>
+
+    <!-- ToolTip -->
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- Expander -->
+    <Style Selector="Expander">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    </Style>
+
+</Styles>
