@@ -1,88 +1,89 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.EyeRestPopup">
-    <Border Background="{DynamicResource MeshGradientBrush}"
-            CornerRadius="20"
-            ClipToBounds="True">
-        <Grid>
-            <!-- Glass Card centered -->
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!-- Single card: mesh gradient clipped to rounded border -->
+        <Border Background="{DynamicResource MeshGradientBrush}"
+                CornerRadius="20"
+                ClipToBounds="True"
+                Padding="0">
+            <!-- Glass overlay -->
             <Border Background="{DynamicResource GlassCardBackground}"
                     BorderBrush="{DynamicResource GlassCardBorder}"
                     BorderThickness="1"
-                    CornerRadius="16"
-                    Padding="40,30"
-                    Margin="20"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
-                    <!-- Nested Glass Circles with Eye Icon -->
-                    <Panel Width="100" Height="100" HorizontalAlignment="Center" Margin="0,0,0,10">
-                        <Border Width="100" Height="100"
-                                CornerRadius="50"
-                                Background="{DynamicResource EyeRestIconCircle}" />
-                        <Border Width="90" Height="90"
-                                CornerRadius="45"
-                                Background="{DynamicResource GlassCardBackground}"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center">
-                            <PathIcon Data="{DynamicResource EyeIcon}"
-                                      Width="40" Height="40"
-                                      Foreground="{DynamicResource NavButtonActiveText}" />
-                        </Border>
-                    </Panel>
+                    CornerRadius="20"
+                    Padding="40,30">
+                <Grid>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Spacing="16" Margin="0,0,24,0">
+                        <!-- Nested Glass Circles with Eye Icon -->
+                        <Panel Width="100" Height="100" HorizontalAlignment="Center" Margin="0,0,0,10">
+                            <Border Width="100" Height="100"
+                                    CornerRadius="50"
+                                    Background="{DynamicResource EyeRestIconCircle}" />
+                            <Border Width="90" Height="90"
+                                    CornerRadius="45"
+                                    Background="{DynamicResource GlassCardBackground}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                <PathIcon Data="{DynamicResource EyeIcon}"
+                                          Width="40" Height="40"
+                                          Foreground="{DynamicResource NavButtonActiveText}" />
+                            </Border>
+                        </Panel>
 
-                    <!-- Title -->
-                    <TextBlock Text="Time for an Eye Rest!"
-                               FontSize="24"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               Classes="SectionTitle" />
+                        <!-- Title -->
+                        <TextBlock Text="Time for an Eye Rest!"
+                                   FontSize="24"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center" />
 
-                    <!-- Instructions -->
-                    <TextBlock Text="Please look at something 15ft away to rest your eyes"
-                               FontSize="16"
-                               Foreground="{DynamicResource ContentSubtitleText}"
-                               HorizontalAlignment="Center"
-                               TextWrapping="Wrap"
-                               TextAlignment="Center" />
+                        <!-- Instructions -->
+                        <TextBlock Text="Please look at something 15ft away to rest your eyes"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource ContentSubtitleText}"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center" />
 
-                    <!-- Progress Bar -->
-                    <ProgressBar Name="ProgressBar"
-                                 Width="300"
-                                 Height="8"
-                                 Minimum="0"
-                                 Maximum="100"
-                                 Value="0"
-                                 IsIndeterminate="False"
-                                 Foreground="{DynamicResource AccentBrush}"
-                                 Background="{DynamicResource GlassPanelBackground}"
-                                 HorizontalAlignment="Center" />
+                        <!-- Progress Bar -->
+                        <ProgressBar Name="ProgressBar"
+                                     Width="300"
+                                     Height="8"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="0"
+                                     IsIndeterminate="False"
+                                     Foreground="{DynamicResource AccentBrush}"
+                                     Background="{DynamicResource GlassPanelBackground}"
+                                     HorizontalAlignment="Center" />
 
-                    <!-- Time Remaining -->
-                    <TextBlock Name="TimeRemainingText"
-                               Text="20 seconds remaining"
-                               FontSize="14"
-                               Foreground="{DynamicResource ContentSubtitleText}"
-                               HorizontalAlignment="Center" />
+                        <!-- Time Remaining -->
+                        <TextBlock Name="TimeRemainingText"
+                                   Text="20 seconds remaining"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ContentSubtitleText}"
+                                   HorizontalAlignment="Center" />
 
-                    <!-- Skip hint -->
-                    <TextBlock Text="Press ESC to skip"
-                               FontSize="12"
-                               Foreground="{DynamicResource ContentSubtitleText}"
-                               HorizontalAlignment="Center" />
-                </StackPanel>
+                        <!-- Skip hint -->
+                        <TextBlock Text="Press ESC to skip"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource ContentSubtitleText}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Close Button -->
+                    <Button Name="CloseButton"
+                            Classes="PopupCloseBtn"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="0,-4,-4,0"
+                            ToolTip.Tip="Skip eye rest (ESC)">
+                        <PathIcon Data="{DynamicResource CloseIcon}"
+                                  Width="12" Height="12" />
+                    </Button>
+                </Grid>
             </Border>
-
-            <!-- Close Button (top-right) -->
-            <Button Name="CloseButton"
-                    Classes="PopupCloseBtn"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,12,12,0"
-                    ToolTip.Tip="Skip eye rest (ESC)">
-                <PathIcon Data="{DynamicResource CloseIcon}"
-                          Width="12" Height="12" />
-            </Button>
-        </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </UserControl>

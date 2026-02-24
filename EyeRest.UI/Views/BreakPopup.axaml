@@ -1,18 +1,19 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.BreakPopup">
-    <Border Background="{DynamicResource MeshGradientBrush}"
-            CornerRadius="24"
-            ClipToBounds="True">
-        <Grid>
-            <!-- Glass Card - Name="OuterBorder" preserved here (code sets Background on completion) -->
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!-- Single card: mesh gradient clipped to rounded border -->
+        <Border Background="{DynamicResource MeshGradientBrush}"
+                CornerRadius="24"
+                ClipToBounds="True"
+                Padding="0">
+            <!-- Glass overlay - Name="OuterBorder" preserved (code sets Background on completion) -->
             <Border Name="OuterBorder"
                     Background="{DynamicResource GlassCardBackground}"
                     BorderBrush="{DynamicResource GlassCardBorder}"
                     BorderThickness="1"
-                    CornerRadius="16"
+                    CornerRadius="24"
                     Padding="30"
-                    Margin="20"
                     MaxWidth="900"
                     MaxHeight="750">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -233,6 +234,6 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
-        </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </UserControl>

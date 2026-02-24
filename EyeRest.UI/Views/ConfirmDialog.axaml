@@ -9,71 +9,70 @@
         SystemDecorations="None"
         Background="Transparent"
         TransparencyLevelHint="Transparent"
+        Topmost="True"
         ExtendClientAreaToDecorationsHint="False">
 
+    <!-- Mesh gradient clipped to window shape -->
     <Border Background="{DynamicResource MeshGradientBrush}"
             CornerRadius="20"
             ClipToBounds="True">
-        <Grid>
-            <!-- Glass Card -->
-            <Border Background="{DynamicResource GlassCardBackground}"
-                    BorderBrush="{DynamicResource GlassCardBorder}"
-                    BorderThickness="1"
-                    CornerRadius="16"
-                    Padding="28,24"
-                    Margin="16">
-                <StackPanel HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Spacing="16">
-                    <!-- Icon Circle -->
-                    <Border Width="48" Height="48"
-                            CornerRadius="24"
-                            Background="{DynamicResource WarningIconCircle}"
-                            HorizontalAlignment="Center">
-                        <PathIcon Data="{DynamicResource QuestionIcon}"
-                                  Width="24" Height="24"
-                                  Foreground="{DynamicResource WarningBrush}" />
-                    </Border>
+        <!-- Glass overlay fills entire card -->
+        <Border Background="{DynamicResource GlassCardBackground}"
+                BorderBrush="{DynamicResource GlassCardBorder}"
+                BorderThickness="1"
+                CornerRadius="20"
+                Padding="28,24">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="16">
+                <!-- Icon Circle -->
+                <Border Width="48" Height="48"
+                        CornerRadius="24"
+                        Background="{DynamicResource WarningIconCircle}"
+                        HorizontalAlignment="Center">
+                    <PathIcon Data="{DynamicResource QuestionIcon}"
+                              Width="24" Height="24"
+                              Foreground="{DynamicResource WarningBrush}" />
+                </Border>
 
-                    <!-- Message -->
-                    <TextBlock Name="MessageText"
-                               Text="Are you sure?"
-                               FontSize="15"
-                               TextWrapping="Wrap"
-                               TextAlignment="Center"
-                               HorizontalAlignment="Center"
-                               MaxWidth="340" />
+                <!-- Message -->
+                <TextBlock Name="MessageText"
+                           Text="Are you sure?"
+                           FontSize="15"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           MaxWidth="340" />
 
-                    <!-- Buttons -->
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                Spacing="12">
-                        <Button Name="YesButton"
-                                Classes="GradientStart"
-                                Width="110"
-                                Cursor="Hand">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <PathIcon Data="{DynamicResource CheckCircleIcon}"
-                                          Width="14" Height="14" />
-                                <TextBlock Text="Yes"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                <!-- Buttons -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Spacing="12">
+                    <Button Name="YesButton"
+                            Classes="GradientStart"
+                            Width="110"
+                            Cursor="Hand">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{DynamicResource CheckCircleIcon}"
+                                      Width="14" Height="14" />
+                            <TextBlock Text="Yes"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
 
-                        <Button Name="NoButton"
-                                Classes="ActionBtn"
-                                Width="110"
-                                Cursor="Hand">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <PathIcon Data="{DynamicResource CloseIcon}"
-                                          Width="12" Height="12" />
-                                <TextBlock Text="No"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                    <Button Name="NoButton"
+                            Classes="ActionBtn"
+                            Width="110"
+                            Cursor="Hand">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{DynamicResource CloseIcon}"
+                                      Width="12" Height="12" />
+                            <TextBlock Text="No"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
-            </Border>
-        </Grid>
+            </StackPanel>
+        </Border>
     </Border>
 </Window>
