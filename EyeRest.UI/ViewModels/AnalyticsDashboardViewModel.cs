@@ -35,8 +35,8 @@ namespace EyeRest.UI.ViewModels
         // Dashboard State Properties
         private bool _isLoading;
         private string _errorMessage = string.Empty;
-        private DateTime _selectedStartDate = DateTime.Now.AddDays(-30);
-        private DateTime _selectedEndDate = DateTime.Now;
+        private DateTime? _selectedStartDate = DateTime.Now.AddDays(-30);
+        private DateTime? _selectedEndDate = DateTime.Now;
         private int _selectedPeriodDays = 30;
 
         // Chart Data Properties
@@ -189,29 +189,34 @@ namespace EyeRest.UI.ViewModels
 
         public bool HasErrorMessage => !string.IsNullOrEmpty(ErrorMessage);
 
-        public DateTime SelectedStartDate
+        public DateTime? SelectedStartDate
         {
             get => _selectedStartDate;
             set
             {
                 if (SetProperty(ref _selectedStartDate, value))
                 {
+                    OnPropertyChanged(nameof(SelectedStartDateText));
                     _ = LoadDashboardDataAsync();
                 }
             }
         }
 
-        public DateTime SelectedEndDate
+        public DateTime? SelectedEndDate
         {
             get => _selectedEndDate;
             set
             {
                 if (SetProperty(ref _selectedEndDate, value))
                 {
+                    OnPropertyChanged(nameof(SelectedEndDateText));
                     _ = LoadDashboardDataAsync();
                 }
             }
         }
+
+        public string SelectedStartDateText => _selectedStartDate?.ToString("MMM dd, yyyy") ?? "—";
+        public string SelectedEndDateText => _selectedEndDate?.ToString("MMM dd, yyyy") ?? "—";
 
         public int SelectedPeriodDays
         {
@@ -224,10 +229,16 @@ namespace EyeRest.UI.ViewModels
                     _selectedEndDate = DateTime.Now;
                     OnPropertyChanged(nameof(SelectedStartDate));
                     OnPropertyChanged(nameof(SelectedEndDate));
+                    OnPropertyChanged(nameof(SelectedStartDateText));
+                    OnPropertyChanged(nameof(SelectedEndDateText));
                     _ = LoadDashboardDataAsync();
                 }
             }
         }
+
+        // Helper properties with null fallback for service calls
+        private DateTime StartDateValue => _selectedStartDate ?? DateTime.Now.AddDays(-30);
+        private DateTime EndDateValue => _selectedEndDate ?? DateTime.Now;
 
         public ObservableCollection<ChartDataPoint> ComplianceChartData
         {
@@ -521,13 +532,13 @@ namespace EyeRest.UI.ViewModels
                 ErrorMessage = string.Empty;
                 OnPropertyChanged(nameof(HasErrorMessage));
 
-                _logger.LogInformation($"Loading analytics dashboard data for period {SelectedStartDate:yyyy-MM-dd} to {SelectedEndDate:yyyy-MM-dd}");
+                _logger.LogInformation($"Loading analytics dashboard data for period {StartDateValue:yyyy-MM-dd} to {EndDateValue:yyyy-MM-dd}");
 
                 ErrorMessage = "Refreshing analytics data...";
                 OnPropertyChanged(nameof(HasErrorMessage));
 
                 // Load health metrics
-                var healthMetrics = await _analyticsService.GetHealthMetricsAsync(SelectedStartDate, SelectedEndDate);
+                var healthMetrics = await _analyticsService.GetHealthMetricsAsync(StartDateValue, EndDateValue);
                 CurrentHealthMetrics = healthMetrics;
 
                 // Update summary properties
@@ -607,7 +618,7 @@ namespace EyeRest.UI.ViewModels
                 var exportFormat = Enum.Parse<ExportFormat>(format ?? "JSON", true);
 
                 // Generate the export data
-                var exportData = await _analyticsService.ExportDataAsync(exportFormat, SelectedStartDate, SelectedEndDate);
+                var exportData = await _analyticsService.ExportDataAsync(exportFormat, StartDateValue, EndDateValue);
 
                 // Save to a default location (cross-platform - no file dialog dependency)
                 var fileExtension = format?.ToLower() ?? "json";
@@ -750,7 +761,7 @@ namespace EyeRest.UI.ViewModels
         {
             var reportId = Guid.NewGuid().ToString("N")[..8].ToUpper();
             var generatedOn = DateTime.Now.ToString("MMMM dd, yyyy 'at' HH:mm:ss");
-            var reportPeriod = $"{SelectedStartDate:MMM dd, yyyy} - {SelectedEndDate:MMM dd, yyyy} ({SelectedPeriodDays} days)";
+            var reportPeriod = $"{StartDateValue:MMM dd, yyyy} - {EndDateValue:MMM dd, yyyy} ({SelectedPeriodDays} days)";
             var healthStatusClass = GetHealthStatusClass();
             var healthScore = GetHealthScoreText();
             var complianceAnalysis = GetComplianceAnalysis();
@@ -995,8 +1006,8 @@ namespace EyeRest.UI.ViewModels
                 }
                 else
                 {
-                    var demoStartDate = SelectedStartDate;
-                    var demoDays = Math.Min((SelectedEndDate - SelectedStartDate).Days, 14);
+                    var demoStartDate = StartDateValue;
+                    var demoDays = Math.Min((EndDateValue - StartDateValue).Days, 14);
 
                     for (int i = 0; i < demoDays; i++)
                     {
@@ -1122,7 +1133,7 @@ namespace EyeRest.UI.ViewModels
             try
             {
                 WeeklyMetrics.Clear();
-                var weeklyData = await _analyticsService.GetWeeklyMetricsAsync(SelectedStartDate, SelectedEndDate);
+                var weeklyData = await _analyticsService.GetWeeklyMetricsAsync(StartDateValue, EndDateValue);
 
                 foreach (var weekly in weeklyData)
                 {
@@ -1140,7 +1151,7 @@ namespace EyeRest.UI.ViewModels
             try
             {
                 MonthlyMetrics.Clear();
-                var monthlyData = await _analyticsService.GetMonthlyMetricsAsync(SelectedStartDate, SelectedEndDate);
+                var monthlyData = await _analyticsService.GetMonthlyMetricsAsync(StartDateValue, EndDateValue);
 
                 foreach (var monthly in monthlyData)
                 {

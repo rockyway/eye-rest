@@ -218,17 +218,33 @@
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"
                                            Margin="0,0,8,0"/>
-                                <DatePicker SelectedDate="{Binding SelectedStartDate}"
-                                            Width="130"
-                                            Margin="0,0,16,0"/>
+                                <Border Background="{DynamicResource ControlBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ControlBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="8,4"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,16,0">
+                                    <TextBlock Text="{Binding SelectedStartDateText}"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                </Border>
                                 <TextBlock Text="To:"
                                            FontSize="14"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"
                                            Margin="0,0,8,0"/>
-                                <DatePicker SelectedDate="{Binding SelectedEndDate}"
-                                            Width="130"
-                                            Margin="0,0,16,0"/>
+                                <Border Background="{DynamicResource ControlBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ControlBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="8,4"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,16,0">
+                                    <TextBlock Text="{Binding SelectedEndDateText}"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                </Border>
 
                                 <ComboBox ItemsSource="{Binding PeriodOptions}"
                                           SelectedValue="{Binding SelectedPeriodDays}"
