@@ -30,10 +30,14 @@ ROOT = Path(__file__).resolve().parent.parent
 # Drawing helpers
 # ---------------------------------------------------------------------------
 
-def draw_eye_icon(size: int, fill_color: tuple, border_color: tuple) -> Image.Image:
+def draw_eye_icon(size: int, fill_color: tuple, border_color: tuple,
+                   background: bool = False) -> Image.Image:
     """
     Draw the eye-rest icon matching the Windows CreateModernEyeIcon design.
     Returns an RGBA PIL Image at the given size.
+
+    If background=True, draws a white rounded-rect background first (for dock icons).
+    macOS applies its own squircle mask, so we fill the square with white.
     """
     # Draw at 4x then downscale for antialiasing
     scale = 4
@@ -41,10 +45,32 @@ def draw_eye_icon(size: int, fill_color: tuple, border_color: tuple) -> Image.Im
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
+    if background:
+        # macOS icon grid: the squircle sits ~10% inset from the canvas edge,
+        # matching system icons (Notes, Chrome, VS Code, etc.).
+        # Corner radius is ~22.37% of the background rect size.
+        inset = int(s * 0.10)
+        bg_size = s - 2 * inset
+        radius = int(bg_size * 0.2237)
+        draw.rounded_rectangle(
+            [inset, inset, s - inset - 1, s - inset - 1],
+            radius=radius,
+            fill=(255, 255, 255, 255),
+        )
+
+    # When background is used, draw the eye at ~80% of canvas (centered within squircle).
+    # Without background (tray icons), the eye fills the full canvas.
+    if background:
+        eye_scale = 0.80
+        eye_offset = s * (1 - eye_scale) / 2
+    else:
+        eye_scale = 1.0
+        eye_offset = 0
+
     # Proportions based on the 32px Windows icon
     def r(v: float) -> float:
         """Scale a value from 32-unit coords to current canvas."""
-        return v * s / 32.0
+        return eye_offset + v * (s * eye_scale) / 32.0
 
     # Outer eye ellipse
     eye_rect = [r(4), r(6), r(28), r(26)]
@@ -93,10 +119,10 @@ DEFAULT_BORDER = (56, 142, 60)
 # ---------------------------------------------------------------------------
 
 def make_ico(output_path: Path, sizes: list[int] = [16, 32, 48, 256]):
-    """Generate a Windows .ico file with multiple sizes."""
+    """Generate a Windows .ico file with multiple sizes (with background for taskbar)."""
     images = []
     for sz in sizes:
-        img = draw_eye_icon(sz, DEFAULT_FILL, DEFAULT_BORDER)
+        img = draw_eye_icon(sz, DEFAULT_FILL, DEFAULT_BORDER, background=True)
         images.append(img)
 
     # Save as ICO
@@ -139,7 +165,7 @@ def make_icns(output_path: Path):
         iconset_dir.mkdir()
 
         for filename, sz in iconset_sizes.items():
-            img = draw_eye_icon(sz, DEFAULT_FILL, DEFAULT_BORDER)
+            img = draw_eye_icon(sz, DEFAULT_FILL, DEFAULT_BORDER, background=True)
             img.save(str(iconset_dir / filename), format="PNG")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -179,7 +205,7 @@ def make_tray_icons(output_dir: Path):
 
 def make_app_icon_png(output_path: Path, size: int = 512):
     """Generate a high-res PNG for Avalonia resource embedding (used for macOS dock icon)."""
-    img = draw_eye_icon(size, DEFAULT_FILL, DEFAULT_BORDER)
+    img = draw_eye_icon(size, DEFAULT_FILL, DEFAULT_BORDER, background=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     img.save(str(output_path), format="PNG")
     print(f"  Created {output_path} ({size}px)")

@@ -20,6 +20,11 @@ namespace EyeRest.Services
         event EventHandler ShowTimerStatusRequested;
         event EventHandler ShowAnalyticsRequested;
 
+        /// <summary>
+        /// Raised when the tray icon state changes, so the UI layer can update the visual icon.
+        /// </summary>
+        event Action<TrayIconState>? TrayIconStateChanged;
+
         // Methods to raise events from external tray icon (e.g., Avalonia TrayIcon)
         void OnRestoreRequested();
         void OnExitRequested();

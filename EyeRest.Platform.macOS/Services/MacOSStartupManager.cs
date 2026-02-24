@@ -61,14 +61,12 @@ namespace EyeRest.Services
                     Directory.CreateDirectory(launchAgentsDir);
                 }
 
-                // Write the plist file
+                // Write the plist file — macOS automatically loads all plists in
+                // ~/Library/LaunchAgents/ at next login, so no launchctl load needed.
+                // Calling launchctl load here would immediately spawn a new instance.
                 var plistContent = GeneratePlist(executablePath, startMinimized);
                 File.WriteAllText(PlistPath, plistContent);
-                _logger.LogDebug("Wrote LaunchAgent plist to {Path}", PlistPath);
-
-                // Load the agent via launchctl
-                RunLaunchCtl("load", PlistPath);
-                _logger.LogInformation("Auto-start enabled via LaunchAgent (minimized: {Minimized})", startMinimized);
+                _logger.LogInformation("Auto-start enabled via LaunchAgent at {Path} (minimized: {Minimized})", PlistPath, startMinimized);
             }
             catch (Exception ex)
             {

@@ -9,6 +9,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using EyeRest.Services;
 using EyeRest.Services.Abstractions;
+using EyeRest.UI.Helpers;
 using EyeRest.UI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,6 +24,25 @@ public partial class App : Application
     private TrayIcon? _trayIcon;
 
     public static IServiceProvider? Services { get; private set; }
+
+    /// <summary>
+    /// When true, the app is in the process of fully exiting.
+    /// MainWindow.OnClosing checks this to allow close-through vs hide-to-tray.
+    /// </summary>
+    public static bool IsExiting { get; set; }
+
+    /// <summary>
+    /// Called from the named-pipe single-instance listener (Program.cs) when a second
+    /// instance tries to launch. Marshals to the UI thread and restores the main window.
+    /// </summary>
+    public static void RestoreMainWindow()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (Current is App app)
+                app.ShowMainWindow();
+        });
+    }
 
     public override void Initialize()
     {
@@ -83,11 +103,12 @@ public partial class App : Application
             var mainWindow = new Views.MainWindow();
             mainWindow.DataContext = Services.GetRequiredService<MainWindowViewModel>();
             desktop.MainWindow = mainWindow;
-            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
+            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
 
             // Handle shutdown to clean up orchestrator
             desktop.ShutdownRequested += async (_, _) =>
             {
+                IsExiting = true;
                 try
                 {
                     var orchestrator = Services?.GetService<IApplicationOrchestrator>();
@@ -117,6 +138,11 @@ public partial class App : Application
             // Set up Avalonia TrayIcon (the ObjC NSStatusItem approach doesn't work with Avalonia)
             SetupTrayIcon(systemTrayService);
             SetMacOSDockIcon();
+            SubscribeDockIconClick();
+
+            // Subscribe to tray icon state changes to swap the menu bar icon color
+            systemTrayService.TrayIconStateChanged += state =>
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateTrayIconForState(state));
             logger.LogInformation("System tray initialized");
 
             // Start the orchestrator (this starts timers, analytics, presence monitoring, etc.)
@@ -128,6 +154,15 @@ public partial class App : Application
         {
             logger.LogError(ex, "Failed to initialize application services");
         }
+    }
+
+    /// <summary>
+    /// Handles the "About Eye-Rest" click from the macOS application menu.
+    /// Declared in App.axaml via NativeMenu.Menu.
+    /// </summary>
+    private void AboutEyeRest_OnClick(object? sender, EventArgs args)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow());
     }
 
     /// <summary>
@@ -145,14 +180,7 @@ public partial class App : Application
             {
                 Command = new RelayCommand(() =>
                 {
-                    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                        && desktop.MainWindow is Window mainWindow)
-                    {
-                        mainWindow.Show();
-                        if (mainWindow.WindowState == WindowState.Minimized)
-                            mainWindow.WindowState = WindowState.Normal;
-                        mainWindow.Activate();
-                    }
+                    ShowMainWindow();
                     systemTrayService.OnRestoreRequested();
                 })
             });
@@ -174,10 +202,17 @@ public partial class App : Application
 
             trayMenu.Add(new NativeMenuItemSeparator());
 
+            trayMenu.Add(new NativeMenuItem("About Eye-Rest")
+            {
+                Command = new RelayCommand(() =>
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow()))
+            });
+
             trayMenu.Add(new NativeMenuItem("Quit Eye Rest")
             {
                 Command = new RelayCommand(() =>
                 {
+                    IsExiting = true;
                     systemTrayService.OnExitRequested();
                     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
                         desktop.Shutdown();
@@ -187,7 +222,7 @@ public partial class App : Application
             _trayIcon = new TrayIcon
             {
                 Icon = new WindowIcon(AssetLoader.Open(
-                    new Uri("avares://EyeRest.UI/Assets/app-icon.png"))),
+                    GetTrayIconUri(TrayIconState.Active))),
                 ToolTipText = "Eye Rest",
                 Menu = trayMenu,
                 IsVisible = true
@@ -201,6 +236,108 @@ public partial class App : Application
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to set up tray icon");
+        }
+    }
+
+    private void UpdateTrayIconForState(TrayIconState state)
+    {
+        if (_trayIcon == null) return;
+        try
+        {
+            _trayIcon.Icon = new WindowIcon(AssetLoader.Open(GetTrayIconUri(state)));
+            Log.Debug("Tray icon updated for state: {State}", state);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to update tray icon for state {State}", state);
+        }
+    }
+
+    private static Uri GetTrayIconUri(TrayIconState state)
+    {
+        var name = state switch
+        {
+            TrayIconState.Active => "tray_active",
+            TrayIconState.Paused => "tray_paused",
+            TrayIconState.SmartPaused => "tray_smart_paused",
+            TrayIconState.ManuallyPaused => "tray_manually_paused",
+            TrayIconState.Break => "tray_break",
+            TrayIconState.EyeRest => "tray_eye_rest",
+            TrayIconState.MeetingMode => "tray_meeting_mode",
+            TrayIconState.UserAway => "tray_user_away",
+            TrayIconState.Error => "tray_error",
+            _ => "tray_active"
+        };
+        return new Uri($"avares://EyeRest.UI/Assets/TrayIcons/{name}@2x.png");
+    }
+
+    /// <summary>
+    /// Restores and shows the main window with platform-specific handling.
+    /// On macOS: uses native MakeKeyAndOrderFront + resets activation policy to show dock icon.
+    /// On others: uses standard Show() + Activate().
+    /// </summary>
+    private void ShowMainWindow()
+    {
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop
+            || desktop.MainWindow is not Window mainWindow)
+            return;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            MacOSNativeWindowHelper.SetActivationPolicy(0); // Regular — show dock icon
+            MacOSNativeWindowHelper.MakeKeyAndOrderFront(mainWindow);
+            mainWindow.Opacity = 1;
+            mainWindow.InvalidateVisual();
+        }
+        else
+        {
+            mainWindow.Show();
+        }
+
+        if (mainWindow.WindowState == WindowState.Minimized)
+            mainWindow.WindowState = WindowState.Normal;
+        mainWindow.Activate();
+
+        if (mainWindow is Views.MainWindow mw)
+            mw.IsHiddenToTray = false;
+    }
+
+    /// <summary>
+    /// Shows the About window. When the main window is hidden to tray, opens About
+    /// as a standalone window to avoid ShowDialog pulling the hidden owner back into
+    /// the window server and corrupting the Avalonia renderer.
+    /// </summary>
+    private void ShowAboutWindow()
+    {
+        var aboutWindow = new Views.AboutWindow();
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Views.MainWindow mainWindow
+            && !mainWindow.IsHiddenToTray)
+        {
+            aboutWindow.ShowDialog(mainWindow);
+        }
+        else
+        {
+            aboutWindow.Show();
+        }
+    }
+
+    /// <summary>
+    /// On macOS, subscribes to the dock icon click (IActivatableLifetime.Activated with Reopen)
+    /// to restore the main window when the user clicks the dock icon.
+    /// </summary>
+    private void SubscribeDockIconClick()
+    {
+        if (ApplicationLifetime is IActivatableLifetime activatable)
+        {
+            activatable.Activated += (_, args) =>
+            {
+                if (args.Kind == ActivationKind.Reopen)
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowMainWindow());
+                }
+            };
         }
     }
 

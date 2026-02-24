@@ -35,6 +35,9 @@ namespace EyeRest.Services
         public event EventHandler? PauseForMeetingRequested; // NEW: Manual pause for meeting
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
+#pragma warning disable CS0067 // Windows uses its own icon rendering via IconService
+        public event Action<TrayIconState>? TrayIconStateChanged;
+#pragma warning restore CS0067
 
         public SystemTrayService(ILogger<SystemTrayService> logger, IconService iconService)
         {

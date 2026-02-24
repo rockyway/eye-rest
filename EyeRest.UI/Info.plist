@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Eye-rest</string>
+    <string>Eye-Rest</string>
     <key>CFBundleDisplayName</key>
-    <string>Eye-rest</string>
+    <string>Eye-Rest</string>
     <key>CFBundleIdentifier</key>
     <string>com.eyerest.app</string>
     <key>CFBundleVersion</key>
