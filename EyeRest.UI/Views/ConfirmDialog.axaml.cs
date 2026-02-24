@@ -13,6 +13,9 @@ public partial class ConfirmDialog : Window
         InitializeComponent();
         YesButton.Click += OnYesClick;
         NoButton.Click += OnNoClick;
+
+        // ESC key handling using tunnel strategy (catches before child controls)
+        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
     }
 
     public ConfirmDialog(string message) : this()
@@ -37,15 +40,13 @@ public partial class ConfirmDialog : Window
         Close();
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
+    private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
             DialogResult = false;
             Close();
             e.Handled = true;
-            return;
         }
-        base.OnKeyDown(e);
     }
 }
