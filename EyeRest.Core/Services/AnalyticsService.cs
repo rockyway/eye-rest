@@ -155,7 +155,18 @@ namespace EyeRest.Services
                     FOREIGN KEY (SessionId) REFERENCES UserSessions (Id)
                 )";
             command.ExecuteNonQuery();
-            
+
+            // Create PauseEvents table
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS PauseEvents (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Timestamp DATETIME NOT NULL,
+                    Reason TEXT NOT NULL,
+                    SessionId INTEGER,
+                    FOREIGN KEY (SessionId) REFERENCES UserSessions (Id)
+                )";
+            command.ExecuteNonQuery();
+
             _logger.LogInformation("📊 Database tables created successfully");
         }
 
@@ -169,6 +180,7 @@ namespace EyeRest.Services
                 CREATE INDEX IF NOT EXISTS idx_restevents_triggeredat ON RestEvents (TriggeredAt);
                 CREATE INDEX IF NOT EXISTS idx_presenceevents_timestamp ON PresenceEvents (Timestamp);
                 CREATE INDEX IF NOT EXISTS idx_resumeevents_timestamp ON ResumeEvents (Timestamp);
+                CREATE INDEX IF NOT EXISTS idx_pauseevents_timestamp ON PauseEvents (Timestamp);
             ";
             command.ExecuteNonQuery();
             
