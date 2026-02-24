@@ -13,6 +13,7 @@ namespace EyeRest.Services
     {
         private readonly ILogger<MacOSAudioService> _logger;
         private readonly IConfigurationService _configurationService;
+        private bool _cachedAudioEnabled = true;
 
         public MacOSAudioService(
             ILogger<MacOSAudioService> logger,
@@ -20,21 +21,23 @@ namespace EyeRest.Services
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+
+            // Load config async without blocking — default to enabled until loaded
+            _ = RefreshAudioConfigAsync();
         }
 
-        public bool IsAudioEnabled
+        public bool IsAudioEnabled => _cachedAudioEnabled;
+
+        private async Task RefreshAudioConfigAsync()
         {
-            get
+            try
             {
-                try
-                {
-                    var config = _configurationService.LoadConfigurationAsync().GetAwaiter().GetResult();
-                    return config.Audio.Enabled;
-                }
-                catch
-                {
-                    return true;
-                }
+                var config = await _configurationService.LoadConfigurationAsync().ConfigureAwait(false);
+                _cachedAudioEnabled = config.Audio.Enabled;
+            }
+            catch
+            {
+                _cachedAudioEnabled = true;
             }
         }
 
@@ -73,12 +76,15 @@ namespace EyeRest.Services
             return PlaySoundAsync("Glass", "eye rest audio test");
         }
 
-        private Task PlaySoundAsync(string soundName, string context)
+        private async Task PlaySoundAsync(string soundName, string context)
         {
-            if (!IsAudioEnabled)
+            // Refresh config each time without blocking the UI thread
+            await RefreshAudioConfigAsync().ConfigureAwait(false);
+
+            if (!_cachedAudioEnabled)
             {
                 _logger.LogDebug("Audio disabled, skipping {Context} sound", context);
-                return Task.CompletedTask;
+                return;
             }
 
             try
@@ -118,8 +124,6 @@ namespace EyeRest.Services
                     _logger.LogError(beepEx, "NSBeep also failed");
                 }
             }
-
-            return Task.CompletedTask;
         }
     }
 }
