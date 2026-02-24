@@ -38,6 +38,9 @@ internal static class MacOSNativeWindowHelper
     [DllImport(ObjCLib, CallingConvention = CallingConvention.Cdecl, EntryPoint = "objc_msgSend")]
     private static extern void objc_msgSend_Void_Bool(IntPtr receiver, IntPtr selector, [MarshalAs(UnmanagedType.I1)] bool arg1);
 
+    [DllImport(ObjCLib, CallingConvention = CallingConvention.Cdecl, EntryPoint = "objc_msgSend")]
+    private static extern IntPtr objc_msgSend_IntPtr_Long(IntPtr receiver, IntPtr selector, long arg1);
+
     private static readonly IntPtr Sel_OrderOut = sel_registerName("orderOut:");
     private static readonly IntPtr Sel_MakeKeyAndOrderFront = sel_registerName("makeKeyAndOrderFront:");
     private static readonly IntPtr Sel_SetActivationPolicy = sel_registerName("setActivationPolicy:");
@@ -167,7 +170,4 @@ internal static class MacOSNativeWindowHelper
             return false;
         }
     }
-
-    [DllImport(ObjCLib, CallingConvention = CallingConvention.Cdecl, EntryPoint = "objc_msgSend")]
-    private static extern IntPtr objc_msgSend_IntPtr_Long(IntPtr receiver, IntPtr selector, long arg1);
 }

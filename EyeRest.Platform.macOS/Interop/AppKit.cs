@@ -164,7 +164,7 @@ internal static class AppKit
 
     /// <summary>
     /// Sets the size of an NSImage via [image setSize:].
-    /// For menu bar icons, use 18x18 so macOS renders them at the correct size.
+    /// For menu bar icons, use 22x22 (the macOS menu bar max) so macOS renders them at the correct size.
     /// </summary>
     internal static void SetNSImageSize(IntPtr image, double width, double height)
     {
