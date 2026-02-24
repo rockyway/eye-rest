@@ -1,16 +1,42 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.EyeRestPopup">
-    <Grid>
-        <Border Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource PrimaryBrush}"
-                BorderThickness="2"
-                CornerRadius="20"
-                Padding="30"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                BoxShadow="4 4 16 0 #66808080">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Border Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource PrimaryBrush}"
+            BorderThickness="2"
+            CornerRadius="20"
+            Padding="30"
+            BoxShadow="4 4 16 0 #66808080">
+        <Grid>
+            <!-- Close button inside popup, top right corner -->
+            <Button Name="CloseButton"
+                    Width="30"
+                    Height="30"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,-15,-15,0"
+                    Background="Transparent"
+                    Cursor="Hand"
+                    ToolTip.Tip="Skip eye rest (ESC)">
+                <Button.Template>
+                    <ControlTemplate>
+                        <Border Background="Transparent"
+                                BorderBrush="#2196F3"
+                                BorderThickness="2"
+                                CornerRadius="15">
+                            <TextBlock Text="&#x2715;"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="#2196F3"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Margin="0,10,0,0">
                 <!-- Cartoon Character Placeholder (Circle with eye icon) -->
                 <Panel Width="120" Height="120" Margin="0,0,0,30">
                     <Ellipse Width="120" Height="120"
@@ -66,33 +92,6 @@
                            HorizontalAlignment="Center"
                            Margin="0,10,0,0"/>
             </StackPanel>
-        </Border>
-
-        <!-- Close button -->
-        <Button Name="CloseButton"
-                Width="30"
-                Height="30"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,10,10,0"
-                Background="Transparent"
-                Cursor="Hand"
-                ToolTip.Tip="Skip eye rest (ESC)">
-            <Button.Template>
-                <ControlTemplate>
-                    <Border Background="Transparent"
-                            BorderBrush="#2196F3"
-                            BorderThickness="2"
-                            CornerRadius="15">
-                        <TextBlock Text="&#x2715;"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Foreground="#2196F3"/>
-                    </Border>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-    </Grid>
+        </Grid>
+    </Border>
 </UserControl>

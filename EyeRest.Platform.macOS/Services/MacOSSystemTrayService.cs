@@ -30,6 +30,7 @@ namespace EyeRest.Services
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
 #pragma warning restore CS0067
+        public event Action<TrayIconState>? TrayIconStateChanged;
 
         public void Initialize()
         {
@@ -54,6 +55,7 @@ namespace EyeRest.Services
             if (!_isInitialized) return;
             _currentState = state;
             _logger.LogDebug("Tray icon state updated to {State}", state);
+            TrayIconStateChanged?.Invoke(state);
         }
 
         public void ShowBalloonTip(string title, string text)

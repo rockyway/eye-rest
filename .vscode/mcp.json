@@ -6,7 +6,7 @@
       "env": {
         "EMBEDDING_PROVIDER": "ollama",
         "OLLAMA_URL": "http://localhost:11434",
-        "MILVUS_URL": "http://localhost:19530"
+        "MILVUS_URL": "http://192.168.50.3:19530"
       }
     }
   }

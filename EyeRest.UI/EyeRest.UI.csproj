@@ -6,7 +6,7 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <AssemblyTitle>Eye-rest</AssemblyTitle>
+    <AssemblyTitle>Eye-Rest</AssemblyTitle>
     <AssemblyDescription>Cross-platform eye rest reminder</AssemblyDescription>
   </PropertyGroup>
 
@@ -52,11 +52,9 @@
     </Content>
   </ItemGroup>
 
-  <!-- Tray / menu bar state icons (cross-platform) -->
+  <!-- Tray / menu bar state icons as Avalonia resources (loaded via avares://) -->
   <ItemGroup>
-    <Content Include="Assets\TrayIcons\*.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <AvaloniaResource Include="Assets\TrayIcons\*.png" />
   </ItemGroup>
 
 </Project>

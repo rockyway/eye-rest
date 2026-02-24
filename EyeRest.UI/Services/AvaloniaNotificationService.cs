@@ -1,5 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using EyeRest.UI.Views;
 using Microsoft.Extensions.Logging;
@@ -15,6 +21,7 @@ namespace EyeRest.Services
         private readonly IPopupWindowFactory _popupWindowFactory;
         private ITimerService? _timerService;
         private PopupWindow? _currentPopup;
+        private readonly List<Window> _overlayWindows = new();
         private readonly object _lockObject = new();
         private bool _isTestMode;
 
@@ -54,25 +61,58 @@ namespace EyeRest.Services
 
         private async Task ShowEyeRestWarningInternalAsync(TimeSpan timeUntilBreak)
         {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
+            var tcs = new TaskCompletionSource<bool>();
+            DispatcherTimer? updateTimer = null;
+            PopupWindow? myPopup = null;
+
+            Dispatcher.UIThread.Post(() =>
             {
                 try
                 {
                     _logger.LogInformation("Showing eye rest warning popup");
                     IsEyeRestWarningActive = true;
-                    var popup = (PopupWindow)_popupWindowFactory.CreateEyeRestWarningPopup();
-                    _currentPopup = popup;
-                    popup.PositionOnScreen();
-                    popup.Show();
-                    await Task.Delay(timeUntilBreak);
-                    CloseCurrentPopup();
-                    IsEyeRestWarningActive = false;
+                    CloseCurrentPopup(); // Close any existing popup first
+                    myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestWarningPopup();
+                    _currentPopup = myPopup;
+                    myPopup.PositionOnScreen(PopupPlacement.TopRight);
+                    myPopup.Show();
+
+                    if (myPopup.PopupContent is EyeRestWarningPopup warningPopup)
+                    {
+                        var totalSeconds = (int)timeUntilBreak.TotalSeconds;
+                        warningPopup.StartCountdown(totalSeconds);
+                        warningPopup.WarningCompleted += (s, e) => tcs.TrySetResult(true);
+
+                        var startTime = DateTime.Now;
+                        updateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+                        updateTimer.Tick += (s, e) =>
+                        {
+                            var remaining = timeUntilBreak - (DateTime.Now - startTime);
+                            warningPopup.UpdateCountdown(remaining);
+                        };
+                        updateTimer.Start();
+                    }
+                    else
+                    {
+                        tcs.TrySetResult(true);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error showing eye rest warning");
-                    IsEyeRestWarningActive = false;
+                    tcs.TrySetResult(false);
                 }
+            });
+
+            // Wait off the UI thread — no deadlock
+            await Task.WhenAny(tcs.Task, Task.Delay(timeUntilBreak));
+
+            // Close only OUR popup (not a newer one that replaced it)
+            Dispatcher.UIThread.Post(() =>
+            {
+                updateTimer?.Stop();
+                CloseSpecificPopup(myPopup);
+                IsEyeRestWarningActive = false;
             });
         }
 
@@ -90,23 +130,41 @@ namespace EyeRest.Services
 
         private async Task ShowEyeRestReminderInternalAsync(TimeSpan duration)
         {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
+            var tcs = new TaskCompletionSource<bool>();
+            PopupWindow? myPopup = null;
+
+            Dispatcher.UIThread.Post(() =>
             {
                 try
                 {
                     _logger.LogInformation("Showing eye rest reminder popup for {Duration}", duration);
-                    var popup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
-                    _currentPopup = popup;
-                    popup.PositionOnScreen();
-                    popup.Show();
-                    await Task.Delay(duration);
-                    CloseCurrentPopup();
+                    CloseCurrentPopup(); // Close any existing popup (e.g., warning) first
+                    myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
+                    _currentPopup = myPopup;
+                    myPopup.PositionOnScreen(PopupPlacement.TopRight);
+                    myPopup.Show();
+
+                    if (myPopup.PopupContent is EyeRestPopup eyeRestPopup)
+                    {
+                        eyeRestPopup.Completed += (s, e) => tcs.TrySetResult(true);
+                        eyeRestPopup.StartCountdown(duration);
+                    }
+                    else
+                    {
+                        tcs.TrySetResult(true);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error showing eye rest reminder");
+                    tcs.TrySetResult(false);
                 }
             });
+
+            // Wait off the UI thread — no deadlock
+            await Task.WhenAny(tcs.Task, Task.Delay(duration + TimeSpan.FromSeconds(2)));
+
+            Dispatcher.UIThread.Post(() => CloseSpecificPopup(myPopup));
         }
 
         public async Task ShowBreakWarningAsync(TimeSpan timeUntilBreak)
@@ -123,25 +181,56 @@ namespace EyeRest.Services
 
         private async Task ShowBreakWarningInternalAsync(TimeSpan timeUntilBreak)
         {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
+            var tcs = new TaskCompletionSource<bool>();
+            DispatcherTimer? updateTimer = null;
+            PopupWindow? myPopup = null;
+
+            Dispatcher.UIThread.Post(() =>
             {
                 try
                 {
                     _logger.LogInformation("Showing break warning popup");
                     IsBreakWarningActive = true;
-                    var popup = (PopupWindow)_popupWindowFactory.CreateBreakWarningPopup();
-                    _currentPopup = popup;
-                    popup.PositionOnScreen();
-                    popup.Show();
-                    await Task.Delay(timeUntilBreak);
                     CloseCurrentPopup();
-                    IsBreakWarningActive = false;
+                    myPopup = (PopupWindow)_popupWindowFactory.CreateBreakWarningPopup();
+                    _currentPopup = myPopup;
+                    myPopup.PositionOnScreen(PopupPlacement.TopRight);
+                    myPopup.Show();
+
+                    if (myPopup.PopupContent is BreakWarningPopup breakWarningPopup)
+                    {
+                        breakWarningPopup.StartCountdown(timeUntilBreak);
+                        breakWarningPopup.Completed += (s, e) => tcs.TrySetResult(true);
+
+                        var startTime = DateTime.Now;
+                        updateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+                        updateTimer.Tick += (s, e) =>
+                        {
+                            var remaining = timeUntilBreak - (DateTime.Now - startTime);
+                            breakWarningPopup.UpdateCountdown(remaining);
+                        };
+                        updateTimer.Start();
+                    }
+                    else
+                    {
+                        tcs.TrySetResult(true);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error showing break warning");
-                    IsBreakWarningActive = false;
+                    tcs.TrySetResult(false);
                 }
+            });
+
+            // Wait off the UI thread — no deadlock
+            await Task.WhenAny(tcs.Task, Task.Delay(timeUntilBreak));
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                updateTimer?.Stop();
+                CloseSpecificPopup(myPopup);
+                IsBreakWarningActive = false;
             });
         }
 
@@ -159,43 +248,66 @@ namespace EyeRest.Services
 
         private async Task<BreakAction> ShowBreakReminderInternalAsync(TimeSpan duration, IProgress<double> progress)
         {
-            return await Dispatcher.UIThread.InvokeAsync(async () =>
+            // Load config off the UI thread first
+            var config = await _configurationService.LoadConfigurationAsync();
+
+            var tcs = new TaskCompletionSource<BreakAction>();
+            PopupWindow? myPopup = null;
+
+            Dispatcher.UIThread.Post(() =>
             {
                 try
                 {
                     _logger.LogInformation("Showing break reminder popup for {Duration}", duration);
                     IsBreakActive = true;
-                    var popup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
-                    _currentPopup = popup;
-                    popup.PositionOnScreen();
-                    popup.Show();
-
-                    var elapsed = TimeSpan.Zero;
-                    var interval = TimeSpan.FromMilliseconds(100);
-                    while (elapsed < duration)
-                    {
-                        await Task.Delay(interval);
-                        elapsed += interval;
-                        progress.Report(elapsed.TotalMilliseconds / duration.TotalMilliseconds);
-                    }
 
                     CloseCurrentPopup();
-                    IsBreakActive = false;
-                    return BreakAction.Completed;
+                    ShowDimOverlays(config.Break.OverlayOpacityPercent);
+
+                    myPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                    _currentPopup = myPopup;
+                    myPopup.PositionOnScreen(PopupPlacement.Center);
+                    myPopup.Show();
+
+                    if (myPopup.PopupContent is BreakPopup breakPopup)
+                    {
+                        breakPopup.SetConfiguration(
+                            config.Break.RequireConfirmationAfterBreak,
+                            config.Break.ResetTimersOnBreakConfirmation);
+
+                        breakPopup.ActionSelected += (s, action) => tcs.TrySetResult(action);
+                        breakPopup.StartCountdown(duration, progress);
+                    }
+                    else
+                    {
+                        tcs.TrySetResult(BreakAction.Completed);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error showing break reminder");
-                    IsBreakActive = false;
-                    return BreakAction.Completed;
+                    tcs.TrySetResult(BreakAction.Completed);
                 }
             });
+
+            // Wait off the UI thread — no deadlock
+            var result = await tcs.Task;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                HideDimOverlays();
+                CloseSpecificPopup(myPopup);
+                IsBreakActive = false;
+            });
+
+            return result;
         }
 
         public async Task HideAllNotifications()
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                HideDimOverlays();
                 CloseCurrentPopup();
                 IsEyeRestWarningActive = false;
                 IsBreakWarningActive = false;
@@ -205,24 +317,133 @@ namespace EyeRest.Services
 
         public void UpdateEyeRestWarningCountdown(TimeSpan remaining)
         {
-            _logger.LogDebug("Eye rest warning countdown: {Remaining}", remaining);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_currentPopup?.PopupContent is EyeRestWarningPopup warningPopup)
+                {
+                    warningPopup.UpdateCountdown(remaining);
+                }
+            });
         }
 
         public void UpdateBreakWarningCountdown(TimeSpan remaining)
         {
-            _logger.LogDebug("Break warning countdown: {Remaining}", remaining);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_currentPopup?.PopupContent is BreakWarningPopup warningPopup)
+                {
+                    warningPopup.UpdateCountdown(remaining);
+                }
+            });
         }
 
         public void StartEyeRestWarningCountdown(TimeSpan duration)
         {
-            _logger.LogDebug("Starting eye rest warning countdown: {Duration}", duration);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_currentPopup?.PopupContent is EyeRestWarningPopup warningPopup)
+                {
+                    warningPopup.StartCountdown((int)duration.TotalSeconds);
+                }
+            });
         }
 
         public void StartBreakWarningCountdown(TimeSpan duration)
         {
-            _logger.LogDebug("Starting break warning countdown: {Duration}", duration);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_currentPopup?.PopupContent is BreakWarningPopup warningPopup)
+                {
+                    warningPopup.StartCountdown(duration);
+                }
+            });
         }
 
+        #region Screen Dimming Overlays
+
+        /// <summary>
+        /// Creates semi-transparent dark overlay windows on all screens for break dimming.
+        /// </summary>
+        private void ShowDimOverlays(int opacityPercent = 50)
+        {
+            try
+            {
+                HideDimOverlays(); // Clean up any existing overlays
+
+                var app = Application.Current;
+                if (app?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                    return;
+
+                var opacity = opacityPercent / 100.0;
+
+                var screens = desktop.MainWindow?.Screens.All;
+                if (screens == null || screens.Count == 0)
+                    return;
+
+                foreach (var screen in screens)
+                {
+                    var overlay = new Window
+                    {
+                        SystemDecorations = SystemDecorations.None,
+                        Background = new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0)),
+                        Topmost = true,
+                        ShowInTaskbar = false,
+                        CanResize = false,
+                        ShowActivated = false,
+                        Width = screen.Bounds.Width / screen.Scaling,
+                        Height = screen.Bounds.Height / screen.Scaling,
+                        Position = new PixelPoint(screen.Bounds.X, screen.Bounds.Y),
+                        TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent },
+                    };
+
+                    // Click on overlay removes dim from that screen (don't block user)
+                    overlay.PointerPressed += (s, e) =>
+                    {
+                        if (s is Window overlayWin)
+                        {
+                            _overlayWindows.Remove(overlayWin);
+                            try { overlayWin.Close(); } catch { }
+                            _logger.LogInformation("User clicked dim overlay - removed from screen");
+                        }
+                    };
+
+                    overlay.Show();
+                    _overlayWindows.Add(overlay);
+                }
+
+                _logger.LogInformation("Showed {Count} dim overlay(s) at {Opacity}% opacity",
+                    _overlayWindows.Count, opacityPercent);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error showing dim overlays");
+            }
+        }
+
+        /// <summary>
+        /// Closes all dim overlay windows.
+        /// </summary>
+        private void HideDimOverlays()
+        {
+            foreach (var overlay in _overlayWindows)
+            {
+                try
+                {
+                    overlay.Close();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error closing dim overlay");
+                }
+            }
+            _overlayWindows.Clear();
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Closes the current popup (whatever _currentPopup points to).
+        /// </summary>
         private void CloseCurrentPopup()
         {
             lock (_lockObject)
@@ -239,6 +460,30 @@ namespace EyeRest.Services
                     }
                     _currentPopup = null;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Closes a specific popup only if it's still the current one.
+        /// Prevents the race where a warning cleanup closes a newer reminder popup.
+        /// </summary>
+        private void CloseSpecificPopup(PopupWindow? popup)
+        {
+            if (popup == null) return;
+            lock (_lockObject)
+            {
+                try
+                {
+                    popup.Close();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error closing specific popup");
+                }
+
+                // Only clear _currentPopup if it's still pointing to this popup
+                if (_currentPopup == popup)
+                    _currentPopup = null;
             }
         }
     }

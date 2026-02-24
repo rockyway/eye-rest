@@ -7,15 +7,12 @@
                 BorderThickness="2"
                 CornerRadius="15"
                 MaxWidth="400"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,50,50,0"
                 BoxShadow="4 4 16 0 #66808080">
 
             <!-- Inner Grid to allow close button overlay -->
             <Grid>
                 <!-- Main content with padding -->
-                <StackPanel Margin="30">
+                <StackPanel Margin="30,30,30,20">
                     <!-- Warning Icon -->
                     <TextBlock Text="&#x23F0;"
                                FontSize="32"

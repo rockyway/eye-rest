@@ -28,12 +28,15 @@ namespace EyeRest.UI.Views
 
         private void OnLoaded(object? sender, RoutedEventArgs e)
         {
-            // Also attach to the top-level window for ESC handling
+            // Attach to the top-level window for ESC handling
             var topLevel = TopLevel.GetTopLevel(this);
             if (topLevel is Window window)
             {
                 window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
-                Debug.WriteLine("EyeRestWarningPopup: Window key handler attached");
+                // Ensure window can receive keyboard input
+                window.Activate();
+                window.Focus();
+                Debug.WriteLine("EyeRestWarningPopup: Window key handler attached and focused");
             }
         }
 

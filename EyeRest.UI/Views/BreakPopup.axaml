@@ -84,7 +84,7 @@
 
             <!-- Enhanced Progress Bar - Thicker and Full Width -->
             <ProgressBar Name="ProgressBar"
-                         Width="640"
+                         Width="500"
                          Height="36"
                          Minimum="0"
                          Maximum="100"

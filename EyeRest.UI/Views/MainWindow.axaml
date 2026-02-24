@@ -179,7 +179,10 @@
                                         <Button Content="Test Eye Remind"
                                                 Command="{Binding TestWarningCommand}"
                                                 Width="160"
+                                                Height="35"
                                                 Margin="0,0,10,0"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
                                                 Background="{DynamicResource WarningBrush}"
                                                 Foreground="White"
                                                 ToolTip.Tip="Test the eye rest warning notification"/>
@@ -187,6 +190,9 @@
                                         <Button Content="Test Eye Rest"
                                                 Command="{Binding TestPopupCommand}"
                                                 Width="130"
+                                                Height="35"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
                                                 Background="{DynamicResource PrimaryBrush}"
                                                 Foreground="White"
                                                 ToolTip.Tip="Test the eye rest popup"/>
@@ -343,7 +349,10 @@
                                         <Button Content="Test Break Remind"
                                                 Command="{Binding TestBreakWarningCommand}"
                                                 Width="160"
+                                                Height="35"
                                                 Margin="0,0,10,0"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
                                                 Background="{DynamicResource WarningBrush}"
                                                 Foreground="White"
                                                 ToolTip.Tip="Test the break warning notification"/>
@@ -351,6 +360,9 @@
                                         <Button Content="Test Break"
                                                 Command="{Binding TestBreakCommand}"
                                                 Width="130"
+                                                Height="35"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
                                                 Background="{DynamicResource InfoBrush}"
                                                 Foreground="White"
                                                 ToolTip.Tip="Test the break popup"/>
@@ -561,6 +573,8 @@
                                                     Width="120"
                                                     Height="35"
                                                     Margin="10,0,0,5"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
                                                     Background="{DynamicResource InfoBrush}"
                                                     Foreground="White"
                                                     ToolTip.Tip="Select custom audio file (.wav, .mp3, .wma)"/>
@@ -571,6 +585,8 @@
                                                 Width="140"
                                                 Height="36"
                                                 HorizontalAlignment="Left"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
                                                 Margin="0,10,0,10"
                                                 Background="{DynamicResource InfoBrush}"
                                                 Foreground="White"
@@ -640,6 +656,8 @@
                                             Width="160"
                                             Height="35"
                                             HorizontalAlignment="Left"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
                                             Background="{DynamicResource WarningBrush}"
                                             Foreground="White"
                                             ToolTip.Tip="Reset all settings to their default values"/>
@@ -677,6 +695,8 @@
                                 FontSize="16"
                                 FontWeight="SemiBold"
                                 Cursor="Hand"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
                                 Background="{DynamicResource PrimaryBrush}"
                                 Foreground="White"
                                 ToolTip.Tip="Open the analytics dashboard in a larger, dedicated window"/>
@@ -701,11 +721,14 @@
                         Width="120"
                         Height="35"
                         Margin="5,0"
+                        CornerRadius="6"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         ToolTip.Tip="{Binding StartButtonTooltip}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text=">" Margin="0,0,5,0" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M 0,0 L 10,6 L 0,12 Z" Foreground="White" Width="12" Height="12"/>
                         <TextBlock Text="Start" Foreground="White"/>
                     </StackPanel>
                 </Button>
@@ -714,11 +737,14 @@
                         Width="120"
                         Height="35"
                         Margin="5,0"
+                        CornerRadius="6"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         Background="{DynamicResource ErrorBrush}"
                         Foreground="White"
                         ToolTip.Tip="{Binding StopButtonTooltip}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="X" Margin="0,0,5,0" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M 0,0 H 10 V 10 H 0 Z" Foreground="White" Width="12" Height="12"/>
                         <TextBlock Text="Stop" Foreground="White"/>
                     </StackPanel>
                 </Button>
@@ -727,12 +753,15 @@
                         Width="120"
                         Height="35"
                         Margin="5,0"
+                        CornerRadius="6"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         IsEnabled="{Binding CanPauseTimers}"
                         Background="{DynamicResource WarningBrush}"
                         Foreground="White"
                         ToolTip.Tip="{Binding PauseButtonTooltip}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="||" Margin="0,0,5,0" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M 0,0 H 3 V 12 H 0 Z M 7,0 H 10 V 12 H 7 Z" Foreground="White" Width="12" Height="12"/>
                         <TextBlock Text="Pause" Foreground="White"/>
                     </StackPanel>
                 </Button>
@@ -741,12 +770,15 @@
                         Width="120"
                         Height="35"
                         Margin="5,0"
+                        CornerRadius="6"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         IsEnabled="{Binding CanResumeTimers}"
                         Background="{DynamicResource SuccessBrush}"
                         Foreground="White"
                         ToolTip.Tip="{Binding ResumeButtonTooltip}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="R" Margin="0,0,5,0" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M 0,0 L 10,6 L 0,12 Z" Foreground="White" Width="12" Height="12"/>
                         <TextBlock Text="Resume" Foreground="White"/>
                     </StackPanel>
                 </Button>
@@ -758,12 +790,15 @@
                         Width="160"
                         Height="35"
                         Margin="5,0"
+                        CornerRadius="6"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         IsEnabled="{Binding CanPauseMeeting}"
                         Background="{DynamicResource InfoBrush}"
                         Foreground="White"
                         ToolTip.Tip="{Binding Meeting30mButtonTooltip}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="M" Margin="0,0,5,0" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M 7,0 A 7,7 0 1,0 7,14 A 7,7 0 1,0 7,0 M 7,2 A 5,5 0 1,1 7,12 A 5,5 0 1,1 7,2 M 6.5,4 H 7.5 V 7.5 H 10 V 8.5 H 6.5 Z" Foreground="White" Width="14" Height="14"/>
                         <TextBlock Text="Meeting (30m)" Foreground="White"/>
                     </StackPanel>
                 </Button>
@@ -772,12 +807,15 @@
                         Width="160"
                         Height="35"
                         Margin="5,0"
+                        CornerRadius="6"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         IsEnabled="{Binding CanPauseMeeting}"
                         Background="{DynamicResource InfoBrush}"
                         Foreground="White"
                         ToolTip.Tip="{Binding Meeting1hButtonTooltip}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="M" Margin="0,0,5,0" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="M 7,0 A 7,7 0 1,0 7,14 A 7,7 0 1,0 7,0 M 7,2 A 5,5 0 1,1 7,12 A 5,5 0 1,1 7,2 M 6.5,4 H 7.5 V 7.5 H 10 V 8.5 H 6.5 Z" Foreground="White" Width="14" Height="14"/>
                         <TextBlock Text="Meeting (1h)" Foreground="White"/>
                     </StackPanel>
                 </Button>

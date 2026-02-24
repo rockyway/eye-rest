@@ -1188,6 +1188,12 @@ namespace EyeRest.UI.ViewModels
             OnPropertyChanged(nameof(ResumeButtonTooltip));
             OnPropertyChanged(nameof(Meeting30mButtonTooltip));
             OnPropertyChanged(nameof(Meeting1hButtonTooltip));
+
+            // Notify Avalonia that command CanExecute has changed (it caches the initial result)
+            (PauseTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
+            (ResumeTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
+            (PauseForMeetingCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
+            (PauseForMeeting1hCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private void OnTimerServicePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1700,14 +1706,20 @@ namespace EyeRest.UI.ViewModels
                 var audioService = App.Services?.GetService<IAudioService>();
                 if (audioService != null)
                 {
-                    if (!string.IsNullOrEmpty(CustomSoundPath) && File.Exists(CustomSoundPath))
+                    // Run on background thread to avoid UI thread deadlock
+                    // (MacOSAudioService.IsAudioEnabled blocks with .GetAwaiter().GetResult())
+                    var soundPath = CustomSoundPath;
+                    await Task.Run(async () =>
                     {
-                        await audioService.PlayCustomSoundTestAsync();
-                    }
-                    else
-                    {
-                        await audioService.TestEyeRestAudioAsync();
-                    }
+                        if (!string.IsNullOrEmpty(soundPath) && File.Exists(soundPath))
+                        {
+                            await audioService.PlayCustomSoundTestAsync();
+                        }
+                        else
+                        {
+                            await audioService.TestEyeRestAudioAsync();
+                        }
+                    });
                     _logger.LogInformation("Audio test completed");
                 }
                 else
