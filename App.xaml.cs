@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using EyeRest.Services;
 using EyeRest.Services.Abstractions;
 using EyeRest.Services.Implementation;
+using EyeRest.Platform.Windows;
 using EyeRest.ViewModels;
 using EyeRest.Views;
 using System.Windows.Threading;
@@ -96,56 +97,42 @@ namespace EyeRest
 
         private void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IconService>();
-            
-            // Register Dispatcher for NotificationService
-            services.AddSingleton<Dispatcher>(_ => Dispatcher.CurrentDispatcher);
+            // Windows platform services (Dispatcher, TimerFactory, Audio, SystemTray, etc.)
+            services.AddWindowsPlatformServices();
 
             // Core Services
             services.AddSingleton<IConfigurationService, ConfigurationService>();
-            
+
             // Dual Configuration Services
             services.AddSingleton<ITimerConfigurationService, TimerConfigurationService>();
             services.AddSingleton<IUIConfigurationService, UIConfigurationService>();
-            
-            // Timer factory for robust timer creation - FIXED: Use HybridTimerFactory to prevent DispatcherTimer corruption
-            services.AddSingleton<ITimerFactory>(provider => 
-                new HybridTimerFactory(
-                    provider.GetRequiredService<Dispatcher>(),
-                    provider.GetService<ILoggerFactory>()
-                ));
+
             services.AddSingleton<ITimerService, TimerService>();
             services.AddSingleton<INotificationService, NotificationService>();
-            services.AddSingleton<IAudioService, AudioService>();
-            services.AddSingleton<ISystemTrayService, SystemTrayService>();
-            services.AddSingleton<IStartupManager, StartupManager>();
             services.AddSingleton<ILoggingService, LoggingService>();
             services.AddSingleton<IPerformanceMonitor, PerformanceMonitor>();
-            services.AddSingleton<IScreenOverlayService, ScreenOverlayService>();
-            
-            // Advanced Services (Phase 2+)
-            services.AddSingleton<IUserPresenceService, UserPresenceService>();
+
+            // Advanced Services
             services.AddSingleton<IAnalyticsService, AnalyticsService>();
             services.AddSingleton<IReportingService, ReportingService>();
-            services.AddSingleton<IPauseReminderService, PauseReminderService>();
-            
+
             // DISABLED: Meeting detection not working reliably - needs improvement and testing in future
             // Network monitoring services
             // services.AddSingleton<INetworkEndpointMonitor, WindowsNetworkEndpointMonitor>();
             // services.AddSingleton<IProcessMonitor, WindowsProcessMonitor>();
-            
+
             // Meeting detection services (transient for factory pattern)
             // services.AddTransient<WindowBasedMeetingDetectionService>();
             // services.AddTransient<NetworkBasedMeetingDetectionService>();
             // services.AddTransient<HybridMeetingDetectionService>();
-            
+
             // Meeting detection factory and manager
             // services.AddSingleton<IMeetingDetectionServiceFactory, MeetingDetectionServiceFactory>();
             // services.AddSingleton<IMeetingDetectionManager, MeetingDetectionManager>();
-            
+
             // Orchestration
             services.AddSingleton<IApplicationOrchestrator, ApplicationOrchestrator>();
-            
+
             // UI Components
             services.AddTransient<AnalyticsDashboardViewModel>();
             services.AddTransient<MainWindowViewModel>();

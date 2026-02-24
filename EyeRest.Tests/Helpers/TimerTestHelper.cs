@@ -107,7 +107,7 @@ namespace EyeRest.Tests.Helpers
             mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(config);
 
-            return new TimerService(mockLogger.Object, mockConfigService.Object, mockAnalyticsService.Object, fakeTimerFactory, mockPauseReminderService.Object);
+            return new TimerService(mockLogger.Object, mockConfigService.Object, mockAnalyticsService.Object, fakeTimerFactory, mockPauseReminderService.Object, new FakeDispatcherService());
         }
 
         /// <summary>

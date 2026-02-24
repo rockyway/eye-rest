@@ -594,7 +594,7 @@ namespace EyeRest.Tests.Services
                 .ReturnsAsync(config);
 
             // Create TimerService with UserPresenceService dependency
-            var timerService = new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object);
+            var timerService = new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object, new Fakes.FakeDispatcherService());
             
             // Set up the user presence service mock in the timer service
             // This would require modifying TimerService to accept IUserPresenceService in constructor

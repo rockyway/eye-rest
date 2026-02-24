@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="EyeRest.UI.Views.AboutWindow"
+        Title="About Eye-Rest"
+        Width="320"
+        Height="300"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full"
+        ExtendClientAreaToDecorationsHint="False"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}">
+
+    <StackPanel Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+
+        <Image Source="avares://EyeRest.UI/Assets/app-icon.png"
+               Width="64" Height="64"
+               HorizontalAlignment="Center"
+               Margin="0,0,0,8"/>
+
+        <TextBlock Text="Eye-Rest"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Foreground="{DynamicResource PrimaryBrush}"/>
+
+        <TextBlock x:Name="VersionText"
+                   Text="Version 1.0.0"
+                   FontSize="13"
+                   HorizontalAlignment="Center"
+                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+        <TextBlock Text="Automated eye rest and break reminders to keep your eyes healthy while working."
+                   FontSize="13"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   HorizontalAlignment="Center"
+                   MaxWidth="260"
+                   Margin="0,8,0,12"
+                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+        <Button Content="Close"
+                Width="100"
+                Height="32"
+                CornerRadius="6"
+                HorizontalAlignment="Center"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Click="OnCloseClick"
+                Background="{DynamicResource PrimaryBrush}"
+                Foreground="White"/>
+
+    </StackPanel>
+</Window>

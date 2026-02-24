@@ -2,11 +2,10 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
     <AssemblyTitle>Eye-rest</AssemblyTitle>
@@ -16,11 +15,6 @@
 
     <!-- Application icon for taskbar and explorer -->
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
-
-    <!-- Treat warnings as errors for code quality -->
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- Suppress NuGet package compatibility warnings for legacy .NET Framework packages -->
-    <NoWarn>NU1701</NoWarn>
     <!-- High DPI mode configuration -->
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
@@ -35,10 +29,10 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
-    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="9.0.0" />
 
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
     <PackageReference Include="Microsoft.WindowsAPICodePack-Shell" Version="1.1.0" />
 
     <!-- Modern Windows 11 styling -->
@@ -58,16 +52,31 @@
 
   <ItemGroup>
     <Compile Remove="EyeRest.Tests\**" />
+    <Compile Remove="EyeRest.Abstractions\**" />
+    <Compile Remove="EyeRest.Core\**" />
+    <Compile Remove="EyeRest.Platform.Windows\**" />
     <Compile Update="Converters\BooleanToVisibilityConverter.cs">
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Remove="EyeRest.Tests\**" />
+    <EmbeddedResource Remove="EyeRest.Abstractions\**" />
+    <EmbeddedResource Remove="EyeRest.Core\**" />
+    <EmbeddedResource Remove="EyeRest.Platform.Windows\**" />
     <None Remove="EyeRest.Tests\**" />
+    <None Remove="EyeRest.Abstractions\**" />
+    <None Remove="EyeRest.Core\**" />
+    <None Remove="EyeRest.Platform.Windows\**" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="DiagnosticTeamsDetection.cs" />
     <Compile Remove="TestIconGeneration.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="EyeRest.Abstractions\EyeRest.Abstractions.csproj" />
+    <ProjectReference Include="EyeRest.Core\EyeRest.Core.csproj" />
+    <ProjectReference Include="EyeRest.Platform.Windows\EyeRest.Platform.Windows.csproj" />
   </ItemGroup>
 
 </Project>

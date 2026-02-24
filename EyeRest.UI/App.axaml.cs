@@ -1,0 +1,430 @@
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
+using EyeRest.Services;
+using EyeRest.Services.Abstractions;
+using EyeRest.UI.Helpers;
+using EyeRest.UI.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Serilog;
+
+namespace EyeRest.UI;
+
+public partial class App : Application
+{
+    private IHost? _host;
+    private TrayIcon? _trayIcon;
+
+    public static IServiceProvider? Services { get; private set; }
+
+    /// <summary>
+    /// When true, the app is in the process of fully exiting.
+    /// MainWindow.OnClosing checks this to allow close-through vs hide-to-tray.
+    /// </summary>
+    public static bool IsExiting { get; set; }
+
+    /// <summary>
+    /// Called from the named-pipe single-instance listener (Program.cs) when a second
+    /// instance tries to launch. Marshals to the UI thread and restores the main window.
+    /// </summary>
+    public static void RestoreMainWindow()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (Current is App app)
+                app.ShowMainWindow();
+        });
+    }
+
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    public override async void OnFrameworkInitializationCompleted()
+    {
+        var builder = Host.CreateDefaultBuilder();
+        builder.UseSerilog((context, config) =>
+        {
+            config.WriteTo.Console()
+                  .WriteTo.File(
+                      System.IO.Path.Combine(
+                          Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                          "EyeRest", "logs", "eyerest.log"),
+                      rollingInterval: Serilog.RollingInterval.Day);
+        });
+
+        builder.ConfigureServices(services =>
+        {
+            // Platform services (conditional)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // macOS platform services
+                EyeRest.Platform.macOS.MacOSServiceCollectionExtensions.AddMacOSPlatformServices(services);
+            }
+            // Windows platform would be added here on Windows
+            // Linux can be added later
+
+            // Core services
+            services.AddSingleton<IConfigurationService, ConfigurationService>();
+            services.AddSingleton<ITimerConfigurationService, TimerConfigurationService>();
+            services.AddSingleton<IUIConfigurationService, UIConfigurationService>();
+            services.AddSingleton<ITimerService, TimerService>();
+            services.AddSingleton<IAnalyticsService, AnalyticsService>();
+            services.AddSingleton<ILoggingService, LoggingService>();
+            services.AddSingleton<IReportingService, ReportingService>();
+            services.AddSingleton<IPerformanceMonitor, PerformanceMonitor>();
+            services.AddSingleton<IApplicationOrchestrator, ApplicationOrchestrator>();
+
+            // Avalonia-specific services
+            services.AddSingleton<IPopupWindowFactory, AvaloniaPopupWindowFactory>();
+            services.AddSingleton<INotificationService, AvaloniaNotificationService>();
+
+            // ViewModels
+            services.AddTransient<MainWindowViewModel>();
+            services.AddTransient<AnalyticsDashboardViewModel>();
+        });
+
+        _host = builder.Build();
+        Services = _host.Services;
+
+        var logger = Services.GetRequiredService<ILogger<App>>();
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var mainWindow = new Views.MainWindow();
+            mainWindow.DataContext = Services.GetRequiredService<MainWindowViewModel>();
+            desktop.MainWindow = mainWindow;
+            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+
+            // Handle shutdown to clean up orchestrator
+            desktop.ShutdownRequested += async (_, _) =>
+            {
+                IsExiting = true;
+                try
+                {
+                    var orchestrator = Services?.GetService<IApplicationOrchestrator>();
+                    if (orchestrator != null)
+                        await orchestrator.ShutdownAsync();
+                    _host?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error during shutdown");
+                }
+            };
+        }
+
+        base.OnFrameworkInitializationCompleted();
+
+        // Initialize services after framework is ready (mirrors WPF OnStartup sequence)
+        try
+        {
+            await _host.StartAsync();
+            logger.LogInformation("Host started successfully");
+
+            // Initialize system tray service (for events, tooltips, notifications)
+            var systemTrayService = Services.GetRequiredService<ISystemTrayService>();
+            systemTrayService.Initialize();
+
+            // Set up Avalonia TrayIcon (the ObjC NSStatusItem approach doesn't work with Avalonia)
+            SetupTrayIcon(systemTrayService);
+            SetMacOSDockIcon();
+            SubscribeDockIconClick();
+
+            // Subscribe to tray icon state changes to swap the menu bar icon color
+            systemTrayService.TrayIconStateChanged += state =>
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateTrayIconForState(state));
+            logger.LogInformation("System tray initialized");
+
+            // Start the orchestrator (this starts timers, analytics, presence monitoring, etc.)
+            var orchestrator = Services.GetRequiredService<IApplicationOrchestrator>();
+            await orchestrator.InitializeAsync();
+            logger.LogInformation("Application orchestrator initialized - timers are running");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to initialize application services");
+        }
+    }
+
+    /// <summary>
+    /// Handles the "About Eye-Rest" click from the macOS application menu.
+    /// Declared in App.axaml via NativeMenu.Menu.
+    /// </summary>
+    private void AboutEyeRest_OnClick(object? sender, EventArgs args)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow());
+    }
+
+    /// <summary>
+    /// Creates an Avalonia TrayIcon with menu, wired to the ISystemTrayService events.
+    /// This replaces the broken ObjC NSStatusItem approach — Avalonia manages its own
+    /// NSStatusItem internally and the two conflict.
+    /// </summary>
+    private void SetupTrayIcon(ISystemTrayService systemTrayService)
+    {
+        try
+        {
+            var trayMenu = new NativeMenu();
+
+            trayMenu.Add(new NativeMenuItem("Show Eye Rest")
+            {
+                Command = new RelayCommand(() =>
+                {
+                    ShowMainWindow();
+                    systemTrayService.OnRestoreRequested();
+                })
+            });
+
+            trayMenu.Add(new NativeMenuItemSeparator());
+
+            trayMenu.Add(new NativeMenuItem("Pause Timers")
+            {
+                Command = new RelayCommand(() => systemTrayService.OnPauseTimersRequested())
+            });
+            trayMenu.Add(new NativeMenuItem("Resume Timers")
+            {
+                Command = new RelayCommand(() => systemTrayService.OnResumeTimersRequested())
+            });
+            trayMenu.Add(new NativeMenuItem("Pause for Meeting")
+            {
+                Command = new RelayCommand(() => systemTrayService.OnPauseForMeetingRequested())
+            });
+
+            trayMenu.Add(new NativeMenuItemSeparator());
+
+            trayMenu.Add(new NativeMenuItem("About Eye-Rest")
+            {
+                Command = new RelayCommand(() =>
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow()))
+            });
+
+            trayMenu.Add(new NativeMenuItem("Quit Eye Rest")
+            {
+                Command = new RelayCommand(() =>
+                {
+                    IsExiting = true;
+                    systemTrayService.OnExitRequested();
+                    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                        desktop.Shutdown();
+                })
+            });
+
+            _trayIcon = new TrayIcon
+            {
+                Icon = new WindowIcon(AssetLoader.Open(
+                    GetTrayIconUri(TrayIconState.Active))),
+                ToolTipText = "Eye Rest",
+                Menu = trayMenu,
+                IsVisible = true
+            };
+
+            var trayIcons = new TrayIcons { _trayIcon };
+            TrayIcon.SetIcons(this, trayIcons);
+
+            Log.Information("Avalonia TrayIcon configured with context menu");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to set up tray icon");
+        }
+    }
+
+    private void UpdateTrayIconForState(TrayIconState state)
+    {
+        if (_trayIcon == null) return;
+        try
+        {
+            _trayIcon.Icon = new WindowIcon(AssetLoader.Open(GetTrayIconUri(state)));
+            Log.Debug("Tray icon updated for state: {State}", state);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to update tray icon for state {State}", state);
+        }
+    }
+
+    private static Uri GetTrayIconUri(TrayIconState state)
+    {
+        var name = state switch
+        {
+            TrayIconState.Active => "tray_active",
+            TrayIconState.Paused => "tray_paused",
+            TrayIconState.SmartPaused => "tray_smart_paused",
+            TrayIconState.ManuallyPaused => "tray_manually_paused",
+            TrayIconState.Break => "tray_break",
+            TrayIconState.EyeRest => "tray_eye_rest",
+            TrayIconState.MeetingMode => "tray_meeting_mode",
+            TrayIconState.UserAway => "tray_user_away",
+            TrayIconState.Error => "tray_error",
+            _ => "tray_active"
+        };
+        // Use 1x images (22px at 72 DPI = 22pt) so macOS renders at full menu bar size.
+        // @2x images (44px) caused Avalonia to downscale, making the icon appear small.
+        return new Uri($"avares://EyeRest.UI/Assets/TrayIcons/{name}.png");
+    }
+
+    /// <summary>
+    /// Restores and shows the main window with platform-specific handling.
+    /// On macOS: uses native MakeKeyAndOrderFront + resets activation policy to show dock icon.
+    /// On others: uses standard Show() + Activate().
+    /// </summary>
+    private void ShowMainWindow()
+    {
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop
+            || desktop.MainWindow is not Window mainWindow)
+            return;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            MacOSNativeWindowHelper.SetActivationPolicy(0); // Regular — show dock icon
+            MacOSNativeWindowHelper.MakeKeyAndOrderFront(mainWindow);
+            mainWindow.Opacity = 1;
+            mainWindow.InvalidateVisual();
+        }
+        else
+        {
+            mainWindow.Show();
+        }
+
+        if (mainWindow.WindowState == WindowState.Minimized)
+            mainWindow.WindowState = WindowState.Normal;
+        mainWindow.Activate();
+
+        if (mainWindow is Views.MainWindow mw)
+            mw.IsHiddenToTray = false;
+    }
+
+    /// <summary>
+    /// Shows the About window. When the main window is hidden to tray, opens About
+    /// as a standalone window to avoid ShowDialog pulling the hidden owner back into
+    /// the window server and corrupting the Avalonia renderer.
+    /// </summary>
+    private void ShowAboutWindow()
+    {
+        var aboutWindow = new Views.AboutWindow();
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Views.MainWindow mainWindow
+            && !mainWindow.IsHiddenToTray)
+        {
+            aboutWindow.ShowDialog(mainWindow);
+        }
+        else
+        {
+            aboutWindow.Show();
+        }
+    }
+
+    /// <summary>
+    /// On macOS, subscribes to the dock icon click (IActivatableLifetime.Activated with Reopen)
+    /// to restore the main window when the user clicks the dock icon.
+    /// </summary>
+    private void SubscribeDockIconClick()
+    {
+        if (ApplicationLifetime is IActivatableLifetime activatable)
+        {
+            activatable.Activated += (_, args) =>
+            {
+                if (args.Kind == ActivationKind.Reopen)
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowMainWindow());
+                }
+            };
+        }
+    }
+
+    /// <summary>
+    /// Sets the macOS dock icon via native NSApplication API.
+    /// When running unbundled (dotnet run), there's no .app bundle Info.plist to read from,
+    /// so we must set it programmatically via ObjC runtime interop.
+    /// </summary>
+    private void SetMacOSDockIcon()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(500);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => ApplyDockIcon());
+        });
+    }
+
+    private void ApplyDockIcon()
+    {
+        try
+        {
+            using var stream = AssetLoader.Open(
+                new Uri("avares://EyeRest.UI/Assets/app-icon.png"));
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            var pngBytes = ms.ToArray();
+
+            var nsDataClass = objc_getClass("NSData");
+            var dataWithBytesLengthSel = sel_registerName("dataWithBytes:length:");
+            var nsData = objc_msgSend_IntPtr(nsDataClass, dataWithBytesLengthSel, pngBytes, (nint)pngBytes.Length);
+            if (nsData == IntPtr.Zero) return;
+
+            var nsImageClass = objc_getClass("NSImage");
+            var allocSel = sel_registerName("alloc");
+            var initWithDataSel = sel_registerName("initWithData:");
+            var nsImageAlloc = objc_msgSend(nsImageClass, allocSel);
+            var nsImage = objc_msgSend(nsImageAlloc, initWithDataSel, nsData);
+            if (nsImage == IntPtr.Zero) return;
+
+            var nsAppClass = objc_getClass("NSApplication");
+            var sharedAppSel = sel_registerName("sharedApplication");
+            var setIconSel = sel_registerName("setApplicationIconImage:");
+            var nsApp = objc_msgSend(nsAppClass, sharedAppSel);
+            if (nsApp == IntPtr.Zero) return;
+
+            objc_msgSend(nsApp, setIconSel, nsImage);
+            Log.Information("macOS dock icon set from app-icon.png");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to set macOS dock icon (non-critical)");
+        }
+    }
+
+    // ObjC runtime P/Invoke for macOS dock icon
+
+    [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_getClass")]
+    private static extern IntPtr objc_getClass(string className);
+
+    [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "sel_registerName")]
+    private static extern IntPtr sel_registerName(string selectorName);
+
+    [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
+    private static extern IntPtr objc_msgSend(IntPtr receiver, IntPtr selector);
+
+    [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
+    private static extern IntPtr objc_msgSend(IntPtr receiver, IntPtr selector, IntPtr arg1);
+
+    [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
+    private static extern IntPtr objc_msgSend_IntPtr(IntPtr receiver, IntPtr selector, byte[] arg1, nint arg2);
+}
+
+/// <summary>
+/// Simple ICommand implementation for NativeMenuItem commands.
+/// </summary>
+internal class RelayCommand : System.Windows.Input.ICommand
+{
+    private readonly Action _execute;
+    public RelayCommand(Action execute) => _execute = execute;
+#pragma warning disable CS0067
+    public event EventHandler? CanExecuteChanged;
+#pragma warning restore CS0067
+    public bool CanExecute(object? parameter) => true;
+    public void Execute(object? parameter) => _execute();
+}
