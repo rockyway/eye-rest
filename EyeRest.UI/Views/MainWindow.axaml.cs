@@ -52,7 +52,8 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel vm
             && sender is Button btn
-            && btn.Tag is int index)
+            && btn.Tag is string tagStr
+            && int.TryParse(tagStr, out var index))
         {
             vm.SelectedTabIndex = index;
         }
