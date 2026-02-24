@@ -443,6 +443,13 @@ namespace EyeRest.Services
             ExitRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        // ISystemTrayService event-raising methods (used by Avalonia TrayIcon on macOS; no-op on Windows)
+        public void OnRestoreRequested() => RestoreRequested?.Invoke(this, EventArgs.Empty);
+        public void OnExitRequested() => ExitRequested?.Invoke(this, EventArgs.Empty);
+        public void OnPauseTimersRequested() => PauseTimersRequested?.Invoke(this, EventArgs.Empty);
+        public void OnResumeTimersRequested() => ResumeTimersRequested?.Invoke(this, EventArgs.Empty);
+        public void OnPauseForMeetingRequested() => PauseForMeetingRequested?.Invoke(this, EventArgs.Empty);
+
         public void Dispose()
         {
             _contextMenu?.Dispose();

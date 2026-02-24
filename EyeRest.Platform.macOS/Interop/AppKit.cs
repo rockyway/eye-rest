@@ -35,6 +35,8 @@ internal static class AppKit
     // NSImage selectors
     private static readonly IntPtr Sel_InitWithContentsOfFile = ObjCRuntime.sel_registerName("initWithContentsOfFile:");
     private static readonly IntPtr Sel_InitWithSize = ObjCRuntime.sel_registerName("initWithSize:");
+    private static readonly IntPtr Sel_SetSize = ObjCRuntime.sel_registerName("setSize:");
+    private static readonly IntPtr Sel_SetTemplate = ObjCRuntime.sel_registerName("setTemplate:");
 
     // NSSound selectors
     private static readonly IntPtr Sel_SoundNamed = ObjCRuntime.sel_registerName("soundNamed:");
@@ -158,6 +160,26 @@ internal static class AppKit
     {
         var image = ObjCRuntime.objc_msgSend_IntPtr(Class_NSImage, ObjCRuntime.Sel_Alloc);
         return ObjCRuntime.objc_msgSend_IntPtr_Double_Double(image, Sel_InitWithSize, width, height);
+    }
+
+    /// <summary>
+    /// Sets the size of an NSImage via [image setSize:].
+    /// For menu bar icons, use 18x18 so macOS renders them at the correct size.
+    /// </summary>
+    internal static void SetNSImageSize(IntPtr image, double width, double height)
+    {
+        if (image == IntPtr.Zero) return;
+        ObjCRuntime.objc_msgSend_Void_Double_Double(image, Sel_SetSize, width, height);
+    }
+
+    /// <summary>
+    /// Marks an NSImage as a template image via [image setTemplate:YES].
+    /// Template images automatically adapt to light/dark menu bar.
+    /// </summary>
+    internal static void SetNSImageTemplate(IntPtr image, bool isTemplate)
+    {
+        if (image == IntPtr.Zero) return;
+        ObjCRuntime.objc_msgSend_Void_Bool(image, Sel_SetTemplate, isTemplate);
     }
 
     #endregion

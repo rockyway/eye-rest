@@ -40,4 +40,23 @@
     <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
   </ItemGroup>
 
+  <!-- App icon PNG as Avalonia resource (for programmatic dock icon setting) -->
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\app-icon.png" />
+  </ItemGroup>
+
+  <!-- macOS dock icon (.icns for bundled .app) -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Content Include="Assets\AppIcon.icns">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Tray / menu bar state icons (cross-platform) -->
+  <ItemGroup>
+    <Content Include="Assets\TrayIcons\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
