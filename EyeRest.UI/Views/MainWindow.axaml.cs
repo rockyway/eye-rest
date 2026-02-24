@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using EyeRest.UI.Helpers;
 using EyeRest.UI.ViewModels;
@@ -106,8 +107,20 @@ public partial class MainWindow : Window
         }
     }
 
-    public void ShowDimOverlay() => DimOverlay.IsVisible = true;
-    public void HideDimOverlay() => DimOverlay.IsVisible = false;
+    private IBrush? _savedBackground;
+
+    public void ShowDimOverlay()
+    {
+        _savedBackground = Background;
+        Background = Brushes.Black; // Fill corner gaps with black to match dim
+        DimOverlay.IsVisible = true;
+    }
+
+    public void HideDimOverlay()
+    {
+        DimOverlay.IsVisible = false;
+        Background = _savedBackground ?? Brushes.Transparent;
+    }
 
     protected override void OnClosed(EventArgs e)
     {
