@@ -73,10 +73,33 @@ internal static class UserNotifications
     #region UNUserNotificationCenter
 
     /// <summary>
+    /// Checks whether the app has a valid bundle (required for UNUserNotificationCenter).
+    /// When running via 'dotnet run' there is no bundle, and calling currentNotificationCenter
+    /// throws an unrecoverable NSInternalInconsistencyException.
+    /// </summary>
+    private static bool HasValidBundle()
+    {
+        var nsBundle = ObjCRuntime.objc_getClass("NSBundle");
+        if (nsBundle == IntPtr.Zero) return false;
+
+        var selMainBundle = ObjCRuntime.sel_registerName("mainBundle");
+        var mainBundle = ObjCRuntime.objc_msgSend_IntPtr(nsBundle, selMainBundle);
+        if (mainBundle == IntPtr.Zero) return false;
+
+        var selBundleId = ObjCRuntime.sel_registerName("bundleIdentifier");
+        var bundleId = ObjCRuntime.objc_msgSend_IntPtr(mainBundle, selBundleId);
+        return bundleId != IntPtr.Zero;
+    }
+
+    /// <summary>
     /// Gets the current notification center.
+    /// Returns IntPtr.Zero if the app has no valid bundle (e.g. running via dotnet run).
     /// </summary>
     internal static IntPtr GetCurrentNotificationCenter()
     {
+        if (!HasValidBundle())
+            return IntPtr.Zero;
+
         return ObjCRuntime.objc_msgSend_IntPtr(Class_UNUserNotificationCenter, Sel_CurrentNotificationCenter);
     }
 
