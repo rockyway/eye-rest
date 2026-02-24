@@ -139,12 +139,15 @@
                                              VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <!-- Countdown Timers - with wrapping -->
-                                <StackPanel IsVisible="{Binding IsRunning}" Spacing="2">
-                                    <TextBlock Text="{Binding DualCountdownText}"
+                                <!-- Countdown Timers - each on its own line -->
+                                <StackPanel IsVisible="{Binding IsRunning}" Spacing="1">
+                                    <TextBlock Text="{Binding TimeUntilNextEyeRest}"
                                                FontSize="11"
                                                FontFamily="Consolas,Menlo,monospace"
-                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding TimeUntilNextBreak}"
+                                               FontSize="11"
+                                               FontFamily="Consolas,Menlo,monospace"
                                                Foreground="{DynamicResource TextSecondaryBrush}" />
                                 </StackPanel>
                             </StackPanel>
@@ -308,7 +311,7 @@
                     </StackPanel>
 
                     <!-- Scrollable Content -->
-                    <ScrollViewer Grid.Row="1" Padding="32,0,32,32">
+                    <ScrollViewer Grid.Row="1" Padding="32,0,32,48">
                         <Panel>
                             <!-- ============================================ -->
                             <!-- Tab 0: Eye Rest Configuration                 -->
@@ -320,7 +323,7 @@
                                     <StackPanel Spacing="20">
                                         <!-- Rest Interval -->
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" Spacing="8">
+                                            <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Rest Interval" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Value="{Binding EyeRestIntervalMinutes}"
                                                         Minimum="1" Maximum="60"
@@ -346,7 +349,7 @@
 
                                         <!-- Duration -->
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" Spacing="8">
+                                            <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Duration" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Value="{Binding EyeRestDurationSeconds}"
                                                         Minimum="5" Maximum="60"
@@ -422,7 +425,7 @@
                                         <!-- Warning Time -->
                                         <Grid ColumnDefinitions="*,Auto"
                                               IsEnabled="{Binding EyeRestWarningEnabled}">
-                                            <StackPanel Grid.Column="0" Spacing="8">
+                                            <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Warning Time" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Value="{Binding EyeRestWarningSeconds}"
                                                         Minimum="5" Maximum="120"
@@ -510,7 +513,7 @@
                                     <StackPanel Spacing="20">
                                         <!-- Work Interval -->
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" Spacing="8">
+                                            <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Work Interval" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Value="{Binding BreakIntervalMinutes}"
                                                         Minimum="1" Maximum="120"
@@ -536,7 +539,7 @@
 
                                         <!-- Break Duration -->
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" Spacing="8">
+                                            <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Break Duration" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Value="{Binding BreakDurationMinutes}"
                                                         Minimum="1" Maximum="30"
@@ -611,7 +614,7 @@
                                     <StackPanel Spacing="16">
                                         <!-- Overlay Opacity -->
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" Spacing="8">
+                                            <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Overlay Opacity" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Value="{Binding OverlayOpacityPercent}"
                                                         Minimum="0" Maximum="100"
@@ -632,7 +635,7 @@
                                         <!-- Warning Time -->
                                         <Grid ColumnDefinitions="*,Auto"
                                               IsEnabled="{Binding BreakWarningEnabled}">
-                                            <StackPanel Grid.Column="0" Spacing="8">
+                                            <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Warning Time" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Value="{Binding BreakWarningSeconds}"
                                                         Minimum="5" Maximum="300"
