@@ -16,9 +16,16 @@ namespace EyeRest.Services
         event EventHandler ExitRequested;
         event EventHandler PauseTimersRequested;
         event EventHandler ResumeTimersRequested;
-        event EventHandler PauseForMeetingRequested; // NEW: Manual pause for meeting
+        event EventHandler PauseForMeetingRequested;
         event EventHandler ShowTimerStatusRequested;
         event EventHandler ShowAnalyticsRequested;
+
+        // Methods to raise events from external tray icon (e.g., Avalonia TrayIcon)
+        void OnRestoreRequested();
+        void OnExitRequested();
+        void OnPauseTimersRequested();
+        void OnResumeTimersRequested();
+        void OnPauseForMeetingRequested();
     }
 
     public enum TrayIconState

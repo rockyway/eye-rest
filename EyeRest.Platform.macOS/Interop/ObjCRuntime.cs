@@ -193,6 +193,14 @@ internal static class ObjCRuntime
     internal static extern int objc_msgSend_Int(IntPtr receiver, IntPtr selector);
 
     /// <summary>
+    /// Sends a message with two double arguments returning void.
+    /// Used for methods taking NSSize/CGSize (e.g., [NSImage setSize:]).
+    /// On ARM64, NSSize is an HFA passed in d0/d1, same as two separate doubles.
+    /// </summary>
+    [DllImport(ObjCLib, CallingConvention = CallingConvention.Cdecl, EntryPoint = "objc_msgSend")]
+    internal static extern void objc_msgSend_Void_Double_Double(IntPtr receiver, IntPtr selector, double arg1, double arg2);
+
+    /// <summary>
     /// Sends a message with one bool argument returning void.
     /// Uses proper BOOL marshaling (1-byte) for ARM64 ABI compatibility.
     /// </summary>
