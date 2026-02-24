@@ -1008,6 +1008,14 @@
                     </ScrollViewer>
                 </Grid>
             </Grid>
+            <!-- Dim overlay for modal dialogs (75% black) -->
+            <Border Name="DimOverlay"
+                    Grid.RowSpan="2"
+                    Background="#BF000000"
+                    CornerRadius="24"
+                    IsVisible="False"
+                    IsHitTestVisible="False" />
+
         </Grid>
     </Border>
 </Window>

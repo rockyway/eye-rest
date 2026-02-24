@@ -16,6 +16,8 @@ namespace EyeRest.UI.Views
     public partial class PopupWindow : Window, EyeRest.Services.IPopupWindow
     {
         public Control? PopupContent { get; private set; }
+        private double _positionHintWidth;
+        private double _positionHintHeight;
 
         public PopupWindow()
         {
@@ -26,8 +28,9 @@ namespace EyeRest.UI.Views
         {
             PopupContent = content;
             ContentArea.Content = content;
-            Width = width;
-            Height = height;
+            // Store hint sizes for positioning; actual window size is determined by SizeToContent
+            _positionHintWidth = width;
+            _positionHintHeight = height;
         }
 
         public new bool IsVisible => base.IsVisible;
@@ -83,9 +86,9 @@ namespace EyeRest.UI.Views
             var workArea = screen.WorkingArea;
             var scaling = screen.Scaling;
 
-            // Convert window size to pixels
-            var windowWidthPx = (int)(Width * scaling);
-            var windowHeightPx = (int)(Height * scaling);
+            // Use hint sizes for positioning (actual size determined by SizeToContent)
+            var windowWidthPx = (int)(_positionHintWidth * scaling);
+            var windowHeightPx = (int)(_positionHintHeight * scaling);
 
             switch (placement)
             {

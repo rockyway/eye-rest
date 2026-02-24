@@ -106,6 +106,9 @@ public partial class MainWindow : Window
         }
     }
 
+    public void ShowDimOverlay() => DimOverlay.IsVisible = true;
+    public void HideDimOverlay() => DimOverlay.IsVisible = false;
+
     protected override void OnClosed(EventArgs e)
     {
         _countdownTimer?.Stop();
