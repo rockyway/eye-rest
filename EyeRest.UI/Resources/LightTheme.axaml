@@ -58,6 +58,60 @@
         <SolidColorBrush x:Key="SliderThumbBackground" Color="#2196F3" />
         <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#1976D2" />
         <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#1565C0" />
+
+        <!-- Glass-morphism Brushes -->
+        <LinearGradientBrush x:Key="MeshGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#A7C5EB" Offset="0" />
+            <GradientStop Color="#B8E4F5" Offset="0.33" />
+            <GradientStop Color="#9EC4E3" Offset="0.66" />
+            <GradientStop Color="#8ECAE6" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="GlassPanelBackground" Color="#26FFFFFF" />
+        <SolidColorBrush x:Key="GlassPanelBorder" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="GlassCardBackground" Color="#40FFFFFF" />
+        <SolidColorBrush x:Key="GlassCardBorder" Color="#4DFFFFFF" />
+        <SolidColorBrush x:Key="GlassCardHoverBackground" Color="#59FFFFFF" />
+        <SolidColorBrush x:Key="SidebarBackground" Color="#1AFFFFFF" />
+        <SolidColorBrush x:Key="NavButtonHoverBackground" Color="#1AFFFFFF" />
+        <SolidColorBrush x:Key="NavButtonActiveBackground" Color="#4DFFFFFF" />
+        <SolidColorBrush x:Key="NavButtonActiveText" Color="#2563EB" />
+        <SolidColorBrush x:Key="NavButtonText" Color="#374151" />
+        <SolidColorBrush x:Key="TitleBarBackground" Color="#1AFFFFFF" />
+        <LinearGradientBrush x:Key="StartButtonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Color="#22C55E" Offset="0" />
+            <GradientStop Color="#16A34A" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="StopButtonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Color="#EF4444" Offset="0" />
+            <GradientStop Color="#DC2626" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="PauseButtonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Color="#FB923C" Offset="0" />
+            <GradientStop Color="#F97316" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="MeetingButtonBackground" Color="#4DDBEAFE" />
+        <SolidColorBrush x:Key="MeetingButtonText" Color="#1D4ED8" />
+        <SolidColorBrush x:Key="SliderBadgeBackground" Color="#66FFFFFF" />
+        <SolidColorBrush x:Key="SliderBadgeText" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleCardIconBackground" Color="#80DBEAFE" />
+        <SolidColorBrush x:Key="ToggleCardIconColor" Color="#2563EB" />
+        <LinearGradientBrush x:Key="InfoCardBackground" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#66FFFFFF" Offset="0" />
+            <GradientStop Color="#1AFFFFFF" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="InfoCardBorder" Color="#66FFFFFF" />
+        <SolidColorBrush x:Key="StatusDotColor" Color="#22C55E" />
+        <SolidColorBrush x:Key="StatusCardBackground" Color="#1AFFFFFF" />
+        <SolidColorBrush x:Key="StatusCardBorder" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="ContentSubtitleText" Color="#6B7280" />
+
+        <!-- FluentTheme ToggleSwitch resource overrides for glass UI -->
+        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#1D4ED8" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#1E40AF" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#FFFFFF" />
     </Styles.Resources>
 
     <!-- ============================================================ -->
