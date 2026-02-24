@@ -80,11 +80,9 @@ namespace EyeRest.Services
                 _logger.LogCritical($"🚀 ORCHESTRATOR INITIALIZATION STARTED at {DateTime.Now:HH:mm:ss.fff} - Process ID: {Environment.ProcessId}");
                 _logger.LogInformation("🚀 Initializing comprehensive application orchestrator with advanced features");
 
-                // Initialize analytics database
-                if (!await _analyticsService.IsDatabaseInitializedAsync())
-                {
-                    await _analyticsService.InitializeDatabaseAsync();
-                }
+                // Initialize analytics database (always run - uses IF NOT EXISTS for safety,
+                // ensures any newly added tables are created in existing databases)
+                await _analyticsService.InitializeDatabaseAsync();
                 await _analyticsService.RecordSessionStartAsync();
 
                 // Wire up core timer events
