@@ -5,7 +5,7 @@
         x:Class="EyeRest.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
-        Width="1000" Height="700"
+        Width="900" Height="700"
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         CanResize="True"
@@ -40,9 +40,8 @@
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                        <PathIcon Data="{StaticResource EyeIcon}"
-                                  Width="16" Height="16"
-                                  Foreground="{DynamicResource NavButtonActiveText}" />
+                        <Image Source="avares://EyeRest.UI/Assets/app-icon.png"
+                               Width="18" Height="18" />
                         <TextBlock Text="Desktop Eye Rest"
                                    FontSize="13"
                                    FontWeight="SemiBold"
