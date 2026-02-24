@@ -376,7 +376,7 @@ namespace EyeRest.Tests.Services
             _mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(config);
 
-            var timerService = new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object);
+            var timerService = new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object, new Fakes.FakeDispatcherService());
             
             // Inject a mock notification service to prevent null reference issues
             var mockNotificationService = new Mock<INotificationService>();

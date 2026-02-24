@@ -117,7 +117,8 @@ namespace EyeRest.Tests.Integration
                 _configMock.Object,
                 _analyticsMock.Object,
                 _fakeTimerFactory,
-                _pauseReminderMock.Object
+                _pauseReminderMock.Object,
+                new Fakes.FakeDispatcherService()
             );
             
             _timerService.SetNotificationService(_notificationMock.Object);

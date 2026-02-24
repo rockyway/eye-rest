@@ -753,7 +753,7 @@ namespace EyeRest.Tests.Services
             _mockConfigService.Setup(x => x.LoadConfigurationAsync())
                 .ReturnsAsync(config);
 
-            return new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object);
+            return new TimerService(_mockLogger.Object, _mockConfigService.Object, _mockAnalyticsService.Object, _fakeTimerFactory, _mockPauseReminderService.Object, new Fakes.FakeDispatcherService());
         }
 
         public void Dispose()

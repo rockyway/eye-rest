@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:EyeRest.UI.Views"
+        xmlns:vm="using:EyeRest.UI.ViewModels"
+        x:Class="EyeRest.UI.Views.AnalyticsWindow"
+        x:DataType="vm:AnalyticsDashboardViewModel"
+        Title="Eye-rest Analytics Dashboard"
+        Height="800"
+        Width="1200"
+        WindowStartupLocation="CenterScreen"
+        CanResize="True"
+        MinHeight="600"
+        MinWidth="800"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <views:AnalyticsDashboardView DataContext="{Binding}" />
+    </ScrollViewer>
+</Window>

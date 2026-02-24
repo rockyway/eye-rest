@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Threading;
 using EyeRest.Services.Abstractions;
 using ITimer = EyeRest.Services.Abstractions.ITimer;
 
@@ -26,7 +25,7 @@ namespace EyeRest.Tests.Fakes
         /// </summary>
         public List<FakeTimer> GetCreatedTimers() => new(_createdTimers);
 
-        public ITimer CreateTimer(DispatcherPriority priority = DispatcherPriority.Normal)
+        public ITimer CreateTimer(TimerPriority priority = TimerPriority.Normal)
         {
             var fakeTimer = new FakeTimer();
             _createdTimers.Add(fakeTimer);

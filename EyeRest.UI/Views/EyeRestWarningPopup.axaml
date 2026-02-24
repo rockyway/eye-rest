@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="EyeRest.UI.Views.EyeRestWarningPopup">
+    <Border Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource PrimaryBrush}"
+            BorderThickness="2"
+            CornerRadius="15"
+            Padding="20"
+            BoxShadow="4 4 16 0 #66808080">
+        <Grid>
+            <!-- Close button inside popup, top right corner -->
+            <Button Name="CloseButton"
+                    Width="20"
+                    Height="20"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,-10,-10,0"
+                    Background="Transparent"
+                    Foreground="{DynamicResource AccentBrush}"
+                    FontSize="12"
+                    Cursor="Hand"
+                    ToolTip.Tip="Dismiss (ESC)">
+                <Button.Template>
+                    <ControlTemplate>
+                        <Border Background="Transparent"
+                                BorderBrush="{DynamicResource AccentBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                            <TextBlock Text="&#x2715;"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource AccentBrush}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+
+            <StackPanel Margin="0,5,0,0">
+                <!-- Warning Icon -->
+                <TextBlock Text="&#x1F441;"
+                           FontSize="32"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,15"/>
+
+                <!-- Warning Message -->
+                <TextBlock Text="Eye Rest Starting Soon"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,10"/>
+
+                <!-- Countdown -->
+                <TextBlock Name="CountdownText"
+                           Text="30 seconds"
+                           FontSize="16"
+                           Foreground="{DynamicResource AccentBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,15"/>
+
+                <!-- Vertical Progress Bar (starts at 100, falls to 0) -->
+                <ProgressBar Name="ProgressBar"
+                             Width="8"
+                             Height="100"
+                             Minimum="0"
+                             Maximum="100"
+                             Value="100"
+                             IsIndeterminate="False"
+                             Foreground="{DynamicResource AccentBrush}"
+                             Background="{DynamicResource TextSecondaryBrush}"
+                             Orientation="Vertical"
+                             HorizontalAlignment="Center"/>
+
+                <!-- Skip hint -->
+                <TextBlock Text="Press ESC to dismiss"
+                           FontSize="10"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>
