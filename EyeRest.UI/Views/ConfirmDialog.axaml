@@ -72,6 +72,12 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
+
+                <!-- Hint -->
+                <TextBlock Text="Press ESC to cancel"
+                           FontSize="11"
+                           Foreground="{DynamicResource ContentSubtitleText}"
+                           HorizontalAlignment="Center" />
             </StackPanel>
         </Border>
     </Border>

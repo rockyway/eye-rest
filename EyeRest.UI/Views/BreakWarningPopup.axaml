@@ -14,8 +14,7 @@
                     CornerRadius="20"
                     Padding="28,24">
                 <Grid>
-                    <StackPanel HorizontalAlignment="Center" Spacing="12"
-                                Margin="0,0,24,0">
+                    <StackPanel HorizontalAlignment="Center" Spacing="12">
                         <!-- Icon Circle -->
                         <Border Width="56" Height="56"
                                 CornerRadius="28"
