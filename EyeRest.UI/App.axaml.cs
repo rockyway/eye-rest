@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using EyeRest.Services;
 using EyeRest.Services.Abstractions;
+using EyeRest.UI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,8 @@ namespace EyeRest.UI;
 public partial class App : Application
 {
     private IHost? _host;
+
+    public static IServiceProvider? Services { get; private set; }
 
     public override void Initialize()
     {
@@ -58,13 +61,20 @@ public partial class App : Application
 
             // Avalonia-specific services
             services.AddSingleton<IPopupWindowFactory, AvaloniaPopupWindowFactory>();
+            services.AddSingleton<INotificationService, AvaloniaNotificationService>();
+
+            // ViewModel
+            services.AddTransient<MainWindowViewModel>();
         });
 
         _host = builder.Build();
+        Services = _host.Services;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new Views.MainWindow();
+            var mainWindow = new Views.MainWindow();
+            mainWindow.DataContext = Services.GetRequiredService<MainWindowViewModel>();
+            desktop.MainWindow = mainWindow;
             desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
         }
 
