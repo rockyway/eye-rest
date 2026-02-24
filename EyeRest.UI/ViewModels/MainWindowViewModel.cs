@@ -2003,11 +2003,24 @@ namespace EyeRest.UI.ViewModels
                 return true; // If no window, proceed without confirmation
 
             var dialog = new Views.ConfirmDialog(title, message);
+            var mainWindow = parentWindow as Views.MainWindow;
 
-            if (parentWindow is Views.MainWindow mw && mw.IsHiddenToTray)
+            if (mainWindow != null && mainWindow.IsHiddenToTray)
+            {
                 await dialog.ShowDialog<object?>(null!);
+            }
             else
-                await dialog.ShowDialog(parentWindow);
+            {
+                mainWindow?.ShowDimOverlay();
+                try
+                {
+                    await dialog.ShowDialog(parentWindow);
+                }
+                finally
+                {
+                    mainWindow?.HideDimOverlay();
+                }
+            }
 
             return dialog.DialogResult;
         }

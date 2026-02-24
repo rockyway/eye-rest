@@ -6,6 +6,7 @@
         ShowInTaskbar="False"
         CanResize="False"
         Background="Transparent"
-        TransparencyLevelHint="Transparent">
+        TransparencyLevelHint="Transparent"
+        SizeToContent="WidthAndHeight">
     <ContentControl Name="ContentArea" />
 </Window>
