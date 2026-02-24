@@ -1064,7 +1064,12 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
-                // TODO: Show cross-platform confirmation dialog
+                // Show confirmation dialog before restoring defaults
+                var confirmed = await ShowConfirmationDialogAsync(
+                    "Restore Defaults",
+                    "Are you sure you want to restore all settings to their default values?");
+                if (!confirmed) return;
+
                 _logger.LogInformation("Restoring defaults");
 
                 var defaultConfig = await _configurationService.GetDefaultConfiguration();
@@ -1507,8 +1512,13 @@ namespace EyeRest.UI.ViewModels
             try
             {
                 _logger.LogInformation("Testing meeting detection with current method");
-                // TODO: Implement cross-platform meeting detection test
-                _logger.LogWarning("Meeting detection test not yet implemented for Avalonia");
+                // Meeting detection is currently disabled in the orchestrator.
+                // When re-enabled, this would call IMeetingDetectionManager.TestDetectionAsync().
+                MeetingDetectionStatus = "Feature disabled";
+                MeetingDetectionStatusColor = "#FFA500";
+                MeetingDetectionStatusText = "Meeting detection is currently disabled";
+                _logger.LogInformation("Meeting detection feature is disabled - needs improvement and testing in future");
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -1521,8 +1531,11 @@ namespace EyeRest.UI.ViewModels
             try
             {
                 _logger.LogInformation($"Switching detection method to: {MeetingDetectionMethod}");
-                // TODO: Implement cross-platform detection method switch
-                _logger.LogWarning("Detection method switch not yet implemented for Avalonia");
+                // Meeting detection is currently disabled in the orchestrator.
+                // When re-enabled, this would call IMeetingDetectionManager.SwitchMethodAsync().
+                _logger.LogInformation("Meeting detection method switch saved to config (feature disabled at runtime)");
+                _configuration.MeetingDetection.DetectionMethod = MeetingDetectionMethod;
+                await _configurationService.SaveConfigurationAsync(_configuration);
             }
             catch (Exception ex)
             {
@@ -1534,14 +1547,17 @@ namespace EyeRest.UI.ViewModels
 
         #region Application Lifecycle
 
-        private void ExitApplication()
+        private async void ExitApplication()
         {
             try
             {
                 _logger.LogInformation("Exit application requested");
 
-                // TODO: Show cross-platform confirmation dialog
-                // For now, just shut down
+                var confirmed = await ShowConfirmationDialogAsync(
+                    "Exit Application",
+                    "Are you sure you want to exit Eye-rest? Timers will stop.");
+                if (!confirmed) return;
+
                 var app = Avalonia.Application.Current;
                 if (app?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
                 {
@@ -1564,8 +1580,17 @@ namespace EyeRest.UI.ViewModels
             try
             {
                 _logger.LogInformation("Opening analytics dashboard window");
-                // TODO: Analytics window will be ported separately
-                _logger.LogWarning("Analytics dashboard not yet ported to Avalonia");
+
+                var analyticsVm = App.Services?.GetService<AnalyticsDashboardViewModel>();
+                if (analyticsVm != null)
+                {
+                    var analyticsWindow = new EyeRest.UI.Views.AnalyticsWindow(analyticsVm);
+                    analyticsWindow.Show();
+                }
+                else
+                {
+                    _logger.LogWarning("Could not resolve AnalyticsDashboardViewModel from DI");
+                }
             }
             catch (Exception ex)
             {
@@ -1589,31 +1614,27 @@ namespace EyeRest.UI.ViewModels
                         ? Avalonia.Styling.ThemeVariant.Dark
                         : Avalonia.Styling.ThemeVariant.Light;
 
-                    // Swap custom theme resource dictionaries
-                    var appResources = app.Resources.MergedDictionaries;
+                    // Swap custom theme StyleInclude in app.Styles
+                    // Our theme files are now <Styles> (not ResourceDictionary), loaded via StyleInclude
+                    var oldStyleInclude = app.Styles.OfType<Avalonia.Markup.Xaml.Styling.StyleInclude>()
+                        .FirstOrDefault(s => s.Source != null &&
+                            (s.Source.ToString().Contains("LightTheme") || s.Source.ToString().Contains("DarkTheme")));
 
-                    // Remove old custom theme
-                    var oldTheme = appResources.OfType<Avalonia.Controls.ResourceDictionary>().FirstOrDefault();
-                    // We look for any ResourceInclude that points to our theme files
-                    var oldThemeInclude = appResources.OfType<Avalonia.Markup.Xaml.Styling.ResourceInclude>()
-                        .FirstOrDefault(r => r.Source != null &&
-                            (r.Source.ToString().Contains("LightTheme") || r.Source.ToString().Contains("DarkTheme")));
-
-                    if (oldThemeInclude != null)
+                    if (oldStyleInclude != null)
                     {
-                        appResources.Remove(oldThemeInclude);
+                        app.Styles.Remove(oldStyleInclude);
                     }
 
-                    // Add the new theme
+                    // Add the new theme as a StyleInclude
                     var themeUri = isDarkMode
                         ? new Uri("avares://EyeRest.UI/Resources/DarkTheme.axaml")
                         : new Uri("avares://EyeRest.UI/Resources/LightTheme.axaml");
 
-                    var newTheme = new Avalonia.Markup.Xaml.Styling.ResourceInclude(themeUri)
+                    var newTheme = new Avalonia.Markup.Xaml.Styling.StyleInclude(themeUri)
                     {
                         Source = themeUri
                     };
-                    appResources.Add(newTheme);
+                    app.Styles.Add(newTheme);
                 }
 
                 _logger.LogInformation($"{(isDarkMode ? "Dark" : "Light")} theme applied successfully");
@@ -1627,15 +1648,43 @@ namespace EyeRest.UI.ViewModels
         /// <summary>
         /// Browse and select a custom audio file - cross-platform placeholder
         /// </summary>
-        private void BrowseCustomAudio()
+        private async void BrowseCustomAudio()
         {
             try
             {
                 _logger.LogInformation("Browse for custom audio file requested");
-                // TODO: Implement cross-platform file picker using Avalonia StorageProvider API
-                // var topLevel = TopLevel.GetTopLevel(mainWindow);
-                // var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { ... });
-                _logger.LogWarning("Cross-platform file picker not yet implemented - use StorageProvider API");
+
+                var topLevel = GetTopLevel();
+                if (topLevel == null)
+                {
+                    _logger.LogWarning("Cannot open file picker - no top-level window available");
+                    return;
+                }
+
+                var files = await topLevel.StorageProvider.OpenFilePickerAsync(
+                    new Avalonia.Platform.Storage.FilePickerOpenOptions
+                    {
+                        Title = "Select Custom Audio File",
+                        AllowMultiple = false,
+                        FileTypeFilter = new[]
+                        {
+                            new Avalonia.Platform.Storage.FilePickerFileType("Audio Files")
+                            {
+                                Patterns = new[] { "*.wav", "*.mp3", "*.ogg", "*.flac", "*.m4a" }
+                            },
+                            new Avalonia.Platform.Storage.FilePickerFileType("All Files")
+                            {
+                                Patterns = new[] { "*.*" }
+                            }
+                        }
+                    });
+
+                if (files.Count > 0)
+                {
+                    var path = files[0].Path.LocalPath;
+                    CustomSoundPath = path;
+                    _logger.LogInformation("Custom audio file selected: {Path}", path);
+                }
             }
             catch (Exception ex)
             {
@@ -1648,8 +1697,23 @@ namespace EyeRest.UI.ViewModels
             try
             {
                 _logger.LogInformation("Test audio requested");
-                // TODO: Implement cross-platform audio test using IAudioService
-                _logger.LogWarning("Audio test not yet fully implemented for Avalonia");
+                var audioService = App.Services?.GetService<IAudioService>();
+                if (audioService != null)
+                {
+                    if (!string.IsNullOrEmpty(CustomSoundPath) && File.Exists(CustomSoundPath))
+                    {
+                        await audioService.PlayCustomSoundTestAsync();
+                    }
+                    else
+                    {
+                        await audioService.TestEyeRestAudioAsync();
+                    }
+                    _logger.LogInformation("Audio test completed");
+                }
+                else
+                {
+                    _logger.LogWarning("IAudioService not available for audio test");
+                }
             }
             catch (Exception ex)
             {
@@ -1904,6 +1968,105 @@ namespace EyeRest.UI.ViewModels
                 }
                 _disposed = true;
             }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private static Avalonia.Controls.TopLevel? GetTopLevel()
+        {
+            var app = Avalonia.Application.Current;
+            if (app?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                return desktop.MainWindow;
+            }
+            return null;
+        }
+
+        private static async Task<bool> ShowConfirmationDialogAsync(string title, string message)
+        {
+            var topLevel = GetTopLevel();
+            if (topLevel is not Avalonia.Controls.Window parentWindow)
+                return true; // If no window, proceed without confirmation
+
+            var dialog = new Avalonia.Controls.Window
+            {
+                Title = title,
+                Width = 400,
+                Height = 180,
+                WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
+                CanResize = false,
+                SystemDecorations = Avalonia.Controls.SystemDecorations.Full,
+                Background = parentWindow.Background,
+                Foreground = parentWindow.Foreground,
+                Content = CreateDialogContent(message)
+            };
+
+            var tcs = new TaskCompletionSource<bool>();
+
+            if (dialog.Content is Avalonia.Controls.Panel panel)
+            {
+                var buttonPanel = panel.Children.OfType<Avalonia.Controls.StackPanel>().LastOrDefault();
+                if (buttonPanel != null)
+                {
+                    var yesBtn = buttonPanel.Children.OfType<Avalonia.Controls.Button>().FirstOrDefault();
+                    var noBtn = buttonPanel.Children.OfType<Avalonia.Controls.Button>().LastOrDefault();
+                    if (yesBtn != null) yesBtn.Click += (_, _) => { tcs.TrySetResult(true); dialog.Close(); };
+                    if (noBtn != null) noBtn.Click += (_, _) => { tcs.TrySetResult(false); dialog.Close(); };
+                }
+            }
+
+            dialog.Closing += (_, _) => tcs.TrySetResult(false);
+            await dialog.ShowDialog(parentWindow);
+            return await tcs.Task;
+        }
+
+        private static Avalonia.Controls.Panel CreateDialogContent(string message)
+        {
+            var panel = new Avalonia.Controls.StackPanel
+            {
+                Margin = new Avalonia.Thickness(20),
+                Spacing = 20,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+
+            panel.Children.Add(new Avalonia.Controls.TextBlock
+            {
+                Text = message,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                FontSize = 14,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+            });
+
+            var buttonPanel = new Avalonia.Controls.StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Spacing = 15
+            };
+
+            var yesButton = new Avalonia.Controls.Button
+            {
+                Content = "Yes",
+                Width = 100,
+                HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Background = new SolidColorBrush(Avalonia.Media.Color.Parse("#2196F3")),
+                Foreground = new SolidColorBrush(Avalonia.Media.Colors.White)
+            };
+
+            var noButton = new Avalonia.Controls.Button
+            {
+                Content = "No",
+                Width = 100,
+                HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center
+            };
+
+            buttonPanel.Children.Add(yesButton);
+            buttonPanel.Children.Add(noButton);
+            panel.Children.Add(buttonPanel);
+
+            return panel;
         }
 
         #endregion

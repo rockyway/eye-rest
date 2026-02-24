@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -24,7 +25,7 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override void OnFrameworkInitializationCompleted()
+    public override async void OnFrameworkInitializationCompleted()
     {
         var builder = Host.CreateDefaultBuilder();
         builder.UseSerilog((context, config) =>
@@ -63,12 +64,15 @@ public partial class App : Application
             services.AddSingleton<IPopupWindowFactory, AvaloniaPopupWindowFactory>();
             services.AddSingleton<INotificationService, AvaloniaNotificationService>();
 
-            // ViewModel
+            // ViewModels
             services.AddTransient<MainWindowViewModel>();
+            services.AddTransient<AnalyticsDashboardViewModel>();
         });
 
         _host = builder.Build();
         Services = _host.Services;
+
+        var logger = Services.GetRequiredService<ILogger<App>>();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -76,8 +80,46 @@ public partial class App : Application
             mainWindow.DataContext = Services.GetRequiredService<MainWindowViewModel>();
             desktop.MainWindow = mainWindow;
             desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
+
+            // Handle shutdown to clean up orchestrator
+            desktop.ShutdownRequested += async (_, _) =>
+            {
+                try
+                {
+                    var orchestrator = Services?.GetService<IApplicationOrchestrator>();
+                    if (orchestrator != null)
+                        await orchestrator.ShutdownAsync();
+                    _host?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error during shutdown");
+                }
+            };
         }
 
         base.OnFrameworkInitializationCompleted();
+
+        // Initialize services after framework is ready (mirrors WPF OnStartup sequence)
+        try
+        {
+            await _host.StartAsync();
+            logger.LogInformation("Host started successfully");
+
+            // Initialize system tray
+            var systemTrayService = Services.GetRequiredService<ISystemTrayService>();
+            systemTrayService.Initialize();
+            systemTrayService.ShowTrayIcon();
+            logger.LogInformation("System tray initialized");
+
+            // Start the orchestrator (this starts timers, analytics, presence monitoring, etc.)
+            var orchestrator = Services.GetRequiredService<IApplicationOrchestrator>();
+            await orchestrator.InitializeAsync();
+            logger.LogInformation("Application orchestrator initialized - timers are running");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to initialize application services");
+        }
     }
 }
