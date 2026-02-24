@@ -22,8 +22,9 @@
     </Window.Resources>
 
     <!-- Outer border with mesh gradient background and rounded corners -->
+    <!-- CornerRadius=10 matches macOS native window corner radius to avoid gaps -->
     <Border Background="{DynamicResource MeshGradientBrush}"
-            CornerRadius="24"
+            CornerRadius="10"
             ClipToBounds="True">
 
         <Grid RowDefinitions="40,*">
