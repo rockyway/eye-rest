@@ -422,11 +422,15 @@ namespace EyeRest.Services
                         return;
                     }
 
-                    // CRITICAL FIX: Check if notifications are active before declaring timers overdue
-                    // When popups are showing, TimeUntilNextEyeRest/Break returns 0 or negative by design
-                    if (_isEyeRestNotificationActive || _isBreakNotificationActive)
+                    // CRITICAL FIX: Check if notifications OR warning/event processing is active before declaring timers overdue
+                    // During warning phase, timers are intentionally stopped - this is NOT a failure condition
+                    if (_isEyeRestNotificationActive || _isBreakNotificationActive ||
+                        _isEyeRestWarningProcessing || _isAnyEyeRestWarningProcessing ||
+                        _isBreakWarningProcessing || _isAnyBreakWarningProcessing ||
+                        _isEyeRestEventProcessing || _isAnyEyeRestEventProcessing ||
+                        _isBreakEventProcessing || _isAnyBreakEventProcessing)
                     {
-                        // Popups are active, timers are working correctly
+                        // Notifications, warnings, or events are being processed - timers are intentionally stopped
                         return;
                     }
 
@@ -1191,29 +1195,31 @@ namespace EyeRest.Services
         {
             if (!IsRunning) return;
 
-            var now = DateTime.Now;
+            // CRITICAL FIX: Don't trigger "overdue" events if any notification, warning, or event processing is active
+            // During warning/event processing, timers are intentionally stopped - this is NOT a failure condition
 
-            // CRITICAL FIX: Don't trigger "overdue" events if popups are already active
-            // When popups are showing, TimeUntilNext returns 0 or negative by design
-
-            // Check eye rest timer
+            // Check eye rest timer - skip if any eye rest or break processing is active
             var eyeRestRemaining = TimeUntilNextEyeRest;
-            if (eyeRestRemaining <= TimeSpan.Zero && !_isEyeRestNotificationActive)
+            if (eyeRestRemaining <= TimeSpan.Zero &&
+                !_isEyeRestNotificationActive && !_isEyeRestWarningProcessing && !_isAnyEyeRestWarningProcessing &&
+                !_isEyeRestEventProcessing && !_isAnyEyeRestEventProcessing &&
+                !_isBreakNotificationActive && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing &&
+                !_isBreakEventProcessing && !_isAnyBreakEventProcessing)
             {
                 _logger.LogCritical($"🚨 TRIGGERING OVERDUE EYE REST (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
-                // Manually call the timer event handler
                 OnEyeRestTimerTick(this, EventArgs.Empty);
             }
 
-            // Check break timer
+            // Check break timer - skip if any break processing is active
             var breakRemaining = TimeUntilNextBreak;
-            if (breakRemaining <= TimeSpan.Zero && !_isBreakNotificationActive)
+            if (breakRemaining <= TimeSpan.Zero &&
+                !_isBreakNotificationActive && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing &&
+                !_isBreakEventProcessing && !_isAnyBreakEventProcessing)
             {
                 _logger.LogCritical($"🚨 TRIGGERING OVERDUE BREAK (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
-                // Manually call the timer event handler
                 OnBreakTimerTick(this, EventArgs.Empty);
             }
-            
+
             await Task.CompletedTask;
         }
 
