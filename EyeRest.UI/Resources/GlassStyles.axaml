@@ -176,22 +176,30 @@
         <Setter Property="Background" Value="{DynamicResource MeetingButtonBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource MeetingButtonText}" />
         <Setter Property="CornerRadius" Value="10" />
-        <Setter Property="Height" Value="40" />
+        <Setter Property="Height" Value="38" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Padding" Value="12,6" />
-        <Setter Property="Margin" Value="4,0" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MeetingButtonText}" />
+        <Setter Property="BorderThickness" Value="1.5" />
     </Style>
     <Style Selector="Button.MeetingBtn /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource MeetingButtonBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource MeetingButtonText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MeetingButtonText}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="CornerRadius" Value="10" />
     </Style>
     <Style Selector="Button.MeetingBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource MeetingButtonBackground}" />
+        <Setter Property="Background" Value="{DynamicResource ToggleCardIconBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource MeetingButtonText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MeetingButtonText}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="CornerRadius" Value="10" />
     </Style>
 
     <!-- ============================================================ -->
