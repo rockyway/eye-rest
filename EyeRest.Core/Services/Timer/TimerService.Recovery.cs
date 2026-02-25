@@ -69,9 +69,23 @@ namespace EyeRest.Services
 
                 if (serviceRunningNormally)
                 {
-                    UpdateHeartbeat();
-                    timeSinceLastHeartbeat = TimeSpan.Zero; // Recalculate since we just updated
-                    _logger.LogDebug($"❤️ HEARTBEAT REFRESHED: Service running normally with active timers");
+                    // Don't reset heartbeat if timers are actually overdue — this allows
+                    // the backup trigger system to detect stuck timers and fire them
+                    var eyeRestMaybeOverdue = _eyeRestStartTime != DateTime.MinValue &&
+                        (now - _eyeRestStartTime) > _eyeRestInterval && _eyeRestInterval > TimeSpan.Zero;
+                    var breakMaybeOverdue = _breakStartTime != DateTime.MinValue &&
+                        (now - _breakStartTime) > _breakInterval && _breakInterval > TimeSpan.Zero;
+
+                    if (!eyeRestMaybeOverdue && !breakMaybeOverdue)
+                    {
+                        UpdateHeartbeat();
+                        timeSinceLastHeartbeat = TimeSpan.Zero;
+                        _logger.LogDebug($"❤️ HEARTBEAT REFRESHED: Service running normally with active timers");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"❤️ HEARTBEAT NOT REFRESHED: Timer(s) overdue despite being enabled (EyeRest overdue={eyeRestMaybeOverdue}, Break overdue={breakMaybeOverdue})");
+                    }
                 }
 
                 // Log current process and memory status
@@ -198,12 +212,17 @@ namespace EyeRest.Services
                                     InitializeBreakTimer();
                                 }
                                 
+                                // Reset start times so elapsed-time checks don't see stale overdue state
+                                _eyeRestStartTime = DateTime.Now;
+                                _breakStartTime = DateTime.Now;
+                                _breakTimerStartTime = DateTime.Now;
+
                                 // Start the timers
                                 _eyeRestTimer?.Start();
                                 _breakTimer?.Start();
                                 UpdateHeartbeatFromOperation("Timer state recovery");
-                                
-                                _logger.LogCritical($"🔧 TIMER STATE FIX: Timers restarted - EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
+
+                                _logger.LogCritical($"🔧 TIMER STATE FIX: Timers restarted with reset start times - EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
                                 
                                 // Force UI updates
                                 OnPropertyChanged(nameof(TimeUntilNextEyeRest));
@@ -705,12 +724,16 @@ namespace EyeRest.Services
                 InitializeBreakTimer();
                 InitializeBreakWarningTimer();
                 
-                // STEP 4: Restart timers if they were previously enabled
+                // STEP 4: Reset start times and restart timers if they were previously enabled
                 if (IsRunning && !IsPaused)
                 {
+                    _eyeRestStartTime = DateTime.Now;
+                    _breakStartTime = DateTime.Now;
+                    _breakTimerStartTime = DateTime.Now;
+
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
-                    _logger.LogCritical("🔧 Timers restarted after recovery");
+                    _logger.LogCritical("🔧 Timers restarted after recovery with reset start times");
                 }
                 
                 // STEP 5: Reset heartbeat to mark recovery success
@@ -1196,7 +1219,7 @@ namespace EyeRest.Services
         {
             if (!IsRunning) return;
 
-            // CRITICAL FIX: Don't trigger "overdue" events if any notification, warning, or event processing is active
+            // Don't trigger "overdue" events if any notification, warning, or event processing is active
             // During warning/event processing, timers are intentionally stopped - this is NOT a failure condition
 
             // Check eye rest timer - skip if any eye rest or break processing is active
@@ -1208,7 +1231,17 @@ namespace EyeRest.Services
                 !_isBreakEventProcessing && !_isAnyBreakEventProcessing)
             {
                 _logger.LogCritical($"🚨 TRIGGERING OVERDUE EYE REST (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
-                OnEyeRestTimerTick(this, EventArgs.Empty);
+                // Call TriggerEyeRest() directly instead of OnEyeRestTimerTick() to bypass
+                // the 50% elapsed guard which would reject the call after start-time reset
+                _eyeRestTimer?.Stop();
+                TriggerEyeRest();
+
+                // Reset timer for next cycle
+                var (erInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
+                _eyeRestInterval = erInterval;
+                _eyeRestTimer!.Interval = _eyeRestInterval;
+                _eyeRestStartTime = DateTime.Now;
+                _eyeRestTimer.Start();
             }
 
             // Check break timer - skip if any break processing is active
@@ -1218,7 +1251,18 @@ namespace EyeRest.Services
                 !_isBreakEventProcessing && !_isAnyBreakEventProcessing)
             {
                 _logger.LogCritical($"🚨 TRIGGERING OVERDUE BREAK (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
-                OnBreakTimerTick(this, EventArgs.Empty);
+                // Call TriggerBreak() directly instead of OnBreakTimerTick() to bypass
+                // the 50% elapsed guard which would reject the call after start-time reset
+                _breakTimer?.Stop();
+                StartBreakWarningTimer();
+
+                // Reset timer for next cycle
+                var (brInterval, _, _, _, _) = CalculateBreakTimerInterval();
+                _breakInterval = brInterval;
+                _breakTimer!.Interval = _breakInterval;
+                _breakStartTime = DateTime.Now;
+                _breakTimerStartTime = DateTime.Now;
+                _breakTimer.Start();
             }
 
             await Task.CompletedTask;
@@ -1278,18 +1322,27 @@ namespace EyeRest.Services
                         var eyeRestRemaining = TimeUntilNextEyeRest;
                         var breakRemaining = TimeUntilNextBreak;
 
-                        // Trigger overdue eye rest events
-                        if (eyeRestRemaining <= TimeSpan.Zero && !_isEyeRestNotificationActive && _eyeRestWarningTimer?.IsEnabled != true)
+                        // Trigger overdue eye rest events — call TriggerEyeRest() directly to bypass 50% guard
+                        if (eyeRestRemaining <= TimeSpan.Zero && !_isEyeRestNotificationActive && _eyeRestWarningTimer?.IsEnabled != true &&
+                            !_isEyeRestEventProcessing && !_isAnyEyeRestEventProcessing && !_isEyeRestWarningProcessing && !_isAnyEyeRestWarningProcessing)
                         {
                             _logger.LogCritical($"🆘 FALLBACK: Triggering overdue eye rest (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
-                            OnEyeRestTimerTick(this, EventArgs.Empty);
+                            _eyeRestTimer?.Stop();
+                            TriggerEyeRest();
+                            _eyeRestStartTime = DateTime.Now;
+                            _eyeRestTimer?.Start();
                         }
 
-                        // Trigger overdue break events
-                        if (breakRemaining <= TimeSpan.Zero && !_isBreakNotificationActive && _breakWarningTimer?.IsEnabled != true)
+                        // Trigger overdue break events — call StartBreakWarningTimer() directly to bypass 50% guard
+                        if (breakRemaining <= TimeSpan.Zero && !_isBreakNotificationActive && _breakWarningTimer?.IsEnabled != true &&
+                            !_isBreakEventProcessing && !_isAnyBreakEventProcessing && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing)
                         {
                             _logger.LogCritical($"🆘 FALLBACK: Triggering overdue break (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
-                            OnBreakTimerTick(this, EventArgs.Empty);
+                            _breakTimer?.Stop();
+                            StartBreakWarningTimer();
+                            _breakStartTime = DateTime.Now;
+                            _breakTimerStartTime = DateTime.Now;
+                            _breakTimer?.Start();
                         }
 
                         // Update heartbeat to show fallback system is working
