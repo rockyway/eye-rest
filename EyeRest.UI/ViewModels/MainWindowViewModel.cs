@@ -38,7 +38,7 @@ namespace EyeRest.UI.ViewModels
         private bool _eyeRestStartSoundEnabled = true;
         private bool _eyeRestEndSoundEnabled = true;
         private bool _eyeRestWarningEnabled = true;
-        private int _eyeRestWarningSeconds = 30;
+        private int _eyeRestWarningSeconds = 15;
 
         // Break Settings
         private int _breakIntervalMinutes = 55;
