@@ -1,852 +1,1020 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:EyeRest.UI.ViewModels"
+        xmlns:converters="using:EyeRest.UI.Converters"
         x:Class="EyeRest.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
-        Height="860"
-        Width="700"
-        MinHeight="800"
-        MinWidth="680"
-        MaxHeight="1100"
+        Width="900" Height="700"
+        MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         CanResize="True"
-        Background="{DynamicResource BackgroundBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="PreferSystemChrome"
+        ExtendClientAreaTitleBarHeightHint="40"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
         Foreground="{DynamicResource TextPrimaryBrush}">
 
-    <Grid Margin="20" Background="{DynamicResource BackgroundBrush}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto" MinHeight="100"/>
-            <RowDefinition Height="Auto" MinHeight="40"/>
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <converters:EqualityConverter x:Key="EqualityConverter" />
+        <converters:BoolToTextConverter x:Key="BoolToTextConverter" />
+    </Window.Resources>
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,20">
-            <!-- Exit Button on the top left -->
-            <Button Content="X Exit"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Top"
-                    Width="59"
-                    Height="30"
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    Cursor="Hand"
-                    Command="{Binding ExitApplicationCommand}"
-                    ToolTip.Tip="Exit application"
-                    Background="{DynamicResource ErrorBrush}"
-                    Foreground="White"
-                    CornerRadius="4"/>
+    <!-- Outer border with mesh gradient background and rounded corners -->
+    <!-- CornerRadius=10 matches macOS native window corner radius to avoid gaps -->
+    <Border Background="{DynamicResource MeshGradientBrush}"
+            CornerRadius="10"
+            ClipToBounds="True">
 
-            <!-- Dark Mode Toggle on the top right -->
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Margin="0,5,0,0">
-                <TextBlock Text="Dark"
-                           FontSize="16"
-                           VerticalAlignment="Center"
-                           Margin="0,0,8,0"/>
-                <CheckBox Content="Dark Mode"
-                          IsChecked="{Binding IsDarkMode}"
-                          VerticalAlignment="Center"
-                          FontSize="12"
-                          FontWeight="SemiBold"
-                          ToolTip.Tip="Toggle between light and dark theme for all windows"/>
-            </StackPanel>
+        <Grid RowDefinitions="40,*">
 
-            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                <TextBlock Text="Eye-rest Settings"
-                           FontSize="24"
-                           FontWeight="Bold"
-                           HorizontalAlignment="Center"
-                           Foreground="{DynamicResource PrimaryBrush}"/>
-
-                <!-- Status and Countdown -->
-                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="0,10,0,0" Height="55">
-                    <!-- Status Indicator -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Height="20">
-                        <Ellipse Width="12" Height="12"
-                                 Fill="{Binding TimerStatusColor}"
-                                 Margin="0,0,8,0"
-                                 VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding TimerStatusText}"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"/>
-                    </StackPanel>
-
-                    <!-- Countdown Timers -->
-                    <TextBlock Text="{Binding DualCountdownText}"
-                               FontSize="13"
-                               HorizontalAlignment="Center"
-                               Margin="0,5,0,0"
-                               Height="20"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               IsVisible="{Binding IsRunning}"/>
-                </StackPanel>
-            </StackPanel>
-        </Grid>
-
-        <!-- Tabbed Settings Content -->
-        <TabControl Grid.Row="1" Margin="0,0,0,10" SelectedIndex="{Binding SelectedTabIndex}">
-
-            <!-- Eye Rest Tab -->
-            <TabItem Header="Eye Rest" FontSize="14">
-                <ScrollViewer>
-                    <StackPanel Margin="20">
-                        <!-- Basic Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Basic Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="Remind every:" VerticalAlignment="Center" Width="100"/>
-                                        <TextBox Text="{Binding EyeRestIntervalMinutes}" Width="80" Margin="10,0,10,0"/>
-                                        <TextBlock Text="minutes" VerticalAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="Rest for:" VerticalAlignment="Center" Width="100"/>
-                                        <TextBox Text="{Binding EyeRestDurationSeconds}" Width="80" Margin="10,0,10,0"/>
-                                        <TextBlock Text="seconds" VerticalAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <CheckBox Content="Play sound at start"
-                                              IsChecked="{Binding EyeRestStartSoundEnabled}"
-                                              Margin="0,15,0,5"/>
-
-                                    <CheckBox Content="Play sound at end"
-                                              IsChecked="{Binding EyeRestEndSoundEnabled}"
-                                              Margin="0,5"/>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Warning Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Warning Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <CheckBox Grid.Row="0"
-                                                  Content="Show warning before eye rest"
-                                                  IsChecked="{Binding EyeRestWarningEnabled}"
-                                                  Margin="0,0,0,15"/>
-
-                                        <StackPanel Grid.Row="1"
-                                                    Orientation="Horizontal"
-                                                    IsEnabled="{Binding EyeRestWarningEnabled}"
-                                                    Margin="20,0,0,0">
-                                            <TextBlock Text="Warning time:" VerticalAlignment="Center"/>
-                                            <TextBox Text="{Binding EyeRestWarningSeconds}" Width="80" Margin="10,0"/>
-                                            <TextBlock Text="seconds" VerticalAlignment="Center" Margin="5,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Test Controls -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Test Controls" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                        <Button Content="Test Eye Remind"
-                                                Command="{Binding TestWarningCommand}"
-                                                Width="160"
-                                                Height="35"
-                                                Margin="0,0,10,0"
-                                                HorizontalContentAlignment="Center"
-                                                VerticalContentAlignment="Center"
-                                                Background="{DynamicResource WarningBrush}"
-                                                Foreground="White"
-                                                ToolTip.Tip="Test the eye rest warning notification"/>
-
-                                        <Button Content="Test Eye Rest"
-                                                Command="{Binding TestPopupCommand}"
-                                                Width="130"
-                                                Height="35"
-                                                HorizontalContentAlignment="Center"
-                                                VerticalContentAlignment="Center"
-                                                Background="{DynamicResource PrimaryBrush}"
-                                                Foreground="White"
-                                                ToolTip.Tip="Test the eye rest popup"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Time Break Tab -->
-            <TabItem Header="Time Break" FontSize="14">
-                <ScrollViewer>
-                    <StackPanel Margin="20">
-                        <!-- Basic Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Basic Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="Work for:" VerticalAlignment="Center" Width="100"/>
-                                        <TextBox Text="{Binding BreakIntervalMinutes}" Width="80" Margin="10,0,10,0"/>
-                                        <TextBlock Text="minutes" VerticalAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="Break for:" VerticalAlignment="Center" Width="100"/>
-                                        <TextBox Text="{Binding BreakDurationMinutes}" Width="80" Margin="10,0,10,0"/>
-                                        <TextBlock Text="minutes" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Warning Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Warning Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <CheckBox Grid.Row="0"
-                                                  Content="Show warning before break"
-                                                  IsChecked="{Binding BreakWarningEnabled}"
-                                                  Margin="0,0,0,15"/>
-
-                                        <StackPanel Grid.Row="1"
-                                                    Orientation="Horizontal"
-                                                    IsEnabled="{Binding BreakWarningEnabled}"
-                                                    Margin="20,0,0,0">
-                                            <TextBlock Text="Warning time:" VerticalAlignment="Center"/>
-                                            <TextBox Text="{Binding BreakWarningSeconds}" Width="80" Margin="10,0"/>
-                                            <TextBlock Text="seconds" VerticalAlignment="Center" Margin="5,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Overlay Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Overlay Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Screen overlay opacity:" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                                        <Slider Value="{Binding OverlayOpacityPercent}"
-                                                Minimum="0"
-                                                Maximum="100"
-                                                Width="200"
-                                                TickFrequency="10"
-                                                IsSnapToTickEnabled="True"/>
-                                        <TextBlock Text="{Binding OverlayOpacityPercent}"
-                                                   VerticalAlignment="Center"
-                                                   Margin="15,0,5,0"
-                                                   Width="30"/>
-                                        <TextBlock Text="%" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Break Completion Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Break Completion Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <TextBlock Text="Configure what happens when your break timer completes:"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,15"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-                                    <CheckBox Content="Keep break popup open until confirmed"
-                                              IsChecked="{Binding RequireConfirmationAfterBreak}"
-                                              Margin="0,0,0,10"
-                                              ToolTip.Tip="Useful when you step away from your PC during breaks. The popup will wait for you to return and click Done."/>
-
-                                    <CheckBox Content="Start fresh session after break confirmation"
-                                              IsChecked="{Binding ResetTimersOnBreakConfirmation}"
-                                              IsEnabled="{Binding RequireConfirmationAfterBreak}"
-                                              Margin="20,0,0,10"
-                                              ToolTip.Tip="When enabled, all timers will reset to start fresh intervals after you confirm break completion."/>
-
-                                    <TextBlock Text="Tip: Enable both options for the best experience when taking actual breaks away from your computer."
-                                               FontSize="12"
-                                               FontStyle="Italic"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               TextWrapping="Wrap"
-                                               Margin="0,10,0,0"/>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Test Controls -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Test Controls" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                        <Button Content="Test Break Remind"
-                                                Command="{Binding TestBreakWarningCommand}"
-                                                Width="160"
-                                                Height="35"
-                                                Margin="0,0,10,0"
-                                                HorizontalContentAlignment="Center"
-                                                VerticalContentAlignment="Center"
-                                                Background="{DynamicResource WarningBrush}"
-                                                Foreground="White"
-                                                ToolTip.Tip="Test the break warning notification"/>
-
-                                        <Button Content="Test Break"
-                                                Command="{Binding TestBreakCommand}"
-                                                Width="130"
-                                                Height="35"
-                                                HorizontalContentAlignment="Center"
-                                                VerticalContentAlignment="Center"
-                                                Background="{DynamicResource InfoBrush}"
-                                                Foreground="White"
-                                                ToolTip.Tip="Test the break popup"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Advanced Settings Tab -->
-            <TabItem Header="Advanced" FontSize="14">
-                <ScrollViewer>
-                    <StackPanel Margin="20">
-                        <!-- Meeting Detection Settings - DISABLED: Not working reliably -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True"
-                                IsVisible="False">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Meeting Detection Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <TextBlock Text="Choose how the application detects when you're in meetings to automatically pause break timers:"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,15"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-                                    <RadioButton Content="Window-based detection (Default)"
-                                                 IsChecked="{Binding IsWindowBasedDetection, Mode=TwoWay}"
-                                                 GroupName="MeetingDetection"
-                                                 Margin="0,0,0,10"/>
-                                    <TextBlock Text="   - Monitors running processes and window titles"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,10"/>
-                                    <TextBlock Text="   - Fast and lightweight detection method"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,10"/>
-                                    <TextBlock Text="   - Works with Teams, Zoom, Webex, and Google Meet"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,15"/>
-
-                                    <RadioButton Content="Network-based detection (Advanced)"
-                                                 IsChecked="{Binding IsNetworkBasedDetection, Mode=TwoWay}"
-                                                 GroupName="MeetingDetection"
-                                                 Margin="0,0,0,10"/>
-                                    <TextBlock Text="   - Monitors UDP network connections for meeting activity"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,10"/>
-                                    <TextBlock Text="   - More accurate detection of active calls"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,10"/>
-                                    <TextBlock Text="   - Higher CPU usage, requires elevated permissions"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource WarningBrush}"
-                                               Margin="20,-5,0,15"/>
-
-                                    <RadioButton Content="Hybrid detection (Best of both)"
-                                                 IsChecked="{Binding IsHybridDetection, Mode=TwoWay}"
-                                                 GroupName="MeetingDetection"
-                                                 Margin="0,0,0,10"/>
-                                    <TextBlock Text="   - Combines window and network-based detection"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,10"/>
-                                    <TextBlock Text="   - Most accurate but highest resource usage"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,10"/>
-                                    <TextBlock Text="   - Falls back gracefully if one method fails"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="20,-5,0,15"/>
-
-                                    <!-- Detection Status -->
-                                    <Border Background="{DynamicResource InfoBackgroundBrush}"
-                                            BorderBrush="{DynamicResource InfoBorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="10"
-                                            Margin="0,10,0,0">
-                                        <StackPanel>
-                                            <TextBlock Text="Detection Status:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                            <TextBlock Text="{Binding MeetingDetectionStatus}"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                                <Ellipse Width="8" Height="8"
-                                                         Fill="{Binding MeetingDetectionStatusColor}"
-                                                         VerticalAlignment="Center"
-                                                         Margin="0,0,8,0"/>
-                                                <TextBlock Text="{Binding MeetingDetectionStatusText}"
-                                                           FontSize="12"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Additional Settings -->
-                                    <CheckBox Content="Enable debug logging for meeting detection"
-                                              IsChecked="{Binding LogDetectionActivity}"
-                                              Margin="0,15,0,5"
-                                              ToolTip.Tip="Log detailed information about meeting detection (may impact performance)"/>
-
-                                    <CheckBox Content="Enable fallback detection methods"
-                                              IsChecked="{Binding EnableFallbackDetection}"
-                                              Margin="0,5,0,0"
-                                              ToolTip.Tip="Automatically switch to backup detection methods if primary method fails"/>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- User Presence Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Smart Pause Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <TextBlock Text="Automatically pause timers when you're away from your computer:"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,15"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-                                    <CheckBox Content="Pause when screen is locked"
-                                              IsChecked="{Binding PauseOnScreenLock}"
-                                              Margin="0,0,0,10"/>
-
-                                    <CheckBox Content="Pause when monitor turns off"
-                                              IsChecked="{Binding PauseOnMonitorOff}"
-                                              Margin="0,0,0,10"/>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <CheckBox Content="Pause when idle for:"
-                                                  IsChecked="{Binding PauseOnIdle}"
-                                                  VerticalAlignment="Center"/>
-                                        <TextBox Text="{Binding IdleTimeoutMinutes}"
-                                                 Width="60"
-                                                 Margin="10,0"
-                                                 IsEnabled="{Binding PauseOnIdle}"/>
-                                        <TextBlock Text="minutes" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Audio Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Audio Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15,15,15,20">
-                                    <TextBlock Text="Configure sound notifications for eye rest and break reminders:"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,15"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-                                    <CheckBox Content="Enable audio notifications"
-                                              IsChecked="{Binding AudioEnabled}"
-                                              Margin="0,0,0,10"/>
-
-                                    <StackPanel IsEnabled="{Binding AudioEnabled}">
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                            <TextBlock Text="Volume:" VerticalAlignment="Center" Width="100"/>
-                                            <Slider Value="{Binding AudioVolume}"
-                                                    Minimum="0"
-                                                    Maximum="100"
-                                                    Width="200"
-                                                    TickFrequency="10"
-                                                    IsSnapToTickEnabled="True"
-                                                    Margin="10,0"/>
-                                            <TextBlock Text="{Binding AudioVolume}"
-                                                       VerticalAlignment="Center"
-                                                       Margin="15,0,5,0"
-                                                       Width="30"/>
-                                            <TextBlock Text="%" VerticalAlignment="Center"/>
-                                        </StackPanel>
-
-                                        <!-- Custom Audio Selection -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
-                                            <TextBlock Text="Custom Audio:" VerticalAlignment="Center" Width="100"/>
-                                            <TextBox Text="{Binding CustomSoundPath}"
-                                                     IsReadOnly="True"
-                                                     Width="200"
-                                                     Margin="10,0"
-                                                     VerticalAlignment="Center"
-                                                     Background="{DynamicResource BackgroundLightBrush}"
-                                                     ToolTip.Tip="Path to custom audio file"/>
-                                            <Button Content="Browse..."
-                                                    Command="{Binding BrowseCustomAudioCommand}"
-                                                    Width="120"
-                                                    Height="35"
-                                                    Margin="10,0,0,5"
-                                                    HorizontalContentAlignment="Center"
-                                                    VerticalContentAlignment="Center"
-                                                    Background="{DynamicResource InfoBrush}"
-                                                    Foreground="White"
-                                                    ToolTip.Tip="Select custom audio file (.wav, .mp3, .wma)"/>
-                                        </StackPanel>
-
-                                        <Button Content="Test Audio"
-                                                Command="{Binding TestCustomAudioCommand}"
-                                                Width="140"
-                                                Height="36"
-                                                HorizontalAlignment="Left"
-                                                HorizontalContentAlignment="Center"
-                                                VerticalContentAlignment="Center"
-                                                Margin="0,10,0,10"
-                                                Background="{DynamicResource InfoBrush}"
-                                                Foreground="White"
-                                                ToolTip.Tip="Test the selected audio file"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Application Settings -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Application Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <TextBlock Text="Configure application behavior and startup options:"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,15"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-                                    <CheckBox Content="Start with system"
-                                              IsChecked="{Binding StartWithWindows}"
-                                              Margin="0,0,0,10"
-                                              ToolTip.Tip="Automatically start the application when the system starts"/>
-
-                                    <CheckBox Content="Start minimized to system tray"
-                                              IsChecked="{Binding StartMinimized}"
-                                              Margin="0,0,0,10"
-                                              ToolTip.Tip="Start the application minimized to the system tray"/>
-
-                                    <CheckBox Content="Minimize to tray instead of closing"
-                                              IsChecked="{Binding MinimizeToTray}"
-                                              Margin="0,0,0,10"
-                                              ToolTip.Tip="Minimize to system tray when closing the main window"/>
-
-                                    <CheckBox Content="Show tray notifications"
-                                              IsChecked="{Binding ShowTrayNotifications}"
-                                              Margin="0,0,0,10"
-                                              ToolTip.Tip="Show balloon tip notifications in the system tray"/>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Restore Defaults -->
-                        <Border CornerRadius="8" BorderThickness="1"
-                                BorderBrush="{DynamicResource ControlBorderBrush}"
-                                Background="{DynamicResource SurfaceBrush}"
-                                Margin="0,0,0,15"
-                                ClipToBounds="True">
-                            <DockPanel>
-                                <Border DockPanel.Dock="Top" Background="{DynamicResource PrimaryBrush}" Padding="12,6">
-                                    <TextBlock Text="Reset Settings" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
-                                </Border>
-                                <StackPanel Margin="15">
-                                    <TextBlock Text="Reset all settings to their default values:"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,15"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-                                    <Button Content="Restore Defaults"
-                                            Command="{Binding RestoreDefaultsCommand}"
-                                            Width="160"
-                                            Height="35"
-                                            HorizontalAlignment="Left"
-                                            HorizontalContentAlignment="Center"
-                                            VerticalContentAlignment="Center"
-                                            Background="{DynamicResource WarningBrush}"
-                                            Foreground="White"
-                                            ToolTip.Tip="Reset all settings to their default values"/>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Analytics Tab -->
-            <TabItem Header="Analytics" FontSize="14">
+            <!-- ============================================================ -->
+            <!-- Row 0: Custom Title Bar                                       -->
+            <!-- ============================================================ -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource TitleBarBackground}"
+                    PointerPressed="TitleBar_PointerPressed">
                 <Grid>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20">
-                        <TextBlock Text="Analytics" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,20" Foreground="{DynamicResource PrimaryBrush}"/>
-                        <TextBlock Text="Analytics Dashboard"
-                                   FontSize="24"
-                                   FontWeight="Bold"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,0,0,10"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
-                        <TextBlock Text="View detailed break compliance metrics and performance analytics in a dedicated dashboard window."
-                                   FontSize="14"
-                                   HorizontalAlignment="Center"
-                                   TextAlignment="Center"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,0,30"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   MaxWidth="400"/>
+                    <!-- Centered: App icon + title -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                        <Image Source="avares://EyeRest.UI/Assets/TrayIcons/tray_active@2x.png"
+                               Width="18" Height="18" />
+                        <TextBlock Text="Eye Rest"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
 
-                        <Button Content="Open Analytics Dashboard"
-                                Command="{Binding ShowAnalyticsCommand}"
-                                Width="220"
-                                Height="50"
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Cursor="Hand"
-                                HorizontalContentAlignment="Center"
-                                VerticalContentAlignment="Center"
-                                Background="{DynamicResource PrimaryBrush}"
-                                Foreground="White"
-                                ToolTip.Tip="Open the analytics dashboard in a larger, dedicated window"/>
-
-                        <CheckBox Content="Auto-open dashboard when clicking Analytics tab"
-                                  IsChecked="{Binding AutoOpenDashboard}"
-                                  HorizontalAlignment="Center"
-                                  Margin="0,20,0,0"
-                                  FontSize="14"
-                                  ToolTip.Tip="Automatically open the Analytics Dashboard whenever you click on the Analytics tab"/>
+                    <!-- Right: Window control buttons (Windows only) -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Stretch"
+                                IsVisible="{OnPlatform False, Windows=True}">
+                        <Button Classes="CaptionBtn" Click="MinimizeButton_Click"
+                                ToolTip.Tip="Minimize">
+                            <PathIcon Data="M4,12 L20,12" Width="10" Height="10"
+                                      Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Button>
+                        <Button Classes="CaptionBtn" Click="MaximizeButton_Click"
+                                ToolTip.Tip="Maximize">
+                            <PathIcon Data="{StaticResource MaximizeIcon}" Width="10" Height="10"
+                                      Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Button>
+                        <Button Classes="CaptionBtn CaptionCloseBtn" Click="CloseButton_Click"
+                                ToolTip.Tip="Close">
+                            <PathIcon Data="{StaticResource CloseIcon}" Width="10" Height="10"
+                                      Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Button>
                     </StackPanel>
                 </Grid>
-            </TabItem>
-        </TabControl>
-
-        <!-- Timer Controls - Organized in 2 Lines -->
-        <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,15,0,10">
-
-            <!-- Line 1: Start, Stop, Pause, Resume - All on same row -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
-                <Button Command="{Binding StartTimersCommand}"
-                        Width="120"
-                        Height="35"
-                        Margin="5,0"
-                        CornerRadius="6"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Background="{DynamicResource AccentBrush}"
-                        Foreground="White"
-                        ToolTip.Tip="{Binding StartButtonTooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="M 0,0 L 10,6 L 0,12 Z" Foreground="White" Width="12" Height="12"/>
-                        <TextBlock Text="Start" Foreground="White"/>
-                    </StackPanel>
-                </Button>
-
-                <Button Command="{Binding StopTimersCommand}"
-                        Width="120"
-                        Height="35"
-                        Margin="5,0"
-                        CornerRadius="6"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Background="{DynamicResource ErrorBrush}"
-                        Foreground="White"
-                        ToolTip.Tip="{Binding StopButtonTooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="M 0,0 H 10 V 10 H 0 Z" Foreground="White" Width="12" Height="12"/>
-                        <TextBlock Text="Stop" Foreground="White"/>
-                    </StackPanel>
-                </Button>
-
-                <Button Command="{Binding PauseTimersCommand}"
-                        Width="120"
-                        Height="35"
-                        Margin="5,0"
-                        CornerRadius="6"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        IsEnabled="{Binding CanPauseTimers}"
-                        Background="{DynamicResource WarningBrush}"
-                        Foreground="White"
-                        ToolTip.Tip="{Binding PauseButtonTooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="M 0,0 H 3 V 12 H 0 Z M 7,0 H 10 V 12 H 7 Z" Foreground="White" Width="12" Height="12"/>
-                        <TextBlock Text="Pause" Foreground="White"/>
-                    </StackPanel>
-                </Button>
-
-                <Button Command="{Binding ResumeTimersCommand}"
-                        Width="120"
-                        Height="35"
-                        Margin="5,0"
-                        CornerRadius="6"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        IsEnabled="{Binding CanResumeTimers}"
-                        Background="{DynamicResource SuccessBrush}"
-                        Foreground="White"
-                        ToolTip.Tip="{Binding ResumeButtonTooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="M 0,0 L 10,6 L 0,12 Z" Foreground="White" Width="12" Height="12"/>
-                        <TextBlock Text="Resume" Foreground="White"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-
-            <!-- Line 2: Meeting Controls - 30m and 1h on same row -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Command="{Binding PauseForMeetingCommand}"
-                        Width="160"
-                        Height="35"
-                        Margin="5,0"
-                        CornerRadius="6"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        IsEnabled="{Binding CanPauseMeeting}"
-                        Background="{DynamicResource InfoBrush}"
-                        Foreground="White"
-                        ToolTip.Tip="{Binding Meeting30mButtonTooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="M 7,0 A 7,7 0 1,0 7,14 A 7,7 0 1,0 7,0 M 7,2 A 5,5 0 1,1 7,12 A 5,5 0 1,1 7,2 M 6.5,4 H 7.5 V 7.5 H 10 V 8.5 H 6.5 Z" Foreground="White" Width="14" Height="14"/>
-                        <TextBlock Text="Meeting (30m)" Foreground="White"/>
-                    </StackPanel>
-                </Button>
-
-                <Button Command="{Binding PauseForMeeting1hCommand}"
-                        Width="160"
-                        Height="35"
-                        Margin="5,0"
-                        CornerRadius="6"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        IsEnabled="{Binding CanPauseMeeting}"
-                        Background="{DynamicResource InfoBrush}"
-                        Foreground="White"
-                        ToolTip.Tip="{Binding Meeting1hButtonTooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="M 7,0 A 7,7 0 1,0 7,14 A 7,7 0 1,0 7,0 M 7,2 A 5,5 0 1,1 7,12 A 5,5 0 1,1 7,2 M 6.5,4 H 7.5 V 7.5 H 10 V 8.5 H 6.5 Z" Foreground="White" Width="14" Height="14"/>
-                        <TextBlock Text="Meeting (1h)" Foreground="White"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-
-        </StackPanel>
-
-        <!-- Error Message -->
-        <StackPanel Grid.Row="3"
-                    Orientation="Vertical"
-                    HorizontalAlignment="Center"
-                    Margin="0,5,0,5"
-                    IsVisible="{Binding HasValidationErrors}">
-            <Border Background="{DynamicResource ErrorBrush}"
-                    CornerRadius="4"
-                    Padding="12,8"
-                    MaxWidth="600">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Warning:"
-                               FontSize="16"
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"
-                               Foreground="White"
-                               FontWeight="Bold"/>
-                    <TextBlock Text="{Binding ErrorMessage}"
-                               Foreground="White"
-                               TextWrapping="Wrap"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
             </Border>
-        </StackPanel>
 
-    </Grid>
+            <!-- ============================================================ -->
+            <!-- Row 1: Main Content (Sidebar + Content)                       -->
+            <!-- ============================================================ -->
+            <Grid Grid.Row="1" ColumnDefinitions="260,*">
+
+                <!-- ======================================================== -->
+                <!-- Col 0: Sidebar                                            -->
+                <!-- ======================================================== -->
+                <Border Grid.Column="0"
+                        Background="{DynamicResource SidebarBackground}"
+                        BorderBrush="{DynamicResource GlassPanelBorder}"
+                        BorderThickness="0,0,1,0">
+                    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+                        <!-- Nav Buttons -->
+                        <StackPanel Grid.Row="0" Margin="0,12,0,0">
+                            <Button Classes="NavButton"
+                                    Classes.active="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=0}"
+                                    Tag="0" Click="NavButton_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <PathIcon Data="{StaticResource EyeIcon}" Width="18" Height="18" />
+                                    <TextBlock Text="Eye Rest" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="NavButton"
+                                    Classes.active="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=1}"
+                                    Tag="1" Click="NavButton_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <PathIcon Data="{StaticResource ClockIcon}" Width="18" Height="18" />
+                                    <TextBlock Text="Time Break" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="NavButton"
+                                    Classes.active="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=2}"
+                                    Tag="2" Click="NavButton_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <PathIcon Data="{StaticResource TuneIcon}" Width="18" Height="18" />
+                                    <TextBlock Text="Advanced" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="NavButton"
+                                    Classes.active="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=3}"
+                                    Tag="3" Click="NavButton_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <PathIcon Data="{StaticResource ChartIcon}" Width="18" Height="18" />
+                                    <TextBlock Text="Analytics" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Status Card -->
+                        <Border Grid.Row="1" Classes="StatusCard" Margin="8,16,8,0">
+                            <StackPanel Spacing="6">
+                                <!-- Status Row -->
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="STATUS" FontSize="11" FontWeight="Bold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding TimerStatusText}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                    <Ellipse Width="8" Height="8"
+                                             Fill="{Binding TimerStatusColor}"
+                                             VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <!-- Countdown Timers - each on its own line -->
+                                <StackPanel IsVisible="{Binding IsRunning}" Spacing="1">
+                                    <TextBlock Text="{Binding TimeUntilNextEyeRest}"
+                                               FontSize="11"
+                                               FontFamily="Consolas,Menlo,monospace"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding TimeUntilNextBreak}"
+                                               FontSize="11"
+                                               FontFamily="Consolas,Menlo,monospace"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Spacer -->
+                        <Panel Grid.Row="2" />
+
+                        <!-- Bottom: Dark toggle + Meeting + Controls + Exit -->
+                        <StackPanel Grid.Row="3" Margin="0,0,0,12" Spacing="4">
+
+                            <!-- Dark Mode Toggle -->
+                            <Border Margin="8,0" Padding="12,6"
+                                    Background="{DynamicResource StatusCardBackground}"
+                                    BorderBrush="{DynamicResource StatusCardBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <PathIcon Grid.Column="0"
+                                              Data="{StaticResource DarkModeIcon}"
+                                              Width="16" Height="16"
+                                              Foreground="{DynamicResource ToggleCardIconColor}"
+                                              VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="Dark Mode"
+                                               FontSize="12" FontWeight="Medium"
+                                               VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    <ToggleSwitch Grid.Column="2"
+                                                  IsChecked="{Binding IsDarkMode}"
+                                                  VerticalAlignment="Center"
+                                                  OnContent="" OffContent=""
+                                                  Margin="0,-2,0,-2" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Meeting Buttons - styled as clear pill buttons -->
+                            <Grid ColumnDefinitions="*,*" Margin="8,4,8,4">
+                                <Button Grid.Column="0" Classes="MeetingBtn"
+                                        Command="{Binding PauseForMeetingCommand}"
+                                        IsEnabled="{Binding CanPauseMeeting}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding Meeting30mButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" />
+                                        <TextBlock Text="Meet 30m" FontSize="12" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="1" Classes="MeetingBtn"
+                                        Command="{Binding PauseForMeeting1hCommand}"
+                                        IsEnabled="{Binding CanPauseMeeting}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding Meeting1hButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" />
+                                        <TextBlock Text="Meet 1h" FontSize="12" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <!-- Start Button (full width) -->
+                            <Button Classes="GradientStart"
+                                    Command="{Binding StartTimersCommand}"
+                                    ToolTip.Tip="{Binding StartButtonTooltip}">
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Data="{StaticResource PlayIcon}" Width="14" Height="14" Foreground="White" />
+                                    <TextBlock Text="Start" Foreground="White" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Stop + Pause row -->
+                            <Grid ColumnDefinitions="*,*" Margin="4,0">
+                                <Button Grid.Column="0" Classes="GradientStop"
+                                        Command="{Binding StopTimersCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding StopButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource StopIcon}" Width="12" Height="12" Foreground="White" />
+                                        <TextBlock Text="Stop" Foreground="White" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="1" Classes="GradientPause"
+                                        Command="{Binding PauseTimersCommand}"
+                                        IsEnabled="{Binding CanPauseTimers}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding PauseButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource PauseIcon}" Width="12" Height="12" Foreground="White" />
+                                        <TextBlock Text="Pause" Foreground="White" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <!-- Resume button (visible when paused) -->
+                            <Button Classes="GradientStart"
+                                    Command="{Binding ResumeTimersCommand}"
+                                    IsEnabled="{Binding CanResumeTimers}"
+                                    IsVisible="{Binding CanResumeTimers}"
+                                    ToolTip.Tip="{Binding ResumeButtonTooltip}"
+                                    Height="36" Margin="8,0">
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Data="{StaticResource PlayIcon}" Width="12" Height="12" Foreground="White" />
+                                    <TextBlock Text="Resume" Foreground="White" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Exit button -->
+                            <Button Margin="8,4,8,0"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Height="30"
+                                    CornerRadius="8"
+                                    Background="Transparent"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    Command="{Binding ExitApplicationCommand}"
+                                    ToolTip.Tip="Exit application"
+                                    FontSize="12" Cursor="Hand">
+                                <StackPanel Orientation="Horizontal" Spacing="6"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Data="{StaticResource ExitIcon}" Width="14" Height="14"
+                                              Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="Exit" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- ======================================================== -->
+                <!-- Col 1: Content Area                                       -->
+                <!-- ======================================================== -->
+                <Grid Grid.Column="1" RowDefinitions="Auto,*">
+
+                    <!-- Fixed Title Section -->
+                    <StackPanel Grid.Row="0" Margin="32,24,32,0">
+                        <!-- Tab 0 title -->
+                        <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=0}">
+                            <TextBlock Classes="SectionTitle" Text="Eye Rest Configuration" />
+                            <TextBlock Classes="SectionSubtitle" Text="Customize your short breaks to reduce eye strain." />
+                        </StackPanel>
+                        <!-- Tab 1 title -->
+                        <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=1}">
+                            <TextBlock Classes="SectionTitle" Text="Time Break Configuration" />
+                            <TextBlock Classes="SectionSubtitle" Text="Configure your longer breaks for maximum productivity." />
+                        </StackPanel>
+                        <!-- Tab 2 title -->
+                        <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=2}">
+                            <TextBlock Classes="SectionTitle" Text="Advanced Settings" />
+                            <TextBlock Classes="SectionSubtitle" Text="Fine-tune application behavior and preferences." />
+                        </StackPanel>
+                        <!-- Tab 3 title -->
+                        <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=3}">
+                            <TextBlock Classes="SectionTitle" Text="Analytics Dashboard" />
+                            <TextBlock Classes="SectionSubtitle" Text="View your break compliance metrics." />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Scrollable Content -->
+                    <ScrollViewer Grid.Row="1" Padding="32,0,32,0">
+                        <Panel Margin="0,0,0,64">
+                            <!-- ============================================ -->
+                            <!-- Tab 0: Eye Rest Configuration                 -->
+                            <!-- ============================================ -->
+                            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=0}">
+
+                                <!-- Rest Interval + Duration Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="20">
+                                        <!-- Rest Interval -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Rest Interval" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Value="{Binding EyeRestIntervalMinutes}"
+                                                        Minimum="1" Maximum="60"
+                                                        TickFrequency="1" IsSnapToTickEnabled="True" />
+                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
+                                                    <TextBlock Grid.Column="0" Text="1 min" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBlock Grid.Column="2" Text="60 min" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                </Grid>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding EyeRestIntervalMinutes}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="minutes" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Duration -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Duration" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Value="{Binding EyeRestDurationSeconds}"
+                                                        Minimum="5" Maximum="60"
+                                                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
+                                                    <TextBlock Grid.Column="0" Text="5 sec" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBlock Grid.Column="2" Text="60 sec" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                </Grid>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding EyeRestDurationSeconds}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="seconds" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Toggle Cards: Sound Alerts + Notification -->
+                                <Grid ColumnDefinitions="*,*" Margin="0,0,0,16">
+                                    <Border Grid.Column="0" Classes="ToggleCard" Margin="0,0,8,0">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="36" Height="36"
+                                                    CornerRadius="10"
+                                                    Background="{DynamicResource ToggleCardIconBackground}"
+                                                    VerticalAlignment="Center">
+                                                <PathIcon Data="{StaticResource VolumeIcon}" Width="18" Height="18"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Sound Alerts" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding EyeRestStartSoundEnabled, Converter={StaticResource BoolToTextConverter}}"
+                                                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding EyeRestStartSoundEnabled}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="1" Classes="ToggleCard" Margin="8,0,0,0">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="36" Height="36"
+                                                    CornerRadius="10"
+                                                    Background="{DynamicResource ToggleCardIconBackground}"
+                                                    VerticalAlignment="Center">
+                                                <PathIcon Data="{StaticResource NotificationIcon}" Width="18" Height="18"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Show Notification" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding EyeRestWarningEnabled, Converter={StaticResource BoolToTextConverter}}"
+                                                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding EyeRestWarningEnabled}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Warning + End Sound Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="16">
+                                        <!-- Warning Time -->
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              IsEnabled="{Binding EyeRestWarningEnabled}">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Warning Time" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Value="{Binding EyeRestWarningSeconds}"
+                                                        Minimum="5" Maximum="120"
+                                                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding EyeRestWarningSeconds}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="sec" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- End Sound Toggle -->
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="32" Height="32"
+                                                    CornerRadius="8"
+                                                    Background="{DynamicResource ToggleCardIconBackground}">
+                                                <PathIcon Data="{StaticResource VolumeIcon}" Width="16" Height="16"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="End Sound" Margin="12,0,0,0"
+                                                       FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding EyeRestEndSoundEnabled}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Info Card: Tip -->
+                                <Border Classes="InfoCard">
+                                    <StackPanel Orientation="Horizontal" Spacing="14">
+                                        <Border Width="40" Height="40" CornerRadius="20"
+                                                Background="{DynamicResource ToggleCardIconBackground}">
+                                            <PathIcon Data="{StaticResource VisibilityIcon}" Width="20" Height="20"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="Time for an Eye Rest!" FontWeight="SemiBold" FontSize="14" />
+                                            <TextBlock Text="Look away for 20s at something 20 feet away."
+                                                       FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Test Controls Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Test Controls" FontSize="14" FontWeight="SemiBold" />
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <Button Classes="ActionBtnWarning"
+                                                    Command="{Binding TestWarningCommand}"
+                                                    ToolTip.Tip="Test the eye rest warning notification">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <PathIcon Data="{StaticResource WarningTestIcon}" Width="14" Height="14" />
+                                                    <TextBlock Text="Test Warning" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Classes="ActionBtnPrimary"
+                                                    Command="{Binding TestPopupCommand}"
+                                                    ToolTip.Tip="Test the eye rest popup">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <PathIcon Data="{StaticResource EyeIcon}" Width="14" Height="14" />
+                                                    <TextBlock Text="Test Eye Rest" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============================================ -->
+                            <!-- Tab 1: Time Break Configuration               -->
+                            <!-- ============================================ -->
+                            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=1}">
+
+                                <!-- Work Interval + Break Duration Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="20">
+                                        <!-- Work Interval -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Work Interval" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Value="{Binding BreakIntervalMinutes}"
+                                                        Minimum="1" Maximum="120"
+                                                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
+                                                    <TextBlock Grid.Column="0" Text="1 min" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBlock Grid.Column="2" Text="120 min" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                </Grid>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding BreakIntervalMinutes}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="minutes" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Break Duration -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Break Duration" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Value="{Binding BreakDurationMinutes}"
+                                                        Minimum="1" Maximum="30"
+                                                        TickFrequency="1" IsSnapToTickEnabled="True" />
+                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
+                                                    <TextBlock Grid.Column="0" Text="1 min" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBlock Grid.Column="2" Text="30 min" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                </Grid>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding BreakDurationMinutes}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="minutes" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Toggle Cards: Warning + Confirmation -->
+                                <Grid ColumnDefinitions="*,*" Margin="0,0,0,16">
+                                    <Border Grid.Column="0" Classes="ToggleCard" Margin="0,0,8,0">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="36" Height="36"
+                                                    CornerRadius="10"
+                                                    Background="{DynamicResource ToggleCardIconBackground}"
+                                                    VerticalAlignment="Center">
+                                                <PathIcon Data="{StaticResource NotificationIcon}" Width="18" Height="18"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Warning" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding BreakWarningEnabled, Converter={StaticResource BoolToTextConverter}}"
+                                                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding BreakWarningEnabled}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Column="1" Classes="ToggleCard" Margin="8,0,0,0">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="36" Height="36"
+                                                    CornerRadius="10"
+                                                    Background="{DynamicResource ToggleCardIconBackground}"
+                                                    VerticalAlignment="Center">
+                                                <PathIcon Data="{StaticResource ClockIcon}" Width="18" Height="18"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Confirmation" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding RequireConfirmationAfterBreak, Converter={StaticResource BoolToTextConverter}}"
+                                                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding RequireConfirmationAfterBreak}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Overlay + Warning Time + Reset Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="16">
+                                        <!-- Overlay Opacity -->
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Overlay Opacity" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Value="{Binding OverlayOpacityPercent}"
+                                                        Minimum="0" Maximum="100"
+                                                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="2">
+                                                    <TextBlock Text="{Binding OverlayOpacityPercent}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="%" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Warning Time -->
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              IsEnabled="{Binding BreakWarningEnabled}">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Warning Time" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Value="{Binding BreakWarningSeconds}"
+                                                        Minimum="5" Maximum="300"
+                                                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding BreakWarningSeconds}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="sec" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Reset on Confirmation Toggle -->
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="32" Height="32"
+                                                    CornerRadius="8"
+                                                    Background="{DynamicResource ToggleCardIconBackground}">
+                                                <PathIcon Data="{StaticResource ResetIcon}" Width="16" Height="16"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="Reset Timers on Confirm" Margin="12,0,0,0"
+                                                       FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding ResetTimersOnBreakConfirmation}"
+                                                          IsEnabled="{Binding RequireConfirmationAfterBreak}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Info Card: Break tip -->
+                                <Border Classes="InfoCard">
+                                    <StackPanel Orientation="Horizontal" Spacing="14">
+                                        <Border Width="40" Height="40" CornerRadius="20"
+                                                Background="{DynamicResource ToggleCardIconBackground}">
+                                            <PathIcon Data="{StaticResource InfoIcon}" Width="20" Height="20"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="Time for a Break!" FontWeight="SemiBold" FontSize="14" />
+                                            <TextBlock Text="Enable both confirmation options for the best break experience."
+                                                       FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Test Controls Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Test Controls" FontSize="14" FontWeight="SemiBold" />
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <Button Classes="ActionBtnWarning"
+                                                    Command="{Binding TestBreakWarningCommand}"
+                                                    ToolTip.Tip="Test the break warning notification">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <PathIcon Data="{StaticResource WarningTestIcon}" Width="14" Height="14" />
+                                                    <TextBlock Text="Test Warning" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Classes="ActionBtnPrimary"
+                                                    Command="{Binding TestBreakCommand}"
+                                                    ToolTip.Tip="Test the break popup">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" />
+                                                    <TextBlock Text="Test Break" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============================================ -->
+                            <!-- Tab 2: Advanced Settings                      -->
+                            <!-- ============================================ -->
+                            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=2}">
+
+                                <!-- Smart Pause Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="Smart Pause" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Automatically pause timers when you're away."
+                                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource SettingsIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Pause on Screen Lock" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding PauseOnScreenLock}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource SettingsIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Pause on Monitor Off" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding PauseOnMonitorOff}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource SettingsIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Pause on Idle" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding PauseOnIdle}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <!-- Idle Timeout Slider -->
+                                        <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding PauseOnIdle}" Margin="28,0,0,0">
+                                            <StackPanel Grid.Column="0" Spacing="6">
+                                                <TextBlock Text="Idle Timeout" FontSize="13" FontWeight="Medium" />
+                                                <Slider Value="{Binding IdleTimeoutMinutes}"
+                                                        Minimum="1" Maximum="60"
+                                                        TickFrequency="1" IsSnapToTickEnabled="True" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="{Binding IdleTimeoutMinutes}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="min" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Audio Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="Audio" FontSize="16" FontWeight="SemiBold" />
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource VolumeIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Enable Audio" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding AudioEnabled}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <StackPanel IsEnabled="{Binding AudioEnabled}" Spacing="12">
+                                            <!-- Volume -->
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Grid.Column="0" Spacing="6">
+                                                    <TextBlock Text="Volume" FontSize="13" FontWeight="Medium" />
+                                                    <Slider Value="{Binding AudioVolume}"
+                                                            Minimum="0" Maximum="100"
+                                                            TickFrequency="5" IsSnapToTickEnabled="True" />
+                                                </StackPanel>
+                                                <Border Grid.Column="1" Classes="SliderBadge"
+                                                        VerticalAlignment="Top" Margin="16,0,0,0">
+                                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                                        <TextBlock Text="{Binding AudioVolume}"
+                                                                   FontWeight="Bold" FontSize="14"
+                                                                   Foreground="{DynamicResource SliderBadgeText}" />
+                                                        <TextBlock Text="%" FontSize="12"
+                                                                   Foreground="{DynamicResource SliderBadgeText}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+
+                                            <!-- Custom Sound -->
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="Custom Sound" FontSize="13" FontWeight="Medium" />
+                                                <Grid ColumnDefinitions="*,Auto,Auto">
+                                                    <TextBox Grid.Column="0"
+                                                             Text="{Binding CustomSoundPath}"
+                                                             IsReadOnly="True"
+                                                             ToolTip.Tip="Path to custom audio file" />
+                                                    <Button Grid.Column="1" Classes="ActionBtnPrimary"
+                                                            Command="{Binding BrowseCustomAudioCommand}"
+                                                            Margin="8,0,0,0"
+                                                            ToolTip.Tip="Browse for audio file">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <PathIcon Data="{StaticResource BrowseIcon}" Width="14" Height="14" />
+                                                            <TextBlock Text="Browse" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Grid.Column="2" Classes="ActionBtn"
+                                                            Command="{Binding TestCustomAudioCommand}"
+                                                            Margin="8,0,0,0"
+                                                            ToolTip.Tip="Test audio">
+                                                        <TextBlock Text="Test" />
+                                                    </Button>
+                                                </Grid>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Application Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="Application" FontSize="16" FontWeight="SemiBold" />
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource SettingsIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Start with System" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding StartWithWindows}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource SettingsIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Start Minimized" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding StartMinimized}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource SettingsIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Minimize to Tray" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding MinimizeToTray}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <PathIcon Grid.Column="0" Data="{StaticResource NotificationIcon}"
+                                                      Width="16" Height="16"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Text="Tray Notifications" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2" IsChecked="{Binding ShowTrayNotifications}"
+                                                          VerticalAlignment="Center" OnContent="" OffContent="" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Theme Card -->
+                                <Border Classes="GlassCard">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Border Grid.Column="0" Width="36" Height="36"
+                                                CornerRadius="10"
+                                                Background="{DynamicResource ToggleCardIconBackground}">
+                                            <PathIcon Data="{StaticResource DarkModeIcon}" Width="18" Height="18"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Dark Mode" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Switch between light and dark theme"
+                                                       FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{Binding IsDarkMode}"
+                                                      VerticalAlignment="Center"
+                                                      OnContent="" OffContent="" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Reset Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Reset Settings" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Restore all settings to their default values."
+                                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <Button Classes="ActionBtnWarning"
+                                                Command="{Binding RestoreDefaultsCommand}"
+                                                ToolTip.Tip="Reset all settings to defaults"
+                                                HorizontalAlignment="Left">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <PathIcon Data="{StaticResource ResetIcon}" Width="14" Height="14" />
+                                                <TextBlock Text="Restore Defaults" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============================================ -->
+                            <!-- Tab 3: Analytics                              -->
+                            <!-- ============================================ -->
+                            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=3}">
+
+                                <Border Classes="GlassCard" Margin="0,40,0,0" HorizontalAlignment="Center"
+                                        MaxWidth="500" Padding="40">
+                                    <StackPanel HorizontalAlignment="Center" Spacing="16">
+                                        <Border Width="64" Height="64" CornerRadius="32"
+                                                Background="{DynamicResource ToggleCardIconBackground}"
+                                                HorizontalAlignment="Center">
+                                            <PathIcon Data="{StaticResource ChartIcon}" Width="32" Height="32"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}" />
+                                        </Border>
+                                        <TextBlock Text="Analytics Dashboard"
+                                                   FontSize="20" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" />
+                                        <TextBlock Text="View detailed break compliance metrics and performance analytics in a dedicated dashboard window."
+                                                   FontSize="13"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   MaxWidth="360" />
+                                        <Button Classes="ActionBtnPrimary"
+                                                Command="{Binding ShowAnalyticsCommand}"
+                                                HorizontalAlignment="Center"
+                                                Height="44" Padding="24,8"
+                                                ToolTip.Tip="Open the analytics dashboard">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <PathIcon Data="{StaticResource ChartIcon}" Width="16" Height="16" />
+                                                <TextBlock Text="Open Dashboard" FontSize="14" />
+                                            </StackPanel>
+                                        </Button>
+                                        <CheckBox Content="Auto-open dashboard when clicking Analytics tab"
+                                                  IsChecked="{Binding AutoOpenDashboard}"
+                                                  HorizontalAlignment="Center"
+                                                  FontSize="12" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============================================ -->
+                            <!-- Error Message Overlay (bottom)                -->
+                            <!-- ============================================ -->
+                            <Border VerticalAlignment="Bottom"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,8"
+                                    IsVisible="{Binding HasValidationErrors}"
+                                    Background="{DynamicResource ErrorBrush}"
+                                    CornerRadius="10"
+                                    Padding="16,10"
+                                    MaxWidth="600">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="Warning:"
+                                               FontSize="13"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding ErrorMessage}"
+                                               Foreground="White"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </Panel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+            <!-- Dim overlay for modal dialogs (75% black) -->
+            <Border Name="DimOverlay"
+                    Grid.RowSpan="2"
+                    Background="#BF000000"
+                    IsVisible="False"
+                    IsHitTestVisible="False" />
+
+        </Grid>
+    </Border>
 </Window>

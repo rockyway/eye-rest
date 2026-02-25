@@ -1,87 +1,75 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.BreakWarningPopup">
-    <Grid>
-        <Border Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource WarningBrush}"
-                BorderThickness="2"
-                CornerRadius="15"
-                MaxWidth="400"
-                BoxShadow="4 4 16 0 #66808080">
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!-- Single card: mesh gradient clipped to rounded border -->
+        <Border Background="{DynamicResource MeshGradientBrush}"
+                CornerRadius="20"
+                ClipToBounds="True"
+                Padding="0">
+            <!-- Glass overlay -->
+            <Border Background="{DynamicResource GlassCardBackground}"
+                    BorderBrush="{DynamicResource GlassCardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="20"
+                    Padding="28,24">
+                <Grid>
+                    <StackPanel HorizontalAlignment="Center" Spacing="12">
+                        <!-- Icon Circle -->
+                        <Border Width="56" Height="56"
+                                CornerRadius="28"
+                                Background="{DynamicResource BreakIconCircle}"
+                                HorizontalAlignment="Center">
+                            <PathIcon Data="{DynamicResource ClockIcon}"
+                                      Width="28" Height="28"
+                                      Foreground="{DynamicResource WarningBrush}" />
+                        </Border>
 
-            <!-- Inner Grid to allow close button overlay -->
-            <Grid>
-                <!-- Main content with padding -->
-                <StackPanel Margin="30,30,30,20">
-                    <!-- Warning Icon -->
-                    <TextBlock Text="&#x23F0;"
-                               FontSize="32"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,15"/>
+                        <!-- Title -->
+                        <TextBlock Text="Break Starting Soon"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center" />
 
-                    <!-- Warning Message -->
-                    <TextBlock Text="Break Starting Soon"
-                               FontSize="18"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,10"/>
+                        <!-- Countdown -->
+                        <TextBlock Name="CountdownText"
+                                   Text="30 seconds"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   HorizontalAlignment="Center" />
 
-                    <!-- Countdown -->
-                    <TextBlock Name="CountdownText"
-                               Text="30 seconds"
-                               FontSize="16"
-                               Foreground="{DynamicResource WarningBrush}"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,15"/>
+                        <!-- Progress Bar -->
+                        <ProgressBar Name="ProgressBar"
+                                     Width="200"
+                                     Height="6"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="100"
+                                     IsIndeterminate="False"
+                                     Foreground="{DynamicResource WarningBrush}"
+                                     Background="{DynamicResource GlassPanelBackground}"
+                                     HorizontalAlignment="Center" />
 
-                    <!-- Vertical Progress Bar (starts at 100, falls to 0) -->
-                    <ProgressBar Name="ProgressBar"
-                                 Width="8"
-                                 Height="100"
-                                 Minimum="0"
-                                 Maximum="100"
-                                 Value="100"
-                                 IsIndeterminate="False"
-                                 Foreground="{DynamicResource WarningBrush}"
-                                 Background="{DynamicResource TextSecondaryBrush}"
-                                 Orientation="Vertical"
-                                 HorizontalAlignment="Center"/>
+                        <!-- Hint -->
+                        <TextBlock Text="Press ESC to dismiss"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource ContentSubtitleText}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
 
-                    <!-- Skip hint -->
-                    <TextBlock Text="Press ESC to dismiss"
-                               FontSize="10"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               HorizontalAlignment="Center"
-                               Margin="0,8,0,0"/>
-                </StackPanel>
-
-                <!-- Close button inside popup, top right corner -->
-                <Button Name="CloseButton"
-                        Width="20"
-                        Height="20"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Margin="0,8,8,0"
-                        Background="Transparent"
-                        Cursor="Hand"
-                        ToolTip.Tip="Dismiss (ESC)">
-                    <Button.Template>
-                        <ControlTemplate>
-                            <Border Background="Transparent"
-                                    BorderBrush="{DynamicResource WarningBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="10">
-                                <TextBlock Text="&#x2715;"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource WarningBrush}"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-            </Grid>
+                    <!-- Close Button -->
+                    <Button Name="CloseButton"
+                            Classes="PopupCloseBtn"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="0,-4,-4,0"
+                            ToolTip.Tip="Dismiss (ESC)">
+                        <PathIcon Data="{DynamicResource CloseIcon}"
+                                  Width="12" Height="12" />
+                    </Button>
+                </Grid>
+            </Border>
         </Border>
     </Grid>
 </UserControl>

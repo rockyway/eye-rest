@@ -132,8 +132,8 @@ namespace EyeRest.UI.Views
             Debug.WriteLine("BreakPopup.ShowCompletionState: Break completed successfully - showing completion state");
             Debug.WriteLine($"BreakPopup.ShowCompletionState: _requireConfirmationAfterBreak={_requireConfirmationAfterBreak}");
 
-            // Change background to light blue for Done screen
-            OuterBorder.Background = new SolidColorBrush(Color.FromRgb(173, 216, 230));  // Light blue
+            // Change background to semi-transparent green tint for Done screen (preserves glass-morphism)
+            OuterBorder.Background = new SolidColorBrush(Color.FromArgb(30, 34, 197, 94));  // Subtle green glass tint
 
             // Update title to "Break Complete - Continue when ready"
             MainMessageText.Text = "Break Complete \u2013 Continue when ready";
