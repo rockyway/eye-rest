@@ -102,35 +102,44 @@ if (-not $ForStore) {
 
     # Create a self-signed test certificate if it doesn't exist
     if (-not (Test-Path $CertPath)) {
-        Write-Host "  Creating self-signed test certificate..."
-        $cert = New-SelfSignedCertificate `
-            -Type Custom `
-            -Subject "CN=EyeRest" `
-            -KeyUsage DigitalSignature `
-            -FriendlyName "EyeRest Dev Test" `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+        try {
+            Write-Host "  Creating self-signed test certificate..."
+            $cert = New-SelfSignedCertificate `
+                -Type Custom `
+                -Subject "CN=EyeRest" `
+                -KeyUsage DigitalSignature `
+                -FriendlyName "EyeRest Dev Test" `
+                -CertStoreLocation "Cert:\CurrentUser\My" `
+                -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
 
-        $securePassword = ConvertTo-SecureString -String $CertPassword -Force -AsPlainText
-        Export-PfxCertificate -Cert $cert -FilePath $CertPath -Password $securePassword | Out-Null
-        Write-Host "  Test certificate saved to: $CertPath"
+            $securePassword = ConvertTo-SecureString -String $CertPassword -Force -AsPlainText
+            Export-PfxCertificate -Cert $cert -FilePath $CertPath -Password $securePassword | Out-Null
+            Write-Host "  Test certificate saved to: $CertPath"
+        }
+        catch {
+            Write-Warning "Could not create self-signed certificate: $_"
+            Write-Warning "Run this script from Windows PowerShell (not Git Bash) for signing support."
+            Write-Host "  The unsigned MSIX at $MsixPath is still valid for Store upload." -ForegroundColor Yellow
+        }
     }
 
-    # Find signtool.exe in Windows SDK
-    $SignTool = Get-ChildItem "$SdkBinRoot\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
-        Sort-Object FullName -Descending |
-        Select-Object -First 1
+    if (Test-Path $CertPath) {
+        # Find signtool.exe in Windows SDK
+        $SignTool = Get-ChildItem "$SdkBinRoot\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
 
-    if ($SignTool) {
-        & $SignTool.FullName sign /fd SHA256 /a /f $CertPath /p $CertPassword $MsixPath
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Signing failed. The MSIX is still usable for Store upload."
+        if ($SignTool) {
+            & $SignTool.FullName sign /fd SHA256 /a /f $CertPath /p $CertPassword $MsixPath
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "Signing failed. The MSIX is still usable for Store upload."
+            }
+        } else {
+            Write-Warning "signtool.exe not found. Skipping signing."
         }
-    } else {
-        Write-Warning "signtool.exe not found. Skipping signing."
     }
 } else {
-    Write-Host "`n[5/5] Skipping signing (Store upload — Microsoft will sign it)." -ForegroundColor Cyan
+    Write-Host "`n[5/5] Skipping signing (Store upload - Microsoft will sign it)." -ForegroundColor Cyan
 }
 
 # --- Summary ---
