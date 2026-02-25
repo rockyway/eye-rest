@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Desktop Eye Rest - Liquid UI V2</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6", 
+                        "background-light": "#E0F2FE", // Light blueish background
+                        "background-dark": "#0F172A", // Slate 900
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                        'xl': '1.5rem',
+                        '2xl': '2rem',
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                },
+            },
+        };
+    </script>
+<style>::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5); 
+        }.glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.4); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-button {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .glass-button:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
+        }input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -10px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            border: 2px solid rgba(59, 130, 246, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.4);
+            border-radius: 4px;
+        }
+        .dark input[type=range]::-webkit-slider-thumb {
+            background: #e2e8f0;
+            border: 2px solid rgba(59, 130, 246, 0.8);
+        }
+        .dark input[type=range]::-webkit-slider-runnable-track {
+            background: rgba(255,255,255,0.1);
+        }.toggle-checkbox:checked {
+            right: 0;
+            border-color: #3B82F6;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #3B82F6;
+        }@keyframes mesh {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .bg-mesh {
+            background: linear-gradient(-45deg, #a7c5eb, #b8e4f5, #9ec4e3, #8ecae6);
+            background-size: 400% 400%;
+            animation: mesh 15s ease infinite;
+        }
+        .dark .bg-mesh {
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #172554, #1e1b4b);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-mesh font-display text-gray-800 dark:text-gray-100 antialiased h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+<div class="glass-panel w-full max-w-[1100px] h-[90vh] sm:h-[700px] rounded-3xl flex flex-col overflow-hidden relative transition-all duration-300">
+<div class="h-10 flex items-center justify-between px-4 border-b border-white/20 dark:border-white/5 bg-white/10 dark:bg-black/20 shrink-0">
+<div class="flex items-center gap-2 text-sm font-medium opacity-80">
+<span class="material-icons-round text-blue-500 text-lg">visibility</span>
+<span>Desktop Eye Rest - Liquid UI V2</span>
+</div>
+<div class="flex items-center gap-4 text-gray-500 dark:text-gray-400">
+<span class="material-icons-round text-sm cursor-pointer hover:text-gray-800 dark:hover:text-white">remove</span>
+<span class="material-icons-round text-sm cursor-pointer hover:text-gray-800 dark:hover:text-white">crop_square</span>
+<span class="material-icons-round text-sm cursor-pointer hover:text-red-500">close</span>
+</div>
+</div>
+<div class="flex flex-1 overflow-hidden">
+<div class="w-72 bg-white/10 dark:bg-black/20 backdrop-blur-md flex flex-col justify-between p-4 border-r border-white/20 dark:border-white/5 overflow-y-auto shrink-0 z-10">
+<nav class="flex flex-col gap-2">
+<button class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/30 dark:bg-white/10 shadow-sm text-blue-600 dark:text-blue-300 font-semibold transition-all">
+<span class="material-icons-round">remove_red_eye</span>
+                        Eye Rest
+                    </button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 font-medium transition-all">
+<span class="material-icons-round">schedule</span>
+                        Time Break
+                    </button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 font-medium transition-all">
+<span class="material-icons-round">tune</span>
+                        Advanced
+                    </button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 font-medium transition-all">
+<span class="material-icons-round">analytics</span>
+                        Analytics
+                    </button>
+</nav>
+<div class="mt-6 flex flex-col gap-4">
+<div class="glass-card p-4 rounded-2xl">
+<div class="flex items-center justify-between mb-2">
+<span class="font-semibold text-sm">Status: Running</span>
+<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+</div>
+<div class="text-xs space-y-1 text-gray-600 dark:text-gray-400 font-mono">
+<div class="flex justify-between">
+<span>Next eye rest:</span>
+<span>18m 30s</span>
+</div>
+<div class="flex justify-between">
+<span>Next break:</span>
+<span>55m 10s</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="glass-button px-2 py-2 rounded-xl text-xs font-medium text-blue-700 dark:text-blue-300 flex flex-col items-center justify-center gap-1 hover:scale-[1.02] active:scale-95 transition-transform bg-blue-100/30 dark:bg-blue-900/30 border-blue-200/50 dark:border-blue-700/30">
+<span class="material-icons-round text-lg">meeting_room</span>
+                            Meeting 30m
+                        </button>
+<button class="glass-button px-2 py-2 rounded-xl text-xs font-medium text-blue-700 dark:text-blue-300 flex flex-col items-center justify-center gap-1 hover:scale-[1.02] active:scale-95 transition-transform bg-blue-100/30 dark:bg-blue-900/30 border-blue-200/50 dark:border-blue-700/30">
+<span class="material-icons-round text-lg">groups</span>
+                            Meeting 1h
+                        </button>
+</div>
+<div class="flex flex-col gap-2">
+<button class="w-full py-3 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold shadow-lg shadow-green-500/30 flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all">
+<span class="material-icons-round">play_arrow</span>
+                            Start
+                        </button>
+<div class="flex gap-2">
+<button class="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all">
+<span class="material-icons-round">stop</span>
+                                Stop
+                            </button>
+<button class="flex-1 py-3 rounded-xl bg-gradient-to-r from-orange-400 to-orange-500 text-white font-semibold shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all">
+<span class="material-icons-round">pause</span>
+                                Pause
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<div class="flex-1 p-8 overflow-y-auto relative">
+<div class="max-w-3xl mx-auto space-y-6">
+<div class="mb-6">
+<h2 class="text-2xl font-bold text-gray-800 dark:text-white drop-shadow-sm">Eye Rest Configuration</h2>
+<p class="text-gray-600 dark:text-gray-400">Customize your short breaks to reduce eye strain.</p>
+</div>
+<div class="glass-card p-6 rounded-3xl space-y-8">
+<div>
+<div class="flex justify-between items-center mb-2">
+<h3 class="font-medium text-lg">Rest Interval</h3>
+<span class="text-blue-600 dark:text-blue-400 font-bold bg-white/40 dark:bg-black/20 px-3 py-1 rounded-lg">20 minutes</span>
+</div>
+<div class="relative w-full h-6 flex items-center">
+<div class="absolute w-full h-1.5 bg-gray-200/50 dark:bg-gray-700/50 rounded-full"></div>
+<div class="absolute h-1.5 bg-blue-500 rounded-full" style="width: 60%"></div>
+<input class="w-full absolute z-10 opacity-0 cursor-pointer" max="60" min="1" type="range" value="20"/>
+<div class="absolute h-6 w-6 bg-white dark:bg-slate-200 rounded-full shadow-md border-2 border-blue-500 top-0 pointer-events-none transform -translate-x-1/2 left-[60%] flex items-center justify-center">
+<div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+</div>
+</div>
+</div>
+<div>
+<div class="flex justify-between items-center mb-2">
+<h3 class="font-medium text-lg">Duration</h3>
+<span class="text-blue-600 dark:text-blue-400 font-bold bg-white/40 dark:bg-black/20 px-3 py-1 rounded-lg">20 seconds</span>
+</div>
+<div class="relative w-full h-6 flex items-center">
+<div class="absolute w-full h-1.5 bg-gray-200/50 dark:bg-gray-700/50 rounded-full"></div>
+<div class="absolute h-1.5 bg-blue-500 rounded-full" style="width: 33%"></div>
+<input class="w-full absolute z-10 opacity-0 cursor-pointer" max="60" min="5" type="range" value="20"/>
+<div class="absolute h-6 w-6 bg-white dark:bg-slate-200 rounded-full shadow-md border-2 border-blue-500 top-0 pointer-events-none transform -translate-x-1/2 left-[33%] flex items-center justify-center">
+<div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="glass-card p-4 rounded-2xl flex items-center justify-between hover:bg-white/30 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-blue-100/50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+<span class="material-icons-round">volume_up</span>
+</div>
+<span class="font-medium">Sound Alerts</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm text-gray-500 dark:text-gray-400 font-medium">On</span>
+<div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 dark:border-gray-600 appearance-none cursor-pointer transition-all duration-300" id="sound-toggle" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-700 cursor-pointer transition-colors duration-300" for="sound-toggle"></label>
+</div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl flex items-center justify-between hover:bg-white/30 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-blue-100/50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+<span class="material-icons-round">notifications_active</span>
+</div>
+<span class="font-medium">Show Notification</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm text-gray-500 dark:text-gray-400 font-medium">On</span>
+<div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 dark:border-gray-600 appearance-none cursor-pointer transition-all duration-300" id="notify-toggle" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-700 cursor-pointer transition-colors duration-300" for="notify-toggle"></label>
+</div>
+</div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl flex items-center gap-4 bg-gradient-to-br from-white/40 to-white/10 dark:from-white/10 dark:to-white/5 border border-white/40 dark:border-white/10">
+<div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 shadow-md flex items-center justify-center shrink-0">
+<span class="material-icons-round text-blue-500 text-2xl">visibility</span>
+</div>
+<div>
+<h4 class="font-semibold text-gray-800 dark:text-gray-200">Time for an Eye Rest!</h4>
+<p class="text-sm text-gray-600 dark:text-gray-400">Look away for 20s at something 20 feet away.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>
