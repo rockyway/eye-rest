@@ -66,6 +66,9 @@ public partial class App : Application
 
         builder.ConfigureServices(services =>
         {
+            // Cross-platform dispatcher service (must be registered before platform services)
+            services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
+
             // Platform services — guarded by compile constants so the
             // unused platform assembly is never referenced at compile time,
             // enabling cross-compilation from any host OS.

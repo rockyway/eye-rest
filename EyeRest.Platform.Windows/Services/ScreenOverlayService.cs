@@ -7,7 +7,6 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace EyeRest.Services
@@ -15,14 +14,14 @@ namespace EyeRest.Services
     public class ScreenOverlayService : IScreenOverlayService
     {
         private readonly ILogger<ScreenOverlayService> _logger;
-        private readonly Dispatcher _dispatcher;
+        private readonly IDispatcherService _dispatcher;
         private readonly List<OverlayWindow> _overlayWindows = new();
         private bool _isOverlayVisible = false;
 
         public event EventHandler<int>? OverlayClickedOnScreen;
         public event EventHandler? AllOverlaysClosed;
 
-        public ScreenOverlayService(ILogger<ScreenOverlayService> logger, Dispatcher dispatcher)
+        public ScreenOverlayService(ILogger<ScreenOverlayService> logger, IDispatcherService dispatcher)
         {
             _logger = logger;
             _dispatcher = dispatcher;

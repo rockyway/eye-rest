@@ -2,9 +2,10 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Threading;
 using System.Windows.Interop;
+using EyeRest.Services.Abstractions;
 using Microsoft.Extensions.Logging;
+using ITimer = EyeRest.Services.Abstractions.ITimer;
 
 namespace EyeRest.Services
 {
@@ -12,8 +13,8 @@ namespace EyeRest.Services
     {
         private readonly ILogger<UserPresenceService> _logger;
         private readonly IConfigurationService _configurationService;
-        private ITimerService? _timerService; // NEW: For triggering timer recovery after system resume
-        private readonly DispatcherTimer _monitoringTimer;
+        private ITimerService? _timerService; // For triggering timer recovery after system resume
+        private readonly ITimer _monitoringTimer;
         private readonly object _stateLock = new object();
         
         private UserPresenceState _currentState;
@@ -87,20 +88,18 @@ namespace EyeRest.Services
             }
         }
 
-        public UserPresenceService(ILogger<UserPresenceService> logger, IConfigurationService configurationService)
+        public UserPresenceService(ILogger<UserPresenceService> logger, IConfigurationService configurationService, ITimerFactory timerFactory)
         {
             _logger = logger;
             _configurationService = configurationService;
             _currentState = UserPresenceState.Present;
             _lastStateChange = DateTime.Now;
-            
+
             // Timer to check user presence every 15 seconds (more responsive)
-            _monitoringTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(15)
-            };
+            _monitoringTimer = timerFactory.CreateTimer();
+            _monitoringTimer.Interval = TimeSpan.FromSeconds(15);
             _monitoringTimer.Tick += OnMonitoringTimerTick;
-            
+
             // Initialize window procedure delegate
             _wndProcDelegate = WindowProc;
         }
@@ -346,7 +345,8 @@ namespace EyeRest.Services
                     StopMonitoringAsync().Wait(TimeSpan.FromSeconds(5));
                 }
 
-                _monitoringTimer?.Stop();
+                _monitoringTimer.Stop();
+                _monitoringTimer.Dispose();
                 UnregisterSessionNotification();
                 
                 _logger.LogInformation("UserPresenceService disposed successfully");

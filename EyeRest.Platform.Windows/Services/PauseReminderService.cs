@@ -1,9 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Threading;
+using EyeRest.Services.Abstractions;
 using Microsoft.Extensions.Logging;
+using ITimer = EyeRest.Services.Abstractions.ITimer;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
 
@@ -17,10 +17,11 @@ namespace EyeRest.Services
         private readonly ILogger<PauseReminderService> _logger;
         private readonly IConfigurationService _configurationService;
         private readonly IAudioService _audioService;
-        private readonly Dispatcher _dispatcher;
-        
-        private DispatcherTimer? _reminderTimer;
-        private DispatcherTimer? _autoResumeTimer;
+        private readonly IDispatcherService _dispatcher;
+        private readonly ITimerFactory _timerFactory;
+
+        private ITimer? _reminderTimer;
+        private ITimer? _autoResumeTimer;
         private PauseReminderSettings _settings;
         private DateTime? _pauseStartTime;
         private string _currentPauseReason = string.Empty;
@@ -36,12 +37,14 @@ namespace EyeRest.Services
             ILogger<PauseReminderService> logger,
             IConfigurationService configurationService,
             IAudioService audioService,
-            Dispatcher dispatcher)
+            IDispatcherService dispatcher,
+            ITimerFactory timerFactory)
         {
             _logger = logger;
             _configurationService = configurationService;
             _audioService = audioService;
             _dispatcher = dispatcher;
+            _timerFactory = timerFactory;
             _settings = new PauseReminderSettings();
         }
 
@@ -78,10 +81,7 @@ namespace EyeRest.Services
                 InitializeToastNotifications();
 
                 // Initialize timers on UI thread
-                await _dispatcher.BeginInvoke(() =>
-                {
-                    InitializeTimers();
-                });
+                await _dispatcher.InvokeAsync(() => InitializeTimers());
 
                 _isInitialized = true;
                 _logger.LogInformation("✅ Pause reminder service initialized successfully");
@@ -139,7 +139,7 @@ namespace EyeRest.Services
                 _isMonitoring = false;
 
                 // Stop timers on UI thread
-                await _dispatcher.BeginInvoke(() =>
+                await _dispatcher.InvokeAsync(() =>
                 {
                     _reminderTimer?.Stop();
                     _autoResumeTimer?.Stop();
@@ -150,7 +150,7 @@ namespace EyeRest.Services
                 _currentPauseReason = string.Empty;
                 _reminderCount = 0;
 
-                _logger.LogInformation("✅ Pause reminder monitoring stopped successfully");
+                _logger.LogInformation("Pause reminder monitoring stopped successfully");
             }
             catch (Exception ex)
             {
@@ -175,10 +175,10 @@ namespace EyeRest.Services
                 _reminderCount = 0;
 
                 // Start reminder timer on UI thread
-                await _dispatcher.BeginInvoke(() =>
+                await _dispatcher.InvokeAsync(() =>
                 {
                     var reminderInterval = TimeSpan.FromHours(_settings.PauseReminderIntervalHours);
-                    
+
                     if (_reminderTimer != null)
                     {
                         _reminderTimer.Stop();
@@ -217,7 +217,7 @@ namespace EyeRest.Services
                 _logger.LogInformation($"▶️ Timers resumed - stopping reminder countdown. Total pause duration: {pauseDuration.TotalMinutes:F1} minutes");
 
                 // Stop timers on UI thread
-                await _dispatcher.BeginInvoke(() =>
+                await _dispatcher.InvokeAsync(() =>
                 {
                     _reminderTimer?.Stop();
                     _autoResumeTimer?.Stop();
@@ -228,7 +228,7 @@ namespace EyeRest.Services
                 _currentPauseReason = string.Empty;
                 _reminderCount = 0;
 
-                _logger.LogInformation("🔔 Pause reminder timers stopped - monitoring resumed");
+                _logger.LogInformation("Pause reminder timers stopped - monitoring resumed");
             }
             catch (Exception ex)
             {
@@ -245,31 +245,14 @@ namespace EyeRest.Services
 
             try
             {
-                _logger.LogInformation($"🤔 Showing pause confirmation dialog for reason: {reason}");
-
-                var result = await _dispatcher.InvokeAsync(() =>
-                {
-                    var dialogResult = MessageBox.Show(
-                        $"Are you sure you want to pause the timers?\n\n" +
-                        $"Reason: {reason}\n\n" +
-                        $"• You will receive reminders every {_settings.PauseReminderIntervalHours} hour(s)\n" +
-                        $"• Timers will auto-resume after {_settings.MaxPauseHours} hours for your health\n" +
-                        $"• Your timer progress will be preserved",
-                        "Confirm Timer Pause",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question,
-                        MessageBoxResult.No);
-
-                    return dialogResult == MessageBoxResult.Yes;
-                });
-
-                _logger.LogInformation($"🤔 Pause confirmation result: {(result ? "Confirmed" : "Cancelled")}");
-                return result;
+                _logger.LogInformation($"Pause confirmation requested for reason: {reason}");
+                // Auto-confirm since native WPF MessageBox is unavailable in Avalonia
+                return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error showing pause confirmation dialog");
-                return false; // Default to cancelled on error
+                _logger.LogError(ex, "Error in pause confirmation");
+                return false;
             }
         }
 
@@ -427,14 +410,14 @@ namespace EyeRest.Services
         private void InitializeTimers()
         {
             // Reminder timer
-            _reminderTimer = new DispatcherTimer();
+            _reminderTimer = _timerFactory.CreateTimer();
             _reminderTimer.Tick += OnReminderTimerTick;
 
             // Auto-resume timer
-            _autoResumeTimer = new DispatcherTimer();
+            _autoResumeTimer = _timerFactory.CreateTimer();
             _autoResumeTimer.Tick += OnAutoResumeTimerTick;
 
-            _logger.LogDebug("🔔 Pause reminder timers initialized on UI thread");
+            _logger.LogDebug("Pause reminder timers initialized");
         }
 
         private async void OnReminderTimerTick(object? sender, EventArgs e)
@@ -598,29 +581,10 @@ namespace EyeRest.Services
             }
         }
 
-        private async Task ShowFallbackReminderAsync(TimeSpan pauseDuration, string reason)
+        private Task ShowFallbackReminderAsync(TimeSpan pauseDuration, string reason)
         {
-            try
-            {
-                // Fallback to simple message box if toast notifications fail
-                await _dispatcher.InvokeAsync(() =>
-                {
-                    MessageBox.Show(
-                        $"Pause Reminder\n\n" +
-                        $"Your timers have been paused for {pauseDuration.TotalHours:F1} hours.\n" +
-                        $"Reason: {reason}\n\n" +
-                        $"Consider resuming for your eye health!",
-                        "EyeRest - Pause Reminder",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                });
-
-                _logger.LogInformation("🔔 Fallback pause reminder shown via message box");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Even fallback reminder failed");
-            }
+            _logger.LogWarning("Pause reminder fallback: timers paused for {Hours:F1} hours. Reason: {Reason}", pauseDuration.TotalHours, reason);
+            return Task.CompletedTask;
         }
 
         private void OnToastActivated(ToastNotification sender, object args)
@@ -660,7 +624,7 @@ namespace EyeRest.Services
                 // If timers are currently paused, update the reminder interval
                 if (_pauseStartTime.HasValue && _reminderTimer != null)
                 {
-                    await _dispatcher.BeginInvoke(() =>
+                    await _dispatcher.InvokeAsync(() =>
                     {
                         _reminderTimer.Stop();
                         _reminderTimer.Interval = TimeSpan.FromHours(_settings.PauseReminderIntervalHours);
@@ -691,7 +655,9 @@ namespace EyeRest.Services
                 _dispatcher.BeginInvoke(() =>
                 {
                     _reminderTimer?.Stop();
+                    _reminderTimer?.Dispose();
                     _autoResumeTimer?.Stop();
+                    _autoResumeTimer?.Dispose();
                     _reminderTimer = null;
                     _autoResumeTimer = null;
                 });
