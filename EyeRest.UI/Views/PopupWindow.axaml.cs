@@ -2,8 +2,10 @@ using System;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Platform;
+using EyeRest.UI.Helpers;
 
 namespace EyeRest.UI.Views
 {
@@ -16,6 +18,8 @@ namespace EyeRest.UI.Views
     public partial class PopupWindow : Window, EyeRest.Services.IPopupWindow
     {
         public Control? PopupContent { get; private set; }
+        private double _positionHintWidth;
+        private double _positionHintHeight;
 
         public PopupWindow()
         {
@@ -26,25 +30,123 @@ namespace EyeRest.UI.Views
         {
             PopupContent = content;
             ContentArea.Content = content;
-            Width = width;
-            Height = height;
+            // Store hint sizes for positioning; actual window size is determined by SizeToContent
+            _positionHintWidth = width;
+            _positionHintHeight = height;
         }
 
         public new bool IsVisible => base.IsVisible;
 
         public new event EventHandler? Closed;
 
+        /// <summary>
+        /// Gets the main window, or null if not available.
+        /// </summary>
+        private static MainWindow? GetMainWindow()
+        {
+            return (Application.Current?.ApplicationLifetime
+                as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
+        }
+
+        /// <summary>
+        /// On macOS, removes the main window from the screen list so that app
+        /// activation (triggered by Show/Close) cannot bring it to the front.
+        /// </summary>
+        private static void HideMainWindowFromScreenList()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
+            var mw = GetMainWindow();
+            if (mw != null)
+                MacOSNativeWindowHelper.OrderOut(mw);
+        }
+
+        /// <summary>
+        /// On macOS, puts the main window back on screen behind all other windows.
+        /// If hidden to tray, keeps it ordered out.
+        /// </summary>
+        private static void RestoreMainWindowBehind()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
+            var mw = GetMainWindow();
+            if (mw == null) return;
+
+            if (mw.IsHiddenToTray)
+                MacOSNativeWindowHelper.OrderOut(mw);
+            else
+                MacOSNativeWindowHelper.OrderBack(mw);
+        }
+
+        /// <summary>
+        /// Show the popup. On macOS, temporarily removes the main window from the
+        /// screen list before base.Show() so app activation cannot bring it forward.
+        /// </summary>
+        public new void Show()
+        {
+            HideMainWindowFromScreenList();
+            base.Show();
+            RestoreMainWindowBehind();
+        }
+
+        protected override void OnClosing(WindowClosingEventArgs e)
+        {
+            // Remove main window from screen BEFORE macOS processes the close,
+            // so it has no window to activate when this popup disappears.
+            HideMainWindowFromScreenList();
+            base.OnClosing(e);
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
             Closed?.Invoke(this, e);
+
+            // On macOS, delay restoring the main window so macOS has time to
+            // deactivate our app and activate the previously focused app.
+            // Without this delay, orderBack puts the window on screen while
+            // the app is still active, causing it to flash to front.
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                var mw = GetMainWindow();
+                if (mw != null && !mw.IsHiddenToTray)
+                {
+                    // Hide the app so macOS activates the previous app
+                    MacOSNativeWindowHelper.HideApplication();
+
+                    var restoreTimer = new Avalonia.Threading.DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(300)
+                    };
+                    restoreTimer.Tick += (s, args) =>
+                    {
+                        restoreTimer.Stop();
+                        // Now that macOS has switched to another app,
+                        // put main window back on screen behind everything
+                        MacOSNativeWindowHelper.OrderBack(mw);
+                    };
+                    restoreTimer.Start();
+                }
+                else if (mw != null && mw.IsHiddenToTray)
+                {
+                    // Keep it ordered out
+                    MacOSNativeWindowHelper.OrderOut(mw);
+                }
+            }
         }
 
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-            // Ensure window gets keyboard focus for ESC handling
-            Activate();
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // Give this popup keyboard focus without activating the app.
+                MacOSNativeWindowHelper.MakeKeyWindow(this);
+            }
+            else
+            {
+                Activate();
+            }
+
             Focus();
             Focusable = true;
         }
@@ -83,9 +185,9 @@ namespace EyeRest.UI.Views
             var workArea = screen.WorkingArea;
             var scaling = screen.Scaling;
 
-            // Convert window size to pixels
-            var windowWidthPx = (int)(Width * scaling);
-            var windowHeightPx = (int)(Height * scaling);
+            // Use hint sizes for positioning (actual size determined by SizeToContent)
+            var windowWidthPx = (int)(_positionHintWidth * scaling);
+            var windowHeightPx = (int)(_positionHintHeight * scaling);
 
             switch (placement)
             {

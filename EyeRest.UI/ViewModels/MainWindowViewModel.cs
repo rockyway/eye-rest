@@ -2002,83 +2002,27 @@ namespace EyeRest.UI.ViewModels
             if (topLevel is not Avalonia.Controls.Window parentWindow)
                 return true; // If no window, proceed without confirmation
 
-            var dialog = new Avalonia.Controls.Window
-            {
-                Title = title,
-                Width = 400,
-                Height = 180,
-                WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
-                CanResize = false,
-                SystemDecorations = Avalonia.Controls.SystemDecorations.Full,
-                Background = parentWindow.Background,
-                Foreground = parentWindow.Foreground,
-                Content = CreateDialogContent(message)
-            };
+            var dialog = new Views.ConfirmDialog(title, message);
+            var mainWindow = parentWindow as Views.MainWindow;
 
-            var tcs = new TaskCompletionSource<bool>();
-
-            if (dialog.Content is Avalonia.Controls.Panel panel)
+            if (mainWindow != null && mainWindow.IsHiddenToTray)
             {
-                var buttonPanel = panel.Children.OfType<Avalonia.Controls.StackPanel>().LastOrDefault();
-                if (buttonPanel != null)
+                await dialog.ShowDialog<object?>(null!);
+            }
+            else
+            {
+                mainWindow?.ShowDimOverlay();
+                try
                 {
-                    var yesBtn = buttonPanel.Children.OfType<Avalonia.Controls.Button>().FirstOrDefault();
-                    var noBtn = buttonPanel.Children.OfType<Avalonia.Controls.Button>().LastOrDefault();
-                    if (yesBtn != null) yesBtn.Click += (_, _) => { tcs.TrySetResult(true); dialog.Close(); };
-                    if (noBtn != null) noBtn.Click += (_, _) => { tcs.TrySetResult(false); dialog.Close(); };
+                    await dialog.ShowDialog(parentWindow);
+                }
+                finally
+                {
+                    mainWindow?.HideDimOverlay();
                 }
             }
 
-            dialog.Closing += (_, _) => tcs.TrySetResult(false);
-            await dialog.ShowDialog(parentWindow);
-            return await tcs.Task;
-        }
-
-        private static Avalonia.Controls.Panel CreateDialogContent(string message)
-        {
-            var panel = new Avalonia.Controls.StackPanel
-            {
-                Margin = new Avalonia.Thickness(20),
-                Spacing = 20,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-            };
-
-            panel.Children.Add(new Avalonia.Controls.TextBlock
-            {
-                Text = message,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                FontSize = 14,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-            });
-
-            var buttonPanel = new Avalonia.Controls.StackPanel
-            {
-                Orientation = Avalonia.Layout.Orientation.Horizontal,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                Spacing = 15
-            };
-
-            var yesButton = new Avalonia.Controls.Button
-            {
-                Content = "Yes",
-                Width = 100,
-                HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                Background = new SolidColorBrush(Avalonia.Media.Color.Parse("#2196F3")),
-                Foreground = new SolidColorBrush(Avalonia.Media.Colors.White)
-            };
-
-            var noButton = new Avalonia.Controls.Button
-            {
-                Content = "No",
-                Width = 100,
-                HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center
-            };
-
-            buttonPanel.Children.Add(yesButton);
-            buttonPanel.Children.Add(noButton);
-            panel.Children.Add(buttonPanel);
-
-            return panel;
+            return dialog.DialogResult;
         }
 
         #endregion

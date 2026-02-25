@@ -1,206 +1,239 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.BreakPopup">
-    <Border Name="OuterBorder"
-            Background="{DynamicResource SurfaceBrush}"
-            BorderBrush="{DynamicResource AccentBrush}"
-            BorderThickness="2"
-            CornerRadius="8"
-            Padding="30"
-            MaxWidth="900"
-            MaxHeight="750"
-            BoxShadow="4 4 16 0 #66808080">
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <!-- Enhanced Timer Display with Minutes and Seconds around Eye Icon -->
-            <Grid Margin="0,0,0,30" HorizontalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!-- Single card: mesh gradient clipped to rounded border -->
+        <Border Background="{DynamicResource MeshGradientBrush}"
+                CornerRadius="24"
+                ClipToBounds="True"
+                Padding="0">
+            <!-- Glass overlay - Name="OuterBorder" preserved (code sets Background on completion) -->
+            <Border Name="OuterBorder"
+                    Background="{DynamicResource GlassCardBackground}"
+                    BorderBrush="{DynamicResource GlassCardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="24"
+                    Padding="30"
+                    MaxWidth="900"
+                    MaxHeight="750">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- Enhanced Timer Display with Minutes and Seconds around Eye Icon -->
+                    <Grid Margin="0,0,0,24" HorizontalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                <!-- Minutes Display (Left) -->
-                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <TextBlock Name="MinutesDisplay"
-                               Text="5"
-                               FontSize="120"
+                        <!-- Minutes Display (Left) -->
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                            <TextBlock Name="MinutesDisplay"
+                                       Text="5"
+                                       FontSize="120"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="minutes"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource ContentSubtitleText}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,-10,0,0"/>
+                        </StackPanel>
+
+                        <!-- Break Icon (Center) - Glass circle -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <Panel Width="100" Height="100" Margin="20,0">
+                                <Border Width="100" Height="100"
+                                        CornerRadius="50"
+                                        Background="{DynamicResource CompletionIconCircle}" />
+                                <Border Width="90" Height="90"
+                                        CornerRadius="45"
+                                        Background="{DynamicResource GlassCardBackground}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <PathIcon Data="{DynamicResource EyeIcon}"
+                                              Width="40" Height="40"
+                                              Foreground="{DynamicResource AccentBrush}" />
+                                </Border>
+                            </Panel>
+                        </StackPanel>
+
+                        <!-- Seconds Display (Right) -->
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0,0,0">
+                            <TextBlock Name="SecondsDisplay"
+                                       Text="00"
+                                       FontSize="120"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="seconds"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource ContentSubtitleText}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,-10,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Main Message -->
+                    <TextBlock Name="MainMessageText"
+                               Text="Time for a Break!"
+                               FontSize="32"
                                FontWeight="Bold"
-                               Foreground="{DynamicResource AccentBrush}"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="minutes"
-                               FontSize="16"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center"
-                               Margin="0,-10,0,0"/>
-                </StackPanel>
+                               Margin="0,0,0,12"/>
 
-                <!-- Break Icon (Center) -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <Panel Width="100" Height="100" Margin="20,0">
-                        <Ellipse Width="100" Height="100"
-                                 Fill="{DynamicResource AccentBrush}"/>
-                        <!-- Break icon inside circle -->
-                        <TextBlock Text="&#x1F441;&#xFE0F;"
-                                   FontSize="50"
+                    <!-- Instructions -->
+                    <TextBlock Text="Stand up, stretch, and move around to stay healthy"
+                               FontSize="16"
+                               Foreground="{DynamicResource ContentSubtitleText}"
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               Margin="0,0,0,12"/>
+
+                    <!-- Progress Bar -->
+                    <ProgressBar Name="ProgressBar"
+                                 Width="500"
+                                 Height="12"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 IsIndeterminate="False"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 Background="{DynamicResource GlassPanelBackground}"
+                                 Margin="0,16,0,16"
+                                 BorderThickness="0"/>
+
+                    <!-- Timer Label (set to "time extended" by code-behind during forward timer) -->
+                    <TextBlock Name="TimerLabelText"
+                               Text=""
+                               FontSize="14"
+                               Foreground="{DynamicResource ContentSubtitleText}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,4"/>
+
+                    <!-- Time Remaining -->
+                    <TextBlock Name="TimeRemainingText"
+                               Text="5 minutes remaining"
+                               FontSize="16"
+                               Foreground="{DynamicResource ContentSubtitleText}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,12"/>
+
+                    <!-- Stretching Resources -->
+                    <TextBlock Text="Stretching Resources:"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,0,12">
+                        <Button Name="StretchingResource1"
+                                Classes="ActionBtnPrimary"
+                                Padding="12,6"
+                                Margin="3"
+                                Tag="https://www.healthline.com/health/deskercise">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{DynamicResource FitnessIcon}"
+                                          Width="14" Height="14" />
+                                <TextBlock Text="Deskercise Guide"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Name="ActionButtonsPanel"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,0,8"
+                                Spacing="8">
+                        <Button Name="DelayOneMinuteButton"
+                                Classes="GradientPause"
+                                Padding="15,8"
+                                Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{DynamicResource TimerAddIcon}"
+                                          Width="14" Height="14" />
+                                <TextBlock Text="Delay 1 Min"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Name="DelayFiveMinutesButton"
+                                Classes="GradientPause"
+                                Padding="15,8"
+                                Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{DynamicResource TimerAddIcon}"
+                                          Width="14" Height="14" />
+                                <TextBlock Text="Delay 5 Min"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Name="SkipButton"
+                                Classes="GradientStop"
+                                Padding="15,8"
+                                Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{DynamicResource CloseIcon}"
+                                          Width="12" Height="12" />
+                                <TextBlock Text="Skip Break"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Confirmation Button (Hidden by default, shown when break completes) -->
+                    <Button Name="ConfirmationButton"
+                            Classes="GradientStart"
+                            Padding="20,12"
+                            Margin="0,15,0,0"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            HorizontalAlignment="Center"
+                            IsVisible="False"
+                            Cursor="Hand">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{DynamicResource CheckCircleIcon}"
+                                      Width="18" Height="18" />
+                            <TextBlock Text="Done - Start Fresh Session"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Return instruction (Hidden by default) -->
+                    <TextBlock Name="ReturnInstructionText"
+                               Text="Click 'Done' when you return to start a fresh session"
+                               FontSize="14"
+                               Foreground="{DynamicResource ContentSubtitleText}"
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               Margin="0,10,0,0"
+                               IsVisible="False"/>
+
+                    <!-- Drag and close instructions -->
+                    <StackPanel HorizontalAlignment="Center"
+                                Margin="0,8,0,0">
+                        <TextBlock Text="Drag window to move - Click anywhere to close"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource ContentSubtitleText}"
                                    HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="White"/>
-                    </Panel>
+                                   TextAlignment="Center"/>
+                        <TextBlock Text="Perfect for working on critical tasks"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource ContentSubtitleText}"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
                 </StackPanel>
-
-                <!-- Seconds Display (Right) -->
-                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <TextBlock Name="SecondsDisplay"
-                               Text="00"
-                               FontSize="120"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource AccentBrush}"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="seconds"
-                               FontSize="16"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               HorizontalAlignment="Center"
-                               Margin="0,-10,0,0"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- Main Message - Updated for Done Screen -->
-            <TextBlock Name="MainMessageText"
-                       Text="Time for a Break!"
-                       FontSize="32"
-                       FontWeight="Bold"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,15"/>
-
-            <!-- Instructions -->
-            <TextBlock Text="Stand up, stretch, and move around to stay healthy"
-                       FontSize="16"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       HorizontalAlignment="Center"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       Margin="0,0,0,15"/>
-
-            <!-- Enhanced Progress Bar - Thicker and Full Width -->
-            <ProgressBar Name="ProgressBar"
-                         Width="500"
-                         Height="36"
-                         Minimum="0"
-                         Maximum="100"
-                         Value="0"
-                         IsIndeterminate="False"
-                         Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource BackgroundBrush}"
-                         Margin="0,20,0,20"
-                         BorderThickness="0"/>
-
-            <!-- Timer Label (Dynamic: "Time Remaining" vs "Time Extended") -->
-            <TextBlock Name="TimerLabelText"
-                       Text="remaining"
-                       FontSize="14"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,5"/>
-
-            <!-- Time Remaining / Extended -->
-            <TextBlock Name="TimeRemainingText"
-                       Text="5 minutes remaining"
-                       FontSize="16"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,15"/>
-
-            <!-- Stretching Resources -->
-            <TextBlock Text="Stretching Resources:"
-                       FontSize="14"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AccentBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,8"/>
-
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        Margin="0,0,0,15">
-                <Button Name="StretchingResource1"
-                        Content="Deskercise Guide"
-                        Padding="12,6"
-                        Margin="3"
-                        Background="#4CAF50"
-                        Foreground="White"
-                        BorderThickness="0"
-                        Tag="https://www.healthline.com/health/deskercise"/>
-            </StackPanel>
-
-            <!-- Action Buttons -->
-            <StackPanel Name="ActionButtonsPanel"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        Margin="0,0,0,8">
-                <Button Name="DelayOneMinuteButton"
-                        Content="Delay 1 Minute"
-                        Padding="15,8"
-                        Margin="8"
-                        Background="#FF9800"
-                        Foreground="White"
-                        BorderThickness="0"/>
-
-                <Button Name="DelayFiveMinutesButton"
-                        Content="Delay 5 Minutes"
-                        Padding="15,8"
-                        Margin="8"
-                        Background="#FF9800"
-                        Foreground="White"
-                        BorderThickness="0"/>
-
-                <Button Name="SkipButton"
-                        Content="Skip Break"
-                        Padding="15,8"
-                        Margin="8"
-                        Background="#F44336"
-                        Foreground="White"
-                        BorderThickness="0"/>
-            </StackPanel>
-
-            <!-- Confirmation Button (Hidden by default, shown when break completes) -->
-            <Button Name="ConfirmationButton"
-                    Content="Done - Start Fresh Session"
-                    Padding="20,12"
-                    Margin="0,15,0,0"
-                    Background="#4CAF50"
-                    Foreground="White"
-                    BorderThickness="0"
-                    FontSize="16"
-                    FontWeight="Bold"
-                    HorizontalAlignment="Center"
-                    IsVisible="False"/>
-
-            <!-- Return instruction (Hidden by default, shown when waiting for confirmation) -->
-            <TextBlock Name="ReturnInstructionText"
-                       Text="Click 'Done' when you return to start a fresh session"
-                       FontSize="14"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       HorizontalAlignment="Center"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       Margin="0,10,0,0"
-                       IsVisible="False"/>
-
-            <!-- Drag and close instructions -->
-            <StackPanel HorizontalAlignment="Center"
-                        Margin="0,5,0,0">
-                <TextBlock Text="Drag window to move - Click anywhere to close"
-                           FontSize="12"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"/>
-                <TextBlock Text="Perfect for working on critical tasks"
-                           FontSize="10"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"
-                           Margin="0,2,0,0"/>
-            </StackPanel>
-        </StackPanel>
-    </Border>
+            </Border>
+        </Border>
+    </Grid>
 </UserControl>
