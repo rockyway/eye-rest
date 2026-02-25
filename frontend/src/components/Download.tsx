@@ -10,9 +10,11 @@ interface PlatformCardProps {
   label: string
   variant: 'primary' | 'outline'
   fileType: string
+  href: string
+  available: boolean
 }
 
-function PlatformCard({ platform, icon, name, subtitle, reqs, label, variant, fileType }: PlatformCardProps) {
+function PlatformCard({ platform, icon, name, subtitle, reqs, label, variant, fileType, href, available }: PlatformCardProps) {
   return (
     <div className="glass-card glass-card-hover" style={{ padding: '36px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       {/* Top accent line */}
@@ -92,15 +94,31 @@ function PlatformCard({ platform, icon, name, subtitle, reqs, label, variant, fi
         ))}
       </ul>
 
-      <a
-        href="#"
-        className={`btn btn-${variant}`}
-        style={{ width: '100%', justifyContent: 'center' }}
-        onClick={(e) => { e.preventDefault(); trackDownload(platform) }}
-      >
-        <DownloadIcon size={16} color={variant === 'primary' ? '#fff' : 'var(--blue-600)'} />
-        {label} <span style={{ opacity: 0.7, fontSize: '0.85em' }}>.{fileType}</span>
-      </a>
+      {available ? (
+        <a
+          href={href}
+          download
+          className={`btn btn-${variant}`}
+          style={{ width: '100%', justifyContent: 'center' }}
+          onClick={() => trackDownload(platform)}
+        >
+          <DownloadIcon size={16} color={variant === 'primary' ? '#fff' : 'var(--blue-600)'} />
+          {label} <span style={{ opacity: 0.7, fontSize: '0.85em' }}>.{fileType}</span>
+        </a>
+      ) : (
+        <div
+          className={`btn btn-${variant}`}
+          style={{
+            width: '100%',
+            justifyContent: 'center',
+            opacity: 0.55,
+            cursor: 'not-allowed',
+            pointerEvents: 'none',
+          }}
+        >
+          Coming Soon
+        </div>
+      )}
     </div>
   )
 }
@@ -138,28 +156,64 @@ export default function Download() {
             label="Download"
             variant="primary"
             fileType="exe"
+            href="#"
+            available={false}
           />
           <PlatformCard
             platform="macos"
             icon={<AppleIcon size={36} color="#1A365D" />}
             name="macOS"
             subtitle="macOS 12 Monterey or later"
-            reqs={['4 GB RAM minimum', '100 MB disk space', 'Native Apple Silicon (ARM64)', 'Intel Macs also supported']}
+            reqs={['4 GB RAM minimum', '100 MB disk space', 'Native Apple Silicon (ARM64)', 'Self-contained — no runtime needed']}
             label="Download"
             variant="outline"
-            fileType="dmg"
+            fileType="zip"
+            href="/downloads/EyeRest-macOS-arm64.zip"
+            available={true}
           />
         </div>
 
-        <p style={{
-          textAlign: 'center',
-          marginTop: 28,
-          fontFamily: 'var(--font-body)',
-          fontSize: '0.85rem',
-          color: 'var(--text-muted)',
+        {/* macOS install instructions */}
+        <div className="glass-card" style={{
+          maxWidth: 780,
+          margin: '28px auto 0',
+          padding: '20px 28px',
         }}>
-          Releases coming soon &mdash; check back shortly.
-        </p>
+          <p style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            color: 'var(--text-heading)',
+            margin: '0 0 10px',
+          }}>
+            macOS install instructions
+          </p>
+          <ol style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.83rem',
+            color: 'var(--text-body)',
+            margin: 0,
+            paddingLeft: 20,
+            lineHeight: 1.8,
+          }}>
+            <li>Download and unzip <strong>EyeRest-macOS-arm64.zip</strong></li>
+            <li>Move <strong>EyeRest.app</strong> to your Applications folder</li>
+            <li>
+              On first launch, macOS may block it. To allow it:<br />
+              <code style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontSize: '0.78rem',
+                background: 'rgba(33,150,243,0.08)',
+                padding: '2px 8px',
+                borderRadius: 6,
+                border: '1px solid rgba(33,150,243,0.15)',
+              }}>
+                xattr -cr /Applications/EyeRest.app
+              </code>
+            </li>
+            <li>Or: right-click the app → <strong>Open</strong> → click <strong>Open</strong> in the dialog</li>
+          </ol>
+        </div>
       </div>
     </section>
   )
