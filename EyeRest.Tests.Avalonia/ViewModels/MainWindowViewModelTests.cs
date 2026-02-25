@@ -393,14 +393,14 @@ namespace EyeRest.Tests.Avalonia.ViewModels
         }
 
         [Fact]
-        public void IsDarkMode_SetValue_UpdatesProperty()
+        public void SelectedThemeMode_SetValue_UpdatesProperty()
         {
             // Act - Note: This may throw in test context since Avalonia.Application.Current is null,
             // but the property should still be set via backing field
-            _viewModel.IsDarkMode = true;
+            _viewModel.SelectedThemeMode = EyeRest.Models.ThemeMode.Dark;
 
             // Assert
-            Assert.True(_viewModel.IsDarkMode);
+            Assert.Equal(EyeRest.Models.ThemeMode.Dark, _viewModel.SelectedThemeMode);
         }
 
         [Fact]

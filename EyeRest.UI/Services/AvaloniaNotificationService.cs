@@ -62,7 +62,6 @@ namespace EyeRest.Services
         private async Task ShowEyeRestWarningInternalAsync(TimeSpan timeUntilBreak)
         {
             var tcs = new TaskCompletionSource<bool>();
-            DispatcherTimer? updateTimer = null;
             PopupWindow? myPopup = null;
 
             Dispatcher.UIThread.Post(() =>
@@ -82,15 +81,8 @@ namespace EyeRest.Services
                         var totalSeconds = (int)timeUntilBreak.TotalSeconds;
                         warningPopup.StartCountdown(totalSeconds);
                         warningPopup.WarningCompleted += (s, e) => tcs.TrySetResult(true);
-
-                        var startTime = DateTime.Now;
-                        updateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-                        updateTimer.Tick += (s, e) =>
-                        {
-                            var remaining = timeUntilBreak - (DateTime.Now - startTime);
-                            warningPopup.UpdateCountdown(remaining);
-                        };
-                        updateTimer.Start();
+                        // Countdown updates are driven by TimerService via
+                        // UpdateEyeRestWarningCountdown() — no local timer needed.
                     }
                     else
                     {
@@ -110,7 +102,6 @@ namespace EyeRest.Services
             // Close only OUR popup (not a newer one that replaced it)
             Dispatcher.UIThread.Post(() =>
             {
-                updateTimer?.Stop();
                 CloseSpecificPopup(myPopup);
                 IsEyeRestWarningActive = false;
             });
@@ -182,7 +173,6 @@ namespace EyeRest.Services
         private async Task ShowBreakWarningInternalAsync(TimeSpan timeUntilBreak)
         {
             var tcs = new TaskCompletionSource<bool>();
-            DispatcherTimer? updateTimer = null;
             PopupWindow? myPopup = null;
 
             Dispatcher.UIThread.Post(() =>
@@ -201,15 +191,8 @@ namespace EyeRest.Services
                     {
                         breakWarningPopup.StartCountdown(timeUntilBreak);
                         breakWarningPopup.Completed += (s, e) => tcs.TrySetResult(true);
-
-                        var startTime = DateTime.Now;
-                        updateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-                        updateTimer.Tick += (s, e) =>
-                        {
-                            var remaining = timeUntilBreak - (DateTime.Now - startTime);
-                            breakWarningPopup.UpdateCountdown(remaining);
-                        };
-                        updateTimer.Start();
+                        // Countdown updates are driven by TimerService via
+                        // UpdateBreakWarningCountdown() — no local timer needed.
                     }
                     else
                     {
@@ -228,7 +211,6 @@ namespace EyeRest.Services
 
             Dispatcher.UIThread.Post(() =>
             {
-                updateTimer?.Stop();
                 CloseSpecificPopup(myPopup);
                 IsBreakWarningActive = false;
             });

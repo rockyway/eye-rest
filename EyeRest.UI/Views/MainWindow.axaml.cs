@@ -15,6 +15,16 @@ public partial class MainWindow : Window
 {
     private DispatcherTimer? _countdownTimer;
 
+    // Resize animation state
+    private DispatcherTimer? _resizeTimer;
+    private double _animStartWidth, _animStartHeight;
+    private double _animTargetWidth, _animTargetHeight;
+    private double _animTargetMinWidth, _animTargetMinHeight;
+    private int _animStartX, _animStartY;
+    private int _animTargetX, _animTargetY;
+    private DateTime _animStartTime;
+    private const double AnimDurationMs = 300;
+
     /// <summary>
     /// True when the window has been hidden to tray via OnClosing (native OrderOut on macOS, Hide on others).
     /// Used to prevent ShowDialog from using a hidden owner, which breaks the Avalonia renderer.
@@ -59,38 +69,104 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainWindowViewModel.IsConfigurationMode))
         {
-            UpdateWindowSize();
+            AnimateWindowSize();
         }
     }
 
-    private void UpdateWindowSize()
+    private void AnimateWindowSize()
     {
-        if (DataContext is MainWindowViewModel vm)
-        {
-            if (vm.IsConfigurationMode)
-            {
-                MinWidth = 900;
-                MinHeight = 600;
-                Width = 900;
-                Height = 700;
-            }
-            else
-            {
-                Width = 340;
-                Height = 580;
-                MinWidth = 340;
-                MinHeight = 500;
-            }
+        if (DataContext is not MainWindowViewModel vm) return;
 
-            // Re-center on screen
-            if (Screens.Primary is { } screen)
-            {
-                var scaling = screen.Scaling;
-                var workArea = screen.WorkingArea;
-                var x = (int)((workArea.Width - Width * scaling) / 2) + workArea.X;
-                var y = (int)((workArea.Height - Height * scaling) / 2) + workArea.Y;
-                Position = new Avalonia.PixelPoint(x, y);
-            }
+        // Stop any in-progress animation
+        _resizeTimer?.Stop();
+        _resizeTimer = null;
+
+        // Capture starting values
+        _animStartWidth = Width;
+        _animStartHeight = Height;
+        _animStartX = Position.X;
+        _animStartY = Position.Y;
+
+        if (vm.IsConfigurationMode)
+        {
+            _animTargetWidth = 900;
+            _animTargetHeight = 700;
+            _animTargetMinWidth = 900;
+            _animTargetMinHeight = 600;
+        }
+        else
+        {
+            _animTargetWidth = 340;
+            _animTargetHeight = 580;
+            _animTargetMinWidth = 340;
+            _animTargetMinHeight = 500;
+        }
+
+        // Set MinWidth/MinHeight to the smaller value so the window can
+        // animate freely in both directions (fixes the expand-on-drag bug
+        // where MinWidth=900 prevented Width from shrinking to 340)
+        MinWidth = Math.Min(_animTargetMinWidth, _animStartWidth);
+        MinHeight = Math.Min(_animTargetMinHeight, _animStartHeight);
+
+        // Calculate target position: expand/collapse from window center, clamped to screen
+        var currentScreen = Screens.ScreenFromVisual(this) ?? Screens.Primary;
+        if (currentScreen is { } screen)
+        {
+            var scaling = screen.Scaling;
+            var wa = screen.WorkingArea;
+
+            // Current center in physical pixels
+            var centerX = _animStartX + (int)(_animStartWidth * scaling / 2);
+            var centerY = _animStartY + (int)(_animStartHeight * scaling / 2);
+
+            // Target position keeping center fixed
+            var targetPhysW = (int)(_animTargetWidth * scaling);
+            var targetPhysH = (int)(_animTargetHeight * scaling);
+            _animTargetX = centerX - targetPhysW / 2;
+            _animTargetY = centerY - targetPhysH / 2;
+
+            // Clamp to screen working area
+            _animTargetX = Math.Max(wa.X, Math.Min(_animTargetX, wa.X + wa.Width - targetPhysW));
+            _animTargetY = Math.Max(wa.Y, Math.Min(_animTargetY, wa.Y + wa.Height - targetPhysH));
+        }
+        else
+        {
+            _animTargetX = _animStartX;
+            _animTargetY = _animStartY;
+        }
+
+        // Start animation timer (~60fps)
+        _animStartTime = DateTime.UtcNow;
+        _resizeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _resizeTimer.Tick += OnResizeAnimationTick;
+        _resizeTimer.Start();
+    }
+
+    private void OnResizeAnimationTick(object? sender, EventArgs e)
+    {
+        var elapsed = (DateTime.UtcNow - _animStartTime).TotalMilliseconds;
+        var t = Math.Min(elapsed / AnimDurationMs, 1.0);
+
+        // Ease-out cubic for smooth deceleration
+        var eased = 1.0 - Math.Pow(1.0 - t, 3);
+
+        Width = _animStartWidth + (_animTargetWidth - _animStartWidth) * eased;
+        Height = _animStartHeight + (_animTargetHeight - _animStartHeight) * eased;
+
+        var x = (int)(_animStartX + (_animTargetX - _animStartX) * eased);
+        var y = (int)(_animStartY + (_animTargetY - _animStartY) * eased);
+        Position = new Avalonia.PixelPoint(x, y);
+
+        if (t >= 1.0)
+        {
+            _resizeTimer?.Stop();
+            _resizeTimer = null;
+
+            // Set final size and constraints
+            Width = _animTargetWidth;
+            Height = _animTargetHeight;
+            MinWidth = _animTargetMinWidth;
+            MinHeight = _animTargetMinHeight;
         }
     }
 
@@ -180,6 +256,8 @@ public partial class MainWindow : Window
     {
         _countdownTimer?.Stop();
         _countdownTimer = null;
+        _resizeTimer?.Stop();
+        _resizeTimer = null;
         base.OnClosed(e);
     }
 }
