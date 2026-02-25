@@ -37,6 +37,22 @@
                     Background="{DynamicResource TitleBarBackground}"
                     PointerPressed="TitleBar_PointerPressed">
                 <Grid>
+                    <!-- Left: Hamburger menu (Windows only) -->
+                    <Button Classes="CaptionBtn"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="0,-1,0,0"
+                            Height="40"
+                            ToolTip.Tip="Menu"
+                            IsVisible="{OnPlatform False, Windows=True}">
+                        <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <MenuItem Header="About Eye-Rest" Click="AboutMenuItem_Click" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+
                     <!-- Centered: App icon + title -->
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
