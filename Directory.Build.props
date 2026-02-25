@@ -5,5 +5,7 @@
     <LangVersion>latest</LangVersion>
     <!-- NU1701: Legacy .NET Framework package compatibility -->
     <NoWarn>NU1701</NoWarn>
+    <!-- Allow Windows-targeting projects to restore/build on non-Windows (macOS, Linux) -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 </Project>

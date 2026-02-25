@@ -4,9 +4,9 @@
 |-------|-------|
 | **Project** | Eye-rest |
 | **Framework** | .NET 8.0 (LTS) |
-| **UI Framework** | Avalonia 11.3.0 (cross-platform) + WPF (legacy Windows) |
+| **UI Framework** | Avalonia 11.3.0 (cross-platform) |
 | **Architecture** | MVVM + Service-Oriented with Platform Abstraction |
-| **Solution** | `EyeRest.sln` — 8 projects |
+| **Solution** | `EyeRest.sln` — 6 projects |
 | **Last Updated** | 2026-02-25 |
 
 ---
@@ -22,8 +22,6 @@
    - [EyeRest.Platform.Windows](#eyerestplatformwindows)
    - [EyeRest.Platform.macOS](#eyerestplatformmacos)
    - [EyeRest.UI](#eyerestui)
-   - [EyeRest (Legacy WPF)](#eyerest-legacy-wpf)
-   - [EyeRest.Tests](#eyeresttests)
    - [EyeRest.Tests.Avalonia](#eyeresttestsavalonia)
 5. [Technology Stack](#technology-stack)
 6. [Key Features](#key-features)
@@ -40,15 +38,14 @@
 
 | Metric | Count |
 |--------|-------|
-| Solution projects | 8 |
-| C# source files (`.cs`) | 196 |
+| Solution projects | 6 |
+| C# source files (`.cs`) | ~120 |
 | Avalonia XAML (`.axaml`) | 14 |
-| WPF XAML (`.xaml`) | 12 |
-| Documentation files (`.md`) | 78 |
-| Project files (`.csproj`) | 8 |
+| Documentation files (`.md`) | ~50 |
+| Project files (`.csproj`) | 6 |
 | Image assets (`.png`) | 21 |
-| Scripts (`.ps1`, `.sh`, `.py`) | 7 |
-| Total tests | 298 (240 WPF + 58 Avalonia) |
+| Scripts (`.sh`, `.py`) | 3 |
+| Total tests | 58 (Avalonia) |
 
 ---
 
@@ -65,7 +62,7 @@
 | **Observer** | Pervasive events across TimerService, ConfigurationService, UserPresenceService, SystemTrayService |
 | **Weak Event** | `WeakEventManager` using `ConditionalWeakTable` for memory-safe subscriptions |
 | **Partial Class Decomposition** | TimerService split into 8 files by concern |
-| **Single Instance** | Named Mutex + named pipe (Avalonia) or EventWaitHandle (WPF) |
+| **Single Instance** | Named Mutex + named pipe (Avalonia) |
 | **Atomic Concurrency** | Triple-layer: `volatile bool` + `static lock` + `Interlocked.CompareExchange` |
 
 ---
@@ -74,10 +71,8 @@
 
 ```
 eye-rest/
-├── EyeRest.sln                      Solution file (8 projects)
+├── EyeRest.sln                      Solution file (6 projects)
 ├── Directory.Build.props             TreatWarningsAsErrors, Nullable, LangVersion latest
-├── appsettings.json                  Application settings
-├── app.manifest                      Windows app manifest
 ├── CLAUDE.md                         AI agent instructions
 ├── master-agent.md                   Master agent protocol
 │
@@ -111,22 +106,6 @@ eye-rest/
 │   ├── Services/                     (3 files) NotificationService, PopupFactory, Dispatcher
 │   ├── ViewModels/                   (2 files) MainWindowViewModel, AnalyticsDashboardViewModel
 │   └── Views/                        (20 files) 10 .axaml + 10 .axaml.cs
-│
-├── EyeRest/                          [Legacy WPF entry point — Windows only]
-│   ├── Views/                        (17 files) Legacy WPF views
-│   ├── ViewModels/                   (4 files) Legacy WPF ViewModels
-│   ├── Converters/                   (2 files) Legacy WPF converters
-│   └── Resources/Themes/            (3 files) WPF themes
-│
-├── EyeRest.Tests/                    [WPF-era test suite — 240 tests, 32 files]
-│   ├── E2E/                          (13 files) End-to-end tests
-│   ├── Fakes/                        (3 files) FakeTimer, FakeTimerFactory, FakeDispatcherService
-│   ├── Helpers/                      (1 file) TimerTestHelper
-│   ├── Integration/                  (8 files) Multi-day simulations, wake recovery
-│   ├── Performance/                  (2 files) Memory usage, startup (<3s)
-│   ├── Services/                     (11 files) TimerService, ConfigurationService, AudioService
-│   ├── UI/                           (3 files) NUnit UI automation tests
-│   └── ViewModels/                   (1 file) MainWindowViewModelTests
 │
 ├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 58 tests, 5 files]
 │   ├── Fakes/                        (1 file)
@@ -341,31 +320,6 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 
 ---
 
-### EyeRest (Legacy WPF)
-
-> **Target:** `net8.0-windows10.0.19041.0` | **Type:** WinExe | **Dependencies:** Abstractions, Core, Platform.Windows
-
-**OBSOLETE — Read-Only.** Original Windows-only WPF entry point. Retained for reference only. Do not modify. Contains 17 views, 4 view models, 2 converters, and 3 WPF themes. All active development targets `EyeRest.UI` (Avalonia).
-
----
-
-### EyeRest.Tests
-
-> **Target:** `net8.0-windows10.0.19041.0` | **Type:** Test | **Tests:** 240 across 32 files
-
-| Category | Files | Description |
-|----------|-------|-------------|
-| E2E | 13 | End-to-end workflow tests |
-| Integration | 8 | Multi-day simulations, wake recovery |
-| Services | 11 | TimerService, ConfigurationService, AudioService unit tests |
-| Performance | 2 | Memory usage (<50MB idle), startup time (<3s) |
-| UI | 3 | NUnit + TestStack.White UI automation |
-| ViewModels | 1 | MainWindowViewModelTests |
-| Fakes | 3 | FakeTimer, FakeTimerFactory, FakeDispatcherService |
-| Helpers | 1 | TimerTestHelper |
-
----
-
 ### EyeRest.Tests.Avalonia
 
 > **Target:** `net8.0` | **Type:** Test | **Tests:** 58 across 5 files
@@ -385,18 +339,15 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 | .NET | 8.0 | Runtime and SDK (LTS, macOS 12+ compatible) |
 | Avalonia | 11.3.0 | Cross-platform UI framework |
 | FluentAvaloniaUI | 2.4.0 | Fluent Design styles for Avalonia |
-| WPF / WinForms | net8.0-windows | Windows-specific UI (legacy + platform services) |
+| WPF / WinForms | net8.0-windows | Windows platform services (tray, overlays, presence detection) |
 | Microsoft.Extensions.DependencyInjection | 8.0.0 | Dependency injection container |
 | Microsoft.Extensions.Hosting | 8.0.0 | Generic host for app lifecycle |
 | Serilog | 4.3.0 | Structured logging |
 | Microsoft.Data.Sqlite | 8.0.0 / 8.0.8 | SQLite for analytics database |
 | System.Text.Json | 8.0.5 | JSON serialization for config files |
 | System.Management | 8.0.0 | Windows WMI (meeting detection) |
-| ModernWpfUI | 0.9.6 | Modern WPF styles (legacy entry point) |
 | xUnit | 2.6.1 | Primary test framework |
-| NUnit | 3.14.0 | Secondary test framework (UI automation) |
 | Moq | 4.20.69 | Mocking library |
-| TestStack.White | 0.13.3 | UI automation framework |
 
 ---
 
@@ -411,7 +362,7 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 7. **Multi-Monitor Support** — Popup positioning and screen overlay across all monitors during breaks.
 8. **Audio Notifications** — 5-level audio cascade with custom sound file support.
 9. **Configuration Management** — 3 JSON config files, atomic writes, 1.5s debounced saves.
-10. **Cross-Platform** — Windows (WPF/WinForms) + macOS (native P/Invoke via AppKit/IOKit).
+10. **Cross-Platform** — Windows + macOS (native P/Invoke via AppKit/IOKit).
 11. **macOS .app Bundle** — Code-signed with hardened runtime, generated via `scripts/bundle-macos.sh`.
 12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
 
@@ -487,9 +438,7 @@ EyeRest.Platform.macOS             ──► Abstractions + Core
          │
 EyeRest.UI                        ──► Abstractions + Core + Platform.Windows (Win)
                                                            / Platform.macOS (macOS)
-EyeRest (Legacy WPF)              ──► Abstractions + Core + Platform.Windows
 
-EyeRest.Tests                     ──► EyeRest (Legacy) + Core + Abstractions
 EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 ```
 
@@ -499,9 +448,8 @@ EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 
 | Aspect | Details |
 |--------|---------|
-| **Total tests** | 298 (240 WPF + 58 Avalonia) |
+| **Total tests** | 58 (Avalonia) |
 | **Primary framework** | xUnit 2.6.1 |
-| **Secondary framework** | NUnit 3.14.0 (UI automation only) |
 | **Mocking** | Moq 4.20.69 |
 | **Naming convention** | `MethodName_StateUnderTest_ExpectedBehavior` |
 | **Pattern** | Arrange-Act-Assert with constructor-based setup |
@@ -514,7 +462,6 @@ dotnet test                              # Run all tests
 dotnet test --filter Category=Unit       # Unit tests only
 dotnet test --filter Category=Integration # Integration tests
 dotnet test --filter Category=Performance # Performance benchmarks
-run-ui-tests.bat                         # UI automation (Windows)
 ```
 
 **Performance requirements enforced by tests:**
@@ -563,6 +510,7 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 
 | Date | Change |
 |------|--------|
+| 2026-02-25 | Removed legacy WPF project (EyeRest.csproj) and WPF test project (EyeRest.Tests) |
 | 2026-02-25 | Downgraded to .NET 8 LTS for macOS 12+ compatibility |
 | 2026-02-25 | Merged Avalonia UI, macOS bundling, and code signing |
 | 2026-02-25 | Added macOS .app bundling with code signing |

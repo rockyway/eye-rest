@@ -18,16 +18,13 @@
 ```bash
 # Build and run
 dotnet build
-dotnet run
+dotnet run --project EyeRest.UI
 
 # Test
 dotnet test
 dotnet test --filter Category=Unit
 dotnet test --filter Category=Integration
 dotnet test --filter Category=Performance
-
-# UI tests
-run-ui-tests.bat
 ```
 
 ---
@@ -41,19 +38,6 @@ Load detailed docs from `docs/agentic/` based on task:
 | Architecture | `01-architecture.md` | Understanding codebase, service structure, patterns |
 | Development | `02-development.md` | Adding services, working with timers/popups |
 | Testing | `03-testing.md` | Writing tests, coverage requirements |
-
----
-
-## Legacy WPF — OBSOLETE (Read-Only)
-
-> **The root-level WPF project (`EyeRest.csproj`) and its associated directories (`Views/`, `ViewModels/`, `Converters/`, `Resources/Themes/`) are OBSOLETE.**
->
-> - **DO NOT** modify, add, or refactor any files in these directories.
-> - **DO NOT** add new WPF views, view models, or services to the root project.
-> - All active development targets the **Avalonia UI** project (`EyeRest.UI/`).
-> - The legacy WPF code is retained for reference only and may be removed in a future cleanup.
->
-> **Active projects:** `EyeRest.UI`, `EyeRest.Core`, `EyeRest.Abstractions`, `EyeRest.Platform.Windows`, `EyeRest.Platform.macOS`
 
 ---
 
