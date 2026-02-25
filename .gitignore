@@ -32,6 +32,9 @@ bld/
 *.snupkg
 .nuget/
 
+# Distribution output
+dist/
+
 # Application specific
 config.json
 logs/
