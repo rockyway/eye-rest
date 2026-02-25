@@ -2,7 +2,12 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <!--
+      Use Windows TFM when targeting win-* RID or building on Windows without RID.
+      Otherwise plain net8.0 for macOS / Linux.
+    -->
+    <TargetFramework Condition="$(RuntimeIdentifier.StartsWith('win')) OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')))">net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -31,12 +36,37 @@
     <ProjectReference Include="..\EyeRest.Core\EyeRest.Core.csproj" />
   </ItemGroup>
 
-  <!-- Conditional platform references -->
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+  <!--
+    Cross-compilation support: use target RuntimeIdentifier when specified,
+    fall back to host OS detection for plain "dotnet build" (no -r flag).
+    Define compile constants so App.axaml.cs can guard platform-specific code.
+  -->
+
+  <!-- Compile constants for conditional platform code -->
+  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('win')) OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')))">
+    <DefineConstants>$(DefineConstants);PLATFORM_WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('osx')) OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX')))">
+    <DefineConstants>$(DefineConstants);PLATFORM_MACOS</DefineConstants>
+  </PropertyGroup>
+
+  <!-- When publishing/building with -r win-* -->
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
     <ProjectReference Include="..\EyeRest.Platform.Windows\EyeRest.Platform.Windows.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <!-- When publishing/building with -r osx-* -->
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('osx'))">
+    <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
+  </ItemGroup>
+
+  <!-- Fallback: no RID specified — detect host OS (dev inner-loop) -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">
+    <ProjectReference Include="..\EyeRest.Platform.Windows\EyeRest.Platform.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX'))">
     <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
   </ItemGroup>
 
@@ -46,7 +76,7 @@
   </ItemGroup>
 
   <!-- macOS dock icon (.icns for bundled .app) -->
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('osx')) OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX')))">
     <Content Include="Assets\AppIcon.icns">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

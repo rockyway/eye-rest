@@ -66,14 +66,14 @@ public partial class App : Application
 
         builder.ConfigureServices(services =>
         {
-            // Platform services (conditional)
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                // macOS platform services
-                EyeRest.Platform.macOS.MacOSServiceCollectionExtensions.AddMacOSPlatformServices(services);
-            }
-            // Windows platform would be added here on Windows
-            // Linux can be added later
+            // Platform services — guarded by compile constants so the
+            // unused platform assembly is never referenced at compile time,
+            // enabling cross-compilation from any host OS.
+#if PLATFORM_WINDOWS
+            EyeRest.Platform.Windows.WindowsServiceCollectionExtensions.AddWindowsPlatformServices(services);
+#elif PLATFORM_MACOS
+            EyeRest.Platform.macOS.MacOSServiceCollectionExtensions.AddMacOSPlatformServices(services);
+#endif
 
             // Core services
             services.AddSingleton<IConfigurationService, ConfigurationService>();
