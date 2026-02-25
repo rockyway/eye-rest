@@ -23,6 +23,7 @@
    - [EyeRest.Platform.macOS](#eyerestplatformmacos)
    - [EyeRest.UI](#eyerestui)
    - [EyeRest.Tests.Avalonia](#eyeresttestsavalonia)
+   - [frontend/ (Marketing Website)](#frontend-marketing-website)
 5. [Technology Stack](#technology-stack)
 6. [Key Features](#key-features)
 7. [Data Flow](#data-flow)
@@ -39,13 +40,14 @@
 | Metric | Count |
 |--------|-------|
 | Solution projects | 6 |
-| C# source files (`.cs`) | ~120 |
-| Avalonia XAML (`.axaml`) | 14 |
-| Documentation files (`.md`) | ~50 |
+| C# source files (`.cs`) | ~147 |
+| Avalonia XAML (`.axaml`) | 16 |
+| Frontend source files (`.tsx`, `.ts`) | 11 |
+| Documentation files (`.md`) | ~32 |
 | Project files (`.csproj`) | 6 |
 | Image assets (`.png`) | 21 |
-| Scripts (`.sh`, `.py`) | 3 |
-| Total tests | 58 (Avalonia) |
+| Scripts (`.sh`, `.py`) | 2 |
+| Total tests | 86 (Avalonia) |
 
 ---
 
@@ -75,53 +77,61 @@ eye-rest/
 ├── Directory.Build.props             TreatWarningsAsErrors, Nullable, LangVersion latest
 ├── CLAUDE.md                         AI agent instructions
 ├── master-agent.md                   Master agent protocol
+├── Resources/                        [Windows app icon]
 │
 ├── EyeRest.Abstractions/            [Pure interfaces + models — zero dependencies]
-│   ├── Models/                       (19 files) Configuration models, DTOs, enums
-│   └── Services/                     (25 files) Service interface contracts
+│   ├── Models/                       (20 files) Configuration models, DTOs, enums
+│   └── Services/                     (27 files + 2 in Abstractions/ subfolder) Service interface contracts
 │
 ├── EyeRest.Core/                     [Platform-agnostic business logic]
 │   ├── Infrastructure/               (1 file) WeakEventManager
-│   ├── Services/                     (9 files) Core service implementations
+│   ├── Services/                     (10 files) Core service implementations
 │   │   └── Timer/                    (8 files) TimerService partial class files
 │   └── ViewModels/                   (2 files) ViewModelBase, RelayCommand
 │
 ├── EyeRest.Platform.Windows/        [Windows-specific implementations]
-│   └── Services/                     (16 files) Audio, tray, presence, timers
+│   └── Services/                     (19 files) Audio, tray, presence, timers, DI extension
 │       ├── Implementation/           (4 files) Meeting detection services
 │       └── Timer/                    (1 file) HybridTimer
 │
 ├── EyeRest.Platform.macOS/          [macOS-specific implementations]
-│   ├── Interop/                      (6 files) Native P/Invoke: AppKit, CoreGraphics,
+│   ├── Interop/                      (7 files) Native P/Invoke: AppKit, CoreGraphics,
 │   │                                           Foundation, IOKit, ObjCRuntime,
-│   │                                           UserNotifications
-│   └── Services/                     (11 files) Audio, tray, presence, timers
+│   │                                           UserNotifications, Security
+│   └── Services/                     (12 files) Audio, tray, presence, timers, DI extension
 │
 ├── EyeRest.UI/                       [Cross-platform Avalonia UI entry point]
 │   ├── Assets/                       App icon, macOS icon
 │   │   └── TrayIcons/               (18 PNGs) 9 states x 2 sizes (1x + @2x)
-│   ├── Converters/                   (3 files) Avalonia value converters
+│   ├── Converters/                   (4 files) Avalonia value converters
 │   ├── Helpers/                      (1 file) MacOSNativeWindowHelper
 │   ├── Resources/                    (3 files) LightTheme, DarkTheme, GlassStyles
 │   ├── Services/                     (3 files) NotificationService, PopupFactory, Dispatcher
 │   ├── ViewModels/                   (2 files) MainWindowViewModel, AnalyticsDashboardViewModel
-│   └── Views/                        (20 files) 10 .axaml + 10 .axaml.cs
+│   └── Views/                        (24 files) 12 .axaml + 12 .axaml.cs
 │
-├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 58 tests, 5 files]
-│   ├── Fakes/                        (1 file)
-│   ├── Services/                     (4 files) Configuration service tests
+├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 86 tests, 10 files]
+│   ├── Fakes/                        (3 files)
+│   ├── Services/                     (6 files) Configuration service tests, TimerService smart resume tests, DonationService tests
 │   └── ViewModels/                   (1 file) MainWindowViewModelTests (26 tests)
 │
 ├── docs/                             [Documentation]
 │   ├── agentic/                      (3 files) Architecture, development, testing guides
+│   ├── assets/                       (2 files) LemonSqueezy product images
 │   ├── features/                     (1 file) Break done screen enhancements
+│   ├── guides/                       (1 file) LemonSqueezy donation setup
 │   ├── lessons-learned/              (3 files) Crisis resolution, macOS icon sizing
-│   ├── new-ui/                       (3 files) Avalonia UI design docs
+│   ├── new-ui/                        Screenshots, HTML prototype, updates/
 │   ├── plan/                         (1 file) Popup redesign plan
 │   ├── plans/                        (3 files) Design, requirements, tasks
 │   ├── progress/                     (3 files) Fix summaries
 │   ├── tests/                        (2 files) Test tracking, integration test plan
 │   └── troubleshooting/             (7 files) Bug fix documentation
+│
+├── frontend/                         [React/TypeScript marketing website]
+│   ├── public/                       (8 PNGs) App icon, OG image, screenshots
+│   └── src/                          (11 files) Components, theme, analytics
+│       └── components/               (7 files) Hero, Nav, Features, AppPreview, Download, Support, Footer
 │
 ├── scripts/                          [Build & utility scripts]
 │   ├── bundle-macos.sh              macOS .app bundling with code signing
@@ -140,11 +150,11 @@ eye-rest/
 
 The foundational layer. Contains only interfaces and data models with zero external dependencies. Every service contract lives here so that platform-specific and core implementations can be developed independently.
 
-**Models (19 files):**
+**Models (20 files):**
 
 | Model | Purpose |
 |-------|---------|
-| `AppConfiguration` | Root configuration object |
+| `AppConfiguration` | Root configuration object (also contains `ThemeMode` enum) |
 | `EyeRestSettings` | Eye rest timer intervals |
 | `BreakSettings` | Break timer intervals |
 | `AudioSettings` | Sound preferences and levels |
@@ -159,10 +169,11 @@ The foundational layer. Contains only interfaces and data models with zero exter
 | `ComplianceReport` | User compliance statistics |
 | `PresenceAnalytic` / `MeetingAnalytic` | Presence and meeting tracking |
 | `ChartDataPoint` | UI chart data |
+| `DonationSettings` | Donation tracking: session count, usage minutes, prompt state, LemonSqueezy URL |
 
 **Key Enums:** `RestEventType`, `UserAction`, `UserPresenceState`, `TimerType`, `TrayIconState`, `BreakAction`, `PauseReason`, `MeetingDetectionMethod`, `MeetingApplication`, `ExportFormat`
 
-**Service Interfaces (25 files):**
+**Service Interfaces (27 files + 2 in Abstractions/ subfolder):**
 
 | Interface | Purpose |
 |-----------|---------|
@@ -186,6 +197,8 @@ The foundational layer. Contains only interfaces and data models with zero exter
 | `IPopupWindowFactory` | Popup window creation |
 | `ILoggingService` | Supplementary file logging |
 | `IPerformanceMonitor` | Memory/CPU monitoring |
+| `IDonationService` | Donation code validation and tracking |
+| `ISecureStorageService` | Platform-agnostic secure key-value storage |
 
 ---
 
@@ -195,7 +208,7 @@ The foundational layer. Contains only interfaces and data models with zero exter
 
 Platform-agnostic business logic. Contains all timer logic, configuration management, analytics, and the central orchestrator.
 
-**Services (9 + 8 timer partials):**
+**Services (10 + 8 timer partials):**
 
 | Service | Interface | Purpose |
 |---------|-----------|---------|
@@ -208,6 +221,8 @@ Platform-agnostic business logic. Contains all timer logic, configuration manage
 | `ReportingService` | `IReportingService` | Text reports from analytics data |
 | `LoggingService` | `ILoggingService` | Supplementary file logger (legacy) |
 | `PerformanceMonitor` | `IPerformanceMonitor` | Memory/CPU monitoring, GC trigger at 40MB |
+| `DonationService` | `IDonationService` | LemonSqueezy license key validation, usage tracking |
+| `MeetingDetectionManager` | — | Coordinates meeting detection strategies |
 
 **Infrastructure (1 file):** `WeakEventManager` — `ConditionalWeakTable`-based weak event subscriptions.
 
@@ -226,11 +241,11 @@ Platform-agnostic business logic. Contains all timer logic, configuration manage
 
 Windows-specific implementations using WPF, WinForms, WMI, and Win32 APIs.
 
-**Services (16 files):**
+**Services (19 files):**
 
 | Service | Notes |
 |---------|-------|
-| `WindowsAudioService` | NAudio / System.Media sound playback |
+| `WindowsAudioService` | System.Media sound playback |
 | `WindowsSystemTrayService` | WinForms NotifyIcon, 9 icon states |
 | `WindowsStartupManager` | Registry-based startup registration |
 | `WindowsScreenOverlayService` | Multi-monitor WPF overlays |
@@ -240,7 +255,11 @@ Windows-specific implementations using WPF, WinForms, WMI, and Win32 APIs.
 | `WindowsDispatcherService` | WPF Dispatcher wrapper |
 | `WindowsTimerFactory` / `HybridTimer` | DispatcherTimer + System.Timers.Timer hybrid |
 | `WindowsIconService` | Icon resource management |
+| `WindowsSecureStorageService` | DPAPI-encrypted secure key-value storage |
+| `WindowsProcessMonitor` | Process monitoring for meeting detection |
 | Meeting detection (4 files) | Zoom, Teams, Skype, generic meeting detection via WMI |
+
+**DI Registration:** `WindowsServiceCollectionExtensions.cs` — `AddWindowsPlatformServices()` extension method for service registration.
 
 ---
 
@@ -250,7 +269,7 @@ Windows-specific implementations using WPF, WinForms, WMI, and Win32 APIs.
 
 macOS-specific implementations using native P/Invoke into AppKit, CoreGraphics, Foundation, IOKit, and UserNotifications.
 
-**Interop (6 files):**
+**Interop (7 files):**
 
 | File | Native Framework |
 |------|-----------------|
@@ -260,8 +279,9 @@ macOS-specific implementations using native P/Invoke into AppKit, CoreGraphics, 
 | `IOKit.cs` | IOHIDSystem (idle time detection) |
 | `ObjCRuntime.cs` | objc_msgSend, class/selector lookup |
 | `UserNotifications.cs` | UNUserNotificationCenter |
+| `Security.cs` | Security.framework, CoreFoundation (Keychain access) |
 
-**Services (11 files):**
+**Services (12 files):**
 
 | Service | Notes |
 |---------|-------|
@@ -275,6 +295,9 @@ macOS-specific implementations using native P/Invoke into AppKit, CoreGraphics, 
 | `MacOSDispatcherService` | Main thread dispatch |
 | `MacOSTimerFactory` / `MacOSTimer` | NSTimer-based implementation |
 | `MacOSIconService` | NSImage icon management |
+| `MacOSSecureStorageService` | macOS Keychain-backed secure storage via Security.framework |
+
+**DI Registration:** `MacOSServiceCollectionExtensions.cs` — `AddMacOSPlatformServices()` extension method for service registration.
 
 ---
 
@@ -284,7 +307,7 @@ macOS-specific implementations using native P/Invoke into AppKit, CoreGraphics, 
 
 The cross-platform Avalonia UI entry point. Contains all views, view models, converters, themes, and tray icon assets.
 
-**Views (10 windows/controls):**
+**Views (12 windows/controls):**
 
 | View | Type | Size | Purpose |
 |------|------|------|---------|
@@ -298,6 +321,8 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 | `BreakWarningPopup` | UserControl | — | Pre-break 30s warning |
 | `AboutWindow` | Window | 360x340 | App info dialog |
 | `ConfirmDialog` | Window | — | Generic confirmation dialog |
+| `DonationBannerView` | UserControl | — | Inline donation prompt with Donate/Dismiss |
+| `DonationCodeDialog` | Window | 400x300 | License key entry dialog for LemonSqueezy validation |
 
 **ViewModels (2 files):**
 
@@ -316,19 +341,45 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 
 **Resources:** `LightTheme.axaml`, `DarkTheme.axaml`, `GlassStyles.axaml` — glass card aesthetic with mesh gradients.
 
-**Tray Icons:** 18 PNG files — 9 states (active, paused, meeting, warning, break, idle, disabled, error, default) at 2 sizes (1x, @2x Retina).
+**Converters (4 files):** Includes `PercentToScaleConverter` in addition to existing value converters.
+
+**Tray Icons:** 18 PNG files — 9 states (active, paused, smart_paused, manually_paused, meeting_mode, user_away, break, eye_rest, error) at 2 sizes (1x, @2x Retina).
 
 ---
 
 ### EyeRest.Tests.Avalonia
 
-> **Target:** `net8.0` | **Type:** Test | **Tests:** 58 across 5 files
+> **Target:** `net8.0` | **Type:** Test | **Tests:** 86 across 10 files
 
 | Category | Files | Description |
 |----------|-------|-------------|
-| Services | 4 | Configuration service tests |
+| Services | 6 | Configuration service tests, TimerService smart resume tests, DonationService tests |
 | ViewModels | 1 | MainWindowViewModelTests (26 tests) |
-| Fakes | 1 | Test doubles |
+| Fakes | 3 | FakeDispatcherService, FakeTimer, FakeTimerFactory |
+
+---
+
+### frontend/ (Marketing Website)
+
+> **Type:** React SPA | **Not part of .NET solution** | **Build:** Vite 7.3
+
+A standalone React/TypeScript marketing website for Eye-Rest. Not included in the .NET solution.
+
+**Technology:** React 19.2 + TypeScript 5.9 + Tailwind CSS 4.2 + Vite 7.3
+
+**Components (7 files):**
+
+| Component | Purpose |
+|-----------|---------|
+| `Hero` | Landing hero section |
+| `Nav` | Navigation bar |
+| `Features` | Feature showcase grid |
+| `AppPreview` | App screenshot preview |
+| `Download` | Download links section |
+| `Support` | Support/donation section |
+| `Footer` | Site footer |
+
+**Other source files:** `App.tsx`, `main.tsx`, `analytics.ts`, `theme.tsx`, `icons.tsx`
 
 ---
 
@@ -348,6 +399,11 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 | System.Management | 8.0.0 | Windows WMI (meeting detection) |
 | xUnit | 2.6.1 | Primary test framework |
 | Moq | 4.20.69 | Mocking library |
+| System.Security.Cryptography.ProtectedData | 8.0.0 | Windows DPAPI for secure storage |
+| React | 19.2.0 | Frontend marketing website |
+| Tailwind CSS | 4.2.0 | Frontend utility-first CSS |
+| Vite | 7.3.0 | Frontend build tool |
+| TypeScript | 5.9.0 | Frontend type safety |
 
 ---
 
@@ -365,6 +421,8 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 10. **Cross-Platform** — Windows + macOS (native P/Invoke via AppKit/IOKit).
 11. **macOS .app Bundle** — Code-signed with hardened runtime, generated via `scripts/bundle-macos.sh`.
 12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
+13. **Voluntary Donation Workflow** — LemonSqueezy-integrated license key validation with DPAPI (Windows) / Keychain (macOS) secure storage, usage-based prompts, and inline banner UI.
+14. **Marketing Website** — React/TypeScript/Tailwind CSS landing page with app preview, feature showcase, download links, and analytics tracking.
 
 ---
 
@@ -440,6 +498,8 @@ EyeRest.UI                        ──► Abstractions + Core + Platform.Windo
                                                            / Platform.macOS (macOS)
 
 EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
+
+frontend/                             (standalone — React/Vite, no .NET dependency)
 ```
 
 ---
@@ -448,7 +508,7 @@ EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 
 | Aspect | Details |
 |--------|---------|
-| **Total tests** | 58 (Avalonia) |
+| **Total tests** | 86 (Avalonia) |
 | **Primary framework** | xUnit 2.6.1 |
 | **Mocking** | Moq 4.20.69 |
 | **Naming convention** | `MethodName_StateUnderTest_ExpectedBehavior` |
@@ -510,6 +570,7 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 
 | Date | Change |
 |------|--------|
+| 2026-02-25 | Added voluntary donation workflow with LemonSqueezy integration, secure storage (DPAPI/Keychain), donation UI views, React marketing frontend, updated test suite to 86 tests |
 | 2026-02-25 | Removed legacy WPF project (EyeRest.csproj) and WPF test project (EyeRest.Tests) |
 | 2026-02-25 | Downgraded to .NET 8 LTS for macOS 12+ compatibility |
 | 2026-02-25 | Merged Avalonia UI, macOS bundling, and code signing |
