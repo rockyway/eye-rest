@@ -36,7 +36,7 @@
                     Margin="6,0"
                     Command="{Binding OpenDonationLinkCommand}"
                     Cursor="Hand">
-                <TextBlock Text="Donate"
+                <TextBlock Text="Support Us"
                            FontSize="11"
                            FontWeight="SemiBold" />
             </Button>

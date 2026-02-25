@@ -10,6 +10,6 @@ namespace EyeRest.Models
         public int SessionCount { get; set; }
         public long TotalUsageMinutes { get; set; }
         public DateTime? FirstInstallDate { get; set; }
-        public string DonationUrl { get; set; } = "https://eyerest.lemonsqueezy.com/checkout/buy/361b6130-55df-4a74-8378-0e87fa355db4";
+        public string DonationUrl { get; set; } = "https://eyerest.net/#support";
     }
 }
