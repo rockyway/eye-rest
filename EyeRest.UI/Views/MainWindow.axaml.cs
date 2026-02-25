@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using EyeRest.UI.Helpers;
 using EyeRest.UI.ViewModels;
@@ -34,6 +35,15 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // Set window icon for taskbar/dock display
+        // Windows: transparent-background eye (matches tray icon style)
+        // macOS: white-background icon (standard dock icon style)
+        var iconAsset = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "taskbar-icon.png"
+            : "app-icon.png";
+        Icon = new WindowIcon(AssetLoader.Open(
+            new Uri($"avares://EyeRest/Assets/{iconAsset}")));
 
         // On Windows, hide system chrome since we have custom caption buttons.
         // macOS keeps PreferSystemChrome for native traffic-light buttons.

@@ -71,9 +71,10 @@
     <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
   </ItemGroup>
 
-  <!-- App icon PNG as Avalonia resource (for programmatic dock icon setting) -->
+  <!-- App icon PNGs as Avalonia resources -->
   <ItemGroup>
     <AvaloniaResource Include="Assets\app-icon.png" />
+    <AvaloniaResource Include="Assets\taskbar-icon.png" />
   </ItemGroup>
 
   <!-- macOS dock icon (.icns for bundled .app) -->

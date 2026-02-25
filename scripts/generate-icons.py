@@ -247,27 +247,40 @@ def make_app_icon_png(output_path: Path, size: int = 512):
     print(f"  Created {output_path} ({size}px)")
 
 
+def make_taskbar_icon_png(output_path: Path, size: int = 256):
+    """Generate a Windows taskbar icon PNG — eye on transparent background (matches tray style)."""
+    img = draw_tray_eye_icon(size, DEFAULT_FILL, DEFAULT_BORDER)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(str(output_path), format="PNG")
+    print(f"  Created {output_path} ({size}px, transparent background)")
+
+
 def main():
     print("Generating Eye-rest icons...")
     print()
 
     # 1. Windows .ico
-    print("[1/4] Windows app icon (.ico)")
+    print("[1/5] Windows app icon (.ico)")
     make_ico(ROOT / "Resources" / "app.ico")
     print()
 
     # 2. macOS .icns
-    print("[2/4] macOS dock icon (.icns)")
+    print("[2/5] macOS dock icon (.icns)")
     make_icns(ROOT / "EyeRest.UI" / "Assets" / "AppIcon.icns")
     print()
 
-    # 3. App icon PNG (Avalonia embedded resource for programmatic dock icon)
-    print("[3/4] App icon PNG (Avalonia resource)")
+    # 3. App icon PNG (Avalonia embedded resource for macOS dock icon — white background)
+    print("[3/5] App icon PNG (macOS dock — white background)")
     make_app_icon_png(ROOT / "EyeRest.UI" / "Assets" / "app-icon.png")
     print()
 
-    # 4. Tray state icons
-    print("[4/4] Menu bar / tray state icons")
+    # 4. Taskbar icon PNG (Windows taskbar — transparent background, matches tray style)
+    print("[4/5] Taskbar icon PNG (Windows taskbar — transparent background)")
+    make_taskbar_icon_png(ROOT / "EyeRest.UI" / "Assets" / "taskbar-icon.png")
+    print()
+
+    # 5. Tray state icons
+    print("[5/5] Menu bar / tray state icons")
     make_tray_icons(ROOT / "EyeRest.UI" / "Assets" / "TrayIcons")
     print()
 
