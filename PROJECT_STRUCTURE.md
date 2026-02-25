@@ -1,810 +1,570 @@
-# Eye-rest - Project Structure
+# PROJECT_STRUCTURE.md
 
-Eye-rest is a Windows desktop application built with .NET 8 and WPF that provides automated eye rest and break reminders. The application uses MVVM architecture with dependency injection, runs as a system tray application, and includes advanced features like user presence detection, analytics tracking, and smart session management.
-
-**Application Version:** 1.0.0.0
-**Target Framework:** .NET 8.0-windows10.0.19041.0
-**Architecture Style:** MVVM with Service-Oriented Design
-**Last Updated:** 2026-01-29
-
----
-
-## Project Statistics
-
-| Component | Files | Lines of Code |
-|-----------|-------|---------------|
-| Main Project (C#) | 99 | ~27,000 |
-| Test Project (C#) | 43 | ~12,000 |
-| XAML Files | 12 | ~2,500 |
-| **Total** | **142** | **~39,500** |
-
-### Source File Distribution
-
-| Directory | C# Files | Purpose |
-|-----------|----------|---------|
-| Services/ | 45 | Business logic and system integration |
-| Services/Abstractions/ | 2 | Service interface contracts |
-| Services/Implementation/ | 4 | Timer implementations |
-| Services/Timer/ | 9 | Timer service partials |
-| ViewModels/ | 4 | MVVM presentation logic |
-| Views/ | 8 | WPF XAML windows |
-| Models/ | 19 | Configuration and data models |
-| Infrastructure/ | 1 | Utilities |
-| Converters/ | 2 | WPF value converters |
-
-### Test File Distribution
-
-| Test Category | Files | Purpose |
-|---------------|-------|---------|
-| E2E/ | 12 | End-to-end workflow tests |
-| Integration/ | 8 | Service integration tests |
-| Services/ | 11 | Service unit tests |
-| UI/ | 3 | UI automation tests |
-| Performance/ | 2 | Performance validation |
-| Fakes/ | 2 | Test doubles |
-| Helpers/ | 1 | Test utilities |
-| ViewModels/ | 1 | ViewModel unit tests |
+| Field | Value |
+|-------|-------|
+| **Project** | Eye-rest |
+| **Framework** | .NET 8.0 (LTS) |
+| **UI Framework** | Avalonia 11.3.0 (cross-platform) + WPF (legacy Windows) |
+| **Architecture** | MVVM + Service-Oriented with Platform Abstraction |
+| **Solution** | `EyeRest.sln` — 8 projects |
+| **Last Updated** | 2026-02-25 |
 
 ---
 
 ## Table of Contents
 
-1. [Quick Reference](#quick-reference)
+1. [Project Statistics](#project-statistics)
 2. [Architecture Overview](#architecture-overview)
 3. [Project Structure](#project-structure)
 4. [Layer-by-Layer Breakdown](#layer-by-layer-breakdown)
+   - [EyeRest.Abstractions](#eyerestabstractions)
+   - [EyeRest.Core](#eyerestcore)
+   - [EyeRest.Platform.Windows](#eyerestplatformwindows)
+   - [EyeRest.Platform.macOS](#eyerestplatformmacos)
+   - [EyeRest.UI](#eyerestui)
+   - [EyeRest (Legacy WPF)](#eyerest-legacy-wpf)
+   - [EyeRest.Tests](#eyeresttests)
+   - [EyeRest.Tests.Avalonia](#eyeresttestsavalonia)
 5. [Technology Stack](#technology-stack)
 6. [Key Features](#key-features)
 7. [Data Flow](#data-flow)
-8. [Testing Strategy](#testing-strategy)
-9. [Configuration & Settings](#configuration--settings)
-10. [Build & Development](#build--development)
-11. [Dependencies](#dependencies)
+8. [Dependency Graph](#dependency-graph)
+9. [Testing Strategy](#testing-strategy)
+10. [Configuration & Settings](#configuration--settings)
+11. [Build & Deployment](#build--deployment)
+12. [Version History](#version-history)
 
 ---
 
-## Quick Reference
+## Project Statistics
 
-### Build Commands
-```bash
-dotnet build                         # Debug build
-dotnet build --configuration Release # Release build
-dotnet run                          # Run application
-dotnet test                         # Run all tests
-```
-
-### Key Paths
-- **Configuration**: `%APPDATA%\EyeRest\config.json`
-- **Logs**: `%APPDATA%\EyeRest\logs\eyerest.log`
-- **Analytics DB**: `%APPDATA%\EyeRest\analytics.db`
-
-### Core Services (DI Container)
-| Service | Interface | Responsibility |
-|---------|-----------|----------------|
-| ApplicationOrchestrator | IApplicationOrchestrator | Central coordinator |
-| TimerService | ITimerService | Dual-timer management |
-| NotificationService | INotificationService | Popup management |
-| ConfigurationService | IConfigurationService | Settings persistence |
-| UserPresenceService | IUserPresenceService | User activity detection |
-| AnalyticsService | IAnalyticsService | Usage tracking & reporting |
+| Metric | Count |
+|--------|-------|
+| Solution projects | 8 |
+| C# source files (`.cs`) | 196 |
+| Avalonia XAML (`.axaml`) | 14 |
+| WPF XAML (`.xaml`) | 12 |
+| Documentation files (`.md`) | 78 |
+| Project files (`.csproj`) | 8 |
+| Image assets (`.png`) | 21 |
+| Scripts (`.ps1`, `.sh`, `.py`) | 7 |
+| Total tests | 298 (240 WPF + 58 Avalonia) |
 
 ---
 
 ## Architecture Overview
 
-### Design Patterns
+### Patterns
 
-| Pattern | Implementation | Location |
-|---------|----------------|----------|
-| **MVVM** | ViewModelBase, RelayCommand | ViewModels/ |
-| **Dependency Injection** | Microsoft.Extensions.DI | App.xaml.cs |
-| **Orchestrator** | ApplicationOrchestrator | Services/ |
-| **Observer** | Events & INotifyPropertyChanged | Throughout |
-| **Factory** | ITimerFactory | Services/Abstractions/ |
-| **Partial Classes** | TimerService partials | Services/Timer/ |
-
-### Core Principles
-- **SOLID**: Interface-based services, single responsibility
-- **DRY**: Shared timer calculation methods
-- **Separation of Concerns**: Services, ViewModels, Views clearly separated
-- **Event-Driven**: Timer → Orchestrator → Notification chain
-
-### Architecture Diagram
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         App.xaml.cs                             │
-│                    (DI Container Setup)                         │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────────┐
-│                 ApplicationOrchestrator                         │
-│         (Central Coordinator - Event Routing)                   │
-└──────┬──────────┬──────────┬──────────┬──────────┬─────────────┘
-       │          │          │          │          │
-       ▼          ▼          ▼          ▼          ▼
-┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-│  Timer   │ │Notifica- │ │  Audio   │ │User Pre- │ │Analytics │
-│ Service  │ │  tion    │ │ Service  │ │  sence   │ │ Service  │
-│          │ │ Service  │ │          │ │ Service  │ │          │
-└──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
-       │          │
-       │          ▼
-       │    ┌──────────────────────────────────────┐
-       │    │            Views/Popups              │
-       │    │  EyeRestPopup, BreakPopup, etc.     │
-       │    └──────────────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────────────┐
-│         System Tray Service          │
-│     (Icon, Menu, Notifications)      │
-└──────────────────────────────────────┘
-```
+| Pattern | Usage |
+|---------|-------|
+| **MVVM** | Views bind to ViewModels via Avalonia compiled bindings (`x:DataType`) |
+| **Dependency Injection** | `Microsoft.Extensions.DependencyInjection` + `Microsoft.Extensions.Hosting`. Services are Singleton, ViewModels are Transient. |
+| **Strategy (Platform Abstraction)** | Every platform concern is behind an interface in Abstractions. Two concrete implementations (Windows, macOS) selected at startup via `RuntimeInformation.IsOSPlatform()`. |
+| **Factory** | `ITimerFactory`, `IPopupWindowFactory` |
+| **Observer** | Pervasive events across TimerService, ConfigurationService, UserPresenceService, SystemTrayService |
+| **Weak Event** | `WeakEventManager` using `ConditionalWeakTable` for memory-safe subscriptions |
+| **Partial Class Decomposition** | TimerService split into 8 files by concern |
+| **Single Instance** | Named Mutex + named pipe (Avalonia) or EventWaitHandle (WPF) |
+| **Atomic Concurrency** | Triple-layer: `volatile bool` + `static lock` + `Interlocked.CompareExchange` |
 
 ---
 
 ## Project Structure
 
 ```
-EyeRest/
-├── 📁 Services/                    (45 files) [Business Logic Layer]
-│   ├── 📁 Abstractions/           (2 files)  [Service Interfaces]
-│   │   ├── ITimer.cs
-│   │   └── ITimerFactory.cs
-│   ├── 📁 Implementation/         (4 files)  [Timer Implementations]
-│   │   ├── HybridTimer.cs
-│   │   ├── HybridTimerFactory.cs
-│   │   ├── ProductionTimer.cs
-│   │   └── ProductionTimerFactory.cs
-│   ├── 📁 Timer/                  (9 files)  [Timer Service Partials]
-│   │   ├── TimerService.cs                   [Core structure]
-│   │   ├── TimerService.State.cs             [State management]
-│   │   ├── TimerService.Initialization.cs    [Startup logic]
-│   │   ├── TimerService.Lifecycle.cs         [Start/Stop/Pause]
-│   │   ├── TimerService.EventHandlers.cs     [Timer event handlers]
-│   │   ├── TimerService.Coordination.cs      [Timer coordination]
-│   │   ├── TimerService.PauseManagement.cs   [Pause logic]
-│   │   ├── TimerService.Recovery.cs          [Error recovery]
-│   │   └── ITimerWrapper.cs
-│   ├── ApplicationOrchestrator.cs           [Central coordinator]
-│   ├── NotificationService.cs               [Popup management]
-│   ├── ConfigurationService.cs              [JSON settings]
-│   ├── AudioService.cs                      [Sound notifications]
-│   ├── SystemTrayService.cs                 [System tray]
-│   ├── IconService.cs                       [Tray icons]
-│   ├── UserPresenceService.cs               [Activity detection]
-│   ├── AnalyticsService.cs                  [Usage tracking]
-│   ├── ReportingService.cs                  [Health reports]
-│   ├── PauseReminderService.cs              [Pause notifications]
-│   ├── PerformanceMonitor.cs                [Resource monitoring]
-│   ├── StartupManager.cs                    [Windows startup]
-│   ├── LoggingService.cs                    [Application logging]
-│   ├── ScreenOverlayService.cs              [Screen dimming]
-│   ├── ScreenDimmingService.cs              [Overlay effects]
-│   ├── MeetingDetectionManager.cs           [Meeting detection]
-│   ├── WindowBasedMeetingDetectionService.cs
-│   ├── NetworkBasedMeetingDetectionService.cs
-│   ├── HybridMeetingDetectionService.cs
-│   ├── MeetingDetectionServiceFactory.cs
-│   ├── WindowsNetworkEndpointMonitor.cs
-│   ├── WindowsProcessMonitor.cs
-│   ├── TimerConfigurationService.cs
-│   ├── UIConfigurationService.cs
-│   └── [Interface files: I*.cs]             (18 interface files)
+eye-rest/
+├── EyeRest.sln                      Solution file (8 projects)
+├── Directory.Build.props             TreatWarningsAsErrors, Nullable, LangVersion latest
+├── appsettings.json                  Application settings
+├── app.manifest                      Windows app manifest
+├── CLAUDE.md                         AI agent instructions
+├── master-agent.md                   Master agent protocol
 │
-├── 📁 ViewModels/                  (4 files)  [Presentation Logic]
-│   ├── MainWindowViewModel.cs               [Main window logic]
-│   ├── AnalyticsDashboardViewModel.cs       [Dashboard logic]
-│   ├── ViewModelBase.cs                     [INotifyPropertyChanged]
-│   └── RelayCommand.cs                      [ICommand implementation]
+├── EyeRest.Abstractions/            [Pure interfaces + models — zero dependencies]
+│   ├── Models/                       (19 files) Configuration models, DTOs, enums
+│   └── Services/                     (25 files) Service interface contracts
 │
-├── 📁 Views/                       (8 files)  [WPF Windows]
-│   ├── MainWindow.xaml(.cs)                 [Main application window]
-│   ├── BasePopupWindow.xaml(.cs)            [Base popup class]
-│   ├── EyeRestPopup.xaml(.cs)               [Eye rest reminder]
-│   ├── EyeRestWarningPopup.xaml(.cs)        [Eye rest warning]
-│   ├── BreakPopup.xaml(.cs)                 [Break reminder]
-│   ├── BreakWarningPopup.xaml(.cs)          [Break warning]
-│   ├── AnalyticsWindow.xaml(.cs)            [Analytics dashboard]
-│   └── AnalyticsDashboardView.xaml(.cs)     [Dashboard view]
+├── EyeRest.Core/                     [Platform-agnostic business logic]
+│   ├── Infrastructure/               (1 file) WeakEventManager
+│   ├── Services/                     (9 files) Core service implementations
+│   │   └── Timer/                    (8 files) TimerService partial class files
+│   └── ViewModels/                   (2 files) ViewModelBase, RelayCommand
 │
-├── 📁 Models/                      (19 files) [Data Models]
-│   ├── AppConfiguration.cs                  [Main config model]
-│   ├── TimerConfiguration.cs                [Timer settings]
-│   ├── UIConfiguration.cs                   [UI settings]
-│   ├── MeetingDetectionConfiguration.cs     [Meeting config]
-│   ├── AnalyticsModels.cs                   [Analytics DTOs]
-│   ├── AnalyticsEnums.cs                    [Analytics enums]
-│   ├── SessionSummary.cs                    [Session data]
-│   ├── ComplianceReport.cs                  [Compliance data]
-│   ├── ComplianceTrend.cs                   [Trend data]
-│   ├── HealthMetrics.cs                     [Health metrics]
-│   ├── DailyMetric.cs                       [Daily stats]
-│   ├── MeetingStats.cs                      [Meeting stats]
-│   ├── MeetingApplication.cs                [Meeting app enum]
-│   ├── MeetingDetectionMethod.cs            [Detection method enum]
-│   ├── NetworkEndpoint.cs                   [Network endpoint model]
-│   ├── PauseReason.cs                       [Pause reason enum]
-│   ├── ResumeReason.cs                      [Resume reason enum]
-│   ├── ChartType.cs                         [Chart type enum]
-│   └── ExportFormat.cs                      [Export format enum]
+├── EyeRest.Platform.Windows/        [Windows-specific implementations]
+│   └── Services/                     (16 files) Audio, tray, presence, timers
+│       ├── Implementation/           (4 files) Meeting detection services
+│       └── Timer/                    (1 file) HybridTimer
 │
-├── 📁 Infrastructure/              (1 file)   [Utilities]
-│   └── WeakEventManager.cs                  [Memory leak prevention]
+├── EyeRest.Platform.macOS/          [macOS-specific implementations]
+│   ├── Interop/                      (6 files) Native P/Invoke: AppKit, CoreGraphics,
+│   │                                           Foundation, IOKit, ObjCRuntime,
+│   │                                           UserNotifications
+│   └── Services/                     (11 files) Audio, tray, presence, timers
 │
-├── 📁 Converters/                  (2 files)  [WPF Converters]
-│   ├── BooleanToVisibilityConverter.cs
-│   └── ChartConverters.cs
+├── EyeRest.UI/                       [Cross-platform Avalonia UI entry point]
+│   ├── Assets/                       App icon, macOS icon
+│   │   └── TrayIcons/               (18 PNGs) 9 states x 2 sizes (1x + @2x)
+│   ├── Converters/                   (3 files) Avalonia value converters
+│   ├── Helpers/                      (1 file) MacOSNativeWindowHelper
+│   ├── Resources/                    (3 files) LightTheme, DarkTheme, GlassStyles
+│   ├── Services/                     (3 files) NotificationService, PopupFactory, Dispatcher
+│   ├── ViewModels/                   (2 files) MainWindowViewModel, AnalyticsDashboardViewModel
+│   └── Views/                        (20 files) 10 .axaml + 10 .axaml.cs
 │
-├── 📁 Resources/                              [Assets]
-│   ├── 📁 Themes/
-│   │   ├── DefaultTheme.xaml
-│   │   ├── DarkTheme.xaml
-│   │   └── LightTheme.xaml
-│   └── app.ico
+├── EyeRest/                          [Legacy WPF entry point — Windows only]
+│   ├── Views/                        (17 files) Legacy WPF views
+│   ├── ViewModels/                   (4 files) Legacy WPF ViewModels
+│   ├── Converters/                   (2 files) Legacy WPF converters
+│   └── Resources/Themes/            (3 files) WPF themes
 │
-├── 📁 EyeRest.Tests/               (43 files) [Test Suite]
-│   ├── 📁 Services/               (11 tests)
-│   ├── 📁 Integration/            (8 tests)
-│   ├── 📁 E2E/                    (12 tests)
-│   ├── 📁 Performance/            (2 tests)
-│   ├── 📁 UI/                     (3 tests)
-│   ├── 📁 Fakes/                  (2 files)
-│   ├── 📁 Helpers/                (1 file)
-│   ├── 📁 EndToEnd/               (1 test)
-│   └── 📁 ViewModels/             (1 test)
+├── EyeRest.Tests/                    [WPF-era test suite — 240 tests, 32 files]
+│   ├── E2E/                          (13 files) End-to-end tests
+│   ├── Fakes/                        (3 files) FakeTimer, FakeTimerFactory, FakeDispatcherService
+│   ├── Helpers/                      (1 file) TimerTestHelper
+│   ├── Integration/                  (8 files) Multi-day simulations, wake recovery
+│   ├── Performance/                  (2 files) Memory usage, startup (<3s)
+│   ├── Services/                     (11 files) TimerService, ConfigurationService, AudioService
+│   ├── UI/                           (3 files) NUnit UI automation tests
+│   └── ViewModels/                   (1 file) MainWindowViewModelTests
 │
-├── 📁 docs/                        (31 files) [Documentation]
-│   ├── 📁 plans/
-│   ├── 📁 progress/
-│   ├── 📁 features/
-│   ├── 📁 troubleshooting/
-│   ├── 📁 lessons-learned/
-│   ├── 📁 tests/
-│   └── 📁 agentic/
+├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 58 tests, 5 files]
+│   ├── Fakes/                        (1 file)
+│   ├── Services/                     (4 files) Configuration service tests
+│   └── ViewModels/                   (1 file) MainWindowViewModelTests (26 tests)
 │
-├── App.xaml(.cs)                            [Application entry]
-├── EyeRest.csproj                           [Project file]
-├── EyeRest.sln                              [Solution file]
-├── CLAUDE.md                                [Development guidance]
-├── appsettings.json                         [App settings]
-└── app.manifest                             [Windows manifest]
+├── docs/                             [Documentation]
+│   ├── agentic/                      (3 files) Architecture, development, testing guides
+│   ├── features/                     (1 file) Break done screen enhancements
+│   ├── lessons-learned/              (3 files) Crisis resolution, macOS icon sizing
+│   ├── new-ui/                       (3 files) Avalonia UI design docs
+│   ├── plan/                         (1 file) Popup redesign plan
+│   ├── plans/                        (3 files) Design, requirements, tasks
+│   ├── progress/                     (3 files) Fix summaries
+│   ├── tests/                        (2 files) Test tracking, integration test plan
+│   └── troubleshooting/             (7 files) Bug fix documentation
+│
+├── scripts/                          [Build & utility scripts]
+│   ├── bundle-macos.sh              macOS .app bundling with code signing
+│   └── generate-icons.py            Icon generation (Python/Pillow)
+│
+└── roles/                            (5 files) Agent role definitions
 ```
 
 ---
 
 ## Layer-by-Layer Breakdown
 
-### 1. Application Entry (App.xaml.cs)
+### EyeRest.Abstractions
 
-**Purpose**: Application bootstrap, DI container setup, startup orchestration
+> **Target:** `net8.0` | **Type:** Class Library | **Dependencies:** None
 
-**Key Responsibilities**:
-- Configures Microsoft.Extensions.DependencyInjection container
-- Initializes Serilog logging
-- Implements single-instance mutex
-- Handles global exception handling
-- Manages application lifecycle events
+The foundational layer. Contains only interfaces and data models with zero external dependencies. Every service contract lives here so that platform-specific and core implementations can be developed independently.
 
-**Notable Features**:
-- HybridTimerFactory for robust timer creation
-- Phased startup logging (PHASE 1-4)
-- System tray initialization before main window
+**Models (19 files):**
 
-### 2. Services Layer
+| Model | Purpose |
+|-------|---------|
+| `AppConfiguration` | Root configuration object |
+| `EyeRestSettings` | Eye rest timer intervals |
+| `BreakSettings` | Break timer intervals |
+| `AudioSettings` | Sound preferences and levels |
+| `ApplicationSettings` | General app behavior |
+| `UserPresenceSettings` | Idle detection thresholds |
+| `MeetingDetectionSettings` | Meeting app detection config |
+| `AnalyticsSettings` | Data retention, export preferences |
+| `TimerControlSettings` | Timer control parameters |
+| `SessionSummary` | Session statistics DTO |
+| `HealthMetrics` | Health tracking data |
+| `WeeklyMetrics` / `MonthlyMetrics` / `DailyMetric` | Aggregated analytics DTOs |
+| `ComplianceReport` | User compliance statistics |
+| `PresenceAnalytic` / `MeetingAnalytic` | Presence and meeting tracking |
+| `ChartDataPoint` | UI chart data |
 
-#### ApplicationOrchestrator
-**File**: `Services/ApplicationOrchestrator.cs` (1,253 lines)
+**Key Enums:** `RestEventType`, `UserAction`, `UserPresenceState`, `TimerType`, `TrayIconState`, `BreakAction`, `PauseReason`, `MeetingDetectionMethod`, `MeetingApplication`, `ExportFormat`
 
-**Purpose**: Central coordinator managing all service interactions
+**Service Interfaces (25 files):**
 
-**Key Features**:
-- Subscribes to TimerService events (EyeRestWarning, EyeRestDue, BreakWarning, BreakDue)
-- Coordinates NotificationService and AudioService
-- Handles user presence changes with smart pause/resume
-- Extended away session detection and smart reset
-- System tray icon state management
-- Analytics event recording
-- Session validation timer (15-minute intervals)
+| Interface | Purpose |
+|-----------|---------|
+| `ITimerService` | Timer lifecycle, pause/resume, warnings |
+| `IApplicationOrchestrator` | Central service coordinator |
+| `IConfigurationService` | Main config persistence |
+| `ITimerConfigurationService` | Timer-specific config |
+| `IUIConfigurationService` | UI-specific config |
+| `IAnalyticsService` | SQLite analytics storage |
+| `IReportingService` | Report generation (CSV, HTML, JSON, text) |
+| `IAudioService` | Sound playback |
+| `ISystemTrayService` | System tray icon and menu |
+| `IStartupManager` | OS startup registration |
+| `IScreenOverlayService` | Multi-monitor overlay |
+| `IUserPresenceService` | Idle/away detection |
+| `IScreenDimmingService` | Screen dimming during breaks |
+| `IPauseReminderService` | Pause reminder notifications |
+| `IDispatcherService` | UI thread dispatch |
+| `ITimerFactory` | Platform timer creation |
+| `INotificationService` | Popup notification management |
+| `IPopupWindowFactory` | Popup window creation |
+| `ILoggingService` | Supplementary file logging |
+| `IPerformanceMonitor` | Memory/CPU monitoring |
 
-#### TimerService (Partial Classes)
-**Files**: `Services/Timer/TimerService*.cs` (9 files)
+---
 
-**Purpose**: Dual-timer system for eye rest (20min) and breaks (55min)
+### EyeRest.Core
 
-**Partials**:
-| File | Responsibility |
-|------|----------------|
-| TimerService.cs | Core structure, public interface |
-| TimerService.State.cs | State fields, properties |
-| TimerService.Initialization.cs | Timer setup, startup |
-| TimerService.Lifecycle.cs | Start, Stop, Pause, Resume |
-| TimerService.EventHandlers.cs | Timer tick handlers |
-| TimerService.Coordination.cs | Smart timer coordination |
-| TimerService.PauseManagement.cs | Pause logic, meeting pause |
-| TimerService.Recovery.cs | System resume recovery |
+> **Target:** `net8.0` | **Type:** Class Library | **Dependencies:** Abstractions
 
-**Key Features**:
-- DispatcherTimer for UI thread safety
-- Warning timers (30s before events)
-- Fallback timers for reliability
-- Health monitor timer
-- Timeline protection (prevents double triggers)
-- Processing flags for synchronization
+Platform-agnostic business logic. Contains all timer logic, configuration management, analytics, and the central orchestrator.
 
-#### NotificationService
-**Purpose**: Full-screen popup management across all monitors
+**Services (9 + 8 timer partials):**
 
-**Features**:
-- Multi-monitor support with BasePopupWindow
-- Warning popups (EyeRestWarningPopup, BreakWarningPopup)
-- Main popups (EyeRestPopup, BreakPopup)
-- Countdown timer display
-- User action handling (Delay, Skip, Complete)
+| Service | Interface | Purpose |
+|---------|-----------|---------|
+| `ApplicationOrchestrator` | `IApplicationOrchestrator` | Central coordinator — wires all services, manages lifecycle |
+| `TimerService` (8 partials) | `ITimerService` | Dual timers (eye rest 20min/20sec + break 55min/5min), warnings, pause/resume, smart pause, recovery |
+| `ConfigurationService` | `IConfigurationService` | JSON persistence, atomic writes with retry |
+| `TimerConfigurationService` | `ITimerConfigurationService` | Timer-specific config at `timer-config.json` |
+| `UIConfigurationService` | `IUIConfigurationService` | UI-specific config at `ui-config.json` |
+| `AnalyticsService` | `IAnalyticsService` | SQLite analytics (sessions, breaks, compliance) |
+| `ReportingService` | `IReportingService` | Text reports from analytics data |
+| `LoggingService` | `ILoggingService` | Supplementary file logger (legacy) |
+| `PerformanceMonitor` | `IPerformanceMonitor` | Memory/CPU monitoring, GC trigger at 40MB |
 
-#### UserPresenceService
-**Purpose**: Detects user activity and system state changes
+**Infrastructure (1 file):** `WeakEventManager` — `ConditionalWeakTable`-based weak event subscriptions.
 
-**Features**:
-- Idle detection via Windows API (GetLastInputInfo)
-- Session state monitoring (lock, unlock)
-- Power event monitoring (sleep, resume)
-- Extended away detection (30+ minutes)
-- Smart session reset triggering
+**ViewModels (2 files):**
 
-#### AnalyticsService
-**Purpose**: Usage tracking and health metrics
+| Class | Purpose |
+|-------|---------|
+| `ViewModelBase` | Abstract base with `INotifyPropertyChanged` + `SetProperty<T>` |
+| `CrossPlatformRelayCommand` | `ICommand` implementation (sync + async) |
 
-**Features**:
-- SQLite database storage
-- Break/eye rest event recording
-- Presence change tracking
-- Session metrics
-- Health reports and compliance rates
-- Data export (JSON format)
+---
 
-### 3. ViewModels Layer
+### EyeRest.Platform.Windows
 
-#### MainWindowViewModel
-**Purpose**: Main window presentation logic
+> **Target:** `net8.0-windows10.0.19041.0` | **Type:** Class Library | **Dependencies:** Abstractions, Core
 
-**Features**:
-- Timer countdown display binding
-- Settings management
-- Command handling (Pause, Resume, Reset)
-- INotifyPropertyChanged implementation
+Windows-specific implementations using WPF, WinForms, WMI, and Win32 APIs.
 
-#### AnalyticsDashboardViewModel
-**Purpose**: Analytics dashboard presentation
+**Services (16 files):**
 
-**Features**:
-- Date range selection
-- Compliance statistics
-- Chart data preparation
-- Export functionality
+| Service | Notes |
+|---------|-------|
+| `WindowsAudioService` | NAudio / System.Media sound playback |
+| `WindowsSystemTrayService` | WinForms NotifyIcon, 9 icon states |
+| `WindowsStartupManager` | Registry-based startup registration |
+| `WindowsScreenOverlayService` | Multi-monitor WPF overlays |
+| `WindowsUserPresenceService` | `GetLastInputInfo` P/Invoke, session switch events |
+| `WindowsScreenDimmingService` | Screen dimming during breaks |
+| `WindowsPauseReminderService` | Toast/balloon notifications |
+| `WindowsDispatcherService` | WPF Dispatcher wrapper |
+| `WindowsTimerFactory` / `HybridTimer` | DispatcherTimer + System.Timers.Timer hybrid |
+| `WindowsIconService` | Icon resource management |
+| Meeting detection (4 files) | Zoom, Teams, Skype, generic meeting detection via WMI |
 
-### 4. Views Layer
+---
 
-#### Popup Hierarchy
-```
-BasePopupWindow (abstract)
-├── EyeRestWarningPopup
-├── EyeRestPopup
-├── BreakWarningPopup
-└── BreakPopup
-```
+### EyeRest.Platform.macOS
 
-**BasePopupWindow Features**:
-- Multi-monitor positioning
-- Topmost window management
-- Escape key handling
-- Window chrome removal
+> **Target:** `net8.0` | **Type:** Class Library | **Dependencies:** Abstractions, Core
 
-#### MainWindow
-- Settings UI with tabs
-- Timer countdown display
-- System tray minimization
-- Theme switching
+macOS-specific implementations using native P/Invoke into AppKit, CoreGraphics, Foundation, IOKit, and UserNotifications.
 
-### 5. Models Layer
+**Interop (6 files):**
 
-#### AppConfiguration
-Main configuration model with nested settings:
+| File | Native Framework |
+|------|-----------------|
+| `AppKit.cs` | NSApplication, NSWindow, NSStatusBar, NSMenu |
+| `CoreGraphics.cs` | CGDisplay, screen enumeration |
+| `Foundation.cs` | NSObject, NSString, NSAutoreleasePool |
+| `IOKit.cs` | IOHIDSystem (idle time detection) |
+| `ObjCRuntime.cs` | objc_msgSend, class/selector lookup |
+| `UserNotifications.cs` | UNUserNotificationCenter |
 
-```csharp
-AppConfiguration
-├── EyeRestSettings      // interval, duration, warning
-├── BreakSettings        // interval, duration, confirmation
-├── AudioSettings        // enabled, volume, custom sounds
-├── ApplicationSettings  // startup, tray, theme
-├── UserPresenceSettings // idle detection, smart reset
-├── MeetingDetectionSettings // detection method, apps
-├── AnalyticsSettings    // retention, export, tracking
-└── TimerControlSettings // pause, reminders
-```
+**Services (11 files):**
+
+| Service | Notes |
+|---------|-------|
+| `MacOSAudioService` | NSSound-based playback |
+| `MacOSSystemTrayService` | NSStatusItem with NSMenu |
+| `MacOSStartupManager` | Login items via SMAppService |
+| `MacOSScreenOverlayService` | NSWindow overlays per screen |
+| `MacOSUserPresenceService` | IOKit HID idle time |
+| `MacOSScreenDimmingService` | Window-based dimming |
+| `MacOSPauseReminderService` | UNUserNotificationCenter |
+| `MacOSDispatcherService` | Main thread dispatch |
+| `MacOSTimerFactory` / `MacOSTimer` | NSTimer-based implementation |
+| `MacOSIconService` | NSImage icon management |
+
+---
+
+### EyeRest.UI
+
+> **Target:** `net8.0` | **Type:** WinExe (Avalonia) | **Dependencies:** Abstractions, Core, Platform.Windows or Platform.macOS
+
+The cross-platform Avalonia UI entry point. Contains all views, view models, converters, themes, and tray icon assets.
+
+**Views (10 windows/controls):**
+
+| View | Type | Size | Purpose |
+|------|------|------|---------|
+| `MainWindow` | Window | 340x580 | Primary settings window, tabs, timer controls |
+| `AnalyticsWindow` | Window | 1200x800 | Analytics dashboard container |
+| `AnalyticsDashboardView` | UserControl | — | Charts, metrics, export, retention settings |
+| `PopupWindow` | Window | — | Generic popup shell (no chrome, transparent) |
+| `EyeRestPopup` | UserControl | — | Eye rest reminder card with countdown |
+| `EyeRestWarningPopup` | UserControl | — | Pre-eye-rest 15s warning |
+| `BreakPopup` | UserControl | — | Break countdown with Delay/Skip/Done actions |
+| `BreakWarningPopup` | UserControl | — | Pre-break 30s warning |
+| `AboutWindow` | Window | 360x340 | App info dialog |
+| `ConfirmDialog` | Window | — | Generic confirmation dialog |
+
+**ViewModels (2 files):**
+
+| ViewModel | Purpose |
+|-----------|---------|
+| `MainWindowViewModel` | Main settings/status — timer settings, audio, presence, commands |
+| `AnalyticsDashboardViewModel` | Analytics dashboard — charts, compliance, export |
+
+**UI Services (3 files):**
+
+| Service | Purpose |
+|---------|---------|
+| `AvaloniaNotificationService` | Popup notification management |
+| `AvaloniaPopupWindowFactory` | Popup window creation |
+| `AvaloniaDispatcherService` | Avalonia UI thread dispatch |
+
+**Resources:** `LightTheme.axaml`, `DarkTheme.axaml`, `GlassStyles.axaml` — glass card aesthetic with mesh gradients.
+
+**Tray Icons:** 18 PNG files — 9 states (active, paused, meeting, warning, break, idle, disabled, error, default) at 2 sizes (1x, @2x Retina).
+
+---
+
+### EyeRest (Legacy WPF)
+
+> **Target:** `net8.0-windows10.0.19041.0` | **Type:** WinExe | **Dependencies:** Abstractions, Core, Platform.Windows
+
+**OBSOLETE — Read-Only.** Original Windows-only WPF entry point. Retained for reference only. Do not modify. Contains 17 views, 4 view models, 2 converters, and 3 WPF themes. All active development targets `EyeRest.UI` (Avalonia).
+
+---
+
+### EyeRest.Tests
+
+> **Target:** `net8.0-windows10.0.19041.0` | **Type:** Test | **Tests:** 240 across 32 files
+
+| Category | Files | Description |
+|----------|-------|-------------|
+| E2E | 13 | End-to-end workflow tests |
+| Integration | 8 | Multi-day simulations, wake recovery |
+| Services | 11 | TimerService, ConfigurationService, AudioService unit tests |
+| Performance | 2 | Memory usage (<50MB idle), startup time (<3s) |
+| UI | 3 | NUnit + TestStack.White UI automation |
+| ViewModels | 1 | MainWindowViewModelTests |
+| Fakes | 3 | FakeTimer, FakeTimerFactory, FakeDispatcherService |
+| Helpers | 1 | TimerTestHelper |
+
+---
+
+### EyeRest.Tests.Avalonia
+
+> **Target:** `net8.0` | **Type:** Test | **Tests:** 58 across 5 files
+
+| Category | Files | Description |
+|----------|-------|-------------|
+| Services | 4 | Configuration service tests |
+| ViewModels | 1 | MainWindowViewModelTests (26 tests) |
+| Fakes | 1 | Test doubles |
 
 ---
 
 ## Technology Stack
 
-### Core Framework
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| .NET | 8.0 | Runtime framework |
-| WPF | Built-in | UI framework |
-| Windows Forms | Built-in | System tray (NotifyIcon) |
-| C# | 12.0 | Primary language |
-
-### NuGet Packages
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| Microsoft.Extensions.DependencyInjection | 8.0.0 | IoC container |
-| Microsoft.Extensions.Hosting | 8.0.0 | Application hosting |
-| Microsoft.Extensions.Logging | 8.0.0 | Logging abstractions |
-| Microsoft.Extensions.Configuration.Json | 8.0.0 | JSON configuration |
+| .NET | 8.0 | Runtime and SDK (LTS, macOS 12+ compatible) |
+| Avalonia | 11.3.0 | Cross-platform UI framework |
+| FluentAvaloniaUI | 2.4.0 | Fluent Design styles for Avalonia |
+| WPF / WinForms | net8.0-windows | Windows-specific UI (legacy + platform services) |
+| Microsoft.Extensions.DependencyInjection | 8.0.0 | Dependency injection container |
+| Microsoft.Extensions.Hosting | 8.0.0 | Generic host for app lifecycle |
 | Serilog | 4.3.0 | Structured logging |
-| Serilog.Extensions.Hosting | 8.0.0 | Serilog hosting integration |
-| Serilog.Sinks.Console | 6.0.0 | Console logging |
-| Serilog.Sinks.File | 7.0.0 | File logging |
-| System.Text.Json | 8.0.5 | JSON serialization |
-| System.Management | 8.0.0 | WMI queries |
-| System.Drawing.Common | 8.0.0 | Graphics support |
-| Microsoft.Data.Sqlite | 8.0.0 | SQLite database |
-| Microsoft.WindowsAPICodePack-Shell | 1.1.0 | Windows shell integration |
-| ModernWpfUI | 0.9.6 | Modern Windows 11 styling |
-
-### Test Packages
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| xunit | 2.6.1 | Test framework |
-| xunit.runner.visualstudio | 2.5.3 | VS test runner |
-| Moq | 4.20.69 | Mocking framework |
-| Microsoft.NET.Test.Sdk | 17.8.0 | Test SDK |
-| TestStack.White | 0.13.3 | UI automation |
-| NUnit | 3.14.0 | Additional test framework |
-| Xunit.StaFact | 1.1.11 | STA thread tests |
+| Microsoft.Data.Sqlite | 8.0.0 / 8.0.8 | SQLite for analytics database |
+| System.Text.Json | 8.0.5 | JSON serialization for config files |
+| System.Management | 8.0.0 | Windows WMI (meeting detection) |
+| ModernWpfUI | 0.9.6 | Modern WPF styles (legacy entry point) |
+| xUnit | 2.6.1 | Primary test framework |
+| NUnit | 3.14.0 | Secondary test framework (UI automation) |
+| Moq | 4.20.69 | Mocking library |
+| TestStack.White | 0.13.3 | UI automation framework |
 
 ---
 
 ## Key Features
 
-### 1. Dual Timer System
-- **Eye Rest Timer**: 20-minute intervals, 20-second breaks
-- **Break Timer**: 55-minute intervals, 5-minute breaks
-- **Warning System**: 30-second pre-notifications
-- **Smart Coordination**: Timers pause each other during active notifications
-
-### 2. User Presence Detection
-- Idle detection (configurable threshold)
-- Screen lock/unlock monitoring
-- System sleep/wake monitoring
-- Extended away session detection (30+ minutes)
-- Smart session reset on return
-
-### 3. Analytics & Reporting
-- Break completion tracking
-- Compliance rate calculations
-- Daily/weekly health metrics
-- Data export capabilities
-- SQLite database storage
-
-### 4. Multi-Monitor Support
-- Full-screen popups on all monitors
-- Per-monitor DPI awareness
-- Proper window positioning
-
-### 5. System Tray Integration
-- Minimize to tray
-- Context menu (Pause, Resume, Status, Exit)
-- Live tooltip with timer countdowns
-- State-based icon changes
-
-### 6. Meeting Detection (Disabled)
-- Window-based detection
-- Network-based detection
-- Hybrid detection mode
-- Auto-pause during meetings
+1. **Dual Timer System** — Eye rest (20min interval / 20sec popup) + Break (55min interval / 5min popup), fully configurable.
+2. **Warning System** — Pre-notification countdowns (15s for eye rest, 30s for break) with fallback guard timers.
+3. **Smart Pause** — Auto-pause on idle / screen lock / user away; auto-resume on return.
+4. **Session Reset** — Extended away detection (>30min) triggers full session reset.
+5. **System Tray Integration** — 9 icon states, context menu with pause / meeting mode / analytics access.
+6. **Analytics Dashboard** — SQLite-backed compliance tracking, charts, CSV / JSON / HTML / text export.
+7. **Multi-Monitor Support** — Popup positioning and screen overlay across all monitors during breaks.
+8. **Audio Notifications** — 5-level audio cascade with custom sound file support.
+9. **Configuration Management** — 3 JSON config files, atomic writes, 1.5s debounced saves.
+10. **Cross-Platform** — Windows (WPF/WinForms) + macOS (native P/Invoke via AppKit/IOKit).
+11. **macOS .app Bundle** — Code-signed with hardened runtime, generated via `scripts/bundle-macos.sh`.
+12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
 
 ---
 
 ## Data Flow
 
-### Timer Event Flow
+### Application Startup
+
 ```
-TimerService.Tick
-    │
-    ├─[Warning]──► ApplicationOrchestrator.OnXxxWarning
-    │                   │
-    │                   ├─► AudioService.PlayWarningSound
-    │                   └─► NotificationService.ShowWarningPopup
-    │
-    └─[Due]──────► ApplicationOrchestrator.OnXxxDue
-                        │
-                        ├─► AudioService.PlayStartSound
-                        ├─► NotificationService.ShowPopup
-                        │       │
-                        │       └─► User Action (Complete/Skip/Delay)
-                        │               │
-                        ├─► AnalyticsService.RecordEvent
-                        └─► TimerService.Restart
+Host.StartAsync()
+  └─► ApplicationOrchestrator.InitializeAsync()
+        ├─► TimerService.StartAsync()
+        │     ├─► Load configuration
+        │     ├─► Initialize 8 internal timers
+        │     └─► Start main countdown timers
+        ├─► UserPresenceService.StartMonitoringAsync()
+        └─► AnalyticsService.InitializeDatabaseAsync()
 ```
 
-### User Presence Flow
+### Timer Cycle
+
 ```
-UserPresenceService.Monitor
-    │
-    ├─[Idle/Away]──► UserPresenceChanged Event
-    │                   │
-    │                   └─► ApplicationOrchestrator.OnUserPresenceChanged
-    │                           │
-    │                           ├─► TimerService.SmartPause
-    │                           ├─► AnalyticsService.PauseSession
-    │                           └─► SystemTrayService.UpdateIcon
-    │
-    └─[Present]────► ExtendedAwaySessionDetected (if >30 min)
-                        │
-                        └─► TimerService.SmartSessionReset
+Main timer fires
+  └─► Warning phase (15s or 30s countdown popup)
+        └─► Fallback guard timer
+              └─► Due phase
+                    └─► NotificationService shows popup
+                          └─► Audio plays
+                                └─► User action (complete / skip / delay)
+                                      ├─► Timer restarts
+                                      └─► Analytics recorded
+```
+
+### Configuration Change
+
+```
+UI change (ViewModel setter)
+  └─► 1.5s debounce
+        └─► ConfigService.SaveAsync()
+              └─► Atomic JSON write (tmp → backup → move)
+                    └─► ConfigurationChanged event
+                          └─► Services reload settings
+```
+
+### Presence Detection
+
+```
+Idle detected
+  └─► SmartPauseAsync() → Timers pause
+
+User returns
+  └─► SmartResumeAsync() → Timers resume
+
+Extended away (>30min)
+  └─► SmartSessionResetAsync() → Full timer reset
+```
+
+---
+
+## Dependency Graph
+
+```
+EyeRest.Abstractions              (leaf — no dependencies)
+         ▲
+         │
+EyeRest.Core                      ──► Abstractions
+         ▲
+         │
+EyeRest.Platform.Windows          ──► Abstractions + Core
+EyeRest.Platform.macOS             ──► Abstractions + Core
+         ▲
+         │
+EyeRest.UI                        ──► Abstractions + Core + Platform.Windows (Win)
+                                                           / Platform.macOS (macOS)
+EyeRest (Legacy WPF)              ──► Abstractions + Core + Platform.Windows
+
+EyeRest.Tests                     ──► EyeRest (Legacy) + Core + Abstractions
+EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 ```
 
 ---
 
 ## Testing Strategy
 
-### Test Categories
+| Aspect | Details |
+|--------|---------|
+| **Total tests** | 298 (240 WPF + 58 Avalonia) |
+| **Primary framework** | xUnit 2.6.1 |
+| **Secondary framework** | NUnit 3.14.0 (UI automation only) |
+| **Mocking** | Moq 4.20.69 |
+| **Naming convention** | `MethodName_StateUnderTest_ExpectedBehavior` |
+| **Pattern** | Arrange-Act-Assert with constructor-based setup |
+| **Test doubles** | FakeTimer, FakeTimerFactory, FakeDispatcherService |
 
-| Category | Files | Purpose | Command Filter |
-|----------|-------|---------|----------------|
-| Unit | 11 | Service isolation tests | `--filter Category=Unit` |
-| Integration | 8 | Service interaction tests | `--filter Category=Integration` |
-| Performance | 2 | Startup/memory validation | `--filter Category=Performance` |
-| E2E | 12 | Complete workflow tests | `--filter Category=E2E` |
+**Test categories and commands:**
 
-### Test Infrastructure
+```bash
+dotnet test                              # Run all tests
+dotnet test --filter Category=Unit       # Unit tests only
+dotnet test --filter Category=Integration # Integration tests
+dotnet test --filter Category=Performance # Performance benchmarks
+run-ui-tests.bat                         # UI automation (Windows)
+```
 
-**FakeTimer & FakeTimerFactory**: Test doubles for timer control in unit tests
-
-**TimerTestHelper**: Utilities for timer testing
-
-**UIAutomationFramework**: TestStack.White wrapper for UI tests
-
-### Performance Requirements
-- **Startup Time**: < 3 seconds
-- **Memory Usage**: < 50MB idle
+**Performance requirements enforced by tests:**
+- Startup time: < 3 seconds
+- Memory idle: < 50MB
+- Memory active: < 100MB
 
 ---
 
 ## Configuration & Settings
 
-### Configuration File
-**Path**: `%APPDATA%\EyeRest\config.json`
+Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~/.config/EyeRest/` (macOS):
 
-```json
-{
-  "EyeRest": {
-    "IntervalMinutes": 20,
-    "DurationSeconds": 20,
-    "WarningEnabled": true,
-    "WarningSeconds": 30
-  },
-  "Break": {
-    "IntervalMinutes": 55,
-    "DurationMinutes": 5,
-    "WarningEnabled": true,
-    "WarningSeconds": 30,
-    "RequireConfirmationAfterBreak": true,
-    "ResetTimersOnBreakConfirmation": true
-  },
-  "UserPresence": {
-    "Enabled": true,
-    "IdleThresholdMinutes": 5,
-    "EnableSmartSessionReset": true,
-    "ExtendedAwayThresholdMinutes": 30
-  },
-  "Analytics": {
-    "Enabled": true,
-    "DataRetentionDays": 90
-  }
-}
-```
+| File | Service | Contents |
+|------|---------|----------|
+| `config.json` | `ConfigurationService` | Full `AppConfiguration` — all settings |
+| `timer-config.json` | `TimerConfigurationService` | Timer intervals only |
+| `ui-config.json` | `UIConfigurationService` | Audio, app behavior, analytics |
 
-### Application Data
-- **Logs**: `%APPDATA%\EyeRest\logs\eyerest.log`
-- **Analytics DB**: `%APPDATA%\EyeRest\analytics.db`
+**Write strategy:** Atomic file operations — write to temp file, create backup, move to overwrite. 3 retries with exponential backoff on failure.
+
+**Save debouncing:** UI changes trigger a 1.5-second debounce before persisting to disk.
 
 ---
 
-## Build & Development
+## Build & Deployment
 
-### Prerequisites
-- Windows 10/11 (SDK 10.0.19041.0+)
-- .NET 8.0 SDK
-- Visual Studio 2022 or VS Code
+| Task | Command / Script |
+|------|-----------------|
+| Build | `dotnet build` |
+| Run | `dotnet run --project EyeRest.UI` |
+| Publish | `dotnet publish` |
+| macOS .app bundle | `scripts/bundle-macos.sh` — self-contained publish, .app structure, code signing with hardened runtime |
+| Icon generation | `scripts/generate-icons.py` (requires Python + Pillow) |
 
-### Build Commands
-```bash
-# Restore dependencies
-dotnet restore
+**Solution-wide properties** (`Directory.Build.props`):
+- `TreatWarningsAsErrors`: true
+- `Nullable`: enable
+- `LangVersion`: latest
 
-# Build debug
-dotnet build
-
-# Build release
-dotnet build --configuration Release
-
-# Run application
-dotnet run
-
-# Run all tests
-dotnet test
-
-# Run specific test category
-dotnet test --filter Category=Unit
-dotnet test --filter Category=Integration
-dotnet test --filter Category=E2E
-```
-
-### UI Test Execution
-```bash
-# Via batch file
-run-ui-tests.bat
-
-# Or directly
-dotnet run -- RunUITests --build
-```
-
----
-
-## Dependencies
-
-### Internal Dependencies
-```
-EyeRest.Tests
-    └── EyeRest (ProjectReference)
-```
-
-### Windows API Dependencies
-- **user32.dll**: GetLastInputInfo, SetForegroundWindow
-- **kernel32.dll**: GetTickCount, system info
-- **wtsapi32.dll**: Session notifications
-
-### Service Dependencies (DI Graph)
-```
-ApplicationOrchestrator
-├── ITimerService
-├── INotificationService
-├── IAudioService
-├── ISystemTrayService
-├── IPerformanceMonitor
-├── IConfigurationService
-├── IUserPresenceService
-├── IAnalyticsService
-└── IPauseReminderService
-
-TimerService
-├── IConfigurationService
-├── IAnalyticsService
-├── ITimerFactory
-└── IPauseReminderService
-```
+**CI/CD:** Not yet configured.
 
 ---
 
 ## Version History
 
-| Date | Changes |
-|------|---------|
-| 2026-01-29 | Comprehensive documentation update |
-| 2025-01 | Initial architecture, dual-timer system |
-| 2025-02 | Added user presence detection |
-| 2025-03 | Added analytics service, SQLite storage |
-| 2025-04 | Timer service refactoring (partial classes) |
-| 2025-05 | Smart session reset, extended away detection |
-| 2025-06 | Meeting detection (disabled pending improvements) |
-
----
-
-## Performance Characteristics
-
-### Memory Usage
-| State | Target | Monitoring |
-|-------|--------|------------|
-| Idle | < 50MB | PerformanceMonitor service |
-| Active (popup visible) | < 100MB | Automatic tracking |
-| Peak (analytics export) | < 150MB | Logged warnings |
-
-**Optimization Strategies**:
-- Lazy loading of analytics data
-- Resource reuse for popup windows
-- Weak event handlers (WeakEventManager)
-- Proper disposal patterns
-
-### Startup Performance
-| Phase | Target | Actual |
-|-------|--------|--------|
-| DI Container Setup | < 500ms | ~300ms |
-| Service Initialization | < 1.5s | ~1s |
-| UI Ready | < 3s total | ~2.5s |
-
-**Strategy**:
-- Phased service initialization
-- Lazy loading for non-critical services
-- Background analytics database init
-- Validated by StartupPerformanceTests
-
-### Multi-Monitor Support
-- **Full-Screen Popups**: Span all connected monitors during breaks
-- **Positioning**: BasePopupWindow handles multi-monitor scenarios
-- **DPI Awareness**: Per-monitor DPI handling in app.manifest
-- **Testing**: UI tests validate behavior across monitor configurations
-
----
-
-## Thread Safety Model
-
-### UI Thread Operations
-All WPF operations must run on the UI thread:
-
-```csharp
-// Timer operations - DispatcherTimer automatically runs on UI thread
-_eyeRestTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-
-// Background to UI thread marshalling
-Application.Current.Dispatcher.BeginInvoke(() => {
-    // UI update code here
-});
-```
-
-**Key Rules**:
-- **DispatcherTimer**: All timer operations automatically on UI thread
-- **UI Updates**: Use `Dispatcher.BeginInvoke` from background threads
-- **WPF Binding**: Automatic UI thread marshalling via INotifyPropertyChanged
-- **Popup Windows**: Must be created and shown on UI thread
-
-### Background Operations
-| Operation | Thread | Synchronization |
-|-----------|--------|-----------------|
-| Performance monitoring | Background | async/await |
-| Analytics DB queries | Background | async/await |
-| File I/O (config) | Background | async/await |
-| Timer callbacks | UI thread | None needed |
-
-### Resource Cleanup
-- **IDisposable**: All services implement proper disposal
-- **Event Unsubscription**: ApplicationOrchestrator unsubscribes all events
-- **Timer Disposal**: Timers stopped and disposed on shutdown
-- **SQLite Connection**: Properly closed in AnalyticsService.Dispose()
-
----
-
-## Build Scripts and Utilities
-
-| File | Purpose |
-|------|---------|
-| `run-ui-tests.bat` | UI test execution batch script |
-| `test-audio.ps1` | Audio service testing |
-| `test-startup.ps1` | Startup performance testing |
-| `test-timer-behavior.ps1` | Timer behavior validation |
-
----
-
-## Future Enhancements
-
-### Planned Improvements
-- [ ] Meeting detection reliability improvements
-- [ ] Cross-platform support investigation
-- [ ] Cloud sync for settings/analytics
-- [ ] Custom notification sounds
-- [ ] Accessibility improvements
-
-### Technical Debt
-- Meeting detection services disabled (needs improvement)
-- Some legacy service files (TrayService.cs)
-- Test coverage gaps in UI automation
-
----
-
-**Document Version:** 2.0
-**Generated:** 2026-01-29
-**Maintainer:** Development Team
+| Date | Change |
+|------|--------|
+| 2026-02-25 | Downgraded to .NET 8 LTS for macOS 12+ compatibility |
+| 2026-02-25 | Merged Avalonia UI, macOS bundling, and code signing |
+| 2026-02-25 | Added macOS .app bundling with code signing |
+| 2026-02-25 | Merged new UI feature branch into master |
+| 2026-02-25 | Added lessons learned, new UI references, popup redesign plan |
