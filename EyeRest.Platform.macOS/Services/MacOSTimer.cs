@@ -7,19 +7,15 @@ namespace EyeRest.Services
 {
     /// <summary>
     /// macOS timer implementation using System.Threading.Timer.
-    /// Marshals tick events back to the captured SynchronizationContext
-    /// (typically the Avalonia UI thread) if one is available.
+    /// Fires tick events directly on the thread pool thread to avoid
+    /// being throttled by macOS App Nap when the app is in the background.
+    /// Event handlers are responsible for marshaling to the UI thread
+    /// for any UI operations (via IDispatcherService).
     /// </summary>
     public class MacOSTimer : ITimer
     {
         private System.Threading.Timer? _timer;
-        private readonly SynchronizationContext? _syncContext;
         private bool _disposed;
-
-        public MacOSTimer()
-        {
-            _syncContext = SynchronizationContext.Current;
-        }
 
         public TimeSpan Interval { get; set; }
         public bool IsEnabled { get; private set; }
@@ -42,10 +38,12 @@ namespace EyeRest.Services
 
         private void OnTick(object? state)
         {
-            if (_syncContext != null)
-                _syncContext.Post(_ => Tick?.Invoke(this, EventArgs.Empty), null);
-            else
-                Tick?.Invoke(this, EventArgs.Empty);
+            // Fire directly on thread pool — don't marshal through SynchronizationContext.
+            // macOS throttles SyncContext.Post delivery when the app is in the background
+            // (menu bar / system tray), causing timer ticks to be delayed indefinitely.
+            // The timer event handlers (OnBreakTimerTick, OnEyeRestTimerTick) handle their
+            // own UI thread marshaling via IDispatcherService for UI-specific operations.
+            Tick?.Invoke(this, EventArgs.Empty);
         }
 
         public void Dispose()

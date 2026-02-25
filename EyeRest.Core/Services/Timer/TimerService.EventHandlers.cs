@@ -84,14 +84,11 @@ namespace EyeRest.Services
                     return;
                 }
                 
-                // CRITICAL FIX: Ensure we're on UI thread for all timer operations
-                if (!_dispatcherService.CheckAccess())
-                {
-                    _logger.LogCritical("👁️ TIMER EVENT: Not on UI thread - invoking on UI thread");
-                    _dispatcherService.BeginInvoke(() => OnEyeRestTimerTick(sender, e));
-                    return;
-                }
-                
+                // State processing is thread-safe (volatile fields, Interlocked ops).
+                // Don't re-dispatch entire handler to UI thread — on macOS, the UI thread
+                // is throttled when the app is in the background, causing timer ticks to
+                // never be processed. StartEyeRestWarningTimer() handles its own UI marshaling.
+
                 UpdateHeartbeatFromOperation("OnEyeRestTimerTick");
                 
                 // CRITICAL FIX: Verify timer timing is correct
@@ -228,14 +225,11 @@ namespace EyeRest.Services
                     return;
                 }
                 
-                // CRITICAL FIX: Ensure we're on UI thread for all timer operations
-                if (!_dispatcherService.CheckAccess())
-                {
-                    _logger.LogCritical("☕ TIMER EVENT: Not on UI thread - invoking on UI thread");
-                    _dispatcherService.BeginInvoke(() => OnBreakTimerTick(sender, e));
-                    return;
-                }
-                
+                // State processing is thread-safe (volatile fields, Interlocked ops).
+                // Don't re-dispatch entire handler to UI thread — on macOS, the UI thread
+                // is throttled when the app is in the background, causing timer ticks to
+                // never be processed. StartBreakWarningTimer() handles its own UI marshaling.
+
                 UpdateHeartbeatFromOperation("OnBreakTimerTick");
                 
                 // Additional safety: Check if enough time has elapsed since break start
