@@ -46,8 +46,9 @@
 | Documentation files (`.md`) | ~32 |
 | Project files (`.csproj`) | 6 |
 | Image assets (`.png`) | 21 |
-| Scripts (`.sh`, `.py`) | 2 |
-| Total tests | 86 (Avalonia) |
+| Scripts (`.sh`, `.py`, `.ps1`) | 3 |
+| MSIX visual assets (`.png`) | 22 |
+| Total tests | 118 (Avalonia) |
 
 ---
 
@@ -133,9 +134,14 @@ eye-rest/
 │   └── src/                          (11 files) Components, theme, analytics
 │       └── components/               (7 files) Hero, Nav, Features, AppPreview, Download, Support, Footer
 │
+├── EyeRest.Package/                  [MSIX packaging for Microsoft Store]
+│   ├── Package.appxmanifest          App identity, capabilities, startup task, visual assets
+│   └── Images/                       (22 PNGs) Tiles, logos, and target sizes at multiple scales
+│
 ├── scripts/                          [Build & utility scripts]
 │   ├── bundle-macos.sh              macOS .app bundling with code signing
-│   └── generate-icons.py            Icon generation (Python/Pillow)
+│   ├── build-msix.ps1               Windows MSIX packaging (dotnet publish + makeappx)
+│   └── generate-icons.py            Icon generation (Python/Pillow, supports --msix flag)
 │
 └── roles/                            (5 files) Agent role definitions
 ```
@@ -423,6 +429,7 @@ A standalone React/TypeScript marketing website for Eye-Rest. Not included in th
 12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
 13. **Voluntary Donation Workflow** — LemonSqueezy-integrated license key validation with DPAPI (Windows) / Keychain (macOS) secure storage, usage-based prompts, and inline banner UI.
 14. **Marketing Website** — React/TypeScript/Tailwind CSS landing page with app preview, feature showcase, download links, and analytics tracking.
+15. **MSIX Packaging** — Microsoft Store distribution with auto-signing, full-trust Desktop Bridge, MSIX startup task, and sideload support.
 
 ---
 
@@ -553,14 +560,26 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 |------|-----------------|
 | Build | `dotnet build` |
 | Run | `dotnet run --project EyeRest.UI` |
+| Test | `dotnet test` |
 | Publish | `dotnet publish` |
 | macOS .app bundle | `scripts/bundle-macos.sh` — self-contained publish, .app structure, code signing with hardened runtime |
+| Windows MSIX (Store) | `scripts/build-msix.ps1 -ForStore` — unsigned MSIX for Microsoft Store upload |
+| Windows MSIX (sideload) | `scripts/build-msix.ps1` — self-signed MSIX for local testing |
 | Icon generation | `scripts/generate-icons.py` (requires Python + Pillow) |
+| MSIX icons only | `scripts/generate-icons.py --msix-only` |
+
+**MSIX Packaging** (`EyeRest.Package/`):
+- `Package.appxmanifest` — app identity, full-trust Desktop Bridge, startup task declaration
+- `Images/` — 22 visual assets (Square44x44, Square150x150, Wide310x150, StoreLogo) at multiple scales
+- Build output: `dist/EyeRest.msix` (~87 MB self-contained)
+- Startup registration: auto-detects MSIX context (uses `StartupTask` API) vs unpackaged (uses registry)
+- Toast notifications: auto-detects packaged vs unpackaged AUMID
 
 **Solution-wide properties** (`Directory.Build.props`):
 - `TreatWarningsAsErrors`: true
 - `Nullable`: enable
 - `LangVersion`: latest
+- `Version`: 1.0.0
 
 **CI/CD:** Not yet configured.
 
@@ -570,6 +589,8 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 
 | Date | Change |
 |------|--------|
+| 2026-02-25 | Added MSIX packaging for Microsoft Store distribution, build-msix.ps1 script, MSIX-aware StartupManager and toast notifications, 22 visual assets, version metadata |
+| 2026-02-25 | Routed donation link through eyerest.net website instead of direct LemonSqueezy checkout |
 | 2026-02-25 | Added voluntary donation workflow with LemonSqueezy integration, secure storage (DPAPI/Keychain), donation UI views, React marketing frontend, updated test suite to 86 tests |
 | 2026-02-25 | Removed legacy WPF project (EyeRest.csproj) and WPF test project (EyeRest.Tests) |
 | 2026-02-25 | Downgraded to .NET 8 LTS for macOS 12+ compatibility |

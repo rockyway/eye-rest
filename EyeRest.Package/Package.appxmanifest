@@ -15,7 +15,7 @@
   <Properties>
     <DisplayName>Eye Rest</DisplayName>
     <PublisherDisplayName>Tam Tran</PublisherDisplayName>
-    <Logo>Images\StoreLogo.scale-200.png</Logo>
+    <Logo>Images\StoreLogo.scale-400.png</Logo>
   </Properties>
 
   <Dependencies>
@@ -38,10 +38,10 @@
       <uap:VisualElements
         DisplayName="Eye Rest"
         Description="Automated eye rest and break reminders for healthier screen time"
-        Square150x150Logo="Images\Square150x150Logo.png"
-        Square44x44Logo="Images\Square44x44Logo.png"
+        Square150x150Logo="Images\Square150x150Logo.scale-200.png"
+        Square44x44Logo="Images\Square44x44Logo.scale-200.png"
         BackgroundColor="transparent">
-        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png" />
+        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.scale-200.png" />
       </uap:VisualElements>
 
       <Extensions>
