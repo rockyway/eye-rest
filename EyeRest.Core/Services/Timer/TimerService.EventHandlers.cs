@@ -814,6 +814,7 @@ namespace EyeRest.Services
                 // This ensures eye rest is triggered even if the main warning timer fails
                 // IMPORTANT: Stop and dispose any existing fallback timer to prevent ghost timers
                 _eyeRestWarningFallbackTimer?.Stop();
+                _eyeRestWarningFallbackTimer?.Dispose();
                 _eyeRestWarningFallbackTimer = null;
 
                 _eyeRestWarningFallbackTimer = _timerFactory.CreateTimer();
@@ -1020,6 +1021,7 @@ namespace EyeRest.Services
                 // This ensures break is triggered even if the main warning timer fails
                 // IMPORTANT: Stop and dispose any existing fallback timer to prevent ghost timers
                 _breakWarningFallbackTimer?.Stop();
+                _breakWarningFallbackTimer?.Dispose();
                 _breakWarningFallbackTimer = null;
 
                 _breakWarningFallbackTimer = _timerFactory.CreateTimer();

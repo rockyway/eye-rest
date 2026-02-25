@@ -454,47 +454,16 @@ namespace EyeRest.Services
                 if (_breakDelayTimer != null)
                 {
                     _breakDelayTimer.Stop();
-                    _breakDelayTimer.Tick -= null; // Clear event handlers
-                    _logger.LogInformation("🔧 Stopped previous break delay timer to prevent conflicts");
+                    _breakDelayTimer.Tick -= OnBreakDelayTimerTick;
+                    _breakDelayTimer.Dispose();
+                    _logger.LogInformation("🔧 Stopped and disposed previous break delay timer to prevent conflicts");
                 }
 
                 // Set timer to resume after delay
                 _breakDelayTimer = _timerFactory.CreateTimer();
                 _breakDelayTimer.Interval = delay;
 
-                _breakDelayTimer.Tick += async (s, e) =>
-                {
-                    await Task.CompletedTask;
-                    _breakDelayTimer?.Stop();
-                    IsBreakDelayed = false;
-
-                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
-                    {
-                        // CRITICAL FIX: Use warning flow instead of direct TriggerBreak()
-                        // This ensures users get the 30-second warning before break starts,
-                        // maintaining consistent user experience regardless of how break was initiated
-                        _logger.LogInformation("Delay period ended - starting break warning flow for consistent user experience");
-
-                        // Check if warnings are enabled
-                        var warningEnabled = _configuration?.Break?.WarningEnabled ?? true;
-                        var warningSeconds = _configuration?.Break?.WarningSeconds ?? 30;
-
-                        if (warningEnabled && warningSeconds > 0)
-                        {
-                            // Use the proper warning flow
-                            StartBreakWarningTimer();
-                        }
-                        else
-                        {
-                            // Warnings disabled - trigger break directly
-                            _logger.LogInformation("Break warnings disabled - triggering break directly after delay");
-                            TriggerBreak();
-                        }
-
-                        // Note: Eye rest timer coordination is handled by SmartPauseEyeRestTimerForBreak()
-                        // which is called in TriggerBreakWarning() and TriggerBreak()
-                    }
-                };
+                _breakDelayTimer.Tick += OnBreakDelayTimerTick;
 
                 _breakDelayTimer.Start();
                 _logger.LogInformation("🔧 Break delay timer started for {Minutes} minute(s)", delay.TotalMinutes);
@@ -507,6 +476,42 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "Error delaying break");
                 IsBreakDelayed = false;
+            }
+        }
+        /// <summary>
+        /// Named event handler for break delay timer tick, replacing anonymous lambda to allow proper unsubscription.
+        /// </summary>
+        private async void OnBreakDelayTimerTick(object? sender, EventArgs e)
+        {
+            await Task.CompletedTask;
+            _breakDelayTimer?.Stop();
+            IsBreakDelayed = false;
+
+            if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
+            {
+                // CRITICAL FIX: Use warning flow instead of direct TriggerBreak()
+                // This ensures users get the 30-second warning before break starts,
+                // maintaining consistent user experience regardless of how break was initiated
+                _logger.LogInformation("Delay period ended - starting break warning flow for consistent user experience");
+
+                // Check if warnings are enabled
+                var warningEnabled = _configuration?.Break?.WarningEnabled ?? true;
+                var warningSeconds = _configuration?.Break?.WarningSeconds ?? 30;
+
+                if (warningEnabled && warningSeconds > 0)
+                {
+                    // Use the proper warning flow
+                    StartBreakWarningTimer();
+                }
+                else
+                {
+                    // Warnings disabled - trigger break directly
+                    _logger.LogInformation("Break warnings disabled - triggering break directly after delay");
+                    TriggerBreak();
+                }
+
+                // Note: Eye rest timer coordination is handled by SmartPauseEyeRestTimerForBreak()
+                // which is called in TriggerBreakWarning() and TriggerBreak()
             }
         }
     }

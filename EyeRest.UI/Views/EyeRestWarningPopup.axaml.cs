@@ -12,6 +12,10 @@ namespace EyeRest.UI.Views
         private TimeSpan _totalDuration;
         private DispatcherTimer? _smoothAnimationTimer;
         private double _targetProgressValue;
+        private double _animStartValue;
+        private DateTime _animStartTime;
+        private TimeSpan _animDuration;
+        private Window? _parentWindow;
 
         public event EventHandler? WarningCompleted;
 
@@ -32,12 +36,26 @@ namespace EyeRest.UI.Views
             var topLevel = TopLevel.GetTopLevel(this);
             if (topLevel is Window window)
             {
-                window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+                _parentWindow = window;
+                _parentWindow.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
                 // Ensure window can receive keyboard input
                 window.Activate();
                 window.Focus();
                 Debug.WriteLine("EyeRestWarningPopup: Window key handler attached and focused");
             }
+
+            // Subscribe to Unloaded for cleanup
+            this.Unloaded += OnUnloaded;
+        }
+
+        private void OnUnloaded(object? sender, RoutedEventArgs e)
+        {
+            if (_parentWindow != null)
+            {
+                _parentWindow.RemoveHandler(KeyDownEvent, OnKeyDown);
+                _parentWindow = null;
+            }
+            this.Unloaded -= OnUnloaded;
         }
 
         public void StartCountdown(int seconds)
@@ -90,46 +108,64 @@ namespace EyeRest.UI.Views
         }
 
         /// <summary>
-        /// Animate progress bar value smoothly using DispatcherTimer
+        /// Animate progress bar value smoothly using a single reusable DispatcherTimer
         /// </summary>
         private void AnimateProgressTo(double targetValue, TimeSpan duration)
         {
-            _smoothAnimationTimer?.Stop();
             _targetProgressValue = targetValue;
+            _animStartValue = ProgressBar.Value;
+            _animStartTime = DateTime.Now;
+            _animDuration = duration;
 
-            var startValue = ProgressBar.Value;
-            var startTime = DateTime.Now;
-
-            _smoothAnimationTimer = new DispatcherTimer
+            if (_smoothAnimationTimer == null)
             {
-                Interval = TimeSpan.FromMilliseconds(16) // ~60fps
-            };
-
-            _smoothAnimationTimer.Tick += (s, e) =>
-            {
-                var elapsed = DateTime.Now - startTime;
-                var progress = Math.Min(elapsed.TotalMilliseconds / duration.TotalMilliseconds, 1.0);
-
-                // Ease-out quadratic
-                progress = 1.0 - (1.0 - progress) * (1.0 - progress);
-
-                ProgressBar.Value = startValue + (targetValue - startValue) * progress;
-
-                if (progress >= 1.0)
+                _smoothAnimationTimer = new DispatcherTimer
                 {
-                    _smoothAnimationTimer?.Stop();
-                    _smoothAnimationTimer = null;
-                    ProgressBar.Value = targetValue;
-                }
-            };
+                    Interval = TimeSpan.FromMilliseconds(16) // ~60fps
+                };
+                _smoothAnimationTimer.Tick += OnSmoothAnimationTick;
+            }
+            else
+            {
+                _smoothAnimationTimer.Stop();
+            }
 
             _smoothAnimationTimer.Start();
         }
 
+        private void OnSmoothAnimationTick(object? sender, EventArgs e)
+        {
+            var elapsed = DateTime.Now - _animStartTime;
+            var progress = Math.Min(elapsed.TotalMilliseconds / _animDuration.TotalMilliseconds, 1.0);
+
+            // Ease-out quadratic
+            progress = 1.0 - (1.0 - progress) * (1.0 - progress);
+
+            ProgressBar.Value = _animStartValue + (_targetProgressValue - _animStartValue) * progress;
+
+            if (progress >= 1.0)
+            {
+                _smoothAnimationTimer?.Stop();
+                ProgressBar.Value = _targetProgressValue;
+            }
+        }
+
         public void StopCountdown()
         {
-            _smoothAnimationTimer?.Stop();
-            _smoothAnimationTimer = null;
+            if (_smoothAnimationTimer != null)
+            {
+                _smoothAnimationTimer.Stop();
+                _smoothAnimationTimer.Tick -= OnSmoothAnimationTick;
+                _smoothAnimationTimer = null;
+            }
+
+            // Clean up window key handler
+            if (_parentWindow != null)
+            {
+                _parentWindow.RemoveHandler(KeyDownEvent, OnKeyDown);
+                _parentWindow = null;
+            }
+
             Debug.WriteLine("EyeRestWarningPopup: StopCountdown called");
         }
 

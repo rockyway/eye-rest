@@ -9,6 +9,12 @@ namespace EyeRest.Services
 {
     public class ConfigurationService : IConfigurationService
     {
+        private static readonly JsonSerializerOptions s_jsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        };
+
         private readonly ILogger<ConfigurationService> _logger;
         private readonly string _configFilePath;
         private AppConfiguration? _currentConfiguration;
@@ -43,13 +49,7 @@ namespace EyeRest.Services
 
                 using (var stream = File.OpenRead(_configFilePath))
                 {
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                        WriteIndented = true
-                    };
-
-                    var configuration = await JsonSerializer.DeserializeAsync<AppConfiguration>(stream, options);
+                    var configuration = await JsonSerializer.DeserializeAsync<AppConfiguration>(stream, s_jsonOptions);
 
                     if (configuration == null)
                     {
@@ -83,12 +83,6 @@ namespace EyeRest.Services
                 {
                     var validatedConfig = ValidateConfiguration(config);
 
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                        WriteIndented = true
-                    };
-
                     // Ensure directory exists with proper permissions
                     var directory = Path.GetDirectoryName(_configFilePath);
                     if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
@@ -107,7 +101,7 @@ namespace EyeRest.Services
                     // Step 1: Write to temporary file
                     using (var stream = File.Create(tempFilePath))
                     {
-                        await JsonSerializer.SerializeAsync(stream, validatedConfig, options);
+                        await JsonSerializer.SerializeAsync(stream, validatedConfig, s_jsonOptions);
                         await stream.FlushAsync(); // Ensure data is written to disk
                     }
 

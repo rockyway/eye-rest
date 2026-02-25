@@ -818,87 +818,100 @@ namespace EyeRest.Services
         {
             await Task.CompletedTask;
             var dailyMetrics = new List<DailyMetric>();
-            
+
             try
             {
+                // Pre-create empty metrics for every day in range
+                var metricsByDate = new Dictionary<DateTime, DailyMetric>();
+                var currentDate = startDate.Date;
+                while (currentDate <= endDate.Date)
+                {
+                    var metric = new DailyMetric { Date = currentDate };
+                    metricsByDate[currentDate] = metric;
+                    dailyMetrics.Add(metric);
+                    currentDate = currentDate.AddDays(1);
+                }
+
                 lock (_dbLock)
                 {
                     using var connection = new SqliteConnection(_connectionString);
                     connection.Open();
-                    
-                    var currentDate = startDate.Date;
-                    while (currentDate <= endDate.Date)
+
+                    // Single query: group by date, EventType, UserAction
+                    using var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        SELECT
+                            date(TriggeredAt) as EventDate,
+                            EventType,
+                            UserAction,
+                            COUNT(*) as Count,
+                            SUM(Duration) as TotalDuration
+                        FROM RestEvents
+                        WHERE TriggeredAt >= @startDate AND TriggeredAt < @endDate
+                        GROUP BY date(TriggeredAt), EventType, UserAction
+                        ORDER BY EventDate";
+
+                    command.Parameters.AddWithValue("@startDate", startDate.Date);
+                    command.Parameters.AddWithValue("@endDate", endDate.Date.AddDays(1));
+
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
                     {
-                        var nextDate = currentDate.AddDays(1);
-                        
-                        using var command = connection.CreateCommand();
-                        command.CommandText = @"
-                            SELECT 
-                                EventType,
-                                UserAction,
-                                COUNT(*) as Count,
-                                SUM(Duration) as TotalDuration
-                            FROM RestEvents 
-                            WHERE TriggeredAt >= @startDate AND TriggeredAt < @endDate
-                            GROUP BY EventType, UserAction";
-                        
-                        command.Parameters.AddWithValue("@startDate", currentDate);
-                        command.Parameters.AddWithValue("@endDate", nextDate);
-                        
-                        var metric = new DailyMetric { Date = currentDate };
-                        
-                        using var reader = command.ExecuteReader();
-                        while (reader.Read())
+                        var eventDateStr = reader.GetString(0);  // EventDate (date string)
+                        var eventType = reader.GetString(1);     // EventType
+                        var userAction = reader.GetString(2);    // UserAction
+                        var count = reader.GetInt32(3);          // Count
+                        var duration = reader.IsDBNull(4) ? 0L : reader.GetInt64(4); // TotalDuration
+
+                        var eventDate = DateTime.Parse(eventDateStr).Date;
+
+                        if (!metricsByDate.TryGetValue(eventDate, out var metric))
+                            continue;
+
+                        if (eventType == "Break")
                         {
-                            var eventType = reader.GetString(0);   // EventType
-                            var userAction = reader.GetString(1);  // UserAction
-                            var count = reader.GetInt32(2);        // Count
-                            var duration = reader.GetInt64(3);     // TotalDuration
-                            
-                            if (eventType == "Break")
+                            switch (userAction)
                             {
-                                switch (userAction)
-                                {
-                                    case "Completed":
-                                        metric.BreaksCompleted = count;
-                                        metric.TotalBreakTime = TimeSpan.FromMilliseconds(duration);
-                                        break;
-                                    case "Skipped":
-                                        metric.BreaksSkipped = count;
-                                        break;
-                                    case "Delayed1Min":
-                                    case "Delayed5Min":
-                                        metric.BreaksDelayed += count;
-                                        break;
-                                }
-                            }
-                            else if (eventType == "EyeRest")
-                            {
-                                switch (userAction)
-                                {
-                                    case "Completed":
-                                        metric.EyeRestsCompleted = count;
-                                        break;
-                                    case "Skipped":
-                                        metric.EyeRestsSkipped = count;
-                                        break;
-                                }
+                                case "Completed":
+                                    metric.BreaksCompleted = count;
+                                    metric.TotalBreakTime = TimeSpan.FromMilliseconds(duration);
+                                    break;
+                                case "Skipped":
+                                    metric.BreaksSkipped = count;
+                                    break;
+                                case "Delayed1Min":
+                                case "Delayed5Min":
+                                    metric.BreaksDelayed += count;
+                                    break;
                             }
                         }
-                        
-                        metric.BreaksDue = metric.BreaksCompleted + metric.BreaksSkipped + metric.BreaksDelayed;
-                        metric.EyeRestsDue = metric.EyeRestsCompleted + metric.EyeRestsSkipped;
-                        
-                        if (metric.BreaksDue > 0)
+                        else if (eventType == "EyeRest")
                         {
-                            metric.ComplianceRate = (double)metric.BreaksCompleted / metric.BreaksDue;
+                            switch (userAction)
+                            {
+                                case "Completed":
+                                    metric.EyeRestsCompleted = count;
+                                    break;
+                                case "Skipped":
+                                    metric.EyeRestsSkipped = count;
+                                    break;
+                            }
                         }
-                        
-                        dailyMetrics.Add(metric);
-                        currentDate = nextDate;
                     }
                 }
-                
+
+                // Calculate derived fields for all metrics
+                foreach (var metric in dailyMetrics)
+                {
+                    metric.BreaksDue = metric.BreaksCompleted + metric.BreaksSkipped + metric.BreaksDelayed;
+                    metric.EyeRestsDue = metric.EyeRestsCompleted + metric.EyeRestsSkipped;
+
+                    if (metric.BreaksDue > 0)
+                    {
+                        metric.ComplianceRate = (double)metric.BreaksCompleted / metric.BreaksDue;
+                    }
+                }
+
                 return dailyMetrics;
             }
             catch (Exception ex)
@@ -964,54 +977,63 @@ namespace EyeRest.Services
         {
             await Task.CompletedTask;
             var stats = new List<MeetingStats>();
-            
+
             try
             {
+                // Pre-create empty stats for every day in range
+                var statsByDate = new Dictionary<DateTime, MeetingStats>();
+                var currentDate = startDate.Date;
+                while (currentDate <= endDate.Date)
+                {
+                    var stat = new MeetingStats { Date = currentDate };
+                    statsByDate[currentDate] = stat;
+                    stats.Add(stat);
+                    currentDate = currentDate.AddDays(1);
+                }
+
                 lock (_dbLock)
                 {
                     using var connection = new SqliteConnection(_connectionString);
                     connection.Open();
-                    
-                    var currentDate = startDate.Date;
-                    while (currentDate <= endDate.Date)
+
+                    // Single query: group by date and MeetingType
+                    using var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        SELECT
+                            date(StartTime) as EventDate,
+                            MeetingType,
+                            COUNT(*) as Count,
+                            SUM(JULIANDAY(COALESCE(EndTime, datetime('now'))) - JULIANDAY(StartTime)) * 24 * 60 as TotalMinutes,
+                            SUM(CASE WHEN TimersPaused = 1 THEN 1 ELSE 0 END) as PausedCount
+                        FROM MeetingEvents
+                        WHERE StartTime >= @startDate AND StartTime < @endDate
+                        GROUP BY date(StartTime), MeetingType
+                        ORDER BY EventDate";
+
+                    command.Parameters.AddWithValue("@startDate", startDate.Date);
+                    command.Parameters.AddWithValue("@endDate", endDate.Date.AddDays(1));
+
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
                     {
-                        var nextDate = currentDate.AddDays(1);
-                        
-                        using var command = connection.CreateCommand();
-                        command.CommandText = @"
-                            SELECT 
-                                MeetingType,
-                                COUNT(*) as Count,
-                                SUM(JULIANDAY(COALESCE(EndTime, datetime('now'))) - JULIANDAY(StartTime)) * 24 * 60 as TotalMinutes,
-                                SUM(CASE WHEN TimersPaused = 1 THEN 1 ELSE 0 END) as PausedCount
-                            FROM MeetingEvents
-                            WHERE StartTime >= @startDate AND StartTime < @endDate
-                            GROUP BY MeetingType";
-                        
-                        command.Parameters.AddWithValue("@startDate", currentDate);
-                        command.Parameters.AddWithValue("@endDate", nextDate);
-                        
-                        var stat = new MeetingStats { Date = currentDate };
-                        
-                        using var reader = command.ExecuteReader();
-                        while (reader.Read())
-                        {
-                            var meetingType = Enum.Parse<MeetingType>(reader.GetString(0));   // MeetingType
-                            var count = reader.GetInt32(1);                                  // Count
-                            var minutes = reader.GetDouble(2);                               // TotalMinutes
-                            var pausedCount = reader.GetInt32(3);                            // PausedCount
-                            
-                            stat.MeetingsByType[meetingType] = count;
-                            stat.TotalMeetings += count;
-                            stat.TotalMeetingTime = stat.TotalMeetingTime.Add(TimeSpan.FromMinutes(minutes));
-                            stat.TimersPausedCount += pausedCount;
-                        }
-                        
-                        stats.Add(stat);
-                        currentDate = nextDate;
+                        var eventDateStr = reader.GetString(0);                              // EventDate
+                        var meetingType = Enum.Parse<MeetingType>(reader.GetString(1));       // MeetingType
+                        var count = reader.GetInt32(2);                                      // Count
+                        var minutes = reader.GetDouble(3);                                   // TotalMinutes
+                        var pausedCount = reader.GetInt32(4);                                // PausedCount
+
+                        var eventDate = DateTime.Parse(eventDateStr).Date;
+
+                        if (!statsByDate.TryGetValue(eventDate, out var stat))
+                            continue;
+
+                        stat.MeetingsByType[meetingType] = count;
+                        stat.TotalMeetings += count;
+                        stat.TotalMeetingTime = stat.TotalMeetingTime.Add(TimeSpan.FromMinutes(minutes));
+                        stat.TimersPausedCount += pausedCount;
                     }
                 }
-                
+
                 return stats;
             }
             catch (Exception ex)
@@ -1041,36 +1063,35 @@ namespace EyeRest.Services
             return _databasePath;
         }
 
-        public async Task<List<WeeklyMetrics>> GetWeeklyMetricsAsync(DateTime startDate, DateTime endDate)
+        public async Task<List<WeeklyMetrics>> GetWeeklyMetricsAsync(DateTime startDate, DateTime endDate, List<DailyMetric>? prefetchedDailyMetrics = null)
         {
-            await Task.CompletedTask;
             var weeklyMetrics = new List<WeeklyMetrics>();
-            
+
             try
             {
+                // Fetch daily metrics OUTSIDE the lock to avoid deadlock
+                var dailyMetrics = prefetchedDailyMetrics ?? await GetDailyMetricsAsync(startDate, endDate);
+
+                // Group by week
+                var weeklyGroups = dailyMetrics
+                    .GroupBy(d => new {
+                        Year = d.Date.Year,
+                        Week = GetWeekOfYear(d.Date)
+                    })
+                    .OrderByDescending(g => g.Key.Year)
+                    .ThenByDescending(g => g.Key.Week);
+
                 lock (_dbLock)
                 {
                     using var connection = new SqliteConnection(_connectionString);
                     connection.Open();
-                    
-                    // Get all daily metrics in the date range
-                    var dailyMetrics = GetDailyMetricsAsync(startDate, endDate).Result;
-                    
-                    // Group by week
-                    var weeklyGroups = dailyMetrics
-                        .GroupBy(d => new { 
-                            Year = d.Date.Year,
-                            Week = GetWeekOfYear(d.Date)
-                        })
-                        .OrderByDescending(g => g.Key.Year)
-                        .ThenByDescending(g => g.Key.Week);
-                    
+
                     foreach (var weekGroup in weeklyGroups)
                     {
                         var weekData = weekGroup.ToList();
                         var firstDay = weekData.Min(d => d.Date);
                         var lastDay = weekData.Max(d => d.Date);
-                        
+
                         var weekMetric = new WeeklyMetrics
                         {
                             WeekStartDate = firstDay,
@@ -1087,39 +1108,39 @@ namespace EyeRest.Services
                             SkippedEyeRests = weekData.Sum(d => d.EyeRestsSkipped),
                             TotalBreakTime = TimeSpan.FromTicks(weekData.Sum(d => d.TotalBreakTime.Ticks))
                         };
-                        
+
                         // Calculate compliance rate
                         if (weekMetric.TotalBreaks > 0)
                         {
                             weekMetric.ComplianceRate = (double)weekMetric.CompletedBreaks / weekMetric.TotalBreaks;
                         }
-                        
+
                         // Calculate average break time
                         if (weekMetric.CompletedBreaks > 0)
                         {
                             weekMetric.AverageBreakTime = TimeSpan.FromTicks(weekMetric.TotalBreakTime.Ticks / weekMetric.CompletedBreaks);
                         }
-                        
+
                         // Get total active time for the week
                         using var command = connection.CreateCommand();
                         command.CommandText = @"
                             SELECT SUM(TotalActiveTime) as TotalActive
                             FROM UserSessions
                             WHERE StartTime >= @startDate AND StartTime <= @endDate";
-                        
+
                         command.Parameters.AddWithValue("@startDate", firstDay);
                         command.Parameters.AddWithValue("@endDate", lastDay.AddDays(1));
-                        
+
                         var activeTimeResult = command.ExecuteScalar();
                         if (activeTimeResult != DBNull.Value)
                         {
                             weekMetric.TotalActiveTime = TimeSpan.FromMilliseconds(Convert.ToDouble(activeTimeResult));
                         }
-                        
+
                         weeklyMetrics.Add(weekMetric);
                     }
                 }
-                
+
                 return weeklyMetrics;
             }
             catch (Exception ex)
@@ -1129,36 +1150,35 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task<List<MonthlyMetrics>> GetMonthlyMetricsAsync(DateTime startDate, DateTime endDate)
+        public async Task<List<MonthlyMetrics>> GetMonthlyMetricsAsync(DateTime startDate, DateTime endDate, List<DailyMetric>? prefetchedDailyMetrics = null)
         {
-            await Task.CompletedTask;
             var monthlyMetrics = new List<MonthlyMetrics>();
-            
+
             try
             {
+                // Fetch daily metrics OUTSIDE the lock to avoid deadlock
+                var dailyMetrics = prefetchedDailyMetrics ?? await GetDailyMetricsAsync(startDate, endDate);
+
+                // Group by month
+                var monthlyGroups = dailyMetrics
+                    .GroupBy(d => new {
+                        Year = d.Date.Year,
+                        Month = d.Date.Month
+                    })
+                    .OrderByDescending(g => g.Key.Year)
+                    .ThenByDescending(g => g.Key.Month);
+
                 lock (_dbLock)
                 {
                     using var connection = new SqliteConnection(_connectionString);
                     connection.Open();
-                    
-                    // Get all daily metrics in the date range
-                    var dailyMetrics = GetDailyMetricsAsync(startDate, endDate).Result;
-                    
-                    // Group by month
-                    var monthlyGroups = dailyMetrics
-                        .GroupBy(d => new { 
-                            Year = d.Date.Year,
-                            Month = d.Date.Month
-                        })
-                        .OrderByDescending(g => g.Key.Year)
-                        .ThenByDescending(g => g.Key.Month);
-                    
+
                     foreach (var monthGroup in monthlyGroups)
                     {
                         var monthData = monthGroup.ToList();
                         var firstDay = new DateTime(monthGroup.Key.Year, monthGroup.Key.Month, 1);
                         var lastDay = firstDay.AddMonths(1).AddDays(-1);
-                        
+
                         var monthMetric = new MonthlyMetrics
                         {
                             MonthStartDate = firstDay,
@@ -1176,39 +1196,39 @@ namespace EyeRest.Services
                             TotalBreakTime = TimeSpan.FromTicks(monthData.Sum(d => d.TotalBreakTime.Ticks)),
                             WeeksActive = monthData.GroupBy(d => GetWeekOfYear(d.Date)).Count()
                         };
-                        
+
                         // Calculate compliance rate
                         if (monthMetric.TotalBreaks > 0)
                         {
                             monthMetric.ComplianceRate = (double)monthMetric.CompletedBreaks / monthMetric.TotalBreaks;
                         }
-                        
+
                         // Calculate average break time
                         if (monthMetric.CompletedBreaks > 0)
                         {
                             monthMetric.AverageBreakTime = TimeSpan.FromTicks(monthMetric.TotalBreakTime.Ticks / monthMetric.CompletedBreaks);
                         }
-                        
+
                         // Get total active time for the month
                         using var command = connection.CreateCommand();
                         command.CommandText = @"
                             SELECT SUM(TotalActiveTime) as TotalActive
                             FROM UserSessions
                             WHERE StartTime >= @startDate AND StartTime < @endDate";
-                        
+
                         command.Parameters.AddWithValue("@startDate", firstDay);
                         command.Parameters.AddWithValue("@endDate", firstDay.AddMonths(1));
-                        
+
                         var activeTimeResult = command.ExecuteScalar();
                         if (activeTimeResult != DBNull.Value)
                         {
                             monthMetric.TotalActiveTime = TimeSpan.FromMilliseconds(Convert.ToDouble(activeTimeResult));
                         }
-                        
+
                         monthlyMetrics.Add(monthMetric);
                     }
                 }
-                
+
                 return monthlyMetrics;
             }
             catch (Exception ex)
@@ -1626,13 +1646,17 @@ namespace EyeRest.Services
         {
             try
             {
-                using var connection = new SqliteConnection(_connectionString);
-                await connection.OpenAsync();
-                using var command = connection.CreateCommand();
-                command.CommandText = "INSERT INTO PauseEvents (Timestamp, Reason) VALUES (@timestamp, @reason)";
-                command.Parameters.AddWithValue("@timestamp", DateTime.Now);
-                command.Parameters.AddWithValue("@reason", reason.ToString());
-                await command.ExecuteNonQueryAsync();
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+                    using var command = connection.CreateCommand();
+                    command.CommandText = "INSERT INTO PauseEvents (Timestamp, Reason) VALUES (@timestamp, @reason)";
+                    command.Parameters.AddWithValue("@timestamp", DateTime.Now);
+                    command.Parameters.AddWithValue("@reason", reason.ToString());
+                    command.ExecuteNonQuery();
+                }
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -1644,13 +1668,17 @@ namespace EyeRest.Services
         {
             try
             {
-                using var connection = new SqliteConnection(_connectionString);
-                await connection.OpenAsync();
-                using var command = connection.CreateCommand();
-                command.CommandText = "INSERT INTO ResumeEvents (Timestamp, Reason) VALUES (@timestamp, @reason)";
-                command.Parameters.AddWithValue("@timestamp", DateTime.Now);
-                command.Parameters.AddWithValue("@reason", reason.ToString());
-                await command.ExecuteNonQueryAsync();
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+                    using var command = connection.CreateCommand();
+                    command.CommandText = "INSERT INTO ResumeEvents (Timestamp, Reason) VALUES (@timestamp, @reason)";
+                    command.Parameters.AddWithValue("@timestamp", DateTime.Now);
+                    command.Parameters.AddWithValue("@reason", reason.ToString());
+                    command.ExecuteNonQuery();
+                }
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -1663,23 +1691,27 @@ namespace EyeRest.Services
             try
             {
                 var cutoffDate = DateTime.Now.AddDays(-retentionDays);
-                
-                using var connection = new SqliteConnection(_connectionString);
-                await connection.OpenAsync();
-                using var command = connection.CreateCommand();
-                command.CommandText = @"
-                    DELETE FROM BreakEvents WHERE Timestamp < @cutoffDate;
-                    DELETE FROM EyeRestEvents WHERE Timestamp < @cutoffDate;
-                    DELETE FROM UserPresenceEvents WHERE Timestamp < @cutoffDate;
-                    DELETE FROM MeetingEvents WHERE StartTime < @cutoffDate;
-                    DELETE FROM PauseEvents WHERE Timestamp < @cutoffDate;
-                    DELETE FROM ResumeEvents WHERE Timestamp < @cutoffDate;";
-                
-                command.Parameters.AddWithValue("@cutoffDate", cutoffDate);
-                
-                var deletedRows = await command.ExecuteNonQueryAsync();
-                _logger.LogInformation("🧹 Cleaned up {DeletedRows} old analytics records older than {CutoffDate}", 
-                    deletedRows, cutoffDate.ToString("yyyy-MM-dd"));
+
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+                    using var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        DELETE FROM RestEvents WHERE TriggeredAt < @cutoffDate;
+                        DELETE FROM PresenceEvents WHERE Timestamp < @cutoffDate;
+                        DELETE FROM UserSessions WHERE StartTime < @cutoffDate;
+                        DELETE FROM PauseEvents WHERE Timestamp < @cutoffDate;
+                        DELETE FROM ResumeEvents WHERE Timestamp < @cutoffDate;";
+
+                    command.Parameters.AddWithValue("@cutoffDate", cutoffDate);
+
+                    var deletedRows = command.ExecuteNonQuery();
+                    _logger.LogInformation("Cleaned up {DeletedRows} old analytics records older than {CutoffDate}",
+                        deletedRows, cutoffDate.ToString("yyyy-MM-dd"));
+                }
+
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -1694,10 +1726,46 @@ namespace EyeRest.Services
             {
                 if (_currentSessionId != -1)
                 {
-                    RecordSessionEndAsync().Wait(TimeSpan.FromSeconds(5));
+                    // Use synchronous SQLite operations directly to avoid
+                    // synchronization context deadlock from .Wait() on async method
+                    var now = DateTime.Now;
+
+                    lock (_sessionLock)
+                    {
+                        if (_currentSessionState == SessionState.Active)
+                        {
+                            var activeTime = now - _lastActiveTime;
+                            _totalActiveTimeThisSession = _totalActiveTimeThisSession.Add(activeTime);
+                        }
+                    }
+
+                    lock (_dbLock)
+                    {
+                        using var connection = new SqliteConnection(_connectionString);
+                        connection.Open();
+
+                        using var command = connection.CreateCommand();
+                        command.CommandText = @"
+                            UPDATE UserSessions
+                            SET EndTime = @endTime,
+                                TotalActiveTime = @totalActiveTime,
+                                InactiveTime = @inactiveTime,
+                                SessionState = @sessionState
+                            WHERE Id = @sessionId";
+
+                        command.Parameters.AddWithValue("@endTime", now);
+                        command.Parameters.AddWithValue("@totalActiveTime", (int)_totalActiveTimeThisSession.TotalMilliseconds);
+                        command.Parameters.AddWithValue("@inactiveTime", (int)_totalInactiveTimeThisSession.TotalMilliseconds);
+                        command.Parameters.AddWithValue("@sessionState", SessionState.Ended.ToString());
+                        command.Parameters.AddWithValue("@sessionId", _currentSessionId);
+
+                        command.ExecuteNonQuery();
+                    }
+
+                    _currentSessionId = -1;
                 }
-                
-                _logger.LogInformation("📊 AnalyticsService disposed successfully");
+
+                _logger.LogInformation("AnalyticsService disposed successfully");
             }
             catch (Exception ex)
             {

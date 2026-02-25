@@ -34,8 +34,8 @@ namespace EyeRest.Services
         Task<List<MeetingStats>> GetMeetingStatsAsync(DateTime startDate, DateTime endDate);
         
         // Weekly and Monthly Analytics
-        Task<List<WeeklyMetrics>> GetWeeklyMetricsAsync(DateTime startDate, DateTime endDate);
-        Task<List<MonthlyMetrics>> GetMonthlyMetricsAsync(DateTime startDate, DateTime endDate);
+        Task<List<WeeklyMetrics>> GetWeeklyMetricsAsync(DateTime startDate, DateTime endDate, List<DailyMetric>? prefetchedDailyMetrics = null);
+        Task<List<MonthlyMetrics>> GetMonthlyMetricsAsync(DateTime startDate, DateTime endDate, List<DailyMetric>? prefetchedDailyMetrics = null);
         Task<long> GetDatabaseSizeAsync();
         string GetDatabasePath();
         

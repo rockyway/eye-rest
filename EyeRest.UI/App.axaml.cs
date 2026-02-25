@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -22,6 +23,7 @@ public partial class App : Application
 {
     private IHost? _host;
     private TrayIcon? _trayIcon;
+    private Dictionary<TrayIconState, WindowIcon>? _trayIconCache;
 
     public static IServiceProvider? Services { get; private set; }
 
@@ -153,6 +155,7 @@ public partial class App : Application
 
             // Set up Avalonia TrayIcon (the ObjC NSStatusItem approach doesn't work with Avalonia)
             SetupTrayIcon(systemTrayService);
+            PreloadTrayIcons();
             SetMacOSDockIcon();
             SubscribeDockIconClick();
 
@@ -255,12 +258,44 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Pre-loads all tray icon images into a dictionary at startup so that
+    /// UpdateTrayIconForState can use a fast dictionary lookup instead of
+    /// opening PNG streams from the asset loader on every state change.
+    /// </summary>
+    private void PreloadTrayIcons()
+    {
+        _trayIconCache = new Dictionary<TrayIconState, WindowIcon>();
+        foreach (TrayIconState state in Enum.GetValues(typeof(TrayIconState)))
+        {
+            try
+            {
+                var uri = GetTrayIconUri(state);
+                var icon = new WindowIcon(AssetLoader.Open(uri));
+                _trayIconCache[state] = icon;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to preload tray icon for state {State}; will fall back at runtime", state);
+            }
+        }
+        Log.Information("Preloaded {Count} tray icons into cache", _trayIconCache.Count);
+    }
+
     private void UpdateTrayIconForState(TrayIconState state)
     {
         if (_trayIcon == null) return;
         try
         {
-            _trayIcon.Icon = new WindowIcon(AssetLoader.Open(GetTrayIconUri(state)));
+            if (_trayIconCache != null && _trayIconCache.TryGetValue(state, out var cachedIcon))
+            {
+                _trayIcon.Icon = cachedIcon;
+            }
+            else
+            {
+                // Fallback: load from assets if cache miss or cache not yet initialized
+                _trayIcon.Icon = new WindowIcon(AssetLoader.Open(GetTrayIconUri(state)));
+            }
             Log.Debug("Tray icon updated for state: {State}", state);
         }
         catch (Exception ex)
