@@ -227,9 +227,8 @@ namespace EyeRest.Services
             _isTestMode = true;
             try
             {
-                // Isolated test popup — does NOT modify _currentPopup, IsBreakActive,
-                // dim overlays, or any shared state. This prevents the test from
-                // interfering with the real break timer flow.
+                // Isolated test popup — does NOT modify _currentPopup or IsBreakActive.
+                // Does show dim overlays to match real break behavior.
                 var config = await _configurationService.LoadConfigurationAsync();
                 var tcs = new TaskCompletionSource<BreakAction>();
                 PopupWindow? testPopup = null;
@@ -239,6 +238,9 @@ namespace EyeRest.Services
                     try
                     {
                         _logger.LogInformation("TEST MODE: Showing isolated break reminder popup for {Duration}", duration);
+
+                        ShowDimOverlays(config.Break.OverlayOpacityPercent);
+
                         testPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
                         testPopup.PositionOnScreen(PopupPlacement.Center);
                         testPopup.Show();
@@ -268,6 +270,7 @@ namespace EyeRest.Services
 
                 Dispatcher.UIThread.Post(() =>
                 {
+                    HideDimOverlays();
                     try { testPopup?.Close(); } catch { }
                 });
 

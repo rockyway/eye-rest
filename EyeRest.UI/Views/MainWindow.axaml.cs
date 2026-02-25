@@ -187,6 +187,7 @@ public partial class MainWindow : Window
             && int.TryParse(tagStr, out var index))
         {
             vm.SelectedTabIndex = index;
+            ConfigContentScrollViewer.ScrollToHome();
         }
     }
 

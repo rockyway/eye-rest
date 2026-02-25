@@ -39,12 +39,15 @@
                                    HorizontalAlignment="Center" />
 
                         <!-- Instructions -->
-                        <TextBlock Text="Please look at something 15ft away to rest your eyes"
-                                   FontSize="16"
+                        <TextBlock FontSize="16"
                                    Foreground="{DynamicResource ContentSubtitleText}"
                                    HorizontalAlignment="Center"
                                    TextWrapping="Wrap"
-                                   TextAlignment="Center" />
+                                   TextAlignment="Center">
+                            <Run Text="Please look at something " />
+                            <Run Text="20ft" Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" />
+                            <Run Text=" away to rest your eyes" />
+                        </TextBlock>
 
                         <!-- Progress Bar -->
                         <ProgressBar Name="ProgressBar"

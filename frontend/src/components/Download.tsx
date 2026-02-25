@@ -155,8 +155,8 @@ export default function Download() {
             reqs={['4 GB RAM minimum', '100 MB disk space', 'Self-contained — no runtime needed', 'x64 architecture']}
             label="Download"
             variant="primary"
-            fileType="exe"
-            href="/downloads/EyeRest.exe"
+            fileType="zip"
+            href="https://dl.eyerest.net/EyeRest-Windows-x64.zip"
             available={true}
           />
           <PlatformCard
@@ -168,7 +168,7 @@ export default function Download() {
             label="Download"
             variant="outline"
             fileType="zip"
-            href="/downloads/EyeRest-macOS-arm64.zip"
+            href="https://dl.eyerest.net/EyeRest-macOS-arm64.zip"
             available={true}
           />
         </div>
