@@ -155,8 +155,8 @@ export default function Download() {
             reqs={['4 GB RAM minimum', '100 MB disk space', 'Self-contained — no runtime needed', 'x64 architecture']}
             label="Download"
             variant="primary"
-            fileType="zip"
-            href="/downloads/EyeRest-Windows-x64.zip"
+            fileType="exe"
+            href="/downloads/EyeRest.exe"
             available={true}
           />
           <PlatformCard

@@ -11,6 +11,7 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AssemblyName>EyeRest</AssemblyName>
     <AssemblyTitle>Eye-Rest</AssemblyTitle>
     <AssemblyDescription>Cross-platform eye rest reminder</AssemblyDescription>
   </PropertyGroup>
