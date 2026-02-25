@@ -243,7 +243,58 @@ namespace EyeRest.Services
         public async Task<BreakAction> ShowBreakReminderTestAsync(TimeSpan duration, IProgress<double> progress)
         {
             _isTestMode = true;
-            return await ShowBreakReminderInternalAsync(duration, progress);
+            try
+            {
+                // Isolated test popup — does NOT modify _currentPopup, IsBreakActive,
+                // dim overlays, or any shared state. This prevents the test from
+                // interfering with the real break timer flow.
+                var config = await _configurationService.LoadConfigurationAsync();
+                var tcs = new TaskCompletionSource<BreakAction>();
+                PopupWindow? testPopup = null;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        _logger.LogInformation("TEST MODE: Showing isolated break reminder popup for {Duration}", duration);
+                        testPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                        testPopup.PositionOnScreen(PopupPlacement.Center);
+                        testPopup.Show();
+
+                        if (testPopup.PopupContent is BreakPopup breakPopup)
+                        {
+                            breakPopup.SetConfiguration(
+                                config.Break.RequireConfirmationAfterBreak,
+                                config.Break.ResetTimersOnBreakConfirmation);
+
+                            breakPopup.ActionSelected += (s, action) => tcs.TrySetResult(action);
+                            breakPopup.StartCountdown(duration, progress);
+                        }
+                        else
+                        {
+                            tcs.TrySetResult(BreakAction.Completed);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error showing test break reminder");
+                        tcs.TrySetResult(BreakAction.Completed);
+                    }
+                });
+
+                var result = await tcs.Task;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try { testPopup?.Close(); } catch { }
+                });
+
+                return result;
+            }
+            finally
+            {
+                _isTestMode = false;
+            }
         }
 
         private async Task<BreakAction> ShowBreakReminderInternalAsync(TimeSpan duration, IProgress<double> progress)
