@@ -276,20 +276,20 @@ namespace EyeRest.Services
             if (config.EyeRest.WarningSeconds < 10 || config.EyeRest.WarningSeconds > 120)
             {
                 _logger.LogWarning($"Invalid eye rest warning seconds: {config.EyeRest.WarningSeconds}, using default");
-                config.EyeRest.WarningSeconds = 30;
+                config.EyeRest.WarningSeconds = 15;
             }
 
             // Break validation - Allow shorter intervals for testing (1-240 minutes)
             if (config.Break.IntervalMinutes < 1 || config.Break.IntervalMinutes > 240)
             {
                 _logger.LogWarning($"Invalid break interval: {config.Break.IntervalMinutes}, using default");
-                config.Break.IntervalMinutes = 10;
+                config.Break.IntervalMinutes = 55;
             }
 
             if (config.Break.DurationMinutes < 1 || config.Break.DurationMinutes > 30)
             {
                 _logger.LogWarning($"Invalid break duration: {config.Break.DurationMinutes}, using default");
-                config.Break.DurationMinutes = 2;
+                config.Break.DurationMinutes = 5;
             }
 
             if (config.Break.WarningSeconds < 10 || config.Break.WarningSeconds > 120)

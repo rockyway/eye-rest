@@ -110,12 +110,17 @@ public partial class App : Application
             desktop.MainWindow = mainWindow;
             desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
 
-            // Handle shutdown to clean up orchestrator
+            // Handle shutdown to clean up orchestrator and ViewModel
             desktop.ShutdownRequested += async (_, _) =>
             {
                 IsExiting = true;
                 try
                 {
+                    // Dispose the ViewModel first to stop debounce timer
+                    // and prevent stale config saves during shutdown
+                    if (desktop.MainWindow?.DataContext is IDisposable disposableVm)
+                        disposableVm.Dispose();
+
                     var orchestrator = Services?.GetService<IApplicationOrchestrator>();
                     if (orchestrator != null)
                         await orchestrator.ShutdownAsync();

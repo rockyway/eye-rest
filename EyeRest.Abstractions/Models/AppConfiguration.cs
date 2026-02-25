@@ -29,7 +29,7 @@ namespace EyeRest.Models
         public bool StartSoundEnabled { get; set; } = true;
         public bool EndSoundEnabled { get; set; } = true;
         public bool WarningEnabled { get; set; } = true;
-        public int WarningSeconds { get; set; } = 30;
+        public int WarningSeconds { get; set; } = 15;
     }
 
     public class BreakSettings
