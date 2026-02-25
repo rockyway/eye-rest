@@ -48,6 +48,37 @@ internal static class MacOSNativeWindowHelper
     private static readonly IntPtr Sel_SetActivationPolicy = sel_registerName("setActivationPolicy:");
     private static readonly IntPtr Sel_SharedApplication = sel_registerName("sharedApplication");
     private static readonly IntPtr Sel_Hide = sel_registerName("hide:");
+    private static readonly IntPtr Sel_IsActive = sel_registerName("isActive");
+
+    /// <summary>
+    /// Returns true if the application is currently the frontmost (active) app.
+    /// Calls [NSApp isActive]. Useful for detecting whether the user was interacting
+    /// with our app before a popup appeared.
+    /// </summary>
+    internal static bool IsApplicationActive(ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var nsAppClass = objc_getClass("NSApplication");
+            var nsApp = objc_msgSend(nsAppClass, Sel_SharedApplication);
+            if (nsApp == IntPtr.Zero)
+            {
+                logger?.LogDebug("IsApplicationActive: Could not get NSApplication");
+                return false;
+            }
+
+            // [NSApp isActive] returns non-zero if app is active
+            var result = objc_msgSend(nsApp, Sel_IsActive);
+            return result != IntPtr.Zero;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "IsApplicationActive: Failed");
+            return false;
+        }
+    }
 
     /// <summary>
     /// Calls [NSWindow orderOut:nil] to remove the window from the window server's screen list.

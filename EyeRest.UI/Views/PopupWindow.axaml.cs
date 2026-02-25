@@ -21,6 +21,12 @@ namespace EyeRest.UI.Views
         private double _positionHintWidth;
         private double _positionHintHeight;
 
+        /// <summary>
+        /// Tracks whether our app was the active (frontmost) app before this popup was shown.
+        /// When true, the user was working on the Main UI, so we should NOT hide the app on close.
+        /// </summary>
+        private bool _wasAppActiveBeforePopup;
+
         public PopupWindow()
         {
             InitializeComponent();
@@ -79,9 +85,16 @@ namespace EyeRest.UI.Views
         /// <summary>
         /// Show the popup. On macOS, temporarily removes the main window from the
         /// screen list before base.Show() so app activation cannot bring it forward.
+        /// Captures whether the app was already active (user on Main UI) to decide
+        /// close behavior later.
         /// </summary>
         public new void Show()
         {
+            // Capture BEFORE we touch any windows — if the app is active, the user
+            // was interacting with the Main UI and we should keep it visible on close.
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                _wasAppActiveBeforePopup = MacOSNativeWindowHelper.IsApplicationActive();
+
             HideMainWindowFromScreenList();
             base.Show();
             RestoreMainWindowBehind();
@@ -89,9 +102,12 @@ namespace EyeRest.UI.Views
 
         protected override void OnClosing(WindowClosingEventArgs e)
         {
-            // Remove main window from screen BEFORE macOS processes the close,
-            // so it has no window to activate when this popup disappears.
-            HideMainWindowFromScreenList();
+            // When the user was in another app, remove main window from screen
+            // BEFORE macOS processes the close so it has no window to activate.
+            // When the user was on the Main UI, skip this — let macOS naturally
+            // re-focus the main window when the popup disappears.
+            if (!_wasAppActiveBeforePopup)
+                HideMainWindowFromScreenList();
             base.OnClosing(e);
         }
 
@@ -100,16 +116,18 @@ namespace EyeRest.UI.Views
             base.OnClosed(e);
             Closed?.Invoke(this, e);
 
-            // On macOS, delay restoring the main window so macOS has time to
-            // deactivate our app and activate the previously focused app.
-            // Without this delay, orderBack puts the window on screen while
-            // the app is still active, causing it to flash to front.
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 var mw = GetMainWindow();
-                if (mw != null && !mw.IsHiddenToTray)
+                if (mw != null && mw.IsHiddenToTray)
                 {
-                    // Hide the app so macOS activates the previous app
+                    // Keep it ordered out
+                    MacOSNativeWindowHelper.OrderOut(mw);
+                }
+                else if (mw != null && !_wasAppActiveBeforePopup)
+                {
+                    // User was in another app. Hide our app so macOS activates
+                    // the previous app, then quietly restore main window behind everything.
                     MacOSNativeWindowHelper.HideApplication();
 
                     var restoreTimer = new Avalonia.Threading.DispatcherTimer
@@ -119,17 +137,12 @@ namespace EyeRest.UI.Views
                     restoreTimer.Tick += (s, args) =>
                     {
                         restoreTimer.Stop();
-                        // Now that macOS has switched to another app,
-                        // put main window back on screen behind everything
                         MacOSNativeWindowHelper.OrderBack(mw);
                     };
                     restoreTimer.Start();
                 }
-                else if (mw != null && mw.IsHiddenToTray)
-                {
-                    // Keep it ordered out
-                    MacOSNativeWindowHelper.OrderOut(mw);
-                }
+                // else: _wasAppActiveBeforePopup — no action needed, macOS already
+                // re-focused the main window naturally when the popup closed.
             }
         }
 

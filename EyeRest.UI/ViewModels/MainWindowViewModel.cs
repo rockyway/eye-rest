@@ -63,6 +63,7 @@ namespace EyeRest.UI.ViewModels
 
         // UI State
         private int _selectedTabIndex = 0;
+        private bool _isConfigurationMode = false;
 
         // Timer Status
         private string _timerStatusText = "Stopped";
@@ -81,6 +82,7 @@ namespace EyeRest.UI.ViewModels
 
         // Save State
         private bool _isSaving = false;
+        private bool _isLoadingConfiguration = false;
 
         // Meeting Detection Properties
         private MeetingDetectionMethod _meetingDetectionMethod = MeetingDetectionMethod.WindowBased;
@@ -142,6 +144,9 @@ namespace EyeRest.UI.ViewModels
             // Advanced feature commands
             TestMeetingDetectionCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TestMeetingDetection());
             SwitchDetectionMethodCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await SwitchDetectionMethod());
+
+            // Mode toggle command
+            ToggleConfigurationModeCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => IsConfigurationMode = !IsConfigurationMode);
 
             // Subscribe to timer service events to update status
             _timerService.PropertyChanged += OnTimerServicePropertyChanged;
@@ -291,7 +296,7 @@ namespace EyeRest.UI.ViewModels
             get => _overlayOpacityPercent;
             set
             {
-                if (SetProperty(ref _overlayOpacityPercent, value))
+                if (SetProperty(ref _overlayOpacityPercent, value) && !_isLoadingConfiguration)
                 {
                     CheckForChanges();
                     _ = Task.Run(async () => await SaveOverlayOpacityAsync());
@@ -329,7 +334,7 @@ namespace EyeRest.UI.ViewModels
             get => _audioEnabled;
             set
             {
-                if (SetProperty(ref _audioEnabled, value))
+                if (SetProperty(ref _audioEnabled, value) && !_isLoadingConfiguration)
                 {
                     _ = Task.Run(async () => await SaveAudioEnabledAsync(value));
                 }
@@ -341,7 +346,7 @@ namespace EyeRest.UI.ViewModels
             get => _audioVolume;
             set
             {
-                if (SetProperty(ref _audioVolume, value))
+                if (SetProperty(ref _audioVolume, value) && !_isLoadingConfiguration)
                 {
                     CheckForChanges();
                     _ = Task.Run(async () => await SaveAudioVolumeAsync());
@@ -354,7 +359,7 @@ namespace EyeRest.UI.ViewModels
             get => _customSoundPath;
             set
             {
-                if (SetProperty(ref _customSoundPath, value))
+                if (SetProperty(ref _customSoundPath, value) && !_isLoadingConfiguration)
                 {
                     _ = Task.Run(async () => await SaveCustomSoundPathAsync(value));
                 }
@@ -367,7 +372,7 @@ namespace EyeRest.UI.ViewModels
             get => _startWithWindows;
             set
             {
-                if (SetProperty(ref _startWithWindows, value))
+                if (SetProperty(ref _startWithWindows, value) && !_isLoadingConfiguration)
                 {
                     CheckForChanges();
                     _ = Task.Run(async () => await SaveStartupSettingAsync(value));
@@ -380,7 +385,7 @@ namespace EyeRest.UI.ViewModels
             get => _minimizeToTray;
             set
             {
-                if (SetProperty(ref _minimizeToTray, value))
+                if (SetProperty(ref _minimizeToTray, value) && !_isLoadingConfiguration)
                 {
                     CheckForChanges();
                     _ = Task.Run(async () => await SaveMinimizeToTrayAsync(value));
@@ -393,7 +398,7 @@ namespace EyeRest.UI.ViewModels
             get => _startMinimized;
             set
             {
-                if (SetProperty(ref _startMinimized, value))
+                if (SetProperty(ref _startMinimized, value) && !_isLoadingConfiguration)
                 {
                     CheckForChanges();
                     _ = Task.Run(async () => await SaveStartMinimizedAsync(value));
@@ -406,7 +411,7 @@ namespace EyeRest.UI.ViewModels
             get => _showTrayNotifications;
             set
             {
-                if (SetProperty(ref _showTrayNotifications, value))
+                if (SetProperty(ref _showTrayNotifications, value) && !_isLoadingConfiguration)
                 {
                     CheckForChanges();
                     _ = Task.Run(async () => await SaveShowTrayNotificationsAsync(value));
@@ -419,13 +424,27 @@ namespace EyeRest.UI.ViewModels
             get => _showInTaskbar;
             set
             {
-                if (SetProperty(ref _showInTaskbar, value))
+                if (SetProperty(ref _showInTaskbar, value) && !_isLoadingConfiguration)
                 {
                     CheckForChanges();
                     _ = Task.Run(async () => await SaveShowInTaskbarAsync(value));
                 }
             }
         }
+
+        public bool IsConfigurationMode
+        {
+            get => _isConfigurationMode;
+            set
+            {
+                if (SetProperty(ref _isConfigurationMode, value))
+                {
+                    OnPropertyChanged(nameof(IsNotConfigurationMode));
+                }
+            }
+        }
+
+        public bool IsNotConfigurationMode => !_isConfigurationMode;
 
         private bool _isDarkMode = false;
         public bool IsDarkMode
@@ -435,9 +454,12 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _isDarkMode, value))
                 {
-                    CheckForChanges();
                     ApplyThemeGlobally(value);
-                    _ = Task.Run(async () => await SaveDarkModeAsync(value));
+                    if (!_isLoadingConfiguration)
+                    {
+                        CheckForChanges();
+                        _ = Task.Run(async () => await SaveDarkModeAsync(value));
+                    }
                 }
             }
         }
@@ -746,6 +768,9 @@ namespace EyeRest.UI.ViewModels
         public ICommand TestMeetingDetectionCommand { get; }
         public ICommand SwitchDetectionMethodCommand { get; }
 
+        // Mode toggle command
+        public ICommand ToggleConfigurationModeCommand { get; }
+
         #endregion
 
         #region Methods
@@ -810,6 +835,9 @@ namespace EyeRest.UI.ViewModels
 
         private void UpdatePropertiesFromConfiguration()
         {
+            _isLoadingConfiguration = true;
+            try
+            {
             _logger.LogInformation($"BEFORE UPDATE: Current UI values - EyeRest {EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, Break {BreakIntervalMinutes}min/{BreakDurationMinutes}min");
             _logger.LogInformation($"FROM CONFIG: Loading values - EyeRest {_configuration.EyeRest.IntervalMinutes}min/{_configuration.EyeRest.DurationSeconds}sec, Break {_configuration.Break.IntervalMinutes}min/{_configuration.Break.DurationMinutes}min");
 
@@ -863,6 +891,11 @@ namespace EyeRest.UI.ViewModels
             IdleTimeoutMinutes = _configuration.UserPresence.IdleTimeoutMinutes;
 
             _logger.LogInformation($"AFTER UPDATE: UI now shows - EyeRest {EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, Break {BreakIntervalMinutes}min/{BreakDurationMinutes}min");
+            }
+            finally
+            {
+                _isLoadingConfiguration = false;
+            }
         }
 
         private void UpdateConfigurationFromProperties()
@@ -1204,8 +1237,22 @@ namespace EyeRest.UI.ViewModels
                 e.PropertyName == nameof(ITimerService.IsSmartPaused) ||
                 e.PropertyName == nameof(ITimerService.IsManuallyPaused))
             {
-                UpdateTimerStatus();
-                RefreshCanExecuteStates();
+                // Marshal to UI thread — TimerService.PropertyChanged can fire from background
+                // threads (e.g. UserPresenceService idle detection), and RefreshCanExecuteStates
+                // triggers Avalonia Button.CanExecuteChanged which requires UI thread access.
+                if (Dispatcher.UIThread.CheckAccess())
+                {
+                    UpdateTimerStatus();
+                    RefreshCanExecuteStates();
+                }
+                else
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        UpdateTimerStatus();
+                        RefreshCanExecuteStates();
+                    });
+                }
             }
         }
 
@@ -1342,9 +1389,15 @@ namespace EyeRest.UI.ViewModels
             {
                 return $"{timeSpan.Seconds}s";
             }
+            else if (timeSpan.TotalMinutes < 2)
+            {
+                // Under 2 minutes: show seconds for urgency
+                return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+            }
             else if (timeSpan.TotalHours < 1)
             {
-                return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+                // 2+ minutes: show minutes only (reduces UI updates to once per minute)
+                return $"{timeSpan.Minutes}m";
             }
             else
             {
@@ -1899,6 +1952,8 @@ namespace EyeRest.UI.ViewModels
 
         private void DebouncedSaveTimerSetting()
         {
+            if (_isLoadingConfiguration) return;
+
             _settingsDebounceTimer?.Stop();
             _settingsDebounceTimer?.Start();
             _logger.LogInformation("Settings changed - debouncing timer restart...");
