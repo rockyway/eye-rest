@@ -9,13 +9,13 @@
         SystemDecorations="None"
         Background="Transparent"
         TransparencyLevelHint="Transparent"
-        Topmost="True"
         ExtendClientAreaToDecorationsHint="False">
 
     <!-- Mesh gradient clipped to window shape -->
     <Border Background="{DynamicResource MeshGradientBrush}"
             CornerRadius="24"
-            ClipToBounds="True">
+            ClipToBounds="True"
+            PointerPressed="OnDragMove">
         <!-- Glass overlay fills entire card -->
         <Border Background="{DynamicResource GlassCardBackground}"
                 BorderBrush="{DynamicResource GlassCardBorder}"
@@ -50,8 +50,18 @@
                                TextAlignment="Center"
                                HorizontalAlignment="Center"
                                MaxWidth="260"
-                               Margin="0,8,0,8"
+                               Margin="0,8,0,0"
                                Foreground="{DynamicResource ContentSubtitleText}"/>
+
+                    <TextBlock x:Name="WebsiteLink"
+                               Text="eyerest.net"
+                               FontSize="13"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"
+                               Cursor="Hand"
+                               Foreground="{DynamicResource AccentBrush}"
+                               TextDecorations="Underline"
+                               PointerPressed="OnWebsiteLinkClick" />
 
                     <!-- Donation Section (shown when not a donor) -->
                     <StackPanel x:Name="DonateSection" Spacing="6" Margin="0,4,0,4">

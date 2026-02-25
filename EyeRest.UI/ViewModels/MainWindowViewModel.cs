@@ -987,6 +987,9 @@ namespace EyeRest.UI.ViewModels
                 // Update UI properties from loaded configuration
                 UpdatePropertiesFromConfiguration();
 
+                // Update donation banner visibility after config is loaded
+                UpdateDonationState();
+
                 _logger.LogInformation("Configuration loaded successfully");
             }
             catch (Exception ex)
@@ -996,6 +999,9 @@ namespace EyeRest.UI.ViewModels
                 _configuration = await _configurationService.GetDefaultConfiguration();
                 _originalConfiguration = CloneConfiguration(_configuration);
                 UpdatePropertiesFromConfiguration();
+
+                // Still check donation state even on config load failure
+                UpdateDonationState();
 
                 _logger.LogWarning("Failed to load configuration. Using default values.");
             }
@@ -2364,7 +2370,18 @@ namespace EyeRest.UI.ViewModels
         private void UpdateDonationState()
         {
             IsDonor = _donationService.IsDonor;
-            IsDonationBannerVisible = !_donationBannerDismissedThisSession && _donationService.ShouldShowDonationPrompt;
+
+            var shouldShow = _donationService.ShouldShowDonationPrompt;
+            var forceShow = App.ForceShowDonationBanner;
+            var dismissed = _donationBannerDismissedThisSession;
+
+            _logger.LogInformation(
+                "Donation state: IsDonor={IsDonor}, ShouldShow={ShouldShow}, ForceShow={ForceShow}, DismissedThisSession={Dismissed}",
+                IsDonor, shouldShow, forceShow, dismissed);
+
+            IsDonationBannerVisible = !dismissed && (forceShow || shouldShow);
+
+            _logger.LogInformation("Donation banner visible: {Visible}", IsDonationBannerVisible);
 
             if (IsDonationBannerVisible)
                 _donationService.RecordPromptShown();

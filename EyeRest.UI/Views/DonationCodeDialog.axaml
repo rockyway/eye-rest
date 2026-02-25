@@ -9,11 +9,12 @@
         SystemDecorations="None"
         Background="Transparent"
         TransparencyLevelHint="Transparent"
-        Topmost="True">
+        >
 
     <Border Background="{DynamicResource MeshGradientBrush}"
             CornerRadius="24"
-            ClipToBounds="True">
+            ClipToBounds="True"
+            PointerPressed="OnDragMove">
         <Border Background="{DynamicResource GlassCardBackground}"
                 BorderBrush="{DynamicResource GlassCardBorder}"
                 BorderThickness="1"

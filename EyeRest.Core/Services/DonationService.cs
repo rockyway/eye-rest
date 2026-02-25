@@ -78,6 +78,10 @@ namespace EyeRest.Services
                 var config = await _configurationService.LoadConfigurationAsync();
                 _settings = config.Donation;
 
+                // Always use the compiled default URL (not the persisted one)
+                // to ensure updates to the checkout link take effect immediately.
+                _settings.DonationUrl = new DonationSettings().DonationUrl;
+
                 if (_settings.FirstInstallDate == null)
                 {
                     _settings.FirstInstallDate = DateTime.UtcNow;

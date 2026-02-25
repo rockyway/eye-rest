@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using EyeRest.Services;
@@ -15,6 +16,12 @@ public partial class DonationCodeDialog : Window
     {
         InitializeComponent();
         _donationService = App.Services?.GetService<IDonationService>();
+    }
+
+    private void OnDragMove(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
     }
 
     private async void OnValidateClick(object? sender, RoutedEventArgs e)
