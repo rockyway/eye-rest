@@ -330,7 +330,7 @@ namespace EyeRest.Services
                 toast.Dismissed += OnToastDismissed;
                 toast.Failed += OnToastFailed;
 
-                ToastNotificationManager.CreateToastNotifier("EyeRest").Show(toast);
+                CreateToastNotifier().Show(toast);
 
                 // Play sound if enabled
                 if (_settings.PlaySoundOnReminder)
@@ -372,7 +372,7 @@ namespace EyeRest.Services
                 toast.Dismissed += OnToastDismissed;
                 toast.Failed += OnToastFailed;
 
-                ToastNotificationManager.CreateToastNotifier("EyeRest").Show(toast);
+                CreateToastNotifier().Show(toast);
 
                 // Play a subtle notification sound
                 if (_settings.PlaySoundOnReminder)
@@ -404,6 +404,24 @@ namespace EyeRest.Services
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "⚠️ Could not fully initialize Windows Toast notifications - will use fallback methods");
+            }
+        }
+
+        /// <summary>
+        /// Creates a toast notifier appropriate for the current deployment context.
+        /// MSIX-packaged apps use the parameterless overload (identity from package);
+        /// unpackaged apps must provide an explicit AUMID.
+        /// </summary>
+        private static ToastNotifier CreateToastNotifier()
+        {
+            try
+            {
+                _ = Windows.ApplicationModel.Package.Current.Id.Name;
+                return ToastNotificationManager.CreateToastNotifier();
+            }
+            catch
+            {
+                return ToastNotificationManager.CreateToastNotifier("EyeRest");
             }
         }
 
@@ -572,7 +590,7 @@ namespace EyeRest.Services
                     ExpirationTime = DateTime.Now.AddMinutes(10)
                 };
 
-                ToastNotificationManager.CreateToastNotifier("EyeRest").Show(toast);
+                CreateToastNotifier().Show(toast);
                 _logger.LogInformation("🚨 Auto-resume warning toast shown");
             }
             catch (Exception ex)

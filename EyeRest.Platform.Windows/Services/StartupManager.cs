@@ -11,6 +11,7 @@ namespace EyeRest.Services
         private readonly ILogger<StartupManager> _logger;
         private const string RegistryKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
         private const string ApplicationName = "EyeRest";
+        private const string MsixStartupTaskId = "EyeRestStartup";
 
         public StartupManager(ILogger<StartupManager> logger)
         {
@@ -21,6 +22,9 @@ namespace EyeRest.Services
         {
             try
             {
+                if (IsPackagedApp())
+                    return IsStartupEnabledMsix();
+
                 using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, false);
                 var value = key?.GetValue(ApplicationName);
                 return value != null;
@@ -41,6 +45,12 @@ namespace EyeRest.Services
         {
             try
             {
+                if (IsPackagedApp())
+                {
+                    EnableStartupMsix();
+                    return;
+                }
+
                 var executablePath = GetExecutablePath();
                 if (string.IsNullOrEmpty(executablePath))
                 {
@@ -85,6 +95,12 @@ namespace EyeRest.Services
         {
             try
             {
+                if (IsPackagedApp())
+                {
+                    DisableStartupMsix();
+                    return;
+                }
+
                 using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, true);
                 if (key?.GetValue(ApplicationName) != null)
                 {
@@ -99,13 +115,93 @@ namespace EyeRest.Services
             }
         }
 
+        #region MSIX Packaged App Support
+
+        /// <summary>
+        /// Detects whether the app is running as an MSIX-packaged Desktop Bridge app.
+        /// </summary>
+        private static bool IsPackagedApp()
+        {
+            try
+            {
+                // Windows.ApplicationModel.Package.Current throws if not packaged
+                _ = Windows.ApplicationModel.Package.Current.Id.Name;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool IsStartupEnabledMsix()
+        {
+            try
+            {
+                var task = Windows.ApplicationModel.StartupTask.GetAsync(MsixStartupTaskId)
+                    .AsTask().GetAwaiter().GetResult();
+                return task.State == Windows.ApplicationModel.StartupTaskState.Enabled;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking MSIX startup task state");
+                return false;
+            }
+        }
+
+        private void EnableStartupMsix()
+        {
+            try
+            {
+                var task = Windows.ApplicationModel.StartupTask.GetAsync(MsixStartupTaskId)
+                    .AsTask().GetAwaiter().GetResult();
+
+                if (task.State == Windows.ApplicationModel.StartupTaskState.Disabled)
+                {
+                    var result = task.RequestEnableAsync().AsTask().GetAwaiter().GetResult();
+                    _logger.LogInformation($"MSIX startup task request result: {result}");
+                }
+                else if (task.State == Windows.ApplicationModel.StartupTaskState.DisabledByUser)
+                {
+                    _logger.LogWarning("Startup was disabled by the user in Windows Settings. Cannot re-enable programmatically.");
+                }
+                else
+                {
+                    _logger.LogInformation($"MSIX startup task already in state: {task.State}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error enabling MSIX startup task");
+                throw;
+            }
+        }
+
+        private void DisableStartupMsix()
+        {
+            try
+            {
+                var task = Windows.ApplicationModel.StartupTask.GetAsync(MsixStartupTaskId)
+                    .AsTask().GetAwaiter().GetResult();
+                task.Disable();
+                _logger.LogInformation("MSIX startup task disabled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error disabling MSIX startup task");
+                throw;
+            }
+        }
+
+        #endregion
+
         private string? GetExecutablePath()
         {
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
                 var location = assembly.Location;
-                
+
                 // For .NET 6+ single-file deployments, use the process path
                 if (string.IsNullOrEmpty(location) || location.EndsWith(".dll"))
                 {
