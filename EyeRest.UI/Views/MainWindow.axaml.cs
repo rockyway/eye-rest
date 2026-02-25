@@ -215,6 +215,13 @@ public partial class MainWindow : Window
             BeginMoveDrag(e);
     }
 
+    // Hamburger menu handlers
+    private void AboutMenuItem_Click(object? sender, RoutedEventArgs e)
+    {
+        var aboutWindow = new AboutWindow();
+        aboutWindow.ShowDialog(this);
+    }
+
     // Windows caption button handlers
     private void MinimizeButton_Click(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
     private void MaximizeButton_Click(object? sender, RoutedEventArgs e) =>
