@@ -26,6 +26,11 @@ class Program
 
         try
         {
+            // Parse debug flags
+            App.ForceShowDonationBanner = Array.Exists(args, a =>
+                a.Equals("--show-donation", StringComparison.OrdinalIgnoreCase));
+            Console.WriteLine($"[EyeRest] Args: [{string.Join(", ", args)}], ForceShowDonationBanner={App.ForceShowDonationBanner}");
+
             // Start the named pipe listener for activation signals from future instances
             StartActivationListener();
 

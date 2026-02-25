@@ -471,8 +471,8 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Spacer -->
-                        <Panel Grid.Row="3" />
+                        <!-- Donation Banner -->
+                        <local:DonationBannerView Grid.Row="3" VerticalAlignment="Bottom" />
 
                         <!-- Bottom: Meeting + Controls + Exit -->
                         <StackPanel Grid.Row="4" Margin="0,0,0,12" Spacing="4">

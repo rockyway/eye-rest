@@ -22,11 +22,11 @@
 
             <!-- Message -->
             <TextBlock Grid.Column="1"
-                       Text="Enjoying Eye-Rest? Support development!"
+                       Text="If Eye-Rest helps you, consider supporting its development."
                        FontSize="12"
                        Foreground="{DynamicResource DonationBannerText}"
                        VerticalAlignment="Center"
-                       TextTrimming="CharacterEllipsis" />
+                       TextWrapping="Wrap" />
 
             <!-- Donate button -->
             <Button Grid.Column="2"

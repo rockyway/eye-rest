@@ -34,6 +34,12 @@ public partial class App : Application
     public static bool IsExiting { get; set; }
 
     /// <summary>
+    /// Debug flag: force the donation banner to show regardless of eligibility.
+    /// Set via --show-donation startup argument.
+    /// </summary>
+    public static bool ForceShowDonationBanner { get; set; }
+
+    /// <summary>
     /// Called from the named-pipe single-instance listener (Program.cs) when a second
     /// instance tries to launch. Marshals to the UI thread and restores the main window.
     /// </summary>

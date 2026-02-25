@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using EyeRest.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,25 @@ public partial class AboutWindow : Window
     {
         var dialog = new DonationCodeDialog();
         dialog.ShowDialog(this);
+    }
+
+    private void OnDragMove(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
+    }
+
+    private void OnWebsiteLinkClick(object? sender, PointerPressedEventArgs e)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("https://eyerest.net/") { UseShellExecute = true };
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch
+        {
+            // Best-effort URL open
+        }
     }
 
     private void OnCloseClick(object? sender, RoutedEventArgs e)
