@@ -127,6 +127,10 @@ namespace EyeRest.Services
         private DateTime _lastBreakTick = DateTime.MinValue;
         private DateTime _lastSystemCheck = DateTime.Now;
 
+        // Rate-limit overdue log messages (prevent flooding from UI-polled properties)
+        private DateTime _lastEyeRestOverdueLog = DateTime.MinValue;
+        private DateTime _lastBreakOverdueLog = DateTime.MinValue;
+
         // TIMELINE FIX: Track when main timers actually triggered events (for fallback validation)
         private DateTime _lastEyeRestTriggeredTime = DateTime.MinValue;
         private DateTime _lastBreakTriggeredTime = DateTime.MinValue;
@@ -244,11 +248,16 @@ namespace EyeRest.Services
                     
                     var remaining = _eyeRestInterval - elapsed;
                     
-                    // CRITICAL FIX: Log when timer is overdue to help debug stuck state
+                    // Log when timer is overdue (rate-limited to once per 60s to prevent log flooding)
                     if (remaining <= TimeSpan.Zero)
                     {
-                        _logger?.LogWarning("👁️ Eye rest timer is overdue by {OverdueSeconds}s - event should have fired!", 
-                            Math.Abs(remaining.TotalSeconds));
+                        var now = DateTime.Now;
+                        if ((now - _lastEyeRestOverdueLog).TotalSeconds >= 60)
+                        {
+                            _lastEyeRestOverdueLog = now;
+                            _logger?.LogWarning("👁️ Eye rest timer is overdue by {OverdueSeconds}s - event should have fired!",
+                                Math.Abs(remaining.TotalSeconds));
+                        }
                         return TimeSpan.Zero;
                     }
                     return remaining;
@@ -332,11 +341,16 @@ namespace EyeRest.Services
                     
                     var remaining = _breakInterval - elapsed;
                     
-                    // CRITICAL FIX: Log when break timer is overdue to help debug stuck state
+                    // Log when break timer is overdue (rate-limited to once per 60s to prevent log flooding)
                     if (remaining <= TimeSpan.Zero)
                     {
-                        _logger?.LogWarning("☕ Break timer is overdue by {OverdueSeconds}s - event should have fired!", 
-                            Math.Abs(remaining.TotalSeconds));
+                        var now = DateTime.Now;
+                        if ((now - _lastBreakOverdueLog).TotalSeconds >= 60)
+                        {
+                            _lastBreakOverdueLog = now;
+                            _logger?.LogWarning("☕ Break timer is overdue by {OverdueSeconds}s - event should have fired!",
+                                Math.Abs(remaining.TotalSeconds));
+                        }
                         return TimeSpan.Zero;
                     }
                     return remaining;
