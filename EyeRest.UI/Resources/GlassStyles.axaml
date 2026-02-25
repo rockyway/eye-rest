@@ -254,7 +254,7 @@
     </Style>
 
     <!-- ============================================================ -->
-    <!-- Status Card Style                                             -->
+    <!-- Status Card Style (legacy)                                    -->
     <!-- ============================================================ -->
     <Style Selector="Border.StatusCard">
         <Setter Property="Background" Value="{DynamicResource StatusCardBackground}" />
@@ -263,6 +263,64 @@
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="14,12" />
         <Setter Property="Margin" Value="8,8" />
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Status Pill Badge                                             -->
+    <!-- ============================================================ -->
+    <Style Selector="Border.StatusPillBadge">
+        <Setter Property="Background" Value="{DynamicResource StatusCardBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource StatusCardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="Padding" Value="10,4" />
+    </Style>
+    <Style Selector="TextBlock.StatusPillText">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Timer Mini Card                                               -->
+    <!-- ============================================================ -->
+    <Style Selector="Border.TimerMiniCard">
+        <Setter Property="Background" Value="{DynamicResource GlassCardBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassCardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="12,14" />
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Timer Icon Circle                                             -->
+    <!-- ============================================================ -->
+    <Style Selector="Border.TimerIconCircle">
+        <Setter Property="Background" Value="{DynamicResource ToggleCardIconBackground}" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Timer Countdown Text                                          -->
+    <!-- ============================================================ -->
+    <Style Selector="TextBlock.TimerCountdown">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Timer Label                                                   -->
+    <!-- ============================================================ -->
+    <Style Selector="TextBlock.TimerLabel">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{DynamicResource ContentSubtitleText}" />
+        <Setter Property="TextAlignment" Value="Center" />
     </Style>
 
     <!-- ============================================================ -->

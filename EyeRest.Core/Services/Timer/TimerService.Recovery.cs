@@ -183,6 +183,7 @@ namespace EyeRest.Services
                         // Use Task.Run since health monitor tick can't be async
                         _ = Task.Run(async () =>
                         {
+                            await Task.CompletedTask;
                             try
                             {
                                 // Try to recreate and restart timers without full service restart

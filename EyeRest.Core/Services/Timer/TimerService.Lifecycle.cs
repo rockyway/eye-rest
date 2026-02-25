@@ -149,6 +149,7 @@ namespace EyeRest.Services
 
         public async Task ResetEyeRestTimer()
         {
+            await Task.CompletedTask;
             try
             {
                 _logger.LogInformation("🔄 Resetting eye rest timer");
@@ -202,6 +203,7 @@ namespace EyeRest.Services
 
         public async Task ResetBreakTimer()
         {
+            await Task.CompletedTask;
             try
             {
                 _logger.LogInformation("🔄 Resetting break timer");
@@ -257,6 +259,7 @@ namespace EyeRest.Services
 
         public async Task RestartEyeRestTimerAfterCompletion()
         {
+            await Task.CompletedTask;
             try
             {
                 _logger.LogInformation("♻️ Restarting eye rest timer after completion");
@@ -304,6 +307,7 @@ namespace EyeRest.Services
 
         public async Task RestartBreakTimerAfterCompletion()
         {
+            await Task.CompletedTask;
             try
             {
                 _logger.LogInformation("♻️ Restarting break timer after completion");
@@ -460,6 +464,7 @@ namespace EyeRest.Services
 
                 _breakDelayTimer.Tick += async (s, e) =>
                 {
+                    await Task.CompletedTask;
                     _breakDelayTimer?.Stop();
                     IsBreakDelayed = false;
 

@@ -75,6 +75,7 @@ namespace EyeRest.Services
 
         public async Task<bool> IsDatabaseInitializedAsync()
         {
+            await Task.CompletedTask;
             try
             {
                 if (!File.Exists(_databasePath))
@@ -815,6 +816,7 @@ namespace EyeRest.Services
 
         public async Task<List<DailyMetric>> GetDailyMetricsAsync(DateTime startDate, DateTime endDate)
         {
+            await Task.CompletedTask;
             var dailyMetrics = new List<DailyMetric>();
             
             try
@@ -908,6 +910,7 @@ namespace EyeRest.Services
 
         public async Task<List<SessionSummary>> GetSessionSummariesAsync(DateTime startDate, DateTime endDate)
         {
+            await Task.CompletedTask;
             var sessions = new List<SessionSummary>();
             
             try
@@ -959,6 +962,7 @@ namespace EyeRest.Services
 
         public async Task<List<MeetingStats>> GetMeetingStatsAsync(DateTime startDate, DateTime endDate)
         {
+            await Task.CompletedTask;
             var stats = new List<MeetingStats>();
             
             try
@@ -1019,6 +1023,7 @@ namespace EyeRest.Services
 
         public async Task<long> GetDatabaseSizeAsync()
         {
+            await Task.CompletedTask;
             try
             {
                 var fileInfo = new FileInfo(_databasePath);
@@ -1038,6 +1043,7 @@ namespace EyeRest.Services
 
         public async Task<List<WeeklyMetrics>> GetWeeklyMetricsAsync(DateTime startDate, DateTime endDate)
         {
+            await Task.CompletedTask;
             var weeklyMetrics = new List<WeeklyMetrics>();
             
             try
@@ -1125,6 +1131,7 @@ namespace EyeRest.Services
 
         public async Task<List<MonthlyMetrics>> GetMonthlyMetricsAsync(DateTime startDate, DateTime endDate)
         {
+            await Task.CompletedTask;
             var monthlyMetrics = new List<MonthlyMetrics>();
             
             try

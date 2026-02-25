@@ -799,6 +799,7 @@ namespace EyeRest.Services
 
         private async void OnPauseReminderShown(object? sender, PauseReminderEventArgs e)
         {
+            await Task.CompletedTask;
             try
             {
                 _logger.LogInformation($"🔔 Pause reminder #{e.ReminderCount} shown - paused for {e.PauseDuration.TotalHours:F1} hours, reason: {e.PauseReason}");

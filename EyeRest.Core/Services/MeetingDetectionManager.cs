@@ -156,6 +156,7 @@ namespace EyeRest.Services
 
         public async Task UpdateSettingsAsync(MeetingDetectionSettings settings)
         {
+            await Task.CompletedTask;
             if (!_isInitialized || _currentService == null)
             {
                 _logger.LogWarning("Cannot update settings - manager not initialized");

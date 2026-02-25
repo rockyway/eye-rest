@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Eye-rest** - Windows desktop app (.NET 8 + WPF) providing automated eye rest and break reminders.
+**Eye-rest** - Cross-platform desktop app (.NET 8 + Avalonia UI) providing automated eye rest and break reminders. Supports Windows and macOS.
 
 | Component | Purpose |
 |-----------|---------|
@@ -18,16 +18,13 @@
 ```bash
 # Build and run
 dotnet build
-dotnet run
+dotnet run --project EyeRest.UI
 
 # Test
 dotnet test
 dotnet test --filter Category=Unit
 dotnet test --filter Category=Integration
 dotnet test --filter Category=Performance
-
-# UI tests
-run-ui-tests.bat
 ```
 
 ---
@@ -63,8 +60,7 @@ Load detailed docs from `docs/agentic/` based on task:
 | Topic | Document |
 |-------|----------|
 | PRD | `docs/requirements.md` |
-| Project Structure | `docs/PROJECT_STRUCTURE.md` |
-| API Reference | `docs/API_REFERENCE.md` |
+| Project Structure | `PROJECT_STRUCTURE.md` (project root) |
 | Troubleshooting | `docs/troubleshooting/` folder |
 | Lessons Learned | `docs/lessons-learned/` folder |
 
@@ -87,6 +83,10 @@ You are the **Master Agent** if ANY of these are true:
 3. **NEVER** create tests directly - delegate to Test Analyst Agent
 4. **ALWAYS** maintain orchestration state in TodoWrite
 5. **After compaction**: Check TodoWrite, re-read `master-agent.md` if needed
+
+### Explore Agent — First Step
+
+> **When spawning an Explore agent (or starting any codebase exploration), always read `PROJECT_STRUCTURE.md` at the project root first.** This provides a comprehensive map of all projects, services, views, dependencies, and file locations — saving significant exploration time.
 
 ### If You Are a Subagent
 
