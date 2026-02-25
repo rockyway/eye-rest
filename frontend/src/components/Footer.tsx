@@ -1,5 +1,3 @@
-import { GithubIcon } from '../assets/icons'
-
 const NAV = [
   { label: 'Features', href: '#features' },
   { label: 'Preview', href: '#preview' },
@@ -61,33 +59,17 @@ export default function Footer() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="https://github.com/tamtrantam/eye-rest"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="nav-link"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.875rem',
-              }}
-            >
-              <GithubIcon size={16} color="currentColor" />
-              GitHub
-            </a>
           </nav>
         </div>
 
         {/* Divider */}
         <div style={{
           height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(26,54,93,0.12) 20%, rgba(26,54,93,0.12) 80%, transparent)',
+          background: 'linear-gradient(90deg, transparent, rgba(26,54,93,0.18) 20%, rgba(26,54,93,0.18) 80%, transparent)',
           margin: '32px 0 24px',
         }} />
 
-        {/* Bottom row */}
+        {/* Bottom row — improved contrast */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -97,15 +79,15 @@ export default function Footer() {
         }}>
           <span style={{
             fontFamily: 'var(--font-body)',
-            fontSize: '0.8rem',
-            color: 'var(--text-subtle)',
+            fontSize: '0.82rem',
+            color: 'var(--text-muted)',
           }}>
             &copy; 2026 Eye-Rest. All rights reserved.
           </span>
           <span style={{
             fontFamily: 'var(--font-body)',
-            fontSize: '0.8rem',
-            color: 'var(--text-subtle)',
+            fontSize: '0.82rem',
+            color: 'var(--text-muted)',
           }}>
             Made with ♥ for your eyes
           </span>

@@ -1,5 +1,5 @@
 import { trackDownload } from '../analytics'
-import { WindowsIcon, AppleIcon, DownloadIcon, GithubIcon } from '../assets/icons'
+import { WindowsIcon, AppleIcon, DownloadIcon } from '../assets/icons'
 
 interface PlatformCardProps {
   platform: 'windows' | 'macos'
@@ -151,29 +151,15 @@ export default function Download() {
           />
         </div>
 
-        {/* GitHub note */}
-        <div style={{ textAlign: 'center', marginTop: 36 }}>
-          <a
-            href="https://github.com/tamtrantam/eye-rest"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.875rem',
-              color: 'var(--text-muted)',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'color 0.15s ease',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.color = 'var(--blue-500)')}
-            onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-          >
-            <GithubIcon size={16} color="currentColor" />
-            GitHub Releases coming soon — star the repo to get notified
-          </a>
-        </div>
+        <p style={{
+          textAlign: 'center',
+          marginTop: 28,
+          fontFamily: 'var(--font-body)',
+          fontSize: '0.85rem',
+          color: 'var(--text-muted)',
+        }}>
+          Releases coming soon &mdash; check back shortly.
+        </p>
       </div>
     </section>
   )

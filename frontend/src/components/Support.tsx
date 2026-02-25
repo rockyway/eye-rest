@@ -1,5 +1,5 @@
 import { trackDonate } from '../analytics'
-import { HeartIcon, GithubIcon, StarIcon } from '../assets/icons'
+import { HeartIcon } from '../assets/icons'
 
 export default function Support() {
   return (
@@ -52,8 +52,8 @@ export default function Support() {
             margin: '0 auto 28px',
             lineHeight: 1.65,
           }}>
-            Eye-Rest is free and open-source. If it's helped protect your eyes during long
-            coding sessions, consider supporting continued development.
+            Eye-Rest is free and open-source. If it's helped protect your eyes during
+            long work sessions, consider supporting continued development.
           </p>
 
           {/* Pay What You Want badge */}
@@ -80,7 +80,7 @@ export default function Support() {
           {/* Donate button */}
           <div>
             <a
-              href="https://eyerest.lemonsqueezy.com/buy/donation"
+              href="https://eyerest.lemonsqueezy.com/checkout/buy/361b6130-55df-4a74-8378-0e87fa355db4"
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-donate"
@@ -97,53 +97,6 @@ export default function Support() {
             }}>
               Powered by LemonSqueezy &middot; Safe &amp; secure checkout
             </p>
-          </div>
-
-          {/* Divider */}
-          <div className="divider" />
-
-          {/* GitHub */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
-            <a
-              href="https://github.com/tamtrantam/eye-rest"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.875rem',
-                color: 'var(--text-body)',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                transition: 'color 0.15s ease',
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.color = 'var(--blue-500)')}
-              onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-body)')}
-            >
-              <GithubIcon size={17} color="currentColor" />
-              View on GitHub
-            </a>
-            <a
-              href="https://github.com/tamtrantam/eye-rest"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.875rem',
-                color: 'var(--text-body)',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                transition: 'color 0.15s ease',
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.color = 'var(--blue-500)')}
-              onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-body)')}
-            >
-              <StarIcon size={17} color="#FBBF24" />
-              Star the repo
-            </a>
           </div>
         </div>
       </div>

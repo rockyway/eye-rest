@@ -1,6 +1,6 @@
 import {
-  EyeIcon, TimerIcon, MeetingIcon, ChartIcon,
-  MonitorIcon, ShieldIcon, GlobeIcon, PaletteIcon,
+  EyeIcon, TimerIcon, ChartIcon,
+  MonitorIcon, ShieldIcon, GlobeIcon, PaletteIcon, CursorClickIcon,
 } from '../assets/icons'
 import type { ReactNode } from 'react'
 
@@ -22,17 +22,17 @@ const FEATURES: Feature[] = [
   },
   {
     num: 2,
-    icon: <TimerIcon size={28} />,
-    title: 'Smart Pause Detection',
-    desc: 'Auto-pauses when you step away from the keyboard. Resumes the moment you return.',
-    accent: '#2196F3',
+    icon: <CursorClickIcon size={28} />,
+    title: 'Non-Blocking Reminders',
+    desc: 'Click any break overlay to dismiss it instantly. Nothing stops you from getting back to urgent work.',
+    accent: '#4CAF50',
   },
   {
     num: 3,
-    icon: <MeetingIcon size={28} />,
-    title: 'Meeting-Aware',
-    desc: 'Detects active Teams, Zoom, and Google Meet sessions. Your calls are never interrupted.',
-    accent: '#4CAF50',
+    icon: <TimerIcon size={28} />,
+    title: 'Smart Pause Detection',
+    desc: 'Auto-pauses when you step away from your desk. Resumes the moment you return.',
+    accent: '#2196F3',
   },
   {
     num: 4,

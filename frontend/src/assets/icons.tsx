@@ -324,3 +324,28 @@ export function StarIcon({ className, size = 24, color = 'currentColor' }: IconP
     </svg>
   );
 }
+
+export function CursorClickIcon({ className, size = 24, color = 'currentColor' }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Cursor pointer */}
+      <path d="M4 4l7.07 17 2.51-7.39L21 11.07z" />
+      {/* Click burst lines */}
+      <line x1="18" y1="13" x2="21" y2="15" />
+      <line x1="16" y1="17" x2="18" y2="20" />
+      <line x1="20" y1="9" x2="22" y2="7" />
+    </svg>
+  );
+}

@@ -1,7 +1,9 @@
 import { trackDownload } from '../analytics'
 import { DownloadIcon, WindowsIcon, AppleIcon } from '../assets/icons'
+import { useTheme } from '../theme'
 
 export default function Hero() {
+  const { isDark } = useTheme()
   return (
     <section
       style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', zIndex: 1 }}
@@ -113,8 +115,8 @@ export default function Hero() {
               lineHeight: 1.65,
             }}>
               Eye-Rest runs quietly in your system tray, guiding you through the
-              20-20-20 rule and regular breaks — so long coding sessions don't cost
-              you your eyesight.
+              20-20-20 rule and regular breaks — so hours of office work don't
+              take a toll on your vision.
             </p>
 
             {/* CTA row */}
@@ -189,8 +191,8 @@ export default function Hero() {
                 ))}
               </div>
               <img
-                src="/screenshot-light.png"
-                alt="Eye-Rest app — light theme"
+                src={isDark ? '/screenshot-dark.png' : '/screenshot-light.png'}
+                alt={`Eye-Rest app — ${isDark ? 'dark' : 'light'} theme`}
                 style={{
                   width: '100%',
                   borderRadius: 12,

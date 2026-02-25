@@ -272,7 +272,7 @@ p { line-height: 1.65; }
   font-family: var(--font-display);
   font-size: 5rem;
   font-weight: 900;
-  color: rgba(33, 150, 243, 0.06);
+  color: rgba(33, 150, 243, 0.24);
   line-height: 1;
   pointer-events: none;
   user-select: none;
@@ -355,3 +355,87 @@ p { line-height: 1.65; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(33, 150, 243, 0.3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(33, 150, 243, 0.5); }
+
+/* ─── Dark Theme ──────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --blue-500: #64B5F6;
+  --blue-600: #42A5F5;
+  --blue-700: #1E88E5;
+
+  --text-heading: #E2E8F0;
+  --text-body:    #CBD5E1;
+  --text-muted:   #94A3B8;
+  --text-subtle:  #64748B;
+
+  --glass-bg:     rgba(15, 23, 42, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-shadow: 0 4px 32px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0,0,0,0.25);
+}
+
+[data-theme="dark"] body {
+  color: var(--text-body);
+  background: #0F172A;
+}
+
+[data-theme="dark"] .site-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 90% 10%, rgba(30, 64, 175, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 60% 90%, rgba(23, 37, 84, 0.25) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 50%, rgba(30, 27, 75, 0.20) 0%, transparent 70%),
+    linear-gradient(160deg, #0F172A 0%, #1E293B 35%, #172554 65%, #1E1B4B 100%);
+  animation: meshShiftDark 18s ease-in-out infinite alternate;
+}
+
+@keyframes meshShiftDark {
+  0%   { background-position: 0% 0%, 100% 0%, 60% 100%, 50% 50%, 0% 0%; }
+  50%  { background-position: 25% 15%, 75% 25%, 45% 75%, 55% 45%, 0% 0%; }
+  100% { background-position: 15% 35%, 85% 15%, 50% 80%, 50% 55%, 0% 0%; }
+}
+
+[data-theme="dark"] .glass-card::before {
+  background: linear-gradient(135deg,
+    rgba(255,255,255,0.08) 0%,
+    rgba(255,255,255,0.02) 40%,
+    rgba(255,255,255,0.00) 100%);
+}
+
+[data-theme="dark"] .glass-card-hover:hover {
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+[data-theme="dark"] .toggle-pill {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.10);
+}
+
+[data-theme="dark"] .toggle-pill button.active {
+  background: rgba(255,255,255,0.14);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+[data-theme="dark"] .btn-outline {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(100, 181, 246, 0.5);
+}
+
+[data-theme="dark"] .nav-link {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .nav-link:hover {
+  color: var(--blue-500);
+}
+
+/* ─── Nav offset for sticky header ────────────────────────────────────────── */
+.nav-offset {
+  padding-top: 56px;
+}
+
+/* ─── Nav desktop links hide on mobile ───────────────────────────────────── */
+@media (max-width: 640px) {
+  .nav-links-desktop { display: none !important; }
+}
