@@ -8,7 +8,7 @@
         Width="340" Height="580"
         MinWidth="340" MinHeight="500"
         WindowStartupLocation="CenterScreen"
-        CanResize="True"
+        CanResize="False"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="PreferSystemChrome"
         ExtendClientAreaTitleBarHeightHint="40"
@@ -53,22 +53,16 @@
                     <!-- Right: Window control buttons (Windows only) -->
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right"
-                                VerticalAlignment="Stretch"
+                                VerticalAlignment="Top"
+                                Margin="0,-1,0,0"
                                 IsVisible="{OnPlatform False, Windows=True}">
                         <Button Classes="CaptionBtn" Click="MinimizeButton_Click"
-                                ToolTip.Tip="Minimize">
-                            <PathIcon Data="M4,12 L20,12" Width="10" Height="10"
-                                      Foreground="{DynamicResource TextPrimaryBrush}" />
-                        </Button>
-                        <Button Classes="CaptionBtn" Click="MaximizeButton_Click"
-                                ToolTip.Tip="Maximize">
-                            <PathIcon Data="{StaticResource MaximizeIcon}" Width="10" Height="10"
-                                      Foreground="{DynamicResource TextPrimaryBrush}" />
+                                ToolTip.Tip="Minimize" Height="40">
+                            <TextBlock Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
                         </Button>
                         <Button Classes="CaptionBtn CaptionCloseBtn" Click="CloseButton_Click"
-                                ToolTip.Tip="Close">
-                            <PathIcon Data="{StaticResource CloseIcon}" Width="10" Height="10"
-                                      Foreground="{DynamicResource TextPrimaryBrush}" />
+                                ToolTip.Tip="Close" Height="40">
+                            <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
                         </Button>
                     </StackPanel>
                 </Grid>

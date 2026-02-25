@@ -35,6 +35,13 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // On Windows, hide system chrome since we have custom caption buttons.
+        // macOS keeps PreferSystemChrome for native traffic-light buttons.
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
+        }
+
         // Start countdown update timer (1-second interval, same as WPF version)
         _countdownTimer = new DispatcherTimer
         {
