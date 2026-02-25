@@ -42,9 +42,12 @@ internal static class MacOSNativeWindowHelper
     private static extern IntPtr objc_msgSend_IntPtr_Long(IntPtr receiver, IntPtr selector, long arg1);
 
     private static readonly IntPtr Sel_OrderOut = sel_registerName("orderOut:");
+    private static readonly IntPtr Sel_OrderBack = sel_registerName("orderBack:");
+    private static readonly IntPtr Sel_MakeKeyWindow = sel_registerName("makeKeyWindow");
     private static readonly IntPtr Sel_MakeKeyAndOrderFront = sel_registerName("makeKeyAndOrderFront:");
     private static readonly IntPtr Sel_SetActivationPolicy = sel_registerName("setActivationPolicy:");
     private static readonly IntPtr Sel_SharedApplication = sel_registerName("sharedApplication");
+    private static readonly IntPtr Sel_Hide = sel_registerName("hide:");
 
     /// <summary>
     /// Calls [NSWindow orderOut:nil] to remove the window from the window server's screen list.
@@ -75,6 +78,63 @@ internal static class MacOSNativeWindowHelper
     }
 
     /// <summary>
+    /// Calls [NSWindow orderBack:nil] to push the window behind all other windows.
+    /// Used to undo app activation that brings the main window to the front when a popup is shown.
+    /// </summary>
+    internal static bool OrderBack(Window window, ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            if (handle == IntPtr.Zero)
+            {
+                logger?.LogDebug("OrderBack: No platform handle available");
+                return false;
+            }
+
+            objc_msgSend_Void_IntPtr(handle, Sel_OrderBack, IntPtr.Zero);
+            logger?.LogDebug("OrderBack: NSWindow sent to back");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "OrderBack: Failed");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Calls [NSWindow makeKeyWindow] to make the window the key (focused) window
+    /// WITHOUT activating the application. This gives the window keyboard focus
+    /// without bringing other app windows to the front.
+    /// </summary>
+    internal static bool MakeKeyWindow(Window window, ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            if (handle == IntPtr.Zero)
+            {
+                logger?.LogDebug("MakeKeyWindow: No platform handle available");
+                return false;
+            }
+
+            objc_msgSend(handle, Sel_MakeKeyWindow);
+            logger?.LogDebug("MakeKeyWindow: NSWindow given key focus without app activation");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "MakeKeyWindow: Failed");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Calls [NSWindow makeKeyAndOrderFront:nil] to bring the window to front AND
     /// make it the key (focused) window.
     /// </summary>
@@ -98,6 +158,36 @@ internal static class MacOSNativeWindowHelper
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "MakeKeyAndOrderFront: Failed");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Calls [NSApp hide:nil] to deactivate the application and let macOS
+    /// activate whichever app was previously focused. This prevents the main
+    /// window from flashing to front when a popup closes.
+    /// </summary>
+    internal static bool HideApplication(ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var nsAppClass = objc_getClass("NSApplication");
+            var nsApp = objc_msgSend(nsAppClass, Sel_SharedApplication);
+            if (nsApp == IntPtr.Zero)
+            {
+                logger?.LogDebug("HideApplication: Could not get NSApplication");
+                return false;
+            }
+
+            objc_msgSend_Void_IntPtr(nsApp, Sel_Hide, IntPtr.Zero);
+            logger?.LogDebug("HideApplication: App hidden, previous app activated");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "HideApplication: Failed");
             return false;
         }
     }

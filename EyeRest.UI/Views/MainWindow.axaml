@@ -40,9 +40,9 @@
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                        <Image Source="avares://EyeRest.UI/Assets/app-icon.png"
+                        <Image Source="avares://EyeRest.UI/Assets/TrayIcons/tray_active@2x.png"
                                Width="18" Height="18" />
-                        <TextBlock Text="Desktop Eye Rest"
+                        <TextBlock Text="Eye Rest"
                                    FontSize="13"
                                    FontWeight="SemiBold"
                                    Margin="8,0,0,0"
