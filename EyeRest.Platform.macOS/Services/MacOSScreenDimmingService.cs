@@ -132,14 +132,19 @@ namespace EyeRest.Services
                     return false;
                 }
 
-                var result = IOKit.IODisplayGetFloatParameter(
-                    service, 0, IOKit.kIODisplayBrightnessKey, out _);
+                try
+                {
+                    var result = IOKit.IODisplayGetFloatParameter(
+                        service, 0, IOKit.kIODisplayBrightnessKey, out _);
 
-                IOKit.IOObjectRelease(service);
-
-                var supported = result == 0; // kIOReturnSuccess
-                _logger.LogDebug("IOKit brightness support check: {Supported}", supported);
-                return supported;
+                    var supported = result == 0; // kIOReturnSuccess
+                    _logger.LogDebug("IOKit brightness support check: {Supported}", supported);
+                    return supported;
+                }
+                finally
+                {
+                    IOKit.IOObjectRelease(service);
+                }
             }
             catch (Exception ex)
             {

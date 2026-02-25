@@ -12,6 +12,7 @@ namespace EyeRest.Services
         private readonly Process _currentProcess;
         private readonly DateTime _startTime;
         private Timer? _monitoringTimer;
+        private bool _disposed;
 
         public PerformanceMonitor(ILogger<PerformanceMonitor> logger)
         {
@@ -37,8 +38,7 @@ namespace EyeRest.Services
         {
             try
             {
-                _currentProcess.Refresh();
-                return _currentProcess.WorkingSet64 / (1024 * 1024);
+                return (long)(GC.GetTotalMemory(false) / (1024.0 * 1024.0));
             }
             catch (Exception ex)
             {
@@ -51,8 +51,9 @@ namespace EyeRest.Services
         {
             try
             {
-                // Return mock CPU usage for now
-                return 0.5; // Mock low CPU usage
+                // CPU monitoring not implemented — returns 0 to avoid
+                // PerformanceCounter permission issues on macOS/Linux.
+                return 0;
             }
             catch (Exception ex)
             {
@@ -93,16 +94,14 @@ namespace EyeRest.Services
             {
                 LogPerformanceMetrics();
                 
-                // Force garbage collection if memory usage is high
+                // Request non-blocking GC if memory usage is high
                 var memoryMB = GetMemoryUsageMB();
                 if (memoryMB > 40) // Trigger GC before hitting the 50MB limit
                 {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                    
+                    GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
+
                     var newMemoryMB = GetMemoryUsageMB();
-                    _logger.LogInformation($"Garbage collection performed - Memory reduced from {memoryMB}MB to {newMemoryMB}MB");
+                    _logger.LogInformation($"Garbage collection requested - Memory: {memoryMB}MB -> {newMemoryMB}MB");
                 }
             }
             catch (Exception ex)
@@ -113,6 +112,9 @@ namespace EyeRest.Services
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
+
             try
             {
                 _monitoringTimer?.Dispose();

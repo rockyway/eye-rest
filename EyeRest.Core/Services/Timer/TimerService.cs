@@ -229,31 +229,39 @@ namespace EyeRest.Services
         {
             // Dispose main timers
             _eyeRestTimer?.Stop();
+            _eyeRestTimer?.Dispose();
             _eyeRestTimer = null;
-            
+
             _breakTimer?.Stop();
+            _breakTimer?.Dispose();
             _breakTimer = null;
             
             // Dispose warning timers
             _eyeRestWarningTimer?.Stop();
+            _eyeRestWarningTimer?.Dispose();
             _eyeRestWarningTimer = null;
 
             _breakWarningTimer?.Stop();
+            _breakWarningTimer?.Dispose();
             _breakWarningTimer = null;
 
             // CRITICAL FIX: Dispose warning fallback timers to prevent ghost timers
             _eyeRestWarningFallbackTimer?.Stop();
+            _eyeRestWarningFallbackTimer?.Dispose();
             _eyeRestWarningFallbackTimer = null;
 
             _breakWarningFallbackTimer?.Stop();
+            _breakWarningFallbackTimer?.Dispose();
             _breakWarningFallbackTimer = null;
 
             // CONSOLIDATION: Fallback timers deprecated (no event handlers to detach)
             // Just null them out for cleanup
             _eyeRestFallbackTimer?.Stop();
+            _eyeRestFallbackTimer?.Dispose();
             _eyeRestFallbackTimer = null;
 
             _breakFallbackTimer?.Stop();
+            _breakFallbackTimer?.Dispose();
             _breakFallbackTimer = null;
 
             // Dispose pause timer with event handler detachment
@@ -261,12 +269,27 @@ namespace EyeRest.Services
             {
                 _manualPauseTimer.Stop();
                 _manualPauseTimer.Tick -= OnManualPauseTimerTick;
+                _manualPauseTimer.Dispose();
                 _manualPauseTimer = null;
+            }
+
+            // Dispose break delay timer with event handler detachment
+            if (_breakDelayTimer != null)
+            {
+                _breakDelayTimer.Stop();
+                _breakDelayTimer.Tick -= OnBreakDelayTimerTick;
+                _breakDelayTimer.Dispose();
+                _breakDelayTimer = null;
             }
 
             // Dispose health monitor timer
             _healthMonitorTimer?.Stop();
+            _healthMonitorTimer?.Dispose();
             _healthMonitorTimer = null;
+
+            // Dispose emergency fallback timer (System.Threading.Timer)
+            _emergencyFallbackTimer?.Dispose();
+            _emergencyFallbackTimer = null;
         }
 
         #region Processing Flag Management

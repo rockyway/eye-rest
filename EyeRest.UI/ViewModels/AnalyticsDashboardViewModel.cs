@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using EyeRest.Models;
@@ -23,6 +24,7 @@ namespace EyeRest.UI.ViewModels
         private readonly IConfigurationService _configurationService;
         private readonly ILogger<AnalyticsDashboardViewModel> _logger;
         private AppConfiguration _currentConfiguration;
+        private CancellationTokenSource? _loadCts;
 
         // Health Metrics Properties
         private HealthMetrics? _currentHealthMetrics;
@@ -526,6 +528,12 @@ namespace EyeRest.UI.ViewModels
 
         public async Task LoadDashboardDataAsync()
         {
+            // Cancel any previous in-flight load
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = new CancellationTokenSource();
+            var token = _loadCts.Token;
+
             try
             {
                 IsLoading = true;
@@ -539,6 +547,8 @@ namespace EyeRest.UI.ViewModels
 
                 // Load health metrics
                 var healthMetrics = await _analyticsService.GetHealthMetricsAsync(StartDateValue, EndDateValue);
+                token.ThrowIfCancellationRequested();
+
                 CurrentHealthMetrics = healthMetrics;
 
                 // Update summary properties
@@ -564,14 +574,21 @@ namespace EyeRest.UI.ViewModels
 
                 // Generate chart data
                 await GenerateChartDataAsync(healthMetrics);
+                token.ThrowIfCancellationRequested();
 
                 // Load daily, weekly, and monthly metrics
                 await LoadDailyMetricsAsync();
+                token.ThrowIfCancellationRequested();
+
                 await LoadWeeklyMetricsAsync();
+                token.ThrowIfCancellationRequested();
+
                 await LoadMonthlyMetricsAsync();
+                token.ThrowIfCancellationRequested();
 
                 // Load database info
                 await LoadDatabaseInfoAsync();
+                token.ThrowIfCancellationRequested();
 
                 // Notify UI of property changes
                 OnPropertyChanged(nameof(ComplianceRateText));
@@ -588,6 +605,11 @@ namespace EyeRest.UI.ViewModels
 
                 ErrorMessage = $"Data refreshed successfully at {DateTime.Now:HH:mm:ss}";
                 OnPropertyChanged(nameof(HasErrorMessage));
+            }
+            catch (OperationCanceledException)
+            {
+                // Previous load was cancelled by a newer one — expected behavior
+                return;
             }
             catch (Exception ex)
             {
@@ -1118,6 +1140,11 @@ namespace EyeRest.UI.ViewModels
                             EyeRestsCompleted = daily.EyeRestsCompleted
                         });
                     }
+
+                    // Free the duplicate daily breakdown data now that DailyMetrics is populated.
+                    // Chart data has already been generated from DailyBreakdown in GenerateChartDataAsync,
+                    // so this list is no longer needed and can be released to reduce memory usage.
+                    CurrentHealthMetrics.DailyBreakdown = null!;
                 }
 
                 await Task.CompletedTask;

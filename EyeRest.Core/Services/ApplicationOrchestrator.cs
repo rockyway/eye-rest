@@ -33,6 +33,9 @@ namespace EyeRest.Services
         // State tracking
         private bool _isInitialized = false;
 
+        // Cached configuration to avoid repeated JSON deserialization on every timer event
+        private AppConfiguration? _cachedConfig;
+
         // ENHANCED: Timer for updating system tray tooltip with timer details
         private ITimer? _trayUpdateTimer;
 
@@ -84,6 +87,10 @@ namespace EyeRest.Services
                 // ensures any newly added tables are created in existing databases)
                 await _analyticsService.InitializeDatabaseAsync();
                 await _analyticsService.RecordSessionStartAsync();
+
+                // Cache configuration once at startup and subscribe to changes
+                _cachedConfig = await _configurationService.LoadConfigurationAsync();
+                _configurationService.ConfigurationChanged += OnConfigurationChanged;
 
                 // Wire up core timer events
                 _timerService.EyeRestWarning += OnEyeRestWarning;
@@ -184,6 +191,9 @@ namespace EyeRest.Services
                 // Unsubscribe from timer state changes
                 _timerService.PropertyChanged -= OnTimerServicePropertyChanged;
 
+                // Unsubscribe from configuration changes
+                _configurationService.ConfigurationChanged -= OnConfigurationChanged;
+
                 // Unsubscribe from advanced service events
                 _userPresenceService.UserPresenceChanged -= OnUserPresenceChanged;
                 _userPresenceService.ExtendedAwaySessionDetected -= OnExtendedAwaySessionDetected; // NEW: Smart session reset
@@ -236,6 +246,12 @@ namespace EyeRest.Services
             }
         }
 
+        private void OnConfigurationChanged(object? sender, ConfigurationChangedEventArgs e)
+        {
+            _cachedConfig = e.NewConfiguration;
+            _logger.LogDebug("Cached configuration updated from ConfigurationChanged event");
+        }
+
         private async void OnEyeRestWarning(object? sender, TimerEventArgs e)
         {
             try
@@ -269,7 +285,7 @@ namespace EyeRest.Services
                 await _audioService.PlayEyeRestStartSound();
 
                 // Show eye rest notification with actual configuration duration
-                var config = await _configurationService.LoadConfigurationAsync();
+                var config = _cachedConfig ?? await _configurationService.LoadConfigurationAsync();
                 var duration = TimeSpan.FromSeconds(config.EyeRest.DurationSeconds);
                 var startTime = DateTime.Now;
                 
@@ -348,7 +364,7 @@ namespace EyeRest.Services
 
                 // Show break notification with progress tracking and actual configuration duration
                 var progress = new Progress<double>();
-                var config = await _configurationService.LoadConfigurationAsync();
+                var config = _cachedConfig ?? await _configurationService.LoadConfigurationAsync();
                 var duration = TimeSpan.FromMinutes(config.Break.DurationMinutes); // CRITICAL FIX: Use actual config
                 _logger.LogInformation($"🟢 Break duration from config: {duration.TotalMinutes} minutes");
                 
@@ -701,7 +717,7 @@ namespace EyeRest.Services
                     return;
                 }
 
-                var config = await _configurationService.LoadConfigurationAsync();
+                var config = _cachedConfig ?? await _configurationService.LoadConfigurationAsync();
 
                 _logger.LogCritical($"🔥 EXTENDED AWAY SESSION DETECTED!");
                 _logger.LogCritical($"🔥 Away duration: {e.TotalAwayTime.TotalMinutes:F1} minutes");
@@ -1214,8 +1230,9 @@ namespace EyeRest.Services
                 if (_sessionValidationTimer != null)
                 {
                     _sessionValidationTimer.Stop();
+                    _sessionValidationTimer.Dispose();
                     _sessionValidationTimer = null;
-                    _logger.LogInformation("⚙️ Session validation timer stopped");
+                    _logger.LogInformation("⚙️ Session validation timer stopped and disposed");
                 }
             }
             catch (Exception ex)

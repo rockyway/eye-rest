@@ -12,6 +12,7 @@ namespace EyeRest.UI.Views
         private DispatcherTimer? _progressTimer;
         private TimeSpan _duration;
         private DateTime _startTime;
+        private Window? _parentWindow;
 
         public event EventHandler? Completed;
 
@@ -34,13 +35,17 @@ namespace EyeRest.UI.Views
                 var topLevel = TopLevel.GetTopLevel(this);
                 if (topLevel is Window window)
                 {
-                    window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+                    _parentWindow = window;
+                    _parentWindow.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
                     Debug.WriteLine($"EyeRestPopup: Window key handler attached to {window.GetType().Name}");
                 }
                 else
                 {
                     Debug.WriteLine("EyeRestPopup: TopLevel returned null - input handling may be compromised");
                 }
+
+                // Subscribe to Unloaded for cleanup
+                this.Unloaded += OnUnloaded;
 
                 // Ensure focus and input capability
                 Focusable = true;
@@ -52,6 +57,16 @@ namespace EyeRest.UI.Views
             {
                 Debug.WriteLine($"EyeRestPopup: Error setting up input handling: {ex.Message}");
             }
+        }
+
+        private void OnUnloaded(object? sender, RoutedEventArgs e)
+        {
+            if (_parentWindow != null)
+            {
+                _parentWindow.RemoveHandler(KeyDownEvent, OnKeyDown);
+                _parentWindow = null;
+            }
+            this.Unloaded -= OnUnloaded;
         }
 
         public void StartCountdown(TimeSpan duration)
@@ -125,6 +140,13 @@ namespace EyeRest.UI.Views
                 _progressTimer.Stop();
                 _progressTimer.Tick -= OnProgressTimerTick;
                 _progressTimer = null;
+            }
+
+            // Clean up window key handler
+            if (_parentWindow != null)
+            {
+                _parentWindow.RemoveHandler(KeyDownEvent, OnKeyDown);
+                _parentWindow = null;
             }
         }
 

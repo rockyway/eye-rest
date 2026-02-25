@@ -22,8 +22,16 @@ namespace EyeRest.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
 
-            // Load config async without blocking — default to enabled until loaded
+            // Load config once at startup — default to enabled until loaded
             _ = RefreshAudioConfigAsync();
+
+            // Subscribe to configuration changes to update cached audio settings
+            _configurationService.ConfigurationChanged += OnConfigurationChanged;
+        }
+
+        private void OnConfigurationChanged(object? sender, ConfigurationChangedEventArgs e)
+        {
+            _cachedAudioEnabled = e.NewConfiguration.Audio.Enabled;
         }
 
         public bool IsAudioEnabled => _cachedAudioEnabled;
@@ -76,15 +84,12 @@ namespace EyeRest.Services
             return PlaySoundAsync("Glass", "eye rest audio test");
         }
 
-        private async Task PlaySoundAsync(string soundName, string context)
+        private Task PlaySoundAsync(string soundName, string context)
         {
-            // Refresh config each time without blocking the UI thread
-            await RefreshAudioConfigAsync().ConfigureAwait(false);
-
             if (!_cachedAudioEnabled)
             {
                 _logger.LogDebug("Audio disabled, skipping {Context} sound", context);
-                return;
+                return Task.CompletedTask;
             }
 
             try
@@ -124,6 +129,8 @@ namespace EyeRest.Services
                     _logger.LogError(beepEx, "NSBeep also failed");
                 }
             }
+
+            return Task.CompletedTask;
         }
     }
 }

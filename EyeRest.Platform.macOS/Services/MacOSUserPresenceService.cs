@@ -28,7 +28,7 @@ namespace EyeRest.Services
         private static readonly TimeSpan IdleThreshold = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan AwayThreshold = TimeSpan.FromMinutes(15);
         private static readonly TimeSpan ExtendedAwayThreshold = TimeSpan.FromMinutes(30);
-        private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(30);
 
         public MacOSUserPresenceService(ILogger<MacOSUserPresenceService> logger)
         {

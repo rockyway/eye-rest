@@ -1352,18 +1352,19 @@ namespace EyeRest.Services
             {
                 var testTimer = _timerFactory.CreateTimer();
                 testTimer.Interval = TimeSpan.FromMilliseconds(100);
-                
+
                 var timerFired = false;
                 testTimer.Tick += (s, e) =>
                 {
                     timerFired = true;
                     testTimer.Stop();
                 };
-                
+
                 testTimer.Start();
                 await Task.Delay(500); // Wait for timer to fire
                 testTimer.Stop();
-                
+                testTimer.Dispose();
+
                 if (!timerFired)
                 {
                     return (false, "Test timer did not fire within 500ms");
