@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy - Eye-Rest</title>
+  <link rel="icon" type="image/png" href="/app-icon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body: 'Figtree', system-ui, sans-serif;
+      --blue-600: #1976D2;
+      --blue-900: #1A365D;
+      --text-heading: #1A365D;
+      --text-body: #374151;
+      --text-muted: #6B7280;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      color: var(--text-body);
+      background: linear-gradient(135deg, #A7C5EB 0%, #B8E4F5 50%, #BAE6FD 100%);
+      min-height: 100vh;
+    }
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 28px;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.65);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .nav-brand img { width: 26px; height: 26px; border-radius: 7px; }
+    .nav-brand span {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-heading);
+    }
+    .nav-back {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--blue-600);
+      text-decoration: none;
+    }
+    .nav-back:hover { text-decoration: underline; }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255,255,255,0.82);
+      border-radius: 20px;
+      padding: 48px 40px;
+      box-shadow: 0 4px 32px rgba(33, 150, 243, 0.10), 0 1px 4px rgba(0,0,0,0.04);
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 2rem;
+      color: var(--text-heading);
+      margin: 0 0 8px;
+    }
+    .updated {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin: 0 0 32px;
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--text-heading);
+      margin: 32px 0 12px;
+    }
+    h2:first-of-type { margin-top: 0; }
+    p, li {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text-body);
+      margin: 0 0 12px;
+    }
+    ul { padding-left: 20px; margin: 0 0 12px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue-600); }
+    strong { color: var(--text-heading); }
+    .footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    @media (max-width: 600px) {
+      .card { padding: 32px 20px; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <a href="/" class="nav-brand">
+      <img src="/app-icon.png" alt="Eye-Rest" />
+      <span>Eye-Rest</span>
+    </a>
+    <a href="/" class="nav-back">&larr; Back to Home</a>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: February 25, 2026</p>
+
+      <h2>Overview</h2>
+      <p>
+        Eye-Rest is a free, open-source desktop application that provides automated eye rest and break reminders.
+        We are committed to protecting your privacy. This policy explains what data Eye-Rest collects, how it is used,
+        and your choices regarding that data.
+      </p>
+
+      <h2>Data We Collect</h2>
+
+      <p><strong>Data stored locally on your device:</strong></p>
+      <ul>
+        <li><strong>Configuration settings</strong> &mdash; your preferences for timers, audio, theme, and display options. Stored as JSON files in your app data folder.</li>
+        <li><strong>Usage analytics</strong> &mdash; session counts, break compliance, and timer statistics. Stored in a local SQLite database for the analytics dashboard. This data never leaves your device.</li>
+        <li><strong>Donation status</strong> &mdash; if you choose to donate and enter a license key, a masked version of the key and verification timestamp are stored securely using Windows DPAPI or macOS Keychain.</li>
+      </ul>
+
+      <p><strong>Data transmitted to third parties:</strong></p>
+      <ul>
+        <li><strong>Donation validation</strong> &mdash; if you voluntarily enter a donation license key, the key is sent to the <a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener">LemonSqueezy API</a> for one-time validation. No other data is sent.</li>
+        <li><strong>Website analytics</strong> &mdash; the Eye-Rest website (<a href="https://eyerest.net">eyerest.net</a>) uses Google Analytics to understand visitor traffic. This does not apply to the desktop application.</li>
+      </ul>
+
+      <h2>Data We Do NOT Collect</h2>
+      <ul>
+        <li>No personal information (name, email, address)</li>
+        <li>No screen content or screenshots</li>
+        <li>No browsing history or application usage outside Eye-Rest</li>
+        <li>No telemetry or crash reports sent to us</li>
+        <li>No advertising or tracking in the desktop application</li>
+      </ul>
+
+      <h2>Local Storage Locations</h2>
+      <ul>
+        <li><strong>Windows:</strong> <code>%APPDATA%\EyeRest\</code></li>
+        <li><strong>macOS:</strong> <code>~/.config/EyeRest/</code></li>
+      </ul>
+      <p>You can delete all stored data by removing this folder. Uninstalling the application does not automatically delete your data.</p>
+
+      <h2>Microsoft Store</h2>
+      <p>
+        If you install Eye-Rest from the Microsoft Store, the app runs in a sandboxed environment.
+        Configuration data is stored in a per-package location managed by Windows and is removed when you uninstall the app.
+      </p>
+
+      <h2>Third-Party Services</h2>
+      <ul>
+        <li><strong>LemonSqueezy</strong> &mdash; payment processing for voluntary donations. See their <a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener">privacy policy</a>.</li>
+        <li><strong>Google Analytics</strong> &mdash; website traffic analytics only (not in the desktop app). See Google's <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">privacy policy</a>.</li>
+      </ul>
+
+      <h2>Open Source</h2>
+      <p>
+        Eye-Rest is open source. You can review the complete source code to verify our privacy practices at
+        <a href="https://github.com/rockyway/eye-rest" target="_blank" rel="noopener">github.com/rockyway/eye-rest</a>.
+      </p>
+
+      <h2>Children's Privacy</h2>
+      <p>
+        Eye-Rest does not knowingly collect any personal information from children under 13. The application does not
+        require account creation or collect personal data.
+      </p>
+
+      <h2>Changes to This Policy</h2>
+      <p>
+        We may update this privacy policy from time to time. Changes will be posted on this page with an updated
+        revision date. Since Eye-Rest does not collect email addresses, we cannot notify you directly of changes.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        If you have questions about this privacy policy, please open an issue on our
+        <a href="https://github.com/rockyway/eye-rest/issues" target="_blank" rel="noopener">GitHub repository</a>.
+      </p>
+    </div>
+  </div>
+
+  <div class="footer">
+    &copy; 2026 Eye-Rest. All rights reserved.
+  </div>
+</body>
+</html>

@@ -84,13 +84,25 @@ export default function Footer() {
           }}>
             &copy; 2026 Eye-Rest. All rights reserved.
           </span>
-          <span style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.82rem',
-            color: 'var(--text-muted)',
-          }}>
-            Made with ♥ for your eyes
-          </span>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+            <a
+              href="/privacy"
+              className="nav-link"
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.82rem',
+              }}
+            >
+              Privacy Policy
+            </a>
+            <span style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '0.82rem',
+              color: 'var(--text-muted)',
+            }}>
+              Made with &#9829; for your eyes
+            </span>
+          </div>
         </div>
       </div>
     </footer>
