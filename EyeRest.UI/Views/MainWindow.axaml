@@ -1339,7 +1339,8 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- View Details Button -->
+                                <!-- View Details Button (hidden until details dialog is revised) -->
+                                <!--
                                 <Button Classes="ActionBtnPrimary"
                                         Command="{Binding ShowAnalyticsCommand}"
                                         HorizontalAlignment="Stretch"
@@ -1352,12 +1353,12 @@
                                     </StackPanel>
                                 </Button>
 
-                                <!-- Auto-open checkbox -->
                                 <CheckBox Content="Auto-open dashboard when clicking Analytics tab"
                                           IsChecked="{Binding AutoOpenDashboard}"
                                           HorizontalAlignment="Center"
                                           FontSize="11"
                                           Margin="0,0,0,4" />
+                                -->
                             </StackPanel>
 
                             <!-- ============================================ -->
