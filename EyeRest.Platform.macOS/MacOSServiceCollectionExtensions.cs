@@ -24,6 +24,7 @@ namespace EyeRest.Platform.macOS
             services.AddSingleton<IPauseReminderService, MacOSPauseReminderService>();
             services.AddSingleton<ITimerFactory, MacOSTimerFactory>();
             services.AddSingleton<MacOSIconService>();
+            services.AddSingleton<ISecureStorageService, MacOSSecureStorageService>();
 
             return services;
         }

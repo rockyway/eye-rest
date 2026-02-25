@@ -13,6 +13,7 @@ namespace EyeRest.Models
         public MeetingDetectionSettings MeetingDetection { get; set; } = new();
         public AnalyticsSettings Analytics { get; set; } = new();
         public TimerControlSettings TimerControls { get; set; } = new();
+        public DonationSettings Donation { get; set; } = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
         

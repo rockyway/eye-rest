@@ -3,7 +3,7 @@
         x:Class="EyeRest.UI.Views.AboutWindow"
         Title="About Eye-Rest"
         Width="360"
-        Height="340"
+        Height="440"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         SystemDecorations="None"
@@ -50,8 +50,57 @@
                                TextAlignment="Center"
                                HorizontalAlignment="Center"
                                MaxWidth="260"
-                               Margin="0,8,0,12"
+                               Margin="0,8,0,8"
                                Foreground="{DynamicResource ContentSubtitleText}"/>
+
+                    <!-- Donation Section (shown when not a donor) -->
+                    <StackPanel x:Name="DonateSection" Spacing="6" Margin="0,4,0,4">
+                        <Grid ColumnDefinitions="*,8,*">
+                            <Button Grid.Column="0"
+                                    Classes="ActionBtnPrimary"
+                                    HorizontalAlignment="Stretch"
+                                    Click="OnDonateClick"
+                                    Cursor="Hand">
+                                <StackPanel Orientation="Horizontal" Spacing="6"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Data="{StaticResource HeartIcon}"
+                                              Width="14" Height="14"
+                                              Foreground="{DynamicResource DonationHeartColor}" />
+                                    <TextBlock Text="Donate" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    Classes="ActionBtn"
+                                    HorizontalAlignment="Stretch"
+                                    Click="OnEnterCodeClick"
+                                    Cursor="Hand">
+                                <TextBlock Text="Enter Code"
+                                           FontSize="13"
+                                           HorizontalAlignment="Center" />
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Donor Badge (shown when verified donor) -->
+                    <Border x:Name="DonorBadgeSection"
+                            IsVisible="False"
+                            Background="{DynamicResource DonorBadgeBackground}"
+                            BorderBrush="{DynamicResource DonorBadgeBorder}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16,8"
+                            HorizontalAlignment="Center"
+                            Margin="0,4,0,4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource CheckCircleIcon}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource DonorBadgeText}" />
+                            <TextBlock Text="Thank you for your support!"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource DonorBadgeText}" />
+                        </StackPanel>
+                    </Border>
 
                     <Button Classes="GradientStart"
                             Width="120"

@@ -118,6 +118,15 @@
         <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#FFFFFF" />
         <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#FFFFFF" />
         <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#FFFFFF" />
+
+        <!-- Donation Brushes -->
+        <SolidColorBrush x:Key="DonationBannerBackground" Color="#33854D0E" />
+        <SolidColorBrush x:Key="DonationBannerBorder" Color="#4D854D0E" />
+        <SolidColorBrush x:Key="DonationHeartColor" Color="#F87171" />
+        <SolidColorBrush x:Key="DonationBannerText" Color="#FDE68A" />
+        <SolidColorBrush x:Key="DonorBadgeBackground" Color="#33166534" />
+        <SolidColorBrush x:Key="DonorBadgeBorder" Color="#4D22C55E" />
+        <SolidColorBrush x:Key="DonorBadgeText" Color="#86EFAC" />
     </Styles.Resources>
 
     <!-- ============================================================ -->
