@@ -195,47 +195,87 @@ namespace EyeRest.Services
                 
                 if (!IsPaused)
                 {
-                    // CRITICAL FIX: Ensure timers are actually enabled/created before starting
-                    if (_eyeRestTimer == null || !_eyeRestTimer.IsEnabled)
+                    // Ensure timers are actually created before starting
+                    if (_eyeRestTimer == null)
                     {
-                        _logger.LogCritical($"🔧 SMART RESUME FIX: Eye rest timer is null or disabled - ensuring timer is created and started");
-                        if (_eyeRestTimer == null)
-                        {
-                            InitializeEyeRestTimer();
-                        }
+                        _logger.LogCritical($"🔧 SMART RESUME FIX: Eye rest timer is null - recreating");
+                        InitializeEyeRestTimer();
                     }
-                    
-                    if (_breakTimer == null || !_breakTimer.IsEnabled)
+
+                    if (_breakTimer == null)
                     {
-                        _logger.LogCritical($"🔧 SMART RESUME FIX: Break timer is null or disabled - ensuring timer is created and started");
-                        if (_breakTimer == null)
-                        {
-                            InitializeBreakTimer();
-                        }
+                        _logger.LogCritical($"🔧 SMART RESUME FIX: Break timer is null - recreating");
+                        InitializeBreakTimer();
                     }
-                    
-                    // CRITICAL FIX: Restore preserved timer intervals if they exist
-                    if (_eyeRestRemainingTime > TimeSpan.Zero && _eyeRestTimer != null)
+
+                    // Calculate how long the user was idle/away
+                    var idleDuration = _pauseStartTime != DateTime.MinValue
+                        ? DateTime.Now - _pauseStartTime
+                        : TimeSpan.Zero;
+                    var eyeRestDurationSeconds = _configuration?.EyeRest?.DurationSeconds ?? 20;
+                    var eyeRestIntervalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;
+
+                    _logger.LogCritical($"🧠 SMART RESUME: Idle duration={idleDuration.TotalMinutes:F1}min, EyeRest duration={eyeRestDurationSeconds}s, EyeRest interval={eyeRestIntervalMinutes}min");
+
+                    // If user was idle longer than the eye rest duration (e.g., 20s), they already
+                    // rested their eyes naturally — reset eye rest timer to full interval
+                    // If idle longer than break duration, reset break timer too
+                    var breakDurationMinutes = _configuration?.Break?.DurationMinutes ?? 5;
+
+                    if (idleDuration.TotalSeconds >= eyeRestDurationSeconds)
                     {
-                        _eyeRestTimer.Interval = _eyeRestRemainingTime;
-                        _logger.LogCritical($"🔧 SMART RESUME: Restored eye rest timer interval to {_eyeRestRemainingTime.TotalMinutes:F1} minutes");
+                        // User was idle long enough to count as a natural eye rest — reset to full interval
+                        var (erInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
+                        _eyeRestInterval = erInterval;
+                        _eyeRestTimer!.Interval = _eyeRestInterval;
+                        _eyeRestStartTime = DateTime.Now;
+                        _eyeRestRemainingTime = TimeSpan.Zero;
+                        _logger.LogCritical($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {eyeRestDurationSeconds}s eye rest) — reset eye rest to full {_eyeRestInterval.TotalMinutes:F1}min");
                     }
-                    
-                    if (_breakRemainingTime > TimeSpan.Zero && _breakTimer != null)
+                    else if (_eyeRestRemainingTime > TimeSpan.Zero)
                     {
-                        _breakTimer.Interval = _breakRemainingTime;
-                        _logger.LogCritical($"🔧 SMART RESUME: Restored break timer interval to {_breakRemainingTime.TotalMinutes:F1} minutes");
+                        _eyeRestTimer!.Interval = _eyeRestRemainingTime;
+                        _eyeRestStartTime = DateTime.Now;
+                        _logger.LogCritical($"🔧 SMART RESUME: Restored eye rest remaining {_eyeRestRemainingTime.TotalMinutes:F1}min");
                     }
-                    
-                    // CRITICAL FIX: Always start timers after ensuring they exist
+
+                    if (idleDuration.TotalMinutes >= breakDurationMinutes)
+                    {
+                        // User was idle long enough to count as a natural break — reset to full interval
+                        var (brInterval, _, _, _, _) = CalculateBreakTimerInterval();
+                        _breakInterval = brInterval;
+                        _breakTimer!.Interval = _breakInterval;
+                        _breakStartTime = DateTime.Now;
+                        _breakTimerStartTime = DateTime.Now;
+                        _breakRemainingTime = TimeSpan.Zero;
+                        _logger.LogCritical($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {breakDurationMinutes}min break) — reset break to full {_breakInterval.TotalMinutes:F1}min");
+                    }
+                    else if (_breakRemainingTime > TimeSpan.Zero)
+                    {
+                        _breakTimer!.Interval = _breakRemainingTime;
+                        _breakStartTime = DateTime.Now;
+                        _breakTimerStartTime = DateTime.Now;
+                        _logger.LogCritical($"🔧 SMART RESUME: Restored break remaining {_breakRemainingTime.TotalMinutes:F1}min");
+                    }
+                    else
+                    {
+                        // No preserved remaining time — just reset start times to now
+                        _breakStartTime = DateTime.Now;
+                        _breakTimerStartTime = DateTime.Now;
+                    }
+
+                    // Always reset start times if they weren't set above (fallback safety)
+                    if (_eyeRestStartTime == DateTime.MinValue)
+                        _eyeRestStartTime = DateTime.Now;
+
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
-                    _breakTimerStartTime = DateTime.Now; // Track when break timer started
-                    
+                    UpdateHeartbeatFromOperation("SmartResume");
+
                     _logger.LogCritical($"🧠 Smart resume conditions - Timers started: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
-                    
+
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.SmartDetection);
-                    
+
                     _logger.LogInformation("Timer service smart resumed successfully");
                 }
                 else
