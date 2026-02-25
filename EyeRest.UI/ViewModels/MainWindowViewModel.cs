@@ -1370,7 +1370,7 @@ namespace EyeRest.UI.ViewModels
                             TimeUntilNextEyeRest = pauseText;
                             TimeUntilNextBreak = pauseText;
                             DualCountdownText = $"{pauseText} (timers will auto-resume)";
-                            EyeRestCountdownText = FormatTimeSpan(remaining.Value);
+                            EyeRestCountdownText = "Paused";
                             BreakCountdownText = "Paused";
                         }
                         else
