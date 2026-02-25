@@ -11,6 +11,8 @@ namespace EyeRest.UI.Views
     {
         private TimeSpan _totalDuration;
         private DispatcherTimer? _smoothAnimationTimer;
+        private DispatcherTimer? _selfCountdownTimer;
+        private DateTime _countdownStartTime;
         private double _targetProgressValue;
         private double _animStartValue;
         private DateTime _animStartTime;
@@ -57,18 +59,57 @@ namespace EyeRest.UI.Views
         {
             _totalDuration = timeUntilBreak;
 
-            Debug.WriteLine($"BreakWarningPopup: Starting display-only countdown for {timeUntilBreak.TotalSeconds} seconds");
+            Debug.WriteLine($"BreakWarningPopup: Starting countdown for {timeUntilBreak.TotalSeconds} seconds");
 
-            // Initialize display - no internal timer
+            // Initialize display
             UpdateDisplay(timeUntilBreak);
             ProgressBar.Value = 100; // Start at 100%
+
+            // Start self-driving countdown timer so the popup counts down
+            // even in test mode (when TimerService doesn't drive updates)
+            StopSelfCountdown();
+            _countdownStartTime = DateTime.UtcNow;
+            _selfCountdownTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _selfCountdownTimer.Tick += OnSelfCountdownTick;
+            _selfCountdownTimer.Start();
+        }
+
+        private void OnSelfCountdownTick(object? sender, EventArgs e)
+        {
+            var elapsed = DateTime.UtcNow - _countdownStartTime;
+            var remaining = _totalDuration - elapsed;
+
+            if (remaining <= TimeSpan.Zero)
+            {
+                StopSelfCountdown();
+                UpdateCountdown(TimeSpan.Zero);
+                return;
+            }
+
+            UpdateDisplay(remaining);
+        }
+
+        private void StopSelfCountdown()
+        {
+            if (_selfCountdownTimer != null)
+            {
+                _selfCountdownTimer.Stop();
+                _selfCountdownTimer.Tick -= OnSelfCountdownTick;
+                _selfCountdownTimer = null;
+            }
         }
 
         /// <summary>
-        /// Update the countdown display externally (called by TimerService)
+        /// Update the countdown display externally (called by TimerService).
+        /// Stops the self-driving timer since TimerService is now driving updates.
         /// </summary>
         public void UpdateCountdown(TimeSpan remaining)
         {
+            StopSelfCountdown();
+
             Debug.WriteLine($"BreakWarningPopup: UpdateCountdown called with {remaining.TotalSeconds} seconds remaining");
 
             if (remaining <= TimeSpan.Zero)
@@ -147,6 +188,8 @@ namespace EyeRest.UI.Views
 
         public void StopCountdown()
         {
+            StopSelfCountdown();
+
             if (_smoothAnimationTimer != null)
             {
                 _smoothAnimationTimer.Stop();

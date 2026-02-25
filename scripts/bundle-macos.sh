@@ -51,7 +51,7 @@ cp "$UI_PROJECT/Info.plist" "$APP_BUNDLE/Contents/"
 cp "$UI_PROJECT/Assets/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/"
 
 # Set executable permission
-chmod +x "$APP_BUNDLE/Contents/MacOS/EyeRest.UI"
+chmod +x "$APP_BUNDLE/Contents/MacOS/EyeRest"
 
 # ── Step 3: Sign all binaries ────────────────
 echo "[3/5] Signing bundle with: $SIGNING_IDENTITY"
