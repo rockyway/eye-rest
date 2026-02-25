@@ -152,12 +152,12 @@ export default function Download() {
             icon={<WindowsIcon size={36} color="#2196F3" />}
             name="Windows"
             subtitle="Windows 10 or later"
-            reqs={['4 GB RAM minimum', '100 MB disk space', '.NET 8 Runtime (auto-installed)', 'x64 or ARM64']}
+            reqs={['4 GB RAM minimum', '100 MB disk space', 'Self-contained — no runtime needed', 'x64 architecture']}
             label="Download"
             variant="primary"
-            fileType="exe"
-            href="#"
-            available={false}
+            fileType="zip"
+            href="/downloads/EyeRest-Windows-x64.zip"
+            available={true}
           />
           <PlatformCard
             platform="macos"
