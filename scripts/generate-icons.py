@@ -255,34 +255,85 @@ def make_taskbar_icon_png(output_path: Path, size: int = 256):
     print(f"  Created {output_path} ({size}px, transparent background)")
 
 
+def make_msix_icons(output_dir: Path):
+    """Generate all MSIX visual assets for Package.appxmanifest."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Square44x44Logo — app list, taskbar
+    for scale, px in [(100, 44), (125, 55), (150, 66), (200, 88), (400, 176)]:
+        img = draw_eye_icon(px, DEFAULT_FILL, DEFAULT_BORDER, background=True)
+        img.save(str(output_dir / f"Square44x44Logo.scale-{scale}.png"))
+
+    # Square44x44Logo target sizes (unplated, for taskbar)
+    for px in [16, 24, 32, 48, 256]:
+        img = draw_eye_icon(px, DEFAULT_FILL, DEFAULT_BORDER, background=True)
+        img.save(str(output_dir / f"Square44x44Logo.targetsize-{px}.png"))
+
+    # Square150x150Logo — medium tile
+    for scale, px in [(100, 150), (125, 188), (150, 225), (200, 300), (400, 600)]:
+        img = draw_eye_icon(px, DEFAULT_FILL, DEFAULT_BORDER, background=True)
+        img.save(str(output_dir / f"Square150x150Logo.scale-{scale}.png"))
+
+    # Wide310x150Logo — wide tile (eye centered on wide canvas)
+    for scale, w, h in [(100, 310, 150), (200, 620, 300)]:
+        canvas = Image.new("RGBA", (w, h), (255, 255, 255, 255))
+        icon_size = h - 20
+        eye = draw_eye_icon(icon_size, DEFAULT_FILL, DEFAULT_BORDER, background=False)
+        x = (w - icon_size) // 2
+        y = (h - icon_size) // 2
+        canvas.paste(eye, (x, y), eye)
+        canvas.save(str(output_dir / f"Wide310x150Logo.scale-{scale}.png"))
+
+    # StoreLogo — Store listing
+    for scale, px in [(100, 50), (125, 63), (150, 75), (200, 100), (400, 200)]:
+        img = draw_eye_icon(px, DEFAULT_FILL, DEFAULT_BORDER, background=True)
+        img.save(str(output_dir / f"StoreLogo.scale-{scale}.png"))
+
+    count = 5 + 5 + 5 + 2 + 5  # 22 total
+    print(f"  Created {count} MSIX visual assets in {output_dir}")
+
+
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate Eye-rest icons")
+    parser.add_argument("--msix", action="store_true", help="Also generate MSIX visual assets")
+    parser.add_argument("--msix-only", action="store_true", help="Only generate MSIX visual assets")
+    args = parser.parse_args()
+
     print("Generating Eye-rest icons...")
     print()
 
-    # 1. Windows .ico
-    print("[1/5] Windows app icon (.ico)")
-    make_ico(ROOT / "Resources" / "app.ico")
-    print()
+    if not args.msix_only:
+        # 1. Windows .ico
+        print("[1/5] Windows app icon (.ico)")
+        make_ico(ROOT / "Resources" / "app.ico")
+        print()
 
-    # 2. macOS .icns
-    print("[2/5] macOS dock icon (.icns)")
-    make_icns(ROOT / "EyeRest.UI" / "Assets" / "AppIcon.icns")
-    print()
+        # 2. macOS .icns
+        print("[2/5] macOS dock icon (.icns)")
+        make_icns(ROOT / "EyeRest.UI" / "Assets" / "AppIcon.icns")
+        print()
 
-    # 3. App icon PNG (Avalonia embedded resource for macOS dock icon — white background)
-    print("[3/5] App icon PNG (macOS dock — white background)")
-    make_app_icon_png(ROOT / "EyeRest.UI" / "Assets" / "app-icon.png")
-    print()
+        # 3. App icon PNG (Avalonia embedded resource for macOS dock icon — white background)
+        print("[3/5] App icon PNG (macOS dock — white background)")
+        make_app_icon_png(ROOT / "EyeRest.UI" / "Assets" / "app-icon.png")
+        print()
 
-    # 4. Taskbar icon PNG (Windows taskbar — transparent background, matches tray style)
-    print("[4/5] Taskbar icon PNG (Windows taskbar — transparent background)")
-    make_taskbar_icon_png(ROOT / "EyeRest.UI" / "Assets" / "taskbar-icon.png")
-    print()
+        # 4. Taskbar icon PNG (Windows taskbar — transparent background, matches tray style)
+        print("[4/5] Taskbar icon PNG (Windows taskbar — transparent background)")
+        make_taskbar_icon_png(ROOT / "EyeRest.UI" / "Assets" / "taskbar-icon.png")
+        print()
 
-    # 5. Tray state icons
-    print("[5/5] Menu bar / tray state icons")
-    make_tray_icons(ROOT / "EyeRest.UI" / "Assets" / "TrayIcons")
-    print()
+        # 5. Tray state icons
+        print("[5/5] Menu bar / tray state icons")
+        make_tray_icons(ROOT / "EyeRest.UI" / "Assets" / "TrayIcons")
+        print()
+
+    if args.msix or args.msix_only:
+        step = "[6/6]" if not args.msix_only else "[1/1]"
+        print(f"{step} MSIX visual assets")
+        make_msix_icons(ROOT / "EyeRest.Package" / "Images")
+        print()
 
     print("Done!")
 
