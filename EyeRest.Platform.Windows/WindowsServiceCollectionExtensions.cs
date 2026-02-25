@@ -1,4 +1,3 @@
-using System.Windows.Threading;
 using EyeRest.Services;
 using EyeRest.Services.Abstractions;
 using EyeRest.Services.Implementation;
@@ -11,17 +10,10 @@ namespace EyeRest.Platform.Windows
     {
         public static IServiceCollection AddWindowsPlatformServices(this IServiceCollection services)
         {
-            // Dispatcher service
-            services.AddSingleton<IDispatcherService>(sp =>
-                new WpfDispatcherService(System.Windows.Application.Current.Dispatcher));
-
-            // Register Dispatcher for services that need it directly (e.g., PauseReminderService)
-            services.AddSingleton<Dispatcher>(_ => Dispatcher.CurrentDispatcher);
-
-            // Timer factory
+            // Timer factory (uses IDispatcherService registered by the UI layer)
             services.AddSingleton<ITimerFactory>(sp =>
                 new HybridTimerFactory(
-                    System.Windows.Application.Current.Dispatcher,
+                    sp.GetRequiredService<IDispatcherService>(),
                     sp.GetService<ILoggerFactory>()));
 
             // Platform services

@@ -1,20 +1,19 @@
-using System.Windows.Threading;
 using EyeRest.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace EyeRest.Services.Implementation
 {
     /// <summary>
-    /// Factory for creating hybrid timer instances that use System.Threading.Timer + Dispatcher
+    /// Factory for creating hybrid timer instances that use System.Threading.Timer + IDispatcherService
     /// This replaces the fragile DispatcherTimer-based ProductionTimerFactory
     /// </summary>
     public class HybridTimerFactory : ITimerFactory
     {
-        private readonly Dispatcher _dispatcher;
+        private readonly IDispatcherService _dispatcher;
         private readonly ILoggerFactory? _loggerFactory;
         private readonly ILogger<HybridTimerFactory>? _logger;
 
-        public HybridTimerFactory(Dispatcher dispatcher, ILoggerFactory? loggerFactory = null)
+        public HybridTimerFactory(IDispatcherService dispatcher, ILoggerFactory? loggerFactory = null)
         {
             _dispatcher = dispatcher ?? throw new System.ArgumentNullException(nameof(dispatcher));
             _loggerFactory = loggerFactory;

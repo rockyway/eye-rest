@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using System.Windows.Threading;
 using EyeRest.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -12,14 +11,14 @@ namespace EyeRest.Services.Implementation
     /// </summary>
     internal class HybridTimer : EyeRest.Services.Abstractions.ITimer
     {
-        private readonly Dispatcher _dispatcher;
+        private readonly IDispatcherService _dispatcher;
         private readonly ILogger? _logger;
         private System.Threading.Timer? _systemTimer;
         private TimeSpan _interval = TimeSpan.FromSeconds(1);
         private volatile bool _isEnabled = false;
         private volatile bool _disposed = false;
 
-        public HybridTimer(Dispatcher dispatcher, ILogger? logger = null)
+        public HybridTimer(IDispatcherService dispatcher, ILogger? logger = null)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _logger = logger;
@@ -88,13 +87,13 @@ namespace EyeRest.Services.Implementation
                 // Marshal to UI thread using Dispatcher.BeginInvoke
                 // This is the key difference from DispatcherTimer - we use System.Threading.Timer
                 // for reliability and only use Dispatcher for UI thread marshalling
-                _dispatcher.BeginInvoke(new Action(() =>
+                _dispatcher.BeginInvoke(() =>
                 {
                     if (_isEnabled && !_disposed)
                     {
                         Tick?.Invoke(this, EventArgs.Empty);
                     }
-                }), DispatcherPriority.Normal);
+                });
             }
             catch (Exception ex)
             {
