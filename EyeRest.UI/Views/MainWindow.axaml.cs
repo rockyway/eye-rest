@@ -38,6 +38,60 @@ public partial class MainWindow : Window
     {
         base.OnOpened(e);
         DisableMaximizeButton();
+
+        // On macOS, ensure the window comes to front on startup.
+        // dotnet run launches from Terminal which keeps focus, so we
+        // need to explicitly activate and bring the window forward.
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            MacOSNativeWindowHelper.SetActivationPolicy(0); // Regular — show dock icon
+            MacOSNativeWindowHelper.MakeKeyAndOrderFront(this);
+        }
+
+        // Subscribe to ViewModel property changes for mode switching
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.PropertyChanged += OnViewModelPropertyChanged;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.IsConfigurationMode))
+        {
+            UpdateWindowSize();
+        }
+    }
+
+    private void UpdateWindowSize()
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            if (vm.IsConfigurationMode)
+            {
+                MinWidth = 900;
+                MinHeight = 600;
+                Width = 900;
+                Height = 700;
+            }
+            else
+            {
+                Width = 340;
+                Height = 580;
+                MinWidth = 340;
+                MinHeight = 500;
+            }
+
+            // Re-center on screen
+            if (Screens.Primary is { } screen)
+            {
+                var scaling = screen.Scaling;
+                var workArea = screen.WorkingArea;
+                var x = (int)((workArea.Width - Width * scaling) / 2) + workArea.X;
+                var y = (int)((workArea.Height - Height * scaling) / 2) + workArea.Y;
+                Position = new Avalonia.PixelPoint(x, y);
+            }
+        }
     }
 
     private void OnCountdownTimerTick(object? sender, EventArgs e)

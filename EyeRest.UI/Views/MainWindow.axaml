@@ -5,8 +5,8 @@
         x:Class="EyeRest.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
-        Width="900" Height="700"
-        MinWidth="900" MinHeight="600"
+        Width="340" Height="580"
+        MinWidth="340" MinHeight="500"
         WindowStartupLocation="CenterScreen"
         CanResize="True"
         ExtendClientAreaToDecorationsHint="True"
@@ -43,7 +43,7 @@
                         <Image Source="avares://EyeRest.UI/Assets/TrayIcons/tray_active@2x.png"
                                Width="18" Height="18" />
                         <TextBlock Text="Eye Rest"
-                                   FontSize="13"
+                                   FontSize="15"
                                    FontWeight="SemiBold"
                                    Margin="8,0,0,0"
                                    VerticalAlignment="Center" />
@@ -74,9 +74,196 @@
             </Border>
 
             <!-- ============================================================ -->
-            <!-- Row 1: Main Content (Sidebar + Content)                       -->
+            <!-- Row 1: Main Content                                           -->
             <!-- ============================================================ -->
-            <Grid Grid.Row="1" ColumnDefinitions="260,*">
+            <Panel Grid.Row="1">
+
+                <!-- ======================================================== -->
+                <!-- SIMPLE MODE (default)                                     -->
+                <!-- ======================================================== -->
+                <Border IsVisible="{Binding IsNotConfigurationMode}"
+                        Background="{DynamicResource SidebarBackground}">
+                    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+                        <!-- Settings gear button to switch to config mode -->
+                        <StackPanel Grid.Row="0" Margin="12,10,12,0"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="6"
+                                    Cursor="Hand"
+                                    ToolTip.Tip="Open Configuration"
+                                    Command="{Binding ToggleConfigurationModeCommand}">
+                                <PathIcon Data="{StaticResource SettingsIcon}"
+                                          Width="18" Height="18"
+                                          Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Status Card -->
+                        <Border Grid.Row="1" Classes="StatusCard" Margin="12,4,12,0"
+                                Padding="20,18">
+                            <StackPanel Spacing="14">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Text="STATUS" FontSize="16" FontWeight="Bold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding TimerStatusText}"
+                                               FontSize="16" FontWeight="Bold"
+                                               VerticalAlignment="Center" />
+                                    <Ellipse Width="11" Height="11"
+                                             Fill="{Binding TimerStatusColor}"
+                                             VerticalAlignment="Center" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding IsRunning}" Spacing="6">
+                                    <TextBlock Text="{Binding TimeUntilNextEyeRest}"
+                                               FontSize="17"
+                                               FontWeight="SemiBold"
+                                               FontFamily="Consolas,Menlo,monospace"
+                                               Foreground="{DynamicResource PrimaryBrush}" />
+                                    <TextBlock Text="{Binding TimeUntilNextBreak}"
+                                               FontSize="17"
+                                               FontWeight="SemiBold"
+                                               FontFamily="Consolas,Menlo,monospace"
+                                               Foreground="{DynamicResource PrimaryBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Spacer -->
+                        <Panel Grid.Row="2" />
+
+                        <!-- Bottom: Dark toggle + Meeting + Controls + Exit -->
+                        <StackPanel Grid.Row="3" Margin="0,0,0,12" Spacing="4">
+
+                            <!-- Dark Mode Toggle -->
+                            <Border Margin="12,0" Padding="12,6"
+                                    Background="{DynamicResource StatusCardBackground}"
+                                    BorderBrush="{DynamicResource StatusCardBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <PathIcon Grid.Column="0"
+                                              Data="{StaticResource DarkModeIcon}"
+                                              Width="16" Height="16"
+                                              Foreground="{DynamicResource ToggleCardIconColor}"
+                                              VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="Dark Mode"
+                                               FontSize="12" FontWeight="Medium"
+                                               VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    <ToggleSwitch Grid.Column="2"
+                                                  IsChecked="{Binding IsDarkMode}"
+                                                  VerticalAlignment="Center"
+                                                  OnContent="" OffContent=""
+                                                  Margin="0,-2,0,-2" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Meeting Buttons -->
+                            <Grid ColumnDefinitions="*,*" Margin="12,4,12,4">
+                                <Button Grid.Column="0" Classes="MeetingBtn"
+                                        Command="{Binding PauseForMeetingCommand}"
+                                        IsEnabled="{Binding CanPauseMeeting}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding Meeting30mButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" />
+                                        <TextBlock Text="Meet 30m" FontSize="12" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="1" Classes="MeetingBtn"
+                                        Command="{Binding PauseForMeeting1hCommand}"
+                                        IsEnabled="{Binding CanPauseMeeting}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding Meeting1hButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" />
+                                        <TextBlock Text="Meet 1h" FontSize="12" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <!-- Start Button (full width, slightly taller) -->
+                            <Button Classes="GradientStart"
+                                    Command="{Binding StartTimersCommand}"
+                                    ToolTip.Tip="{Binding StartButtonTooltip}"
+                                    Height="42" Margin="8,0">
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Data="{StaticResource PlayIcon}" Width="14" Height="14" Foreground="White" />
+                                    <TextBlock Text="Start" Foreground="White" FontSize="14" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Stop + Pause row -->
+                            <Grid ColumnDefinitions="*,*" Margin="4,0">
+                                <Button Grid.Column="0" Classes="GradientStop"
+                                        Command="{Binding StopTimersCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding StopButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource StopIcon}" Width="12" Height="12" Foreground="White" />
+                                        <TextBlock Text="Stop" Foreground="White" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="1" Classes="GradientPause"
+                                        Command="{Binding PauseTimersCommand}"
+                                        IsEnabled="{Binding CanPauseTimers}"
+                                        HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="{Binding PauseButtonTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource PauseIcon}" Width="12" Height="12" Foreground="White" />
+                                        <TextBlock Text="Pause" Foreground="White" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <!-- Resume button (visible when paused) -->
+                            <Button Classes="GradientStart"
+                                    Command="{Binding ResumeTimersCommand}"
+                                    IsEnabled="{Binding CanResumeTimers}"
+                                    IsVisible="{Binding CanResumeTimers}"
+                                    ToolTip.Tip="{Binding ResumeButtonTooltip}"
+                                    Height="36" Margin="8,0">
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Data="{StaticResource PlayIcon}" Width="12" Height="12" Foreground="White" />
+                                    <TextBlock Text="Resume" Foreground="White" FontSize="15" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Exit button -->
+                            <Button Margin="8,4,8,0"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Height="30"
+                                    CornerRadius="8"
+                                    Background="Transparent"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    Command="{Binding ExitApplicationCommand}"
+                                    ToolTip.Tip="Exit application"
+                                    FontSize="12" Cursor="Hand">
+                                <StackPanel Orientation="Horizontal" Spacing="6"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Data="{StaticResource ExitIcon}" Width="14" Height="14"
+                                              Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="Exit" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- ======================================================== -->
+                <!-- CONFIGURATION MODE                                        -->
+                <!-- ======================================================== -->
+                <Grid IsVisible="{Binding IsConfigurationMode}" ColumnDefinitions="260,*">
 
                 <!-- ======================================================== -->
                 <!-- Col 0: Sidebar                                            -->
@@ -85,10 +272,31 @@
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource GlassPanelBorder}"
                         BorderThickness="0,0,1,0">
-                    <Grid RowDefinitions="Auto,Auto,*,Auto">
+                    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+                        <!-- Back to Simple Mode button -->
+                        <StackPanel Grid.Row="0" Margin="8,10,8,0"
+                                    Orientation="Horizontal">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="8,4"
+                                    Cursor="Hand"
+                                    ToolTip.Tip="Back to Simple View"
+                                    Command="{Binding ToggleConfigurationModeCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <PathIcon Data="{StaticResource BackArrowIcon}"
+                                              Width="16" Height="16"
+                                              Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="Simple View"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
 
                         <!-- Nav Buttons -->
-                        <StackPanel Grid.Row="0" Margin="0,12,0,0">
+                        <StackPanel Grid.Row="1" Margin="0,6,0,0">
                             <Button Classes="NavButton"
                                     Classes.active="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=0}"
                                     Tag="0" Click="NavButton_Click">
@@ -124,15 +332,15 @@
                         </StackPanel>
 
                         <!-- Status Card -->
-                        <Border Grid.Row="1" Classes="StatusCard" Margin="8,16,8,0">
+                        <Border Grid.Row="2" Classes="StatusCard" Margin="8,16,8,0">
                             <StackPanel Spacing="6">
                                 <!-- Status Row -->
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="STATUS" FontSize="11" FontWeight="Bold"
+                                    <TextBlock Text="STATUS" FontSize="15" FontWeight="Bold"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding TimerStatusText}"
-                                               FontSize="11" FontWeight="SemiBold"
+                                               FontSize="15" FontWeight="SemiBold"
                                                VerticalAlignment="Center" />
                                     <Ellipse Width="8" Height="8"
                                              Fill="{Binding TimerStatusColor}"
@@ -142,11 +350,11 @@
                                 <!-- Countdown Timers - each on its own line -->
                                 <StackPanel IsVisible="{Binding IsRunning}" Spacing="1">
                                     <TextBlock Text="{Binding TimeUntilNextEyeRest}"
-                                               FontSize="11"
+                                               FontSize="15"
                                                FontFamily="Consolas,Menlo,monospace"
                                                Foreground="{DynamicResource TextSecondaryBrush}" />
                                     <TextBlock Text="{Binding TimeUntilNextBreak}"
-                                               FontSize="11"
+                                               FontSize="15"
                                                FontFamily="Consolas,Menlo,monospace"
                                                Foreground="{DynamicResource TextSecondaryBrush}" />
                                 </StackPanel>
@@ -154,10 +362,10 @@
                         </Border>
 
                         <!-- Spacer -->
-                        <Panel Grid.Row="2" />
+                        <Panel Grid.Row="3" />
 
                         <!-- Bottom: Dark toggle + Meeting + Controls + Exit -->
-                        <StackPanel Grid.Row="3" Margin="0,0,0,12" Spacing="4">
+                        <StackPanel Grid.Row="4" Margin="0,0,0,12" Spacing="4">
 
                             <!-- Dark Mode Toggle -->
                             <Border Margin="8,0" Padding="12,6"
@@ -254,7 +462,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="8"
                                             HorizontalAlignment="Center">
                                     <PathIcon Data="{StaticResource PlayIcon}" Width="12" Height="12" Foreground="White" />
-                                    <TextBlock Text="Resume" Foreground="White" FontSize="13" />
+                                    <TextBlock Text="Resume" Foreground="White" FontSize="15" />
                                 </StackPanel>
                             </Button>
 
@@ -387,7 +595,7 @@
                                                           Foreground="{DynamicResource ToggleCardIconColor}" />
                                             </Border>
                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Sound Alerts" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="Sound Alerts" FontSize="15" FontWeight="SemiBold" />
                                                 <TextBlock Text="{Binding EyeRestStartSoundEnabled, Converter={StaticResource BoolToTextConverter}}"
                                                            FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
                                             </StackPanel>
@@ -407,7 +615,7 @@
                                                           Foreground="{DynamicResource ToggleCardIconColor}" />
                                             </Border>
                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Show Notification" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="Show Notification" FontSize="15" FontWeight="SemiBold" />
                                                 <TextBlock Text="{Binding EyeRestWarningEnabled, Converter={StaticResource BoolToTextConverter}}"
                                                            FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
                                             </StackPanel>
@@ -452,7 +660,7 @@
                                                           Foreground="{DynamicResource ToggleCardIconColor}" />
                                             </Border>
                                             <TextBlock Grid.Column="1" Text="End Sound" Margin="12,0,0,0"
-                                                       FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2"
                                                           IsChecked="{Binding EyeRestEndSoundEnabled}"
                                                           VerticalAlignment="Center"
@@ -577,7 +785,7 @@
                                                           Foreground="{DynamicResource ToggleCardIconColor}" />
                                             </Border>
                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Warning" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="Warning" FontSize="15" FontWeight="SemiBold" />
                                                 <TextBlock Text="{Binding BreakWarningEnabled, Converter={StaticResource BoolToTextConverter}}"
                                                            FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
                                             </StackPanel>
@@ -597,7 +805,7 @@
                                                           Foreground="{DynamicResource ToggleCardIconColor}" />
                                             </Border>
                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Confirmation" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="Confirmation" FontSize="15" FontWeight="SemiBold" />
                                                 <TextBlock Text="{Binding RequireConfirmationAfterBreak, Converter={StaticResource BoolToTextConverter}}"
                                                            FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
                                             </StackPanel>
@@ -662,7 +870,7 @@
                                                           Foreground="{DynamicResource ToggleCardIconColor}" />
                                             </Border>
                                             <TextBlock Grid.Column="1" Text="Reset Timers on Confirm" Margin="12,0,0,0"
-                                                       FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2"
                                                           IsChecked="{Binding ResetTimersOnBreakConfirmation}"
                                                           IsEnabled="{Binding RequireConfirmationAfterBreak}"
@@ -731,7 +939,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Pause on Screen Lock" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Pause on Screen Lock" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding PauseOnScreenLock}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -742,7 +950,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Pause on Monitor Off" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Pause on Monitor Off" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding PauseOnMonitorOff}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -753,7 +961,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Pause on Idle" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Pause on Idle" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding PauseOnIdle}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -762,7 +970,7 @@
                                         <!-- Idle Timeout Slider -->
                                         <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding PauseOnIdle}" Margin="28,0,0,0">
                                             <StackPanel Grid.Column="0" Spacing="6">
-                                                <TextBlock Text="Idle Timeout" FontSize="13" FontWeight="Medium" />
+                                                <TextBlock Text="Idle Timeout" FontSize="15" FontWeight="Medium" />
                                                 <Slider Value="{Binding IdleTimeoutMinutes}"
                                                         Minimum="1" Maximum="60"
                                                         TickFrequency="1" IsSnapToTickEnabled="True" />
@@ -791,7 +999,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Enable Audio" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Enable Audio" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding AudioEnabled}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -801,7 +1009,7 @@
                                             <!-- Volume -->
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Grid.Column="0" Spacing="6">
-                                                    <TextBlock Text="Volume" FontSize="13" FontWeight="Medium" />
+                                                    <TextBlock Text="Volume" FontSize="15" FontWeight="Medium" />
                                                     <Slider Value="{Binding AudioVolume}"
                                                             Minimum="0" Maximum="100"
                                                             TickFrequency="5" IsSnapToTickEnabled="True" />
@@ -820,7 +1028,7 @@
 
                                             <!-- Custom Sound -->
                                             <StackPanel Spacing="8">
-                                                <TextBlock Text="Custom Sound" FontSize="13" FontWeight="Medium" />
+                                                <TextBlock Text="Custom Sound" FontSize="15" FontWeight="Medium" />
                                                 <Grid ColumnDefinitions="*,Auto,Auto">
                                                     <TextBox Grid.Column="0"
                                                              Text="{Binding CustomSoundPath}"
@@ -857,7 +1065,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Start with System" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Start with System" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding StartWithWindows}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -868,7 +1076,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Start Minimized" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Start Minimized" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding StartMinimized}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -879,7 +1087,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Minimize to Tray" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Minimize to Tray" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding MinimizeToTray}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -890,7 +1098,7 @@
                                                       Width="16" Height="16"
                                                       Foreground="{DynamicResource ToggleCardIconColor}"
                                                       VerticalAlignment="Center" Margin="0,0,12,0" />
-                                            <TextBlock Grid.Column="1" Text="Tray Notifications" FontSize="13"
+                                            <TextBlock Grid.Column="1" Text="Tray Notifications" FontSize="15"
                                                        VerticalAlignment="Center" />
                                             <ToggleSwitch Grid.Column="2" IsChecked="{Binding ShowTrayNotifications}"
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
@@ -956,7 +1164,7 @@
                                                    FontSize="20" FontWeight="Bold"
                                                    HorizontalAlignment="Center" />
                                         <TextBlock Text="View detailed break compliance metrics and performance analytics in a dedicated dashboard window."
-                                                   FontSize="13"
+                                                   FontSize="15"
                                                    TextAlignment="Center"
                                                    TextWrapping="Wrap"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
@@ -993,14 +1201,14 @@
                                     MaxWidth="600">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBlock Text="Warning:"
-                                               FontSize="13"
+                                               FontSize="15"
                                                FontWeight="Bold"
                                                Foreground="White"
                                                VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding ErrorMessage}"
                                                Foreground="White"
                                                TextWrapping="Wrap"
-                                               FontSize="13"
+                                               FontSize="15"
                                                VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
@@ -1008,6 +1216,8 @@
                     </ScrollViewer>
                 </Grid>
             </Grid>
+
+            </Panel>
             <!-- Dim overlay for modal dialogs (75% black) -->
             <Border Name="DimOverlay"
                     Grid.RowSpan="2"
