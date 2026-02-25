@@ -19,6 +19,7 @@
     <Window.Resources>
         <converters:EqualityConverter x:Key="EqualityConverter" />
         <converters:BoolToTextConverter x:Key="BoolToTextConverter" />
+        <converters:PercentToScaleConverter x:Key="PercentToScaleConverter" />
     </Window.Resources>
 
     <!-- Outer border with mesh gradient background and rounded corners -->
@@ -101,64 +102,99 @@
                             </Button>
                         </StackPanel>
 
-                        <!-- Status Card -->
-                        <Border Grid.Row="1" Classes="StatusCard" Margin="12,4,12,0"
-                                Padding="20,18">
-                            <StackPanel Spacing="14">
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock Text="STATUS" FontSize="16" FontWeight="Bold"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding TimerStatusText}"
-                                               FontSize="16" FontWeight="Bold"
-                                               VerticalAlignment="Center" />
-                                    <Ellipse Width="11" Height="11"
-                                             Fill="{Binding TimerStatusColor}"
-                                             VerticalAlignment="Center" />
-                                </StackPanel>
-                                <StackPanel IsVisible="{Binding IsRunning}" Spacing="6">
-                                    <TextBlock Text="{Binding TimeUntilNextEyeRest}"
-                                               FontSize="17"
-                                               FontWeight="SemiBold"
-                                               FontFamily="Consolas,Menlo,monospace"
-                                               Foreground="{DynamicResource PrimaryBrush}" />
-                                    <TextBlock Text="{Binding TimeUntilNextBreak}"
-                                               FontSize="17"
-                                               FontWeight="SemiBold"
-                                               FontFamily="Consolas,Menlo,monospace"
-                                               Foreground="{DynamicResource PrimaryBrush}" />
-                                </StackPanel>
+                        <!-- Status Card - Dual timer cards with progress -->
+                        <Border Grid.Row="1" Margin="12,6,12,0">
+                            <StackPanel Spacing="10">
+
+                                <!-- Status pill badge -->
+                                <Border Classes="StatusPillBadge"
+                                        HorizontalAlignment="Left"
+                                        Margin="4,0,0,0">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6"
+                                                VerticalAlignment="Center">
+                                        <Ellipse Width="7" Height="7"
+                                                 Fill="{Binding TimerStatusColor}"
+                                                 VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding TimerStatusText}"
+                                                   Classes="StatusPillText" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Two timer cards side by side -->
+                                <Grid ColumnDefinitions="*,8,*">
+
+                                    <!-- Eye Rest Timer Card -->
+                                    <Border Grid.Column="0" Classes="TimerMiniCard">
+                                        <StackPanel Spacing="7">
+                                            <Border Classes="TimerIconCircle"
+                                                    HorizontalAlignment="Center">
+                                                <PathIcon Data="{StaticResource EyeIcon}"
+                                                          Width="14" Height="14"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding EyeRestCountdownText}"
+                                                       Classes="TimerCountdown"
+                                                       HorizontalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Height="4" CornerRadius="2" Margin="4,2"
+                                                    Background="{DynamicResource StatusCardBackground}"
+                                                    ClipToBounds="True">
+                                                <Border Background="{DynamicResource PrimaryBrush}"
+                                                        CornerRadius="2"
+                                                        HorizontalAlignment="Stretch"
+                                                        RenderTransformOrigin="0%,50%">
+                                                    <Border.RenderTransform>
+                                                        <ScaleTransform ScaleX="{Binding EyeRestProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
+                                                    </Border.RenderTransform>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="Eye Rest"
+                                                       Classes="TimerLabel"
+                                                       HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Break Timer Card -->
+                                    <Border Grid.Column="2" Classes="TimerMiniCard">
+                                        <StackPanel Spacing="7">
+                                            <Border Classes="TimerIconCircle"
+                                                    HorizontalAlignment="Center">
+                                                <PathIcon Data="{StaticResource ClockIcon}"
+                                                          Width="14" Height="14"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding BreakCountdownText}"
+                                                       Classes="TimerCountdown"
+                                                       HorizontalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Height="4" CornerRadius="2" Margin="4,2"
+                                                    Background="{DynamicResource StatusCardBackground}"
+                                                    ClipToBounds="True">
+                                                <Border Background="{DynamicResource AccentBrush}"
+                                                        CornerRadius="2"
+                                                        HorizontalAlignment="Stretch"
+                                                        RenderTransformOrigin="0%,50%">
+                                                    <Border.RenderTransform>
+                                                        <ScaleTransform ScaleX="{Binding BreakProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
+                                                    </Border.RenderTransform>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="Break"
+                                                       Classes="TimerLabel"
+                                                       HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+
+                                </Grid>
                             </StackPanel>
                         </Border>
 
                         <!-- Spacer -->
                         <Panel Grid.Row="2" />
 
-                        <!-- Bottom: Dark toggle + Meeting + Controls + Exit -->
+                        <!-- Bottom: Meeting + Controls + Exit -->
                         <StackPanel Grid.Row="3" Margin="0,0,0,12" Spacing="4">
-
-                            <!-- Dark Mode Toggle -->
-                            <Border Margin="12,0" Padding="12,6"
-                                    Background="{DynamicResource StatusCardBackground}"
-                                    BorderBrush="{DynamicResource StatusCardBorder}"
-                                    BorderThickness="1"
-                                    CornerRadius="10">
-                                <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <PathIcon Grid.Column="0"
-                                              Data="{StaticResource DarkModeIcon}"
-                                              Width="16" Height="16"
-                                              Foreground="{DynamicResource ToggleCardIconColor}"
-                                              VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="Dark Mode"
-                                               FontSize="12" FontWeight="Medium"
-                                               VerticalAlignment="Center" Margin="10,0,0,0" />
-                                    <ToggleSwitch Grid.Column="2"
-                                                  IsChecked="{Binding IsDarkMode}"
-                                                  VerticalAlignment="Center"
-                                                  OnContent="" OffContent=""
-                                                  Margin="0,-2,0,-2" />
-                                </Grid>
-                            </Border>
 
                             <!-- Meeting Buttons -->
                             <Grid ColumnDefinitions="*,*" Margin="12,4,12,4">
@@ -331,64 +367,101 @@
                             </Button>
                         </StackPanel>
 
-                        <!-- Status Card -->
-                        <Border Grid.Row="2" Classes="StatusCard" Margin="8,16,8,0">
-                            <StackPanel Spacing="6">
-                                <!-- Status Row -->
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="STATUS" FontSize="15" FontWeight="Bold"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding TimerStatusText}"
-                                               FontSize="15" FontWeight="SemiBold"
-                                               VerticalAlignment="Center" />
-                                    <Ellipse Width="8" Height="8"
-                                             Fill="{Binding TimerStatusColor}"
-                                             VerticalAlignment="Center" />
-                                </StackPanel>
+                        <!-- Status Card - Dual timer cards with progress -->
+                        <Border Grid.Row="2" Margin="8,12,8,0">
+                            <StackPanel Spacing="8">
 
-                                <!-- Countdown Timers - each on its own line -->
-                                <StackPanel IsVisible="{Binding IsRunning}" Spacing="1">
-                                    <TextBlock Text="{Binding TimeUntilNextEyeRest}"
-                                               FontSize="15"
-                                               FontFamily="Consolas,Menlo,monospace"
-                                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                                    <TextBlock Text="{Binding TimeUntilNextBreak}"
-                                               FontSize="15"
-                                               FontFamily="Consolas,Menlo,monospace"
-                                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                                </StackPanel>
+                                <!-- Status pill badge -->
+                                <Border Classes="StatusPillBadge"
+                                        HorizontalAlignment="Left"
+                                        Margin="4,0,0,0">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6"
+                                                VerticalAlignment="Center">
+                                        <Ellipse Width="7" Height="7"
+                                                 Fill="{Binding TimerStatusColor}"
+                                                 VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding TimerStatusText}"
+                                                   Classes="StatusPillText" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Two timer cards side by side -->
+                                <Grid ColumnDefinitions="*,6,*">
+
+                                    <!-- Eye Rest Timer Card -->
+                                    <Border Grid.Column="0" Classes="TimerMiniCard">
+                                        <StackPanel Spacing="6">
+                                            <Border Classes="TimerIconCircle"
+                                                    HorizontalAlignment="Center">
+                                                <PathIcon Data="{StaticResource EyeIcon}"
+                                                          Width="14" Height="14"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding EyeRestCountdownText}"
+                                                       Classes="TimerCountdown"
+                                                       HorizontalAlignment="Center"
+                                                       FontSize="16"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Height="4" CornerRadius="2" Margin="4,2"
+                                                    Background="{DynamicResource StatusCardBackground}"
+                                                    ClipToBounds="True">
+                                                <Border Background="{DynamicResource PrimaryBrush}"
+                                                        CornerRadius="2"
+                                                        HorizontalAlignment="Stretch"
+                                                        RenderTransformOrigin="0%,50%">
+                                                    <Border.RenderTransform>
+                                                        <ScaleTransform ScaleX="{Binding EyeRestProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
+                                                    </Border.RenderTransform>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="Eye Rest"
+                                                       Classes="TimerLabel"
+                                                       HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Break Timer Card -->
+                                    <Border Grid.Column="2" Classes="TimerMiniCard">
+                                        <StackPanel Spacing="6">
+                                            <Border Classes="TimerIconCircle"
+                                                    HorizontalAlignment="Center">
+                                                <PathIcon Data="{StaticResource ClockIcon}"
+                                                          Width="14" Height="14"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding BreakCountdownText}"
+                                                       Classes="TimerCountdown"
+                                                       HorizontalAlignment="Center"
+                                                       FontSize="16"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Height="4" CornerRadius="2" Margin="4,2"
+                                                    Background="{DynamicResource StatusCardBackground}"
+                                                    ClipToBounds="True">
+                                                <Border Background="{DynamicResource AccentBrush}"
+                                                        CornerRadius="2"
+                                                        HorizontalAlignment="Stretch"
+                                                        RenderTransformOrigin="0%,50%">
+                                                    <Border.RenderTransform>
+                                                        <ScaleTransform ScaleX="{Binding BreakProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
+                                                    </Border.RenderTransform>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="Break"
+                                                       Classes="TimerLabel"
+                                                       HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+
+                                </Grid>
                             </StackPanel>
                         </Border>
 
                         <!-- Spacer -->
                         <Panel Grid.Row="3" />
 
-                        <!-- Bottom: Dark toggle + Meeting + Controls + Exit -->
+                        <!-- Bottom: Meeting + Controls + Exit -->
                         <StackPanel Grid.Row="4" Margin="0,0,0,12" Spacing="4">
-
-                            <!-- Dark Mode Toggle -->
-                            <Border Margin="8,0" Padding="12,6"
-                                    Background="{DynamicResource StatusCardBackground}"
-                                    BorderBrush="{DynamicResource StatusCardBorder}"
-                                    BorderThickness="1"
-                                    CornerRadius="10">
-                                <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <PathIcon Grid.Column="0"
-                                              Data="{StaticResource DarkModeIcon}"
-                                              Width="16" Height="16"
-                                              Foreground="{DynamicResource ToggleCardIconColor}"
-                                              VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="Dark Mode"
-                                               FontSize="12" FontWeight="Medium"
-                                               VerticalAlignment="Center" Margin="10,0,0,0" />
-                                    <ToggleSwitch Grid.Column="2"
-                                                  IsChecked="{Binding IsDarkMode}"
-                                                  VerticalAlignment="Center"
-                                                  OnContent="" OffContent=""
-                                                  Margin="0,-2,0,-2" />
-                                </Grid>
-                            </Border>
 
                             <!-- Meeting Buttons - styled as clear pill buttons -->
                             <Grid ColumnDefinitions="*,*" Margin="8,4,8,4">
@@ -1116,14 +1189,15 @@
                                                       Foreground="{DynamicResource ToggleCardIconColor}" />
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock Text="Dark Mode" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Switch between light and dark theme"
+                                            <TextBlock Text="Theme" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Auto follows your system appearance"
                                                        FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="2"
-                                                      IsChecked="{Binding IsDarkMode}"
-                                                      VerticalAlignment="Center"
-                                                      OnContent="" OffContent="" />
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding ThemeModes}"
+                                                  SelectedItem="{Binding SelectedThemeMode}"
+                                                  VerticalAlignment="Center"
+                                                  MinWidth="100" />
                                     </Grid>
                                 </Border>
 

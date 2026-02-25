@@ -78,16 +78,16 @@
         <SolidColorBrush x:Key="NavButtonText" Color="#374151" />
         <SolidColorBrush x:Key="TitleBarBackground" Color="#1AFFFFFF" />
         <LinearGradientBrush x:Key="StartButtonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-            <GradientStop Color="#22C55E" Offset="0" />
-            <GradientStop Color="#16A34A" Offset="1" />
+            <GradientStop Color="#2BA35A" Offset="0" />
+            <GradientStop Color="#23904E" Offset="1" />
         </LinearGradientBrush>
         <LinearGradientBrush x:Key="StopButtonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-            <GradientStop Color="#EF4444" Offset="0" />
-            <GradientStop Color="#DC2626" Offset="1" />
+            <GradientStop Color="#D95050" Offset="0" />
+            <GradientStop Color="#C84444" Offset="1" />
         </LinearGradientBrush>
         <LinearGradientBrush x:Key="PauseButtonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-            <GradientStop Color="#FB923C" Offset="0" />
-            <GradientStop Color="#F97316" Offset="1" />
+            <GradientStop Color="#D4883A" Offset="0" />
+            <GradientStop Color="#C47930" Offset="1" />
         </LinearGradientBrush>
         <SolidColorBrush x:Key="MeetingButtonBackground" Color="#4DDBEAFE" />
         <SolidColorBrush x:Key="MeetingButtonText" Color="#1D4ED8" />

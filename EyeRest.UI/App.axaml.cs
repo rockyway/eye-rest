@@ -131,6 +131,22 @@ public partial class App : Application
             await _host.StartAsync();
             logger.LogInformation("Host started successfully");
 
+            // Bridge host shutdown (Ctrl+C / SIGTERM) to Avalonia's event loop.
+            // Without this, Ctrl+C stops the host but the Avalonia loop keeps running
+            // because ShutdownMode is OnExplicitShutdown.
+            var hostLifetime = _host.Services.GetRequiredService<IHostApplicationLifetime>();
+            hostLifetime.ApplicationStopping.Register(() =>
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime dt)
+                    {
+                        IsExiting = true;
+                        dt.Shutdown();
+                    }
+                });
+            });
+
             // Initialize system tray service (for events, tooltips, notifications)
             var systemTrayService = Services.GetRequiredService<ISystemTrayService>();
             systemTrayService.Initialize();

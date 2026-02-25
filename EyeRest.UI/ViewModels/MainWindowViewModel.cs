@@ -76,6 +76,12 @@ namespace EyeRest.UI.ViewModels
         private string _dualCountdownText = "Timers not running";
         private bool _isRunning = false;
 
+        // Visual countdown properties for redesigned status card
+        private string _eyeRestCountdownText = "--";
+        private string _breakCountdownText = "--";
+        private double _eyeRestProgressPercent = 0.0;
+        private double _breakProgressPercent = 0.0;
+
         // Error Indicators
         private string _errorMessage = "";
         private bool _hasValidationErrors = false;
@@ -122,8 +128,8 @@ namespace EyeRest.UI.ViewModels
 
             // Initialize commands using CrossPlatformRelayCommand (no WPF CommandManager dependency)
             RestoreDefaultsCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await RestoreDefaults());
-            StartTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await StartTimers());
-            StopTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await StopTimers());
+            StartTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await StartTimers(), () => !_timerService.IsRunning);
+            StopTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await StopTimers(), () => _timerService.IsRunning);
 
             PauseTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await PauseTimers(), () => CanPauseTimers);
             ResumeTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await ResumeTimers(), () => CanResumeTimers);
@@ -446,23 +452,28 @@ namespace EyeRest.UI.ViewModels
 
         public bool IsNotConfigurationMode => !_isConfigurationMode;
 
-        private bool _isDarkMode = false;
-        public bool IsDarkMode
+        private ThemeMode _selectedThemeMode = ThemeMode.Auto;
+        public ThemeMode SelectedThemeMode
         {
-            get => _isDarkMode;
+            get => _selectedThemeMode;
             set
             {
-                if (SetProperty(ref _isDarkMode, value))
+                if (SetProperty(ref _selectedThemeMode, value))
                 {
-                    ApplyThemeGlobally(value);
+                    ApplyThemeFromMode(value);
                     if (!_isLoadingConfiguration)
                     {
                         CheckForChanges();
-                        _ = Task.Run(async () => await SaveDarkModeAsync(value));
+                        _ = Task.Run(async () => await SaveThemeModeAsync(value));
                     }
                 }
             }
         }
+
+        /// <summary>
+        /// Available theme modes for the ComboBox.
+        /// </summary>
+        public ThemeMode[] ThemeModes { get; } = { ThemeMode.Auto, ThemeMode.Light, ThemeMode.Dark };
 
         public bool AutoOpenDashboard
         {
@@ -535,6 +546,31 @@ namespace EyeRest.UI.ViewModels
         {
             get => _isRunning;
             private set => SetProperty(ref _isRunning, value);
+        }
+
+        // Visual status card properties
+        public string EyeRestCountdownText
+        {
+            get => _eyeRestCountdownText;
+            private set => SetProperty(ref _eyeRestCountdownText, value);
+        }
+
+        public string BreakCountdownText
+        {
+            get => _breakCountdownText;
+            private set => SetProperty(ref _breakCountdownText, value);
+        }
+
+        public double EyeRestProgressPercent
+        {
+            get => _eyeRestProgressPercent;
+            private set => SetProperty(ref _eyeRestProgressPercent, value);
+        }
+
+        public double BreakProgressPercent
+        {
+            get => _breakProgressPercent;
+            private set => SetProperty(ref _breakProgressPercent, value);
         }
 
         // Can-Execute Properties for Pause/Resume Commands
@@ -870,11 +906,11 @@ namespace EyeRest.UI.ViewModels
             ShowTrayNotifications = _configuration.Application.ShowTrayNotifications;
             ShowInTaskbar = _configuration.Application.ShowInTaskbar;
 
-            // Apply dark mode setting and update UI property
-            var isDarkMode = _configuration.Application.IsDarkMode;
-            _isDarkMode = isDarkMode;
-            ApplyThemeGlobally(isDarkMode);
-            OnPropertyChanged(nameof(IsDarkMode));
+            // Apply theme mode setting and update UI property
+            var themeMode = _configuration.Application.ThemeMode;
+            _selectedThemeMode = themeMode;
+            ApplyThemeFromMode(themeMode);
+            OnPropertyChanged(nameof(SelectedThemeMode));
 
             // Analytics
             AutoOpenDashboard = _configuration.Analytics.AutoOpenDashboard;
@@ -941,7 +977,7 @@ namespace EyeRest.UI.ViewModels
                 _configuration.Application.StartMinimized = StartMinimized;
                 _configuration.Application.ShowTrayNotifications = ShowTrayNotifications;
                 _configuration.Application.ShowInTaskbar = ShowInTaskbar;
-                _configuration.Application.IsDarkMode = IsDarkMode;
+                _configuration.Application.ThemeMode = SelectedThemeMode;
             }
 
             // Analytics
@@ -1065,27 +1101,27 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
-        private async Task SaveDarkModeAsync(bool isDarkMode)
+        private async Task SaveThemeModeAsync(ThemeMode themeMode)
         {
             try
             {
-                _logger.LogInformation($"SaveDarkModeAsync called with value: {isDarkMode}");
+                _logger.LogInformation($"SaveThemeModeAsync called with value: {themeMode}");
 
-                _configuration.Application.IsDarkMode = isDarkMode;
+                _configuration.Application.ThemeMode = themeMode;
                 await _configurationService.SaveConfigurationAsync(_configuration);
-                _originalConfiguration.Application.IsDarkMode = isDarkMode;
+                _originalConfiguration.Application.ThemeMode = themeMode;
 
-                _logger.LogInformation($"Auto-saved dark mode: {isDarkMode}");
+                _logger.LogInformation($"Auto-saved theme mode: {themeMode}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to auto-save dark mode setting");
-                ErrorMessage = "Failed to save dark mode";
+                _logger.LogError(ex, "Failed to auto-save theme mode setting");
+                ErrorMessage = "Failed to save theme setting";
 
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(3000);
-                    if (ErrorMessage.Contains("dark mode"))
+                    if (ErrorMessage.Contains("theme"))
                     {
                         ErrorMessage = "";
                     }
@@ -1223,6 +1259,8 @@ namespace EyeRest.UI.ViewModels
             OnPropertyChanged(nameof(Meeting1hButtonTooltip));
 
             // Notify Avalonia that command CanExecute has changed (it caches the initial result)
+            (StartTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
+            (StopTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
             (PauseTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
             (ResumeTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
             (PauseForMeetingCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
@@ -1332,19 +1370,29 @@ namespace EyeRest.UI.ViewModels
                             TimeUntilNextEyeRest = pauseText;
                             TimeUntilNextBreak = pauseText;
                             DualCountdownText = $"{pauseText} (timers will auto-resume)";
+                            EyeRestCountdownText = FormatTimeSpan(remaining.Value);
+                            BreakCountdownText = "Paused";
                         }
                         else
                         {
                             TimeUntilNextEyeRest = "Meeting pause (manual)";
                             TimeUntilNextBreak = "Meeting pause (manual)";
                             DualCountdownText = "Meeting pause active (manual control)";
+                            EyeRestCountdownText = "Paused";
+                            BreakCountdownText = "Paused";
                         }
+                        EyeRestProgressPercent = 0;
+                        BreakProgressPercent = 0;
                     }
                     else if (_timerService.IsPaused)
                     {
                         TimeUntilNextEyeRest = "Timers paused (manual)";
                         TimeUntilNextBreak = "Timers paused (manual)";
                         DualCountdownText = "Timers paused manually";
+                        EyeRestCountdownText = "Paused";
+                        BreakCountdownText = "Paused";
+                        EyeRestProgressPercent = 0;
+                        BreakProgressPercent = 0;
                     }
                     else if (_timerService.IsSmartPaused)
                     {
@@ -1353,6 +1401,10 @@ namespace EyeRest.UI.ViewModels
                         TimeUntilNextEyeRest = pauseText;
                         TimeUntilNextBreak = pauseText;
                         DualCountdownText = $"{pauseText} - will auto-resume";
+                        EyeRestCountdownText = "Paused";
+                        BreakCountdownText = "Paused";
+                        EyeRestProgressPercent = 0;
+                        BreakProgressPercent = 0;
                     }
                     else
                     {
@@ -1362,6 +1414,30 @@ namespace EyeRest.UI.ViewModels
                         TimeUntilNextEyeRest = $"Next eye rest: {FormatTimeSpan(eyeRestTime)}";
                         TimeUntilNextBreak = $"Next break: {FormatTimeSpan(breakTime)}";
                         DualCountdownText = $"Next eye rest: {FormatTimeSpan(eyeRestTime)} | Next break: {FormatTimeSpan(breakTime)}";
+
+                        // Update visual status card properties
+                        EyeRestCountdownText = FormatTimeSpan(eyeRestTime);
+                        BreakCountdownText = FormatTimeSpan(breakTime);
+
+                        // Update progress in sync with the displayed countdown text:
+                        // - Under 2 minutes: second-based (text shows "1m 30s", "45s")
+                        // - 2+ minutes: minute-based (text shows "18m")
+                        var eyeRestTotalSec = _configuration.EyeRest.IntervalMinutes * 60.0;
+                        var breakTotalSec = _configuration.Break.IntervalMinutes * 60.0;
+
+                        var eyeRestElapsed = eyeRestTime.TotalMinutes < 2
+                            ? eyeRestTotalSec - eyeRestTime.TotalSeconds
+                            : eyeRestTotalSec - Math.Ceiling(eyeRestTime.TotalMinutes) * 60.0;
+                        var breakElapsed = breakTime.TotalMinutes < 2
+                            ? breakTotalSec - breakTime.TotalSeconds
+                            : breakTotalSec - Math.Ceiling(breakTime.TotalMinutes) * 60.0;
+
+                        EyeRestProgressPercent = eyeRestTotalSec > 0
+                            ? Math.Clamp(eyeRestElapsed / eyeRestTotalSec * 100.0, 0, 100)
+                            : 0;
+                        BreakProgressPercent = breakTotalSec > 0
+                            ? Math.Clamp(breakElapsed / breakTotalSec * 100.0, 0, 100)
+                            : 0;
                     }
                 }
                 else
@@ -1369,6 +1445,10 @@ namespace EyeRest.UI.ViewModels
                     TimeUntilNextEyeRest = "Timers not running";
                     TimeUntilNextBreak = "Timers not running";
                     DualCountdownText = "Timers not running";
+                    EyeRestCountdownText = "--";
+                    BreakCountdownText = "--";
+                    EyeRestProgressPercent = 0;
+                    BreakProgressPercent = 0;
                 }
             }
 
@@ -1481,7 +1561,7 @@ namespace EyeRest.UI.ViewModels
                     StartMinimized = config.Application.StartMinimized,
                     ShowTrayNotifications = config.Application.ShowTrayNotifications,
                     ShowInTaskbar = config.Application.ShowInTaskbar,
-                    IsDarkMode = config.Application.IsDarkMode
+                    ThemeMode = config.Application.ThemeMode
                 } : new ApplicationSettings(),
                 Analytics = config.Analytics != null ? new AnalyticsSettings
                 {
@@ -1658,6 +1738,89 @@ namespace EyeRest.UI.ViewModels
         }
 
         /// <summary>
+        /// Apply theme based on ThemeMode (Auto detects OS preference).
+        /// </summary>
+        private void ApplyThemeFromMode(ThemeMode mode)
+        {
+            bool isDark;
+            switch (mode)
+            {
+                case ThemeMode.Dark:
+                    isDark = true;
+                    UnsubscribeFromSystemThemeChanges();
+                    break;
+                case ThemeMode.Light:
+                    isDark = false;
+                    UnsubscribeFromSystemThemeChanges();
+                    break;
+                default: // Auto
+                    isDark = DetectSystemDarkMode();
+                    SubscribeToSystemThemeChanges();
+                    break;
+            }
+
+            ApplyThemeGlobally(isDark);
+        }
+
+        /// <summary>
+        /// Detect whether the OS is currently in dark mode.
+        /// </summary>
+        private bool DetectSystemDarkMode()
+        {
+            try
+            {
+                var app = Avalonia.Application.Current;
+                if (app?.PlatformSettings != null)
+                {
+                    var colorValues = app.PlatformSettings.GetColorValues();
+                    return colorValues.ThemeVariant == Avalonia.Platform.PlatformThemeVariant.Dark
+                        || colorValues.ThemeVariant.ToString() == "Dark";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to detect system theme, defaulting to light");
+            }
+            return false;
+        }
+
+        private bool _isSubscribedToSystemTheme;
+
+        private void SubscribeToSystemThemeChanges()
+        {
+            if (_isSubscribedToSystemTheme) return;
+
+            var app = Avalonia.Application.Current;
+            if (app?.PlatformSettings != null)
+            {
+                app.PlatformSettings.ColorValuesChanged += OnSystemThemeChanged;
+                _isSubscribedToSystemTheme = true;
+            }
+        }
+
+        private void UnsubscribeFromSystemThemeChanges()
+        {
+            if (!_isSubscribedToSystemTheme) return;
+
+            var app = Avalonia.Application.Current;
+            if (app?.PlatformSettings != null)
+            {
+                app.PlatformSettings.ColorValuesChanged -= OnSystemThemeChanged;
+                _isSubscribedToSystemTheme = false;
+            }
+        }
+
+        private void OnSystemThemeChanged(object? sender, Avalonia.Platform.PlatformColorValues e)
+        {
+            if (_selectedThemeMode != ThemeMode.Auto) return;
+
+            var isDark = e.ThemeVariant == Avalonia.Platform.PlatformThemeVariant.Dark
+                      || e.ThemeVariant.ToString() == "Dark";
+
+            Dispatcher.UIThread.Post(() => ApplyThemeGlobally(isDark));
+        }
+
+        /// <summary>
         /// Apply theme changes globally using Avalonia's RequestedThemeVariant
         /// </summary>
         private void ApplyThemeGlobally(bool isDarkMode)
@@ -1674,7 +1837,6 @@ namespace EyeRest.UI.ViewModels
                         : Avalonia.Styling.ThemeVariant.Light;
 
                     // Swap custom theme StyleInclude in app.Styles
-                    // Our theme files are now <Styles> (not ResourceDictionary), loaded via StyleInclude
                     var oldStyleInclude = app.Styles.OfType<Avalonia.Markup.Xaml.Styling.StyleInclude>()
                         .FirstOrDefault(s => s.Source != null &&
                             (s.Source.ToString().Contains("LightTheme") || s.Source.ToString().Contains("DarkTheme")));
@@ -2027,6 +2189,7 @@ namespace EyeRest.UI.ViewModels
                 {
                     _settingsDebounceTimer?.Stop();
                     _settingsDebounceTimer = null;
+                    UnsubscribeFromSystemThemeChanges();
 
                     if (_timerService != null)
                     {
