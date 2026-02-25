@@ -20,6 +20,7 @@ namespace EyeRest.Tests.Avalonia.ViewModels
         private readonly Mock<ILogger<MainWindowViewModel>> _mockLogger;
         private readonly Mock<INotificationService> _mockNotificationService;
         private readonly Mock<IScreenOverlayService> _mockScreenOverlayService;
+        private readonly Mock<IDonationService> _mockDonationService;
         private readonly MainWindowViewModel _viewModel;
         private readonly AppConfiguration _testConfig;
 
@@ -33,6 +34,7 @@ namespace EyeRest.Tests.Avalonia.ViewModels
             _mockLogger = new Mock<ILogger<MainWindowViewModel>>();
             _mockNotificationService = new Mock<INotificationService>();
             _mockScreenOverlayService = new Mock<IScreenOverlayService>();
+            _mockDonationService = new Mock<IDonationService>();
 
             _testConfig = new AppConfiguration
             {
@@ -90,6 +92,7 @@ namespace EyeRest.Tests.Avalonia.ViewModels
                 _mockStartupManager.Object,
                 _mockNotificationService.Object,
                 _mockScreenOverlayService.Object,
+                _mockDonationService.Object,
                 _mockLogger.Object);
         }
 

@@ -25,6 +25,7 @@ namespace EyeRest.Platform.Windows
             services.AddSingleton<IScreenDimmingService, ScreenDimmingService>();
             services.AddSingleton<IPauseReminderService, PauseReminderService>();
             services.AddSingleton<IconService>();
+            services.AddSingleton<ISecureStorageService, WindowsSecureStorageService>();
 
             return services;
         }

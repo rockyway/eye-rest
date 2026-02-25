@@ -22,6 +22,7 @@ namespace EyeRest.UI.ViewModels
         private readonly IStartupManager _startupManager;
         private readonly INotificationService _notificationService;
         private readonly IScreenOverlayService _screenOverlayService;
+        private readonly IDonationService _donationService;
         private readonly IAnalyticsService? _analyticsService;
         private readonly ILogger<MainWindowViewModel> _logger;
 
@@ -80,6 +81,11 @@ namespace EyeRest.UI.ViewModels
         private int _selectedTabIndex = 0;
         private bool _isConfigurationMode = false;
 
+        // Donation
+        private bool _isDonationBannerVisible;
+        private bool _isDonor;
+        private bool _donationBannerDismissedThisSession;
+
         // Timer Status
         private string _timerStatusText = "Stopped";
         private string _timerStatusColor = "#F44336";
@@ -127,6 +133,7 @@ namespace EyeRest.UI.ViewModels
             IStartupManager startupManager,
             INotificationService notificationService,
             IScreenOverlayService screenOverlayService,
+            IDonationService donationService,
             ILogger<MainWindowViewModel> logger,
             IAnalyticsService? analyticsService = null)
         {
@@ -137,6 +144,7 @@ namespace EyeRest.UI.ViewModels
             _startupManager = startupManager;
             _notificationService = notificationService;
             _screenOverlayService = screenOverlayService;
+            _donationService = donationService;
             _logger = logger;
             _analyticsService = analyticsService;
 
@@ -170,6 +178,15 @@ namespace EyeRest.UI.ViewModels
 
             // Mode toggle command
             ToggleConfigurationModeCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => IsConfigurationMode = !IsConfigurationMode);
+
+            // Donation commands
+            OpenDonationLinkCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => OpenDonationLink());
+            DismissDonationCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => DismissDonation());
+            EnterDonationCodeCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => ShowDonationCodeDialog());
+
+            // Subscribe to donation events
+            _donationService.DonorStatusChanged += (_, _) => UpdateDonationState();
+            _donationService.PromptVisibilityChanged += (_, _) => UpdateDonationState();
 
             // Subscribe to timer service events to update status
             _timerService.PropertyChanged += OnTimerServicePropertyChanged;
@@ -902,6 +919,23 @@ namespace EyeRest.UI.ViewModels
         // Mode toggle command
         public ICommand ToggleConfigurationModeCommand { get; }
 
+        // Donation commands
+        public ICommand OpenDonationLinkCommand { get; }
+        public ICommand DismissDonationCommand { get; }
+        public ICommand EnterDonationCodeCommand { get; }
+
+        public bool IsDonationBannerVisible
+        {
+            get => _isDonationBannerVisible;
+            set => SetProperty(ref _isDonationBannerVisible, value);
+        }
+
+        public bool IsDonor
+        {
+            get => _isDonor;
+            set => SetProperty(ref _isDonor, value);
+        }
+
         #endregion
 
         #region Methods
@@ -923,6 +957,9 @@ namespace EyeRest.UI.ViewModels
                 UpdatePropertiesFromConfiguration();
 
                 _logger.LogInformation("Configuration loaded immediately on window load - UI updated");
+
+                // Update donation banner visibility
+                UpdateDonationState();
             }
             catch (Exception ex)
             {
@@ -2322,6 +2359,57 @@ namespace EyeRest.UI.ViewModels
 
         #endregion
 
+        #region Donation
+
+        private void UpdateDonationState()
+        {
+            IsDonor = _donationService.IsDonor;
+            IsDonationBannerVisible = !_donationBannerDismissedThisSession && _donationService.ShouldShowDonationPrompt;
+
+            if (IsDonationBannerVisible)
+                _donationService.RecordPromptShown();
+        }
+
+        private void OpenDonationLink()
+        {
+            try
+            {
+                var url = _donationService.DonationUrl;
+                var psi = new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true };
+                System.Diagnostics.Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to open donation URL");
+            }
+        }
+
+        private void DismissDonation()
+        {
+            _donationBannerDismissedThisSession = true;
+            IsDonationBannerVisible = false;
+            _donationService.RecordPromptDismissed();
+        }
+
+        private void ShowDonationCodeDialog()
+        {
+            try
+            {
+                var dialog = new Views.DonationCodeDialog();
+                var topLevel = GetTopLevel();
+                if (topLevel is Avalonia.Controls.Window owner)
+                    dialog.ShowDialog(owner);
+                else
+                    dialog.Show();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to show donation code dialog");
+            }
+        }
+
+        #endregion
+
         #region IDisposable Implementation
 
         private bool _disposed = false;
@@ -2345,6 +2433,12 @@ namespace EyeRest.UI.ViewModels
                     if (_timerService != null)
                     {
                         _timerService.PropertyChanged -= OnTimerServicePropertyChanged;
+                    }
+
+                    if (_donationService != null)
+                    {
+                        _donationService.DonorStatusChanged -= (_, _) => UpdateDonationState();
+                        _donationService.PromptVisibilityChanged -= (_, _) => UpdateDonationState();
                     }
                 }
                 _disposed = true;

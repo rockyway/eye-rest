@@ -27,6 +27,7 @@ namespace EyeRest.Services
         // private readonly IMeetingDetectionManager _meetingDetectionManager;
         private readonly IAnalyticsService _analyticsService;
         private readonly IPauseReminderService _pauseReminderService;
+        private readonly IDonationService _donationService;
         private readonly ITimerFactory _timerFactory;
         private readonly ILogger<ApplicationOrchestrator> _logger;
 
@@ -42,6 +43,9 @@ namespace EyeRest.Services
         // NEW: Timer for validating session activity tracking integrity
         private ITimer? _sessionValidationTimer;
 
+        // Donation usage tracking timer (5-minute interval)
+        private ITimer? _usageTrackingTimer;
+
         public ApplicationOrchestrator(
             ITimerService timerService,
             INotificationService notificationService,
@@ -53,6 +57,7 @@ namespace EyeRest.Services
             // IMeetingDetectionManager meetingDetectionManager, // DISABLED: Meeting detection needs improvement
             IAnalyticsService analyticsService,
             IPauseReminderService pauseReminderService,
+            IDonationService donationService,
             ITimerFactory timerFactory,
             ILogger<ApplicationOrchestrator> logger)
         {
@@ -66,6 +71,7 @@ namespace EyeRest.Services
             // _meetingDetectionManager = meetingDetectionManager; // DISABLED: Meeting detection needs improvement
             _analyticsService = analyticsService;
             _pauseReminderService = pauseReminderService;
+            _donationService = donationService;
             _timerFactory = timerFactory;
             _logger = logger;
         }
@@ -155,6 +161,11 @@ namespace EyeRest.Services
                 // NEW: Start session validation timer for tracking integrity monitoring
                 StartSessionValidationTimer();
 
+                // Initialize donation service and start usage tracking
+                await _donationService.InitializeAsync();
+                _donationService.IncrementSessionCount();
+                StartUsageTrackingTimer();
+
                 _isInitialized = true;
                 _logger.LogCritical($"✅ ORCHESTRATOR INITIALIZATION COMPLETED at {DateTime.Now:HH:mm:ss.fff} - ALL SERVICES ACTIVE");
                 _logger.LogInformation("🎯 Comprehensive application orchestrator initialized successfully - ALL ADVANCED FEATURES ACTIVE");
@@ -223,6 +234,10 @@ namespace EyeRest.Services
                 
                 // NEW: Stop session validation timer
                 StopSessionValidationTimer();
+
+                // Stop usage tracking timer
+                _usageTrackingTimer?.Stop();
+                _usageTrackingTimer = null;
 
                 // Stop timer service
                 await _timerService.StopAsync();
@@ -1220,6 +1235,26 @@ namespace EyeRest.Services
             }
         }
         
+        private void StartUsageTrackingTimer()
+        {
+            try
+            {
+                _usageTrackingTimer = _timerFactory.CreateTimer();
+                _usageTrackingTimer.Interval = TimeSpan.FromMinutes(5);
+                _usageTrackingTimer.Tick += (_, _) =>
+                {
+                    if (_timerService.IsRunning)
+                        _donationService.AddUsageMinutes(5);
+                };
+                _usageTrackingTimer.Start();
+                _logger.LogDebug("Usage tracking timer started (5-minute intervals)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to start usage tracking timer");
+            }
+        }
+
         /// <summary>
         /// NEW: Stop session validation timer
         /// </summary>

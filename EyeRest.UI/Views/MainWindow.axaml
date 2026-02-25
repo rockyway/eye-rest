@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:EyeRest.UI.ViewModels"
         xmlns:converters="using:EyeRest.UI.Converters"
+        xmlns:local="using:EyeRest.UI.Views"
         x:Class="EyeRest.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
@@ -200,8 +201,11 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Spacer -->
-                        <Panel Grid.Row="2" />
+                        <!-- Spacer + Donation Banner -->
+                        <DockPanel Grid.Row="2">
+                            <local:DonationBannerView DockPanel.Dock="Bottom" />
+                            <Panel />
+                        </DockPanel>
 
                         <!-- Bottom: Meeting + Controls + Exit -->
                         <StackPanel Grid.Row="3" Margin="0,0,0,12" Spacing="4">

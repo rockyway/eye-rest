@@ -1,0 +1,87 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="EyeRest.UI.Views.DonationCodeDialog"
+        Title="Enter Donation Code"
+        Width="400"
+        Height="300"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="True">
+
+    <Border Background="{DynamicResource MeshGradientBrush}"
+            CornerRadius="24"
+            ClipToBounds="True">
+        <Border Background="{DynamicResource GlassCardBackground}"
+                BorderBrush="{DynamicResource GlassCardBorder}"
+                BorderThickness="1"
+                CornerRadius="24"
+                Padding="24">
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
+                <!-- Title -->
+                <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+                    <TextBlock Text="Enter Donation Code"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource NavButtonActiveText}" />
+                    <TextBlock Text="Enter the license key from your donation email"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource ContentSubtitleText}" />
+                </StackPanel>
+
+                <!-- License key input -->
+                <TextBox Grid.Row="1"
+                         x:Name="LicenseKeyInput"
+                         Watermark="Paste your license key here..."
+                         FontSize="13"
+                         Height="40"
+                         Margin="0,0,0,12" />
+
+                <!-- Feedback -->
+                <TextBlock Grid.Row="2"
+                           x:Name="FeedbackText"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Top"
+                           Margin="0,0,0,8" />
+
+                <!-- Buttons -->
+                <Grid Grid.Row="3" ColumnDefinitions="*,8,*">
+                    <Button Grid.Column="0"
+                            Classes="ActionBtn"
+                            HorizontalAlignment="Stretch"
+                            Click="OnCancelClick"
+                            Cursor="Hand">
+                        <TextBlock Text="Cancel"
+                                   HorizontalAlignment="Center" />
+                    </Button>
+                    <Button Grid.Column="2"
+                            x:Name="ValidateButton"
+                            Classes="ActionBtnPrimary"
+                            HorizontalAlignment="Stretch"
+                            Click="OnValidateClick"
+                            Cursor="Hand">
+                        <TextBlock Text="Validate"
+                                   HorizontalAlignment="Center" />
+                    </Button>
+                </Grid>
+
+                <!-- Close Button -->
+                <Button Classes="PopupCloseBtn"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,-4,-4,0"
+                        Click="OnCancelClick"
+                        ToolTip.Tip="Close">
+                    <PathIcon Data="{DynamicResource CloseIcon}"
+                              Width="12" Height="12" />
+                </Button>
+            </Grid>
+        </Border>
+    </Border>
+</Window>

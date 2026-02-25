@@ -87,6 +87,7 @@ public partial class App : Application
             services.AddSingleton<ILoggingService, LoggingService>();
             services.AddSingleton<IReportingService, ReportingService>();
             services.AddSingleton<IPerformanceMonitor, PerformanceMonitor>();
+            services.AddSingleton<IDonationService, DonationService>();
             services.AddSingleton<IApplicationOrchestrator, ApplicationOrchestrator>();
 
             // Avalonia-specific services

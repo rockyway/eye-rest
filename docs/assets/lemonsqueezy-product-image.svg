@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" width="1600" height="1200">
+  <defs>
+    <linearGradient id="meshBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A7C5EB" />
+      <stop offset="30%" stop-color="#B8E4F5" />
+      <stop offset="60%" stop-color="#9EC4E3" />
+      <stop offset="100%" stop-color="#8ECAE6" />
+    </linearGradient>
+    <linearGradient id="meshBg2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#C3DAF0" stop-opacity="0.5" />
+      <stop offset="50%" stop-color="#A3D5EE" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#92C1DE" stop-opacity="0.4" />
+    </linearGradient>
+    <radialGradient id="orbTopRight" cx="85%" cy="10%" r="40%">
+      <stop offset="0%" stop-color="#BBDEFB" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#BBDEFB" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="orbBottomLeft" cx="10%" cy="90%" r="45%">
+      <stop offset="0%" stop-color="#1976D2" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#1976D2" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="orbCenter" cx="50%" cy="45%" r="35%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="glassCardFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.42" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.14" />
+    </linearGradient>
+    <linearGradient id="glassCardBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6" />
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.18" />
+    </linearGradient>
+    <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2196F3" />
+      <stop offset="100%" stop-color="#1976D2" />
+    </linearGradient>
+    <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F87171" />
+      <stop offset="100%" stop-color="#EF4444" />
+    </linearGradient>
+    <radialGradient id="heartGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#EF4444" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#EF4444" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="iconCircleBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DBEAFE" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#BFDBFE" stop-opacity="0.6" />
+    </linearGradient>
+    <radialGradient id="iconCircleGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2196F3" stop-opacity="0.08" />
+      <stop offset="70%" stop-color="#2196F3" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#2196F3" stop-opacity="0" />
+    </radialGradient>
+    <filter id="cardShadow" x="-8%" y="-6%" width="116%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="30" flood-color="#1976D2" flood-opacity="0.12" />
+    </filter>
+    <linearGradient id="dividerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2196F3" stop-opacity="0" />
+      <stop offset="20%" stop-color="#2196F3" stop-opacity="0.35" />
+      <stop offset="50%" stop-color="#2196F3" stop-opacity="0.45" />
+      <stop offset="80%" stop-color="#2196F3" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#2196F3" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="supporterPillBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.15" />
+    </linearGradient>
+    <clipPath id="cardClip">
+      <rect x="60" y="60" width="1480" height="1080" rx="40" ry="40" />
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="1200" fill="url(#meshBg)" />
+  <rect width="1600" height="1200" fill="url(#meshBg2)" />
+  <rect width="1600" height="1200" fill="url(#orbTopRight)" />
+  <rect width="1600" height="1200" fill="url(#orbBottomLeft)" />
+  <rect width="1600" height="1200" fill="url(#orbCenter)" />
+
+  <!-- Subtle decorative circles -->
+  <circle cx="160" cy="140" r="90" fill="#FFFFFF" opacity="0.05" />
+  <circle cx="1440" cy="1060" r="110" fill="#FFFFFF" opacity="0.04" />
+  <circle cx="1380" cy="160" r="60" fill="#1976D2" opacity="0.06" />
+
+  <!-- Glass card -->
+  <rect x="60" y="60" width="1480" height="1080" rx="40" ry="40"
+        fill="url(#glassCardFill)" stroke="url(#glassCardBorder)" stroke-width="1.5"
+        filter="url(#cardShadow)" />
+  <rect x="61" y="61" width="1478" height="2.5" rx="40" ry="1"
+        fill="#FFFFFF" opacity="0.35" clip-path="url(#cardClip)" />
+
+  <!-- ============================================= -->
+  <!-- LEFT ZONE: Eye icon                           -->
+  <!-- ============================================= -->
+
+  <!-- Icon circle glow -->
+  <circle cx="430" cy="480" r="340" fill="url(#iconCircleGlow)" />
+
+  <!-- Icon circle background -->
+  <circle cx="430" cy="480" r="250" fill="url(#iconCircleBg)" />
+  <circle cx="430" cy="480" r="250" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.4" />
+
+  <!-- Decorative outer ring -->
+  <circle cx="430" cy="480" r="295" fill="none" stroke="#FFFFFF" stroke-width="1.2" opacity="0.15"
+          stroke-dasharray="12 16" />
+
+  <!-- Eye icon (scaled from 24x24 viewBox) -->
+  <g transform="translate(298, 348) scale(11)">
+    <path d="M12,4.5C7,4.5 2.73,7.61 1,12c1.73,4.39 6,7.5 11,7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z"
+          fill="none" stroke="url(#eyeGradient)" stroke-width="1" opacity="0.25" />
+    <circle cx="12" cy="12" r="5" fill="none" stroke="url(#eyeGradient)" stroke-width="1" />
+    <circle cx="12" cy="12" r="3" fill="url(#eyeGradient)" />
+    <circle cx="13.5" cy="10.5" r="0.9" fill="#FFFFFF" opacity="0.9" />
+    <path d="M1,12c1.73-4.39 6-7.5 11-7.5s9.27,3.11 11,7.5"
+          fill="none" stroke="url(#eyeGradient)" stroke-width="1" />
+    <path d="M1,12c1.73,4.39 6,7.5 11,7.5s9.27-3.11 11-7.5"
+          fill="none" stroke="url(#eyeGradient)" stroke-width="1" />
+    <path d="M3.5,9.5 C6.5,5.5 17.5,5.5 20.5,9.5"
+          fill="url(#eyeGradient)" opacity="0.1" />
+  </g>
+
+  <!-- Heart (bottom-right of eye icon) -->
+  <g transform="translate(580, 640)">
+    <circle cx="30" cy="25" r="65" fill="url(#heartGlow)" />
+    <path d="M12,21.35l-1.45-1.32C5.4,15.36 2,12.28 2,8.5 2,5.42 4.42,3 7.5,3c1.74,0 3.41,0.81 4.5,2.09C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.42 22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z"
+          fill="url(#heartGradient)" transform="scale(3.5)" />
+    <ellipse cx="24" cy="18" rx="8" ry="6" fill="#FFFFFF" opacity="0.28"
+             transform="rotate(-20, 24, 18)" />
+  </g>
+
+  <!-- Tagline under icon -->
+  <text x="430" y="830" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="34" font-weight="600" fill="#4A6FA5" letter-spacing="6" opacity="0.7">
+    PROTECT YOUR VISION
+  </text>
+
+  <!-- Decorative dots -->
+  <circle cx="360" cy="878" r="5" fill="#2196F3" opacity="0.25" />
+  <circle cx="390" cy="878" r="5" fill="#2196F3" opacity="0.35" />
+  <circle cx="420" cy="878" r="5" fill="#2196F3" opacity="0.45" />
+  <circle cx="450" cy="878" r="5" fill="#2196F3" opacity="0.35" />
+  <circle cx="480" cy="878" r="5" fill="#2196F3" opacity="0.25" />
+
+  <!-- Windows + macOS -->
+  <text x="430" y="940" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="30" font-weight="500" fill="#5B7DA5" opacity="0.6" letter-spacing="3">
+    Windows  +  macOS
+  </text>
+
+  <!-- ============================================= -->
+  <!-- RIGHT ZONE: Main text content                 -->
+  <!-- ============================================= -->
+
+  <!-- App name - HUGE -->
+  <text x="1100" y="360" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="160" font-weight="800" fill="#1A365D" letter-spacing="-3">
+    Eye-Rest
+  </text>
+
+  <!-- Divider -->
+  <line x1="810" y1="410" x2="1390" y2="410" stroke="url(#dividerGradient)" stroke-width="3" />
+
+  <!-- Subtitle -->
+  <text x="1100" y="500" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="56" font-weight="500" fill="#4A6FA5" letter-spacing="2">
+    Support Development
+  </text>
+
+  <!-- Description -->
+  <text x="1100" y="620" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="36" font-weight="400" fill="#5B7DA5" letter-spacing="0.5">
+    Automated eye rest and break reminders
+  </text>
+  <text x="1100" y="670" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="36" font-weight="400" fill="#5B7DA5" letter-spacing="0.5">
+    for healthier screen time habits.
+  </text>
+
+  <!-- Pay What You Want badge -->
+  <rect x="830" y="740" width="540" height="90" rx="45" ry="45"
+        fill="url(#supporterPillBg)" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.35" />
+  <g transform="translate(870, 756) scale(1.3)">
+    <path d="M12,21.35l-1.45-1.32C5.4,15.36 2,12.28 2,8.5 2,5.42 4.42,3 7.5,3c1.74,0 3.41,0.81 4.5,2.09C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.42 22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z"
+          fill="#EF4444" opacity="0.8" transform="scale(1.8)" />
+  </g>
+  <text x="1120" y="800" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="38" font-weight="700" fill="#2D5F8A" letter-spacing="2.5">
+    Pay What You Want
+  </text>
+
+  <!-- Support message -->
+  <text x="1100" y="910" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="32" font-weight="400" fill="#5B7DA5" opacity="0.8" letter-spacing="0.5">
+    Your support keeps this project alive.
+  </text>
+
+</svg>

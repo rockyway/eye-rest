@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EyeRest.UI.ViewModels"
+             x:Class="EyeRest.UI.Views.DonationBannerView"
+             x:DataType="vm:MainWindowViewModel"
+             IsVisible="{Binding IsDonationBannerVisible}">
+
+    <Border Background="{DynamicResource DonationBannerBackground}"
+            BorderBrush="{DynamicResource DonationBannerBorder}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="12,8"
+            Margin="12,8,12,0">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+            <!-- Heart icon -->
+            <PathIcon Grid.Column="0"
+                      Data="{StaticResource HeartIcon}"
+                      Width="16" Height="16"
+                      Foreground="{DynamicResource DonationHeartColor}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,8,0" />
+
+            <!-- Message -->
+            <TextBlock Grid.Column="1"
+                       Text="Enjoying Eye-Rest? Support development!"
+                       FontSize="12"
+                       Foreground="{DynamicResource DonationBannerText}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+
+            <!-- Donate button -->
+            <Button Grid.Column="2"
+                    Classes="ActionBtnPrimary"
+                    Height="28"
+                    Padding="12,4"
+                    Margin="6,0"
+                    Command="{Binding OpenDonationLinkCommand}"
+                    Cursor="Hand">
+                <TextBlock Text="Donate"
+                           FontSize="11"
+                           FontWeight="SemiBold" />
+            </Button>
+
+            <!-- Dismiss button -->
+            <Button Grid.Column="3"
+                    Classes="PopupCloseBtn"
+                    Width="24" Height="24"
+                    Command="{Binding DismissDonationCommand}"
+                    ToolTip.Tip="Dismiss">
+                <PathIcon Data="{DynamicResource CloseIcon}"
+                          Width="8" Height="8" />
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

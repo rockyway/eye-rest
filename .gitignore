@@ -47,6 +47,7 @@ hooks-ragsearch.log
 nul
 .ragsearch/
 .claude/
+.wrangler/
 EyeRest.Tests/TestResults/
 
 # Publish output
