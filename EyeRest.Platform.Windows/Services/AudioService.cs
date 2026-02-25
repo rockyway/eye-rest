@@ -66,8 +66,7 @@ namespace EyeRest.Services
                 // ENHANCED: Log current audio configuration for debugging
                 _logger.LogInformation($"🔊 Audio configuration loaded - Enabled: {_configuration.Audio.Enabled}, Volume: {_configuration.Audio.Volume}%, Custom Path: {(_configuration.Audio.CustomSoundPath ?? "None")}");
 
-                // Run comprehensive audio diagnostics
-                await RunAudioDiagnosticsAsync();
+                // Audio diagnostics disabled — was playing audible test sounds on every startup
 
                 // Validate custom sound file if configured
                 if (!string.IsNullOrEmpty(_configuration.Audio.CustomSoundPath))
