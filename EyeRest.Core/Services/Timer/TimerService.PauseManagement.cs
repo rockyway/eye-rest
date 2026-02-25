@@ -87,12 +87,17 @@ namespace EyeRest.Services
                 
                 if (!IsSmartPaused)
                 {
+                    // Reset start times so TimeUntilNext* doesn't include the paused period
+                    _eyeRestStartTime = DateTime.Now;
+                    _breakStartTime = DateTime.Now;
+                    _breakTimerStartTime = DateTime.Now;
+
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
-                    _breakTimerStartTime = DateTime.Now; // Track when break timer started
-                    
+                    UpdateHeartbeatFromOperation("ManualResume");
+
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.Manual);
-                    
+
                     _logger.LogInformation("Timer service resumed successfully");
                 }
                 else
@@ -628,12 +633,27 @@ namespace EyeRest.Services
                 _logger.LogInformation("⏸️ Pausing timer service for {Minutes} minutes - reason: {Reason}", 
                     duration.TotalMinutes, reason);
                 
+                // Preserve remaining time BEFORE setting pause flag
+                // (TimeUntilNext* getters short-circuit when paused)
+                if (_eyeRestTimer?.IsEnabled == true && _eyeRestStartTime != DateTime.MinValue)
+                {
+                    var eyeElapsed = DateTime.Now - _eyeRestStartTime;
+                    var eyeRemaining = _eyeRestInterval - eyeElapsed;
+                    _eyeRestRemainingTime = eyeRemaining > TimeSpan.Zero ? eyeRemaining : _eyeRestInterval;
+                }
+                if (_breakTimer?.IsEnabled == true && _breakStartTime != DateTime.MinValue)
+                {
+                    var brElapsed = DateTime.Now - _breakStartTime;
+                    var brRemaining = _breakInterval - brElapsed;
+                    _breakRemainingTime = brRemaining > TimeSpan.Zero ? brRemaining : _breakInterval;
+                }
+
                 // Set manual pause state
                 IsManuallyPaused = true;
                 _manualPauseStartTime = DateTime.Now;
                 _manualPauseDuration = duration;
                 _pauseReason = reason;
-                
+
                 // Stop timers
                 _eyeRestTimer?.Stop();
                 _breakTimer?.Stop();
@@ -676,12 +696,51 @@ namespace EyeRest.Services
                 // Resume if not otherwise paused
                 if (IsRunning && !IsPaused && !IsSmartPaused)
                 {
+                    // Calculate how long the pause lasted
+                    var pauseDuration = _manualPauseDuration;
+                    var eyeRestDurationSeconds = _configuration?.EyeRest?.DurationSeconds ?? 20;
+                    var breakDurationMinutes = _configuration?.Break?.DurationMinutes ?? 5;
+
+                    // If pause >= eye rest duration, user already rested — reset to full interval
+                    if (pauseDuration.TotalSeconds >= eyeRestDurationSeconds)
+                    {
+                        var (erInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
+                        _eyeRestInterval = erInterval;
+                        _eyeRestTimer!.Interval = _eyeRestInterval;
+                        _eyeRestRemainingTime = TimeSpan.Zero;
+                        _logger.LogInformation("⏰ Meeting pause >= eye rest duration — reset eye rest to full {Interval:F1}min", _eyeRestInterval.TotalMinutes);
+                    }
+                    else if (_eyeRestRemainingTime > TimeSpan.Zero)
+                    {
+                        _eyeRestTimer!.Interval = _eyeRestRemainingTime;
+                        _logger.LogInformation("⏰ Restoring eye rest remaining: {Remaining:F1}min", _eyeRestRemainingTime.TotalMinutes);
+                    }
+
+                    // If pause >= break duration, user already took a break — reset to full interval
+                    if (pauseDuration.TotalMinutes >= breakDurationMinutes)
+                    {
+                        var (brInterval, _, _, _, _) = CalculateBreakTimerInterval();
+                        _breakInterval = brInterval;
+                        _breakTimer!.Interval = _breakInterval;
+                        _breakRemainingTime = TimeSpan.Zero;
+                        _logger.LogInformation("⏰ Meeting pause >= break duration — reset break to full {Interval:F1}min", _breakInterval.TotalMinutes);
+                    }
+                    else if (_breakRemainingTime > TimeSpan.Zero)
+                    {
+                        _breakTimer!.Interval = _breakRemainingTime;
+                        _logger.LogInformation("⏰ Restoring break remaining: {Remaining:F1}min", _breakRemainingTime.TotalMinutes);
+                    }
+
+                    // Reset start times and start timers
+                    _eyeRestStartTime = DateTime.Now;
+                    _breakStartTime = DateTime.Now;
+                    _breakTimerStartTime = DateTime.Now;
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
-                    _breakTimerStartTime = DateTime.Now;
-                    
+                    UpdateHeartbeatFromOperation("ManualPauseAutoResume");
+
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.AutoResumeAfterDuration);
-                    
+
                     _logger.LogInformation("Timer service auto-resumed after manual pause duration");
                 }
             }
