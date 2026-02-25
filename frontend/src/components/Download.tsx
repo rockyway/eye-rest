@@ -156,7 +156,7 @@ export default function Download() {
             label="Download"
             variant="primary"
             fileType="zip"
-            href="https://dl.eyerest.net/EyeRest-Windows-x64.zip"
+            href="https://dl.eyerest.net/latest/EyeRest-Windows-x64.zip"
             available={true}
           />
           <PlatformCard
@@ -168,7 +168,7 @@ export default function Download() {
             label="Download"
             variant="outline"
             fileType="zip"
-            href="https://dl.eyerest.net/EyeRest-macOS-arm64.zip"
+            href="https://dl.eyerest.net/latest/EyeRest-macOS-arm64.zip"
             available={true}
           />
         </div>
