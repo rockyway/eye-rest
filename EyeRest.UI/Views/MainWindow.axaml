@@ -41,7 +41,7 @@
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                        <Image Source="avares://EyeRest.UI/Assets/TrayIcons/tray_active@2x.png"
+                        <Image Source="avares://EyeRest/Assets/TrayIcons/tray_active.png"
                                Width="18" Height="18" />
                         <TextBlock Text="Eye Rest"
                                    FontSize="15"
@@ -592,7 +592,7 @@
                     </StackPanel>
 
                     <!-- Scrollable Content -->
-                    <ScrollViewer Grid.Row="1" Padding="32,0,32,0">
+                    <ScrollViewer x:Name="ConfigContentScrollViewer" Grid.Row="1" Padding="32,0,32,0">
                         <Panel Margin="0,0,0,64">
                             <!-- ============================================ -->
                             <!-- Tab 0: Eye Rest Configuration                 -->
@@ -1223,43 +1223,141 @@
                             <!-- ============================================ -->
                             <!-- Tab 3: Analytics                              -->
                             <!-- ============================================ -->
-                            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=3}">
+                            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=3}"
+                                        Spacing="8" Margin="0,8,0,0">
 
-                                <Border Classes="GlassCard" Margin="0,40,0,0" HorizontalAlignment="Center"
-                                        MaxWidth="500" Padding="40">
-                                    <StackPanel HorizontalAlignment="Center" Spacing="16">
-                                        <Border Width="64" Height="64" CornerRadius="32"
-                                                Background="{DynamicResource ToggleCardIconBackground}"
-                                                HorizontalAlignment="Center">
-                                            <PathIcon Data="{StaticResource ChartIcon}" Width="32" Height="32"
-                                                      Foreground="{DynamicResource ToggleCardIconColor}" />
-                                        </Border>
-                                        <TextBlock Text="Analytics Dashboard"
-                                                   FontSize="20" FontWeight="Bold"
+                                <!-- Section Header -->
+                                <TextBlock Text="Key Performance Metrics"
+                                           FontSize="15" FontWeight="SemiBold"
+                                           Margin="4,0,0,4" />
+
+                                <!-- Row 1: Compliance Rate | Breaks Completed -->
+                                <Grid ColumnDefinitions="*,6,*">
+                                    <!-- Compliance Rate Card -->
+                                    <Border Grid.Column="0" Classes="GlassCard" Padding="12,10">
+                                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding AnalyticsComplianceRateText}"
+                                                       FontSize="24" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Text="Compliance Rate"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <ProgressBar Value="{Binding AnalyticsComplianceRateValue}"
+                                                         Maximum="100"
+                                                         Height="3"
+                                                         Margin="0,4,0,0"
+                                                         Background="{DynamicResource ControlBorderBrush}"
+                                                         Foreground="{DynamicResource PrimaryBrush}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Breaks Completed Card -->
+                                    <Border Grid.Column="2" Classes="GlassCard" Padding="12,10">
+                                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding AnalyticsTotalBreaksCompleted}"
+                                                       FontSize="24" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Text="Breaks Completed"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Text="{Binding AnalyticsCompletedPercentageText}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Row 2: Breaks Skipped | Total Active Time -->
+                                <Grid ColumnDefinitions="*,6,*">
+                                    <!-- Breaks Skipped Card -->
+                                    <Border Grid.Column="0" Classes="GlassCard" Padding="12,10">
+                                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding AnalyticsTotalBreaksSkipped}"
+                                                       FontSize="24" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource ErrorBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Text="Breaks Skipped"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Text="{Binding AnalyticsSkippedPercentageText}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Total Active Time Card -->
+                                    <Border Grid.Column="2" Classes="GlassCard" Padding="12,10">
+                                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding AnalyticsTotalActiveTimeText}"
+                                                       FontSize="24" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Text="Total Active Time"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Text="{Binding AnalyticsDailyAverageText}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Row 3: Eye Health Score (full width) -->
+                                <Border Classes="GlassCard" Padding="12,10">
+                                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding AnalyticsHealthScoreText}"
+                                                   FontSize="24" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource PrimaryBrush}"
                                                    HorizontalAlignment="Center" />
-                                        <TextBlock Text="View detailed break compliance metrics and performance analytics in a dedicated dashboard window."
-                                                   FontSize="15"
-                                                   TextAlignment="Center"
-                                                   TextWrapping="Wrap"
+                                        <TextBlock Text="Eye Health Score"
+                                                   FontSize="11"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   HorizontalAlignment="Center"
-                                                   MaxWidth="360" />
-                                        <Button Classes="ActionBtnPrimary"
-                                                Command="{Binding ShowAnalyticsCommand}"
+                                                   HorizontalAlignment="Center" />
+                                        <Border Background="{DynamicResource AccentBrush}"
+                                                CornerRadius="10"
+                                                Padding="8,2"
                                                 HorizontalAlignment="Center"
-                                                Height="44" Padding="24,8"
-                                                ToolTip.Tip="Open the analytics dashboard">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <PathIcon Data="{StaticResource ChartIcon}" Width="16" Height="16" />
-                                                <TextBlock Text="Open Dashboard" FontSize="14" />
-                                            </StackPanel>
-                                        </Button>
-                                        <CheckBox Content="Auto-open dashboard when clicking Analytics tab"
-                                                  IsChecked="{Binding AutoOpenDashboard}"
-                                                  HorizontalAlignment="Center"
-                                                  FontSize="12" />
+                                                Margin="0,4,0,0">
+                                            <TextBlock Text="{Binding AnalyticsHealthStatusText}"
+                                                       FontSize="10"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#FFFFFF"
+                                                       HorizontalAlignment="Center" />
+                                        </Border>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- View Details Button -->
+                                <Button Classes="ActionBtnPrimary"
+                                        Command="{Binding ShowAnalyticsCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        Height="38" Margin="0,4,0,0"
+                                        ToolTip.Tip="Open full analytics dashboard with detailed charts and reports">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource ChartIcon}" Width="14" Height="14" />
+                                        <TextBlock Text="View Details" FontSize="13" />
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- Auto-open checkbox -->
+                                <CheckBox Content="Auto-open dashboard when clicking Analytics tab"
+                                          IsChecked="{Binding AutoOpenDashboard}"
+                                          HorizontalAlignment="Center"
+                                          FontSize="11"
+                                          Margin="0,0,0,4" />
                             </StackPanel>
 
                             <!-- ============================================ -->

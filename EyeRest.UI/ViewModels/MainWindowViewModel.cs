@@ -22,6 +22,7 @@ namespace EyeRest.UI.ViewModels
         private readonly IStartupManager _startupManager;
         private readonly INotificationService _notificationService;
         private readonly IScreenOverlayService _screenOverlayService;
+        private readonly IAnalyticsService? _analyticsService;
         private readonly ILogger<MainWindowViewModel> _logger;
 
         private AppConfiguration _configuration;
@@ -60,6 +61,20 @@ namespace EyeRest.UI.ViewModels
         private bool _showTrayNotifications = true;
         private bool _showInTaskbar = false;
         private bool _autoOpenDashboard = false;
+
+        // Analytics KPI Summary
+        private string _analyticsComplianceRateText = "--";
+        private double _analyticsComplianceRateValue = 0;
+        private string _analyticsTotalBreaksCompleted = "--";
+        private string _analyticsCompletedPercentageText = "";
+        private string _analyticsTotalBreaksSkipped = "--";
+        private string _analyticsSkippedPercentageText = "";
+        private string _analyticsTotalActiveTimeText = "--";
+        private string _analyticsDailyAverageText = "";
+        private string _analyticsHealthScoreText = "--";
+        private string _analyticsHealthStatusText = "";
+        private bool _isAnalyticsLoading = false;
+        private bool _hasAnalyticsData = false;
 
         // UI State
         private int _selectedTabIndex = 0;
@@ -112,7 +127,8 @@ namespace EyeRest.UI.ViewModels
             IStartupManager startupManager,
             INotificationService notificationService,
             IScreenOverlayService screenOverlayService,
-            ILogger<MainWindowViewModel> logger)
+            ILogger<MainWindowViewModel> logger,
+            IAnalyticsService? analyticsService = null)
         {
             _configurationService = configurationService;
             _timerConfigurationService = timerConfigurationService;
@@ -122,6 +138,7 @@ namespace EyeRest.UI.ViewModels
             _notificationService = notificationService;
             _screenOverlayService = screenOverlayService;
             _logger = logger;
+            _analyticsService = analyticsService;
 
             _configuration = new AppConfiguration();
             _originalConfiguration = new AppConfiguration();
@@ -488,6 +505,79 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
+        // Analytics KPI Summary Properties
+        public string AnalyticsComplianceRateText
+        {
+            get => _analyticsComplianceRateText;
+            private set => SetProperty(ref _analyticsComplianceRateText, value);
+        }
+
+        public double AnalyticsComplianceRateValue
+        {
+            get => _analyticsComplianceRateValue;
+            private set => SetProperty(ref _analyticsComplianceRateValue, value);
+        }
+
+        public string AnalyticsTotalBreaksCompleted
+        {
+            get => _analyticsTotalBreaksCompleted;
+            private set => SetProperty(ref _analyticsTotalBreaksCompleted, value);
+        }
+
+        public string AnalyticsCompletedPercentageText
+        {
+            get => _analyticsCompletedPercentageText;
+            private set => SetProperty(ref _analyticsCompletedPercentageText, value);
+        }
+
+        public string AnalyticsTotalBreaksSkipped
+        {
+            get => _analyticsTotalBreaksSkipped;
+            private set => SetProperty(ref _analyticsTotalBreaksSkipped, value);
+        }
+
+        public string AnalyticsSkippedPercentageText
+        {
+            get => _analyticsSkippedPercentageText;
+            private set => SetProperty(ref _analyticsSkippedPercentageText, value);
+        }
+
+        public string AnalyticsTotalActiveTimeText
+        {
+            get => _analyticsTotalActiveTimeText;
+            private set => SetProperty(ref _analyticsTotalActiveTimeText, value);
+        }
+
+        public string AnalyticsDailyAverageText
+        {
+            get => _analyticsDailyAverageText;
+            private set => SetProperty(ref _analyticsDailyAverageText, value);
+        }
+
+        public string AnalyticsHealthScoreText
+        {
+            get => _analyticsHealthScoreText;
+            private set => SetProperty(ref _analyticsHealthScoreText, value);
+        }
+
+        public string AnalyticsHealthStatusText
+        {
+            get => _analyticsHealthStatusText;
+            private set => SetProperty(ref _analyticsHealthStatusText, value);
+        }
+
+        public bool IsAnalyticsLoading
+        {
+            get => _isAnalyticsLoading;
+            private set => SetProperty(ref _isAnalyticsLoading, value);
+        }
+
+        public bool HasAnalyticsData
+        {
+            get => _hasAnalyticsData;
+            private set => SetProperty(ref _hasAnalyticsData, value);
+        }
+
         public int SelectedTabIndex
         {
             get => _selectedTabIndex;
@@ -499,6 +589,11 @@ namespace EyeRest.UI.ViewModels
                     if (value == 3 && AutoOpenDashboard)
                     {
                         ShowAnalyticsWindow();
+                    }
+                    // Load analytics summary when tab is selected
+                    if (value == 3)
+                    {
+                        _ = LoadAnalyticsSummaryAsync();
                     }
                 }
             }
@@ -1737,6 +1832,62 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
+        private async Task LoadAnalyticsSummaryAsync()
+        {
+            if (_analyticsService == null) return;
+
+            try
+            {
+                IsAnalyticsLoading = true;
+
+                var endDate = DateTime.Now;
+                var startDate = endDate.AddDays(-7);
+
+                var healthMetrics = await _analyticsService.GetHealthMetricsAsync(startDate, endDate);
+
+                var totalBreaks = healthMetrics.BreaksCompleted + healthMetrics.BreaksSkipped;
+
+                AnalyticsComplianceRateText = $"{healthMetrics.ComplianceRate:P1}";
+                AnalyticsComplianceRateValue = healthMetrics.ComplianceRate * 100;
+                AnalyticsTotalBreaksCompleted = healthMetrics.BreaksCompleted.ToString();
+                AnalyticsCompletedPercentageText = totalBreaks > 0
+                    ? $"{(double)healthMetrics.BreaksCompleted / totalBreaks:P0} of total"
+                    : "No data";
+                AnalyticsTotalBreaksSkipped = healthMetrics.BreaksSkipped.ToString();
+                AnalyticsSkippedPercentageText = totalBreaks > 0
+                    ? $"{(double)healthMetrics.BreaksSkipped / totalBreaks:P0} of total"
+                    : "No data";
+                AnalyticsTotalActiveTimeText = $"{healthMetrics.TotalActiveTime.TotalHours:F1}h";
+                AnalyticsDailyAverageText = $"~{healthMetrics.TotalActiveTime.TotalHours / 7:F1}h/day avg";
+
+                // Health score logic
+                var hasMinimalData = totalBreaks < 5 || healthMetrics.TotalActiveTime.TotalHours < 2;
+                if (hasMinimalData)
+                    AnalyticsHealthScoreText = "Getting Started";
+                else if (healthMetrics.ComplianceRate >= 0.9)
+                    AnalyticsHealthScoreText = "Excellent";
+                else if (healthMetrics.ComplianceRate >= 0.8)
+                    AnalyticsHealthScoreText = "Good";
+                else if (healthMetrics.ComplianceRate >= 0.7)
+                    AnalyticsHealthScoreText = "Fair";
+                else if (healthMetrics.ComplianceRate >= 0.6)
+                    AnalyticsHealthScoreText = "Improving";
+                else
+                    AnalyticsHealthScoreText = "Building Habits";
+
+                AnalyticsHealthStatusText = AnalyticsHealthScoreText;
+                HasAnalyticsData = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load analytics summary");
+            }
+            finally
+            {
+                IsAnalyticsLoading = false;
+            }
+        }
+
         /// <summary>
         /// Apply theme based on ThemeMode (Auto detects OS preference).
         /// </summary>
@@ -1848,8 +1999,8 @@ namespace EyeRest.UI.ViewModels
 
                     // Add the new theme as a StyleInclude
                     var themeUri = isDarkMode
-                        ? new Uri("avares://EyeRest.UI/Resources/DarkTheme.axaml")
-                        : new Uri("avares://EyeRest.UI/Resources/LightTheme.axaml");
+                        ? new Uri("avares://EyeRest/Resources/DarkTheme.axaml")
+                        : new Uri("avares://EyeRest/Resources/LightTheme.axaml");
 
                     var newTheme = new Avalonia.Markup.Xaml.Styling.StyleInclude(themeUri)
                     {
