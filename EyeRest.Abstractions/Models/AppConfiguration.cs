@@ -52,6 +52,13 @@ namespace EyeRest.Models
         public int Volume { get; set; } = 50;
     }
 
+    public enum ThemeMode
+    {
+        Auto = 0,
+        Light = 1,
+        Dark = 2
+    }
+
     public class ApplicationSettings
     {
         public bool StartWithWindows { get; set; } = false;
@@ -59,7 +66,17 @@ namespace EyeRest.Models
         public bool StartMinimized { get; set; } = false;
         public bool ShowTrayNotifications { get; set; } = true;
         public bool ShowInTaskbar { get; set; } = false;
-        public bool IsDarkMode { get; set; } = false;
+        public ThemeMode ThemeMode { get; set; } = ThemeMode.Auto;
+
+        /// <summary>
+        /// Legacy property for backward compatibility with existing config files.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsDarkMode
+        {
+            get => ThemeMode == ThemeMode.Dark;
+            set => ThemeMode = value ? ThemeMode.Dark : ThemeMode.Light;
+        }
     }
 
     public class UserPresenceSettings
