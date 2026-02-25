@@ -92,6 +92,12 @@ export default function Footer() {
                 fontFamily: 'var(--font-body)',
                 fontSize: '0.82rem',
               }}
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.pushState({}, '', '/privacy')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+                window.scrollTo(0, 0)
+              }}
             >
               Privacy Policy
             </a>

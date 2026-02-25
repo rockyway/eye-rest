@@ -64,7 +64,16 @@ export default function Nav() {
       transition: 'background 0.3s ease, border-color 0.3s ease',
     }}>
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <a
+        href="/"
+        onClick={(e) => {
+          e.preventDefault()
+          window.history.pushState({}, '', '/')
+          window.dispatchEvent(new PopStateEvent('popstate'))
+          window.scrollTo(0, 0)
+        }}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+      >
         <img src="/app-icon.png" alt="Eye-Rest" style={{ width: 26, height: 26, borderRadius: 7 }} />
         <span style={{
           fontFamily: 'var(--font-display)',
@@ -72,7 +81,7 @@ export default function Nav() {
           fontSize: '1rem',
           color: 'var(--text-heading)',
         }}>Eye-Rest</span>
-      </div>
+      </a>
 
       {/* Nav links (hidden on small screens) */}
       <div style={{
