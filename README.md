@@ -21,7 +21,7 @@ A cross-platform desktop application built with .NET 8 and Avalonia UI that prov
 
 ### Performance & Reliability
 - **Fast Startup**: Application starts in under 3 seconds
-- **Low Memory Usage**: Stays under 50MB memory consumption
+- **Low Memory Usage**: Stays under 100MB memory consumption
 - **Error Recovery**: Automatic recovery from timer failures
 - **Comprehensive Logging**: Detailed logging with automatic cleanup
 
@@ -35,7 +35,6 @@ A cross-platform desktop application built with .NET 8 and Avalonia UI that prov
 | macOS | `EyeRest.Platform.macOS` | macOS-specific services (AppKit, IOKit P/Invoke) |
 | UI | `EyeRest.UI` | Cross-platform Avalonia UI entry point |
 | Tests | `EyeRest.Tests.Avalonia` | Test suite (86+ tests) |
-| Website | `frontend/` | React/TypeScript marketing website |
 
 ### Design Patterns
 - **MVVM** with Avalonia compiled bindings

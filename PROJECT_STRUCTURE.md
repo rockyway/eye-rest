@@ -23,7 +23,6 @@
    - [EyeRest.Platform.macOS](#eyerestplatformmacos)
    - [EyeRest.UI](#eyerestui)
    - [EyeRest.Tests.Avalonia](#eyeresttestsavalonia)
-   - [frontend/ (Marketing Website)](#frontend-marketing-website)
 5. [Technology Stack](#technology-stack)
 6. [Key Features](#key-features)
 7. [Data Flow](#data-flow)
@@ -42,7 +41,6 @@
 | Solution projects | 6 |
 | C# source files (`.cs`) | ~147 |
 | Avalonia XAML (`.axaml`) | 16 |
-| Frontend source files (`.tsx`, `.ts`) | 11 |
 | Documentation files (`.md`) | ~32 |
 | Project files (`.csproj`) | 6 |
 | Image assets (`.png`) | 21 |
@@ -122,11 +120,6 @@ eye-rest/
 │   ├── plans/                        (2 files) Design, requirements
 │   ├── tests/                        (2 files) Test tracking, integration test plan
 │   └── troubleshooting/             (7 files) Bug fix documentation
-│
-├── frontend/                         [React/TypeScript marketing website]
-│   ├── public/                       (8 PNGs) App icon, OG image, screenshots
-│   └── src/                          (11 files) Components, theme, analytics
-│       └── components/               (7 files) Hero, Nav, Features, AppPreview, Download, Support, Footer
 │
 ├── EyeRest.Package/                  [MSIX packaging for Microsoft Store]
 │   ├── Package.appxmanifest          App identity, capabilities, startup task, visual assets
@@ -358,30 +351,6 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 
 ---
 
-### frontend/ (Marketing Website)
-
-> **Type:** React SPA | **Not part of .NET solution** | **Build:** Vite 7.3
-
-A standalone React/TypeScript marketing website for Eye-Rest. Not included in the .NET solution.
-
-**Technology:** React 19.2 + TypeScript 5.9 + Tailwind CSS 4.2 + Vite 7.3
-
-**Components (7 files):**
-
-| Component | Purpose |
-|-----------|---------|
-| `Hero` | Landing hero section |
-| `Nav` | Navigation bar |
-| `Features` | Feature showcase grid |
-| `AppPreview` | App screenshot preview |
-| `Download` | Download links section |
-| `Support` | Support/donation section |
-| `Footer` | Site footer |
-
-**Other source files:** `App.tsx`, `main.tsx`, `analytics.ts`, `theme.tsx`, `icons.tsx`
-
----
-
 ## Technology Stack
 
 | Technology | Version | Purpose |
@@ -399,10 +368,6 @@ A standalone React/TypeScript marketing website for Eye-Rest. Not included in th
 | xUnit | 2.6.1 | Primary test framework |
 | Moq | 4.20.69 | Mocking library |
 | System.Security.Cryptography.ProtectedData | 8.0.0 | Windows DPAPI for secure storage |
-| React | 19.2.0 | Frontend marketing website |
-| Tailwind CSS | 4.2.0 | Frontend utility-first CSS |
-| Vite | 7.3.0 | Frontend build tool |
-| TypeScript | 5.9.0 | Frontend type safety |
 
 ---
 
@@ -421,8 +386,7 @@ A standalone React/TypeScript marketing website for Eye-Rest. Not included in th
 11. **macOS .app Bundle** — Code-signed with hardened runtime, generated via `scripts/bundle-macos.sh`.
 12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
 13. **Voluntary Donation Workflow** — LemonSqueezy-integrated license key validation with DPAPI (Windows) / Keychain (macOS) secure storage, usage-based prompts, and inline banner UI.
-14. **Marketing Website** — React/TypeScript/Tailwind CSS landing page with app preview, feature showcase, download links, and analytics tracking.
-15. **MSIX Packaging** — Microsoft Store distribution with auto-signing, full-trust Desktop Bridge, MSIX startup task, and sideload support.
+14. **MSIX Packaging** — Microsoft Store distribution with auto-signing, full-trust Desktop Bridge, MSIX startup task, and sideload support.
 
 ---
 
@@ -498,8 +462,6 @@ EyeRest.UI                        ──► Abstractions + Core + Platform.Windo
                                                            / Platform.macOS (macOS)
 
 EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
-
-frontend/                             (standalone — React/Vite, no .NET dependency)
 ```
 
 ---
