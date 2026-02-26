@@ -1,5 +1,5 @@
 interface Env {
-  GITHUB_TOKEN: string
+  RESEND_API_KEY: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -19,19 +19,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Invalid email' }), { status: 400, headers })
     }
 
-    // Create GitHub Issue
-    const res = await fetch('https://api.github.com/repos/rockyway/eye-rest/issues', {
+    // Send email via Resend
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `token ${context.env.GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'EyeRest-Contact-Form',
+        'Authorization': `Bearer ${context.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        title: `[Contact] ${name}`,
-        body: `**From:** ${name}\n**Email:** ${email}\n\n---\n\n${message}`,
-        labels: ['contact'],
+        from: 'Contact Form <noreply@eyerest.net>',
+        to: 'support@eyerest.net',
+        reply_to: email,
+        subject: `[Contact] ${name}`,
+        text: `From: ${name}\nEmail: ${email}\n\n${message}`,
       }),
     })
 
