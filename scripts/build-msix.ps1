@@ -98,7 +98,8 @@ if (-not $ForStore) {
     Write-Host "`n[5/5] Signing MSIX for local testing..." -ForegroundColor Cyan
 
     $CertPath = "$DistDir\EyeRest-Test.pfx"
-    $CertPassword = "PLACEHOLDER_CERT_PASSWORD"
+    $CertPassword = $env:EYEREST_CERT_PASSWORD
+    if (-not $CertPassword) { Write-Error "Set EYEREST_CERT_PASSWORD env var"; exit 1 }
 
     # Create a self-signed test certificate if it doesn't exist
     if (-not (Test-Path $CertPath)) {

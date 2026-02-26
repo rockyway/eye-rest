@@ -261,12 +261,12 @@ Manual Event Firing → ApplicationOrchestrator → NotificationService → Popu
 
 ### Core Implementation
 - `App.xaml.cs` - Alternative popup trigger system
-- `Services\TimerService.cs` - Health monitoring & recovery
-- `Services\ApplicationOrchestrator.cs` - Enhanced logging
+- `Services/TimerService.cs` - Health monitoring & recovery
+- `Services/ApplicationOrchestrator.cs` - Enhanced logging
 
 ### Interfaces (Reference)
-- `Services\ITimerService.cs` - Timer service contract
-- `Services\NotificationService.cs` - Popup display logic
+- `Services/ITimerService.cs` - Timer service contract
+- `Services/NotificationService.cs` - Popup display logic
 
 ## 🎯 Success Metrics
 

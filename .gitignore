@@ -66,3 +66,24 @@ frontend/public/downloads/
 .vscode/mcp.json
 .mcp.*.json
 roles/
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+
+# AI tooling
+CLAUDE.md
+master-agent.md
+
+# Vite build cache
+.vite/
+
+# Database files
+*.db

@@ -76,18 +76,17 @@
 ```
 
 ### Key Files for Investigation
-- `%APPDATA%\EyeRest\logs\eyerest.log` - Application logs
-- `App.xaml.cs:207-337` - Backup trigger system  
-- `Services\TimerService.cs` - Health monitoring
-- `Services\ApplicationOrchestrator.cs` - Service coordination
+- `%APPDATA%\EyeRest\logs\eyerest.log` (Windows) / `~/.config/EyeRest/logs/eyerest.log` (macOS) - Application logs
+- `App.xaml.cs:207-337` - Backup trigger system
+- `Services/TimerService.cs` - Health monitoring
+- `Services/ApplicationOrchestrator.cs` - Service coordination
 
-## ⚡ Quick Recovery Commands
+## Quick Recovery Commands
 
 ### Build & Run
 ```bash
-cd ""
 dotnet build
-dotnet run
+dotnet run --project EyeRest.UI
 ```
 
 ### Force Kill if Needed

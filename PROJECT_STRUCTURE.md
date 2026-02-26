@@ -76,8 +76,6 @@
 eye-rest/
 ├── EyeRest.sln                      Solution file (6 projects)
 ├── Directory.Build.props             TreatWarningsAsErrors, Nullable, LangVersion latest
-├── CLAUDE.md                         AI agent instructions
-├── master-agent.md                   Master agent protocol
 ├── Resources/                        [Windows app icon]
 │
 ├── EyeRest.Abstractions/            [Pure interfaces + models — zero dependencies]
@@ -117,15 +115,11 @@ eye-rest/
 │   └── ViewModels/                   (1 file) MainWindowViewModelTests (26 tests)
 │
 ├── docs/                             [Documentation]
-│   ├── agentic/                      (3 files) Architecture, development, testing guides
 │   ├── assets/                       (2 files) LemonSqueezy product images
 │   ├── features/                     (1 file) Break done screen enhancements
-│   ├── guides/                       (1 file) LemonSqueezy donation setup
 │   ├── lessons-learned/              (3 files) Crisis resolution, macOS icon sizing
-│   ├── new-ui/                        Screenshots, HTML prototype, updates/
 │   ├── plan/                         (1 file) Popup redesign plan
-│   ├── plans/                        (3 files) Design, requirements, tasks
-│   ├── progress/                     (3 files) Fix summaries
+│   ├── plans/                        (2 files) Design, requirements
 │   ├── tests/                        (2 files) Test tracking, integration test plan
 │   └── troubleshooting/             (7 files) Bug fix documentation
 │
@@ -143,7 +137,6 @@ eye-rest/
 │   ├── build-msix.ps1               Windows MSIX packaging (dotnet publish + makeappx)
 │   └── generate-icons.py            Icon generation (Python/Pillow, supports --msix flag)
 │
-└── roles/                            (5 files) Agent role definitions
 ```
 
 ---
