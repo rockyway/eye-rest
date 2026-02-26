@@ -181,7 +181,7 @@ export default function Download() {
           margin: '28px auto 0',
           padding: '20px 28px',
         }}>
-          <p style={{
+          <h4 style={{
             fontFamily: 'var(--font-body)',
             fontSize: '0.85rem',
             fontWeight: 600,
@@ -189,7 +189,7 @@ export default function Download() {
             margin: '0 0 10px',
           }}>
             macOS install instructions
-          </p>
+          </h4>
           <ol style={{
             fontFamily: 'var(--font-body)',
             fontSize: '0.83rem',

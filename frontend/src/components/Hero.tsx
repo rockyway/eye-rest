@@ -106,7 +106,7 @@ export default function Hero() {
               margin: '14px 0 0',
               letterSpacing: '-0.01em',
             }}>
-              Automated eye rest &amp; break reminders.
+              Automated 20-20-20 eye rest &amp; break reminders.
             </p>
 
             <p style={{
@@ -195,9 +195,13 @@ export default function Hero() {
               </div>
               <img
                 src={isDark ? '/screenshot-dark.png' : '/screenshot-light.png'}
-                alt={`Eye-Rest app — ${isDark ? 'dark' : 'light'} theme`}
+                alt="Eye-Rest desktop app showing 20-20-20 eye rest timer and break reminder interface"
+                fetchPriority="high"
+                width={800}
+                height={500}
                 style={{
                   width: '100%',
+                  height: 'auto',
                   borderRadius: 12,
                   display: 'block',
                   boxShadow: '0 2px 12px rgba(0,0,0,0.12)',

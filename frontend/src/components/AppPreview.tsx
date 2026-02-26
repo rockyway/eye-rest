@@ -83,9 +83,12 @@ export default function AppPreview() {
             <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden' }}>
               <img
                 src="/screenshot-light.png"
-                alt="Eye-Rest light theme"
+                alt="Eye-Rest app interface with 20-20-20 timer — light theme"
+                width={800}
+                height={500}
                 style={{
                   width: '100%',
+                  height: 'auto',
                   display: 'block',
                   borderRadius: 10,
                   opacity: isDark ? 0 : 1,
@@ -94,9 +97,12 @@ export default function AppPreview() {
               />
               <img
                 src="/screenshot-dark.png"
-                alt="Eye-Rest dark theme"
+                alt="Eye-Rest app interface with 20-20-20 timer — dark theme"
+                width={800}
+                height={500}
                 style={{
                   width: '100%',
+                  height: 'auto',
                   display: 'block',
                   borderRadius: 10,
                   position: 'absolute',
