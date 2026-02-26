@@ -59,3 +59,10 @@ dist/
 
 # Binary downloads (large files — distribute via releases, not git)
 frontend/public/downloads/
+
+# Local developer files (not for public repo)
+.local/
+.vscode/settings.json
+.vscode/mcp.json
+.mcp.*.json
+roles/

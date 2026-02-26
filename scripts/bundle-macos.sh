@@ -13,7 +13,7 @@ APP_NAME="Eye-Rest"
 BUNDLE_ID="com.eyerest.app"
 RID="${RID:-osx-arm64}"
 CONFIGURATION="${CONFIGURATION:-Release}"
-SIGNING_IDENTITY="${SIGNING_IDENTITY:-Apple Development: you@example.com (YOUR_TEAM_ID)}"
+SIGNING_IDENTITY="${SIGNING_IDENTITY:?Error: Set SIGNING_IDENTITY env var (e.g. 'Apple Development: you@example.com (TEAMID)')}"
 
 PUBLISH_DIR="$UI_PROJECT/bin/$CONFIGURATION/net8.0/$RID/publish"
 OUTPUT_DIR="$PROJECT_ROOT/dist"
