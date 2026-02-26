@@ -10,12 +10,13 @@ interface PlatformCardProps {
   reqs: string[]
   label: string
   variant: 'primary' | 'outline'
-  fileType: string
+  fileType?: string
   href: string
   available: boolean
+  external?: boolean
 }
 
-function PlatformCard({ platform, icon, name, subtitle, reqs, label, variant, fileType, href, available }: PlatformCardProps) {
+function PlatformCard({ platform, icon, name, subtitle, reqs, label, variant, fileType, href, available, external }: PlatformCardProps) {
   return (
     <div className="glass-card glass-card-hover" style={{ padding: '36px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       {/* Top accent line */}
@@ -98,13 +99,14 @@ function PlatformCard({ platform, icon, name, subtitle, reqs, label, variant, fi
       {available ? (
         <a
           href={href}
-          download
+          {...(!external && { download: true })}
+          {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
           className={`btn btn-${variant}`}
           style={{ width: '100%', justifyContent: 'center' }}
           onClick={() => trackDownload(platform)}
         >
           <DownloadIcon size={16} color={variant === 'primary' ? '#fff' : 'var(--blue-600)'} />
-          {label} <span style={{ opacity: 0.7, fontSize: '0.85em' }}>.{fileType}</span>
+          {label}{fileType && <span style={{ opacity: 0.7, fontSize: '0.85em' }}> .{fileType}</span>}
         </a>
       ) : (
         <div
@@ -153,13 +155,13 @@ export default function Download() {
             platform="windows"
             icon={<WindowsIcon size={36} color="#2196F3" />}
             name="Windows"
-            subtitle="Windows 10 or later"
-            reqs={['4 GB RAM minimum', '100 MB disk space', 'Self-contained — no runtime needed', 'x64 architecture']}
-            label="Download"
+            subtitle="Windows 10 version 1809 or later"
+            reqs={['Auto-updates via Microsoft Store', '100 MB disk space', 'Sandboxed for security', 'x64 architecture']}
+            label="Get from Microsoft Store"
             variant="primary"
-            fileType="zip"
-            href="https://dl.eyerest.net/latest/EyeRest-Windows-x64.zip"
+            href="https://apps.microsoft.com/detail/9NHN1R0RLH60"
             available={true}
+            external={true}
           />
           <PlatformCard
             platform="macos"
