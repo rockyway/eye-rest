@@ -97,8 +97,20 @@ export default function Nav() {
           { label: 'Download', href: '#download' },
           { label: 'Support', href: '#support' },
         ].map((l) => (
-          <a key={l.label} href={l.href} className="nav-link" style={{ fontSize: '0.875rem' }}
-             onClick={() => trackNavClick(l.label.toLowerCase(), 'nav')}>
+          <a key={l.label} href={`/${l.href}`} className="nav-link" style={{ fontSize: '0.875rem' }}
+             onClick={(e) => {
+               e.preventDefault()
+               trackNavClick(l.label.toLowerCase(), 'nav')
+               if (window.location.pathname !== '/') {
+                 window.history.pushState({}, '', '/')
+                 window.dispatchEvent(new PopStateEvent('popstate'))
+                 setTimeout(() => {
+                   document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' })
+                 }, 100)
+               } else {
+                 document.querySelector(l.href)?.scrollIntoView({ behavior: 'smooth' })
+               }
+             }}>
             {l.label}
           </a>
         ))}

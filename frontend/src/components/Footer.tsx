@@ -54,10 +54,22 @@ export default function Footer() {
             {NAV.map((link) => (
               <a
                 key={link.label}
-                href={link.href}
+                href={`/${link.href}`}
                 className="nav-link"
                 style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem' }}
-                onClick={() => trackNavClick(link.label.toLowerCase(), 'footer')}
+                onClick={(e) => {
+                  e.preventDefault()
+                  trackNavClick(link.label.toLowerCase(), 'footer')
+                  if (window.location.pathname !== '/') {
+                    window.history.pushState({}, '', '/')
+                    window.dispatchEvent(new PopStateEvent('popstate'))
+                    setTimeout(() => {
+                      document.querySelector(link.href)?.scrollIntoView({ behavior: 'smooth' })
+                    }, 100)
+                  } else {
+                    document.querySelector(link.href)?.scrollIntoView({ behavior: 'smooth' })
+                  }
+                }}
               >
                 {link.label}
               </a>
