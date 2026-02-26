@@ -111,7 +111,7 @@ work break timer
 ### Copyright
 
 ```
-© 2026 TTT Softwares
+© 2026 TTT Software
 ```
 
 ### Additional license terms
