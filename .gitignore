@@ -47,7 +47,6 @@ hooks-ragsearch.log
 nul
 .ragsearch/
 .claude/
-.wrangler/
 EyeRest.Tests/TestResults/
 
 # Publish output
@@ -56,9 +55,6 @@ publish/
 # MSIX build artifacts
 dist/
 *.pfx
-
-# Binary downloads (large files — distribute via releases, not git)
-frontend/public/downloads/
 
 # Local developer files (not for public repo)
 .local/
@@ -81,9 +77,6 @@ Thumbs.db
 # AI tooling
 CLAUDE.md
 master-agent.md
-
-# Vite build cache
-.vite/
 
 # Database files
 *.db
