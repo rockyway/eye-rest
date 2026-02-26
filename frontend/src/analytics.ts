@@ -49,3 +49,7 @@ export function trackExternalLink(url: string, label: string): void {
 export function trackSectionView(sectionId: string): void {
   trackEvent('section_view', { section: sectionId })
 }
+
+export function trackContactSubmit(status: 'success' | 'error'): void {
+  trackEvent('contact_submit', { status })
+}

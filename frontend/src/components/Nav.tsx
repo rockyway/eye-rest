@@ -96,6 +96,7 @@ export default function Nav() {
           { label: 'Preview', href: '#preview' },
           { label: 'Download', href: '#download' },
           { label: 'Support', href: '#support' },
+          { label: 'Contact', href: '#contact' },
         ].map((l) => (
           <a key={l.label} href={`/${l.href}`} className="nav-link" style={{ fontSize: '0.875rem' }}
              onClick={(e) => {

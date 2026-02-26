@@ -7,6 +7,7 @@ import Features from './components/Features'
 import AppPreview from './components/AppPreview'
 import Download from './components/Download'
 import Support from './components/Support'
+import Contact from './components/Contact'
 import Privacy from './components/Privacy'
 import Footer from './components/Footer'
 
@@ -80,6 +81,7 @@ function AppInner() {
           <AppPreview />
           <Download />
           <Support />
+          <Contact />
         </>
       )}
       <Footer />

@@ -5,6 +5,7 @@ const NAV = [
   { label: 'Preview', href: '#preview' },
   { label: 'Download', href: '#download' },
   { label: 'Support', href: '#support' },
+  { label: 'Contact',  href: '#contact' },
 ]
 
 export default function Footer() {
