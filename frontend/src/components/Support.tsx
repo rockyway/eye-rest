@@ -1,9 +1,11 @@
 import { trackDonate } from '../analytics'
 import { HeartIcon } from '../assets/icons'
+import { useTrackSection } from '../hooks/useTrackSection'
 
 export default function Support() {
+  const sectionRef = useTrackSection('support')
   return (
-    <section id="support" className="section" style={{ position: 'relative', zIndex: 1 }}>
+    <section ref={sectionRef} id="support" className="section" style={{ position: 'relative', zIndex: 1 }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <div className="glass-card anim-fade-up" style={{ padding: '60px 48px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
           {/* Background heart motif */}

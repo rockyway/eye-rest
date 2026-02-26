@@ -1,6 +1,15 @@
+import { trackExternalLink } from '../analytics'
+
 export default function Privacy() {
+  const handleExternalClick = (e: React.MouseEvent<HTMLElement>) => {
+    const anchor = (e.target as HTMLElement).closest('a[href^="https://"]') as HTMLAnchorElement | null
+    if (anchor) {
+      trackExternalLink(anchor.href, anchor.textContent?.trim() ?? '')
+    }
+  }
+
   return (
-    <section className="section" style={{ position: 'relative', zIndex: 1 }}>
+    <section className="section" style={{ position: 'relative', zIndex: 1 }} onClick={handleExternalClick}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <div className="glass-card anim-fade-up" style={{ padding: '48px 40px' }}>
           <h1 style={{

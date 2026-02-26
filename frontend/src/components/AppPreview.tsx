@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { trackThemeChange } from '../analytics'
+import { useTrackSection } from '../hooks/useTrackSection'
 
 export default function AppPreview() {
   const [isDark, setIsDark] = useState(false)
+  const sectionRef = useTrackSection('preview')
 
   return (
-    <section className="section" style={{ position: 'relative', zIndex: 1 }}>
+    <section ref={sectionRef} id="preview" className="section" style={{ position: 'relative', zIndex: 1 }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 48 }} className="anim-fade-up">
@@ -22,14 +25,14 @@ export default function AppPreview() {
             <div className="toggle-pill">
               <button
                 className={!isDark ? 'active' : ''}
-                onClick={() => setIsDark(false)}
+                onClick={() => { setIsDark(false); trackThemeChange('light', 'preview') }}
                 aria-pressed={!isDark}
               >
                 ☀ Light
               </button>
               <button
                 className={isDark ? 'active' : ''}
-                onClick={() => setIsDark(true)}
+                onClick={() => { setIsDark(true); trackThemeChange('dark', 'preview') }}
                 aria-pressed={isDark}
               >
                 ☽ Dark

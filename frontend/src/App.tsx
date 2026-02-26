@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ThemeProvider } from './theme'
-import { initGA } from './analytics'
+import { initGA, trackPageView } from './analytics'
 import Nav from './components/Nav'
 import Hero from './components/Hero'
 import Features from './components/Features'
@@ -12,6 +12,7 @@ import Footer from './components/Footer'
 
 function AppInner() {
   const [path, setPath] = useState(window.location.pathname)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
     initGA()
@@ -20,6 +21,14 @@ function AppInner() {
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    trackPageView(path)
+  }, [path])
 
   const isPrivacy = path === '/privacy'
 

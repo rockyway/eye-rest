@@ -1,4 +1,5 @@
 import { useTheme, type ThemeMode } from '../theme'
+import { trackNavClick, trackThemeChange } from '../analytics'
 
 function SunIcon() {
   return (
@@ -68,6 +69,7 @@ export default function Nav() {
         href="/"
         onClick={(e) => {
           e.preventDefault()
+          trackNavClick('home', 'nav')
           window.history.pushState({}, '', '/')
           window.dispatchEvent(new PopStateEvent('popstate'))
           window.scrollTo(0, 0)
@@ -95,7 +97,8 @@ export default function Nav() {
           { label: 'Download', href: '#download' },
           { label: 'Support', href: '#support' },
         ].map((l) => (
-          <a key={l.label} href={l.href} className="nav-link" style={{ fontSize: '0.875rem' }}>
+          <a key={l.label} href={l.href} className="nav-link" style={{ fontSize: '0.875rem' }}
+             onClick={() => trackNavClick(l.label.toLowerCase(), 'nav')}>
             {l.label}
           </a>
         ))}
@@ -114,7 +117,7 @@ export default function Nav() {
         {OPTIONS.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => setMode(opt.value)}
+            onClick={() => { setMode(opt.value); trackThemeChange(opt.value, 'nav') }}
             title={opt.label}
             aria-pressed={mode === opt.value}
             style={{

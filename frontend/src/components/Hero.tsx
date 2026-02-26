@@ -1,11 +1,14 @@
-import { trackDownload } from '../analytics'
+import { trackCtaClick } from '../analytics'
 import { DownloadIcon, WindowsIcon, AppleIcon } from '../assets/icons'
 import { useTheme } from '../theme'
+import { useTrackSection } from '../hooks/useTrackSection'
 
 export default function Hero() {
   const { isDark } = useTheme()
+  const sectionRef = useTrackSection('hero')
   return (
     <section
+      ref={sectionRef}
       style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', zIndex: 1 }}
       className="flex items-center"
     >
@@ -130,7 +133,7 @@ export default function Hero() {
               <a
                 href="#download"
                 className="btn btn-primary"
-                onClick={() => trackDownload('windows')}
+                onClick={() => trackCtaClick('windows')}
               >
                 <WindowsIcon size={18} color="#fff" />
                 <DownloadIcon size={16} color="#fff" />
@@ -139,7 +142,7 @@ export default function Hero() {
               <a
                 href="#download"
                 className="btn btn-outline"
-                onClick={() => trackDownload('macos')}
+                onClick={() => trackCtaClick('macos')}
               >
                 <AppleIcon size={18} color="var(--blue-600)" />
                 <DownloadIcon size={16} color="var(--blue-600)" />

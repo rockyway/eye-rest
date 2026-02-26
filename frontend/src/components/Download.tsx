@@ -1,5 +1,6 @@
 import { trackDownload } from '../analytics'
 import { WindowsIcon, AppleIcon, DownloadIcon } from '../assets/icons'
+import { useTrackSection } from '../hooks/useTrackSection'
 
 interface PlatformCardProps {
   platform: 'windows' | 'macos'
@@ -124,8 +125,9 @@ function PlatformCard({ platform, icon, name, subtitle, reqs, label, variant, fi
 }
 
 export default function Download() {
+  const sectionRef = useTrackSection('download')
   return (
-    <section id="download" className="section" style={{ position: 'relative', zIndex: 1 }}>
+    <section ref={sectionRef} id="download" className="section" style={{ position: 'relative', zIndex: 1 }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 56 }} className="anim-fade-up">

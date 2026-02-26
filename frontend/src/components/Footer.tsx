@@ -1,3 +1,5 @@
+import { trackNavClick } from '../analytics'
+
 const NAV = [
   { label: 'Features', href: '#features' },
   { label: 'Preview', href: '#preview' },
@@ -55,6 +57,7 @@ export default function Footer() {
                 href={link.href}
                 className="nav-link"
                 style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem' }}
+                onClick={() => trackNavClick(link.label.toLowerCase(), 'footer')}
               >
                 {link.label}
               </a>
@@ -94,6 +97,7 @@ export default function Footer() {
               }}
               onClick={(e) => {
                 e.preventDefault()
+                trackNavClick('privacy', 'footer')
                 window.history.pushState({}, '', '/privacy')
                 window.dispatchEvent(new PopStateEvent('popstate'))
                 window.scrollTo(0, 0)

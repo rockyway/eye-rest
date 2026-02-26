@@ -3,6 +3,7 @@ import {
   MonitorIcon, ShieldIcon, GlobeIcon, PaletteIcon, CursorClickIcon,
 } from '../assets/icons'
 import type { ReactNode } from 'react'
+import { useTrackSection } from '../hooks/useTrackSection'
 
 interface Feature {
   num: number
@@ -72,8 +73,9 @@ const FEATURES: Feature[] = [
 ]
 
 export default function Features() {
+  const sectionRef = useTrackSection('features')
   return (
-    <section id="features" className="section" style={{ position: 'relative', zIndex: 1 }}>
+    <section ref={sectionRef} id="features" className="section" style={{ position: 'relative', zIndex: 1 }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 64 }} className="anim-fade-up">
