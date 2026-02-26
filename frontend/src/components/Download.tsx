@@ -165,7 +165,7 @@ export default function Download() {
           />
           <PlatformCard
             platform="macos"
-            icon={<AppleIcon size={36} color="#1A365D" />}
+            icon={<AppleIcon size={36} color="var(--text-heading)" />}
             name="macOS"
             subtitle="macOS 12 Monterey or later"
             reqs={['4 GB RAM minimum', '100 MB disk space', 'Native Apple Silicon (ARM64)', 'Self-contained — no runtime needed']}
