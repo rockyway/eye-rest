@@ -21,7 +21,7 @@
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleExecutable</key>
-    <string>EyeRest.UI</string>
+    <string>EyeRest</string>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
 </dict>
