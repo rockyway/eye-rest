@@ -15,4 +15,9 @@
     <Product>Eye Rest</Product>
     <Copyright>Copyright (c) 2026 Tam Tran</Copyright>
   </PropertyGroup>
+
+  <!-- STORE_BUILD: excludes Velopack from MSIX/Store builds (Store manages its own updates) -->
+  <PropertyGroup Condition="'$(StoreBuild)' == 'true'">
+    <DefineConstants>$(DefineConstants);STORE_BUILD</DefineConstants>
+  </PropertyGroup>
 </Project>

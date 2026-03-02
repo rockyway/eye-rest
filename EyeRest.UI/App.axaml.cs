@@ -94,6 +94,9 @@ public partial class App : Application
             services.AddSingleton<IReportingService, ReportingService>();
             services.AddSingleton<IPerformanceMonitor, PerformanceMonitor>();
             services.AddSingleton<IDonationService, DonationService>();
+#if !STORE_BUILD
+            services.AddSingleton<IUpdateService, EyeRest.UI.Services.UpdateService>();
+#endif
             services.AddSingleton<IApplicationOrchestrator, ApplicationOrchestrator>();
 
             // Avalonia-specific services
@@ -183,11 +186,45 @@ public partial class App : Application
             var orchestrator = Services.GetRequiredService<IApplicationOrchestrator>();
             await orchestrator.InitializeAsync();
             logger.LogInformation("Application orchestrator initialized - timers are running");
+
+            CheckForUpdatesInBackground();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to initialize application services");
         }
+    }
+
+    /// <summary>
+    /// Silently checks for updates ~30 seconds after startup.
+    /// If an update is found, logs it. The user discovers it via the About window.
+    /// </summary>
+    private void CheckForUpdatesInBackground()
+    {
+#if !STORE_BUILD
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30));
+
+                var updateService = Services?.GetService<IUpdateService>();
+                if (updateService == null || !updateService.IsUpdateSupported)
+                    return;
+
+                var updateInfo = await updateService.CheckForUpdatesAsync();
+                if (updateInfo != null)
+                {
+                    Log.Information("Background update check: v{Version} available",
+                        updateInfo.TargetVersion);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Background update check failed (non-critical)");
+            }
+        });
+#endif
     }
 
     /// <summary>
