@@ -39,7 +39,7 @@
                                Foreground="{DynamicResource NavButtonActiveText}"/>
 
                     <TextBlock x:Name="VersionText"
-                               Text="Version 1.0.0"
+                               Text="Version 1.0.1"
                                FontSize="13"
                                HorizontalAlignment="Center"
                                Foreground="{DynamicResource ContentSubtitleText}"/>
