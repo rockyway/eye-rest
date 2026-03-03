@@ -3,7 +3,7 @@
         x:Class="EyeRest.UI.Views.AboutWindow"
         Title="About Eye-Rest"
         Width="360"
-        Height="440"
+        Height="490"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         SystemDecorations="None"
@@ -39,7 +39,7 @@
                                Foreground="{DynamicResource NavButtonActiveText}"/>
 
                     <TextBlock x:Name="VersionText"
-                               Text="Version 1.0.1"
+                               Text="Version ..."
                                FontSize="13"
                                HorizontalAlignment="Center"
                                Foreground="{DynamicResource ContentSubtitleText}"/>
@@ -62,6 +62,29 @@
                                Foreground="{DynamicResource AccentBrush}"
                                TextDecorations="Underline"
                                PointerPressed="OnWebsiteLinkClick" />
+
+                    <!-- Update Section -->
+                    <StackPanel x:Name="UpdateSection" Spacing="4" Margin="0,4,0,4">
+                        <Button x:Name="CheckForUpdatesButton"
+                                Classes="ActionBtn"
+                                HorizontalAlignment="Center"
+                                Width="200"
+                                Click="OnCheckForUpdatesClick"
+                                Cursor="Hand">
+                            <TextBlock x:Name="UpdateButtonText"
+                                       Text="Check for Updates"
+                                       FontSize="13"
+                                       HorizontalAlignment="Center" />
+                        </Button>
+                        <TextBlock x:Name="UpdateStatusText"
+                                   Text=""
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   MaxWidth="260"
+                                   Foreground="{DynamicResource ContentSubtitleText}" />
+                    </StackPanel>
 
                     <!-- Donation Section (shown when not a donor) -->
                     <StackPanel x:Name="DonateSection" Spacing="6" Margin="0,4,0,4">

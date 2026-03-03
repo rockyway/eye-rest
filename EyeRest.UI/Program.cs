@@ -15,6 +15,13 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Velopack startup hook — MUST be first, before any other initialization.
+        // During install/update/uninstall, Velopack launches the exe with special
+        // arguments and this call handles them, then exits immediately.
+#if !STORE_BUILD
+        Velopack.VelopackApp.Build().Run();
+#endif
+
         _instanceMutex = new Mutex(true, MutexName, out var createdNew);
 
         if (!createdNew)
