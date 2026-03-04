@@ -215,7 +215,7 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestIntervalMinutes;
             set
             {
-                if (SetProperty(ref _eyeRestIntervalMinutes, value))
+                if (SetProperty(ref _eyeRestIntervalMinutes, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -227,7 +227,7 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestDurationSeconds;
             set
             {
-                if (SetProperty(ref _eyeRestDurationSeconds, value))
+                if (SetProperty(ref _eyeRestDurationSeconds, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -239,7 +239,7 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestStartSoundEnabled;
             set
             {
-                if (SetProperty(ref _eyeRestStartSoundEnabled, value))
+                if (SetProperty(ref _eyeRestStartSoundEnabled, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -251,7 +251,7 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestEndSoundEnabled;
             set
             {
-                if (SetProperty(ref _eyeRestEndSoundEnabled, value))
+                if (SetProperty(ref _eyeRestEndSoundEnabled, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -263,7 +263,7 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestWarningEnabled;
             set
             {
-                if (SetProperty(ref _eyeRestWarningEnabled, value))
+                if (SetProperty(ref _eyeRestWarningEnabled, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -275,7 +275,7 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestWarningSeconds;
             set
             {
-                if (SetProperty(ref _eyeRestWarningSeconds, value))
+                if (SetProperty(ref _eyeRestWarningSeconds, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -288,7 +288,7 @@ namespace EyeRest.UI.ViewModels
             get => _breakIntervalMinutes;
             set
             {
-                if (SetProperty(ref _breakIntervalMinutes, value))
+                if (SetProperty(ref _breakIntervalMinutes, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -300,7 +300,7 @@ namespace EyeRest.UI.ViewModels
             get => _breakDurationMinutes;
             set
             {
-                if (SetProperty(ref _breakDurationMinutes, value))
+                if (SetProperty(ref _breakDurationMinutes, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -312,7 +312,7 @@ namespace EyeRest.UI.ViewModels
             get => _breakWarningEnabled;
             set
             {
-                if (SetProperty(ref _breakWarningEnabled, value))
+                if (SetProperty(ref _breakWarningEnabled, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -324,7 +324,7 @@ namespace EyeRest.UI.ViewModels
             get => _breakWarningSeconds;
             set
             {
-                if (SetProperty(ref _breakWarningSeconds, value))
+                if (SetProperty(ref _breakWarningSeconds, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
                 }
@@ -1009,6 +1009,7 @@ namespace EyeRest.UI.ViewModels
 
         private void UpdatePropertiesFromConfiguration()
         {
+            _settingsDebounceTimer?.Stop(); // Cancel any pending save before loading
             _isLoadingConfiguration = true;
             try
             {
@@ -1069,6 +1070,7 @@ namespace EyeRest.UI.ViewModels
             finally
             {
                 _isLoadingConfiguration = false;
+                _settingsDebounceTimer?.Stop(); // Cancel any save queued by Slider write-back during load
             }
         }
 
