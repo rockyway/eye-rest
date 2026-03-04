@@ -129,24 +129,31 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation("🧠 Smart pausing timer service - reason: {Reason}", reason);
-                
-                IsSmartPaused = true;
-                _pauseReason = reason;  // CRITICAL FIX: Set the pause reason so UI displays it correctly
-                _pauseStartTime = DateTime.Now; // Track when pause started for extended away detection
-                _logger.LogCritical($"🔄 PAUSE LIFECYCLE: Smart pause activated - Reason: '{reason}', PauseStartTime: {_pauseStartTime:HH:mm:ss}");
-                
-                // CRITICAL FIX: Preserve remaining timer times before stopping
-                if (_eyeRestTimer?.IsEnabled == true)
+
+                // CRITICAL FIX: Preserve remaining timer times BEFORE setting IsSmartPaused.
+                // The TimeUntilNext* getters short-circuit when IsSmartPaused is true,
+                // returning the old _eyeRestRemainingTime/_breakRemainingTime instead of
+                // calculating from elapsed time. By preserving first, we capture accurate values.
+                if (_eyeRestTimer?.IsEnabled == true && _eyeRestStartTime != DateTime.MinValue)
                 {
-                    _eyeRestRemainingTime = TimeUntilNextEyeRest;
+                    var elapsed = DateTime.Now - _eyeRestStartTime;
+                    var remaining = _eyeRestInterval - elapsed;
+                    _eyeRestRemainingTime = remaining > TimeSpan.Zero ? remaining : _eyeRestInterval;
                     _logger.LogCritical($"🔧 SMART PAUSE: Preserved eye rest remaining time: {_eyeRestRemainingTime.TotalMinutes:F1} minutes");
                 }
-                
-                if (_breakTimer?.IsEnabled == true)
+
+                if (_breakTimer?.IsEnabled == true && _breakStartTime != DateTime.MinValue)
                 {
-                    _breakRemainingTime = TimeUntilNextBreak;
+                    var elapsed = DateTime.Now - _breakStartTime;
+                    var remaining = _breakInterval - elapsed;
+                    _breakRemainingTime = remaining > TimeSpan.Zero ? remaining : _breakInterval;
                     _logger.LogCritical($"🔧 SMART PAUSE: Preserved break remaining time: {_breakRemainingTime.TotalMinutes:F1} minutes");
                 }
+
+                IsSmartPaused = true;
+                _pauseReason = reason;
+                _pauseStartTime = DateTime.Now; // Track when pause started for extended away detection
+                _logger.LogCritical($"🔄 PAUSE LIFECYCLE: Smart pause activated - Reason: '{reason}', PauseStartTime: {_pauseStartTime:HH:mm:ss}");
                 
                 _eyeRestTimer?.Stop();
                 _breakTimer?.Stop();
@@ -195,9 +202,17 @@ namespace EyeRest.Services
                 }
                 
                 IsSmartPaused = false;
+
+                // CRITICAL FIX: Save pause start time BEFORE clearing it — the idle duration
+                // calculation below needs the original value to detect natural rest/break periods.
+                // Previously, clearing _pauseStartTime here caused idleDuration to always be zero,
+                // which prevented detection of natural eye rest (>20s) and natural break (>5min),
+                // leading to the health monitor's backup trigger firing break popups immediately
+                // after the user returned from a long idle period.
+                var savedPauseStartTime = _pauseStartTime;
                 _pauseStartTime = DateTime.MinValue; // Clear pause start time
                 _logger.LogCritical($"🔄 PAUSE LIFECYCLE: Smart pause cleared - Reason: '{reason}', PauseReason cleared: '{_pauseReason}' → ''");
-                
+
                 if (!IsPaused)
                 {
                     // Ensure timers are actually created before starting
@@ -214,8 +229,8 @@ namespace EyeRest.Services
                     }
 
                     // Calculate how long the user was idle/away
-                    var idleDuration = _pauseStartTime != DateTime.MinValue
-                        ? DateTime.Now - _pauseStartTime
+                    var idleDuration = savedPauseStartTime != DateTime.MinValue
+                        ? DateTime.Now - savedPauseStartTime
                         : TimeSpan.Zero;
                     var eyeRestDurationSeconds = _configuration?.EyeRest?.DurationSeconds ?? 20;
                     var eyeRestIntervalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;

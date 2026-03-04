@@ -45,7 +45,7 @@
                                    TextWrapping="Wrap"
                                    TextAlignment="Center">
                             <Run Text="Please look at something " />
-                            <Run Text="20ft" Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" />
+                            <Run Text="20ft (~6m)" Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" />
                             <Run Text=" away to rest your eyes" />
                         </TextBlock>
 

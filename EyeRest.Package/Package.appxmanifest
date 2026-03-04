@@ -9,7 +9,7 @@
   <Identity
     Name="EyeRestSoftware.Eye-Rest"
     Publisher="CN=2C751A87-0159-47D5-93AD-8967182E99BD"
-    Version="1.0.0.0"
+    Version="1.0.1.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
