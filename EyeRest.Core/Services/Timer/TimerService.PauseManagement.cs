@@ -314,6 +314,9 @@ namespace EyeRest.Services
         {
             try
             {
+                // Reload configuration to ensure the latest user settings are applied
+                _configuration = await _configurationService.LoadConfigurationAsync();
+
                 _logger.LogCritical($"🔥 SMART SESSION RESET INITIATED - Reason: {reason}");
                 _logger.LogCritical($"🔥 Starting fresh {_configuration.EyeRest.IntervalMinutes}min/{_configuration.Break.IntervalMinutes}min cycle");
                 
@@ -570,11 +573,11 @@ namespace EyeRest.Services
                 _lastSystemCheck = DateTime.Now;
                 _logger.LogCritical("🔥 CLOCK JUMP DETECTION: Timestamps cleared for fresh session");
                 
-                // Set timers to full intervals
-                _eyeRestInterval = TimeSpan.FromMinutes(_configuration.EyeRest.IntervalMinutes) - 
-                                 TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
-                _breakInterval = TimeSpan.FromMinutes(_configuration.Break.IntervalMinutes) - 
-                               TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
+                // Set timers to full intervals using shared calculation (respects WarningEnabled)
+                var (eyeRestInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
+                var (breakInterval, _, _, _, _) = CalculateBreakTimerInterval();
+                _eyeRestInterval = eyeRestInterval;
+                _breakInterval = breakInterval;
                 
                 // CRITICAL FIX: Ensure timers exist and are properly initialized before starting
                 if (_eyeRestTimer == null)
