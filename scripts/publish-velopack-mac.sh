@@ -47,7 +47,7 @@ mkdir -p "$RELEASES_DIR"
 
 VPK_ARGS=(
     pack
-    -u com.eyerest.app
+    -u EyeRest
     -v "$VERSION"
     -p "$PUBLISH_DIR"
     -e EyeRest

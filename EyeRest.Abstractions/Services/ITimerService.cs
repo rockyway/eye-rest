@@ -41,6 +41,7 @@ namespace EyeRest.Services
         // Injection methods to avoid circular dependency
         void SetNotificationService(INotificationService notificationService);
         void SetUserPresenceService(IUserPresenceService userPresenceService);
+        void UpdateConfiguration(EyeRest.Models.AppConfiguration config); // Sync latest user settings without restart
 
         // Methods for NotificationService to start/stop countdown timers after popup creation
         void StartEyeRestWarningTimer();
