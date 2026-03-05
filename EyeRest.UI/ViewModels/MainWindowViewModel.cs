@@ -2325,6 +2325,9 @@ namespace EyeRest.UI.ViewModels
                 await _configurationService.SaveConfigurationAsync(_configuration);
                 _originalConfiguration = CloneConfiguration(_configuration);
 
+                // Push updated intervals into the running timer service immediately
+                _timerService.UpdateConfiguration(_configuration);
+
                 _logger.LogInformation("Auto-saved timer settings to main config");
             }
             catch (Exception ex)

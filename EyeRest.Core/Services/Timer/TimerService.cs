@@ -75,6 +75,19 @@ namespace EyeRest.Services
         }
 
         /// <summary>
+        /// Syncs the latest user configuration into the timer service without restarting.
+        /// Call this whenever timer-related settings are saved so intervals stay current.
+        /// </summary>
+        public void UpdateConfiguration(AppConfiguration config)
+        {
+            if (config == null) return;
+            _configuration = config;
+            _logger.LogInformation("⚙️ Timer configuration updated - Eye rest: {EyeRestInterval}min/{EyeRestDuration}sec, Break: {BreakInterval}min/{BreakDuration}min",
+                config.EyeRest.IntervalMinutes, config.EyeRest.DurationSeconds,
+                config.Break.IntervalMinutes, config.Break.DurationMinutes);
+        }
+
+        /// <summary>
         /// Helper method to invoke property changed events
         /// </summary>
         protected void OnPropertyChanged(string propertyName)
