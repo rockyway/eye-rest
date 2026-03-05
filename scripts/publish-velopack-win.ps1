@@ -2,17 +2,30 @@
 .SYNOPSIS
     Publish Eye-Rest for Windows via Velopack.
 .PARAMETER Version
-    Version number (e.g., 1.0.2). Must match Directory.Build.props.
+    Version number (e.g., 1.0.2). If omitted, reads from Directory.Build.props.
 .EXAMPLE
-    .\publish-velopack-win.ps1 -Version 1.0.2
+    .\publish-velopack-win.ps1              # auto-detects version
+    .\publish-velopack-win.ps1 -Version 1.0.3
 #>
 param(
-    [Parameter(Mandatory)][string]$Version,
+    [string]$Version = "",
     [string]$Configuration = "Release"
 )
 
 $ErrorActionPreference = "Stop"
 $SolutionRoot = Split-Path $PSScriptRoot -Parent
+
+# Resolve version: explicit arg → Directory.Build.props → error
+if (-not $Version) {
+    $propsFile = "$SolutionRoot\Directory.Build.props"
+    $Version = ([xml](Get-Content $propsFile)).Project.PropertyGroup.Version |
+               Where-Object { $_ } | Select-Object -First 1
+    if (-not $Version) {
+        Write-Error "Could not read <Version> from $propsFile. Pass -Version explicitly."
+        exit 1
+    }
+}
+
 $PublishDir = "$SolutionRoot\publish\velopack-win"
 $ReleasesDir = "$SolutionRoot\releases"
 
