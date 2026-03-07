@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using EyeRest.Models;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace EyeRest.Services
 
         private readonly ILogger<ConfigurationService> _logger;
         private readonly string _configFilePath;
+        private readonly SemaphoreSlim _configLock = new(1, 1);
         private AppConfiguration? _currentConfiguration;
 
         public event EventHandler<ConfigurationChangedEventArgs>? ConfigurationChanged;
@@ -197,6 +199,21 @@ namespace EyeRest.Services
                     await Task.Delay(retryDelay);
                     retryDelay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * 2);
                 }
+            }
+        }
+
+        public async Task UpdateConfigurationAsync(Action<AppConfiguration> modifier)
+        {
+            await _configLock.WaitAsync();
+            try
+            {
+                var config = await LoadConfigurationAsync();
+                modifier(config);
+                await SaveConfigurationAsync(config);
+            }
+            finally
+            {
+                _configLock.Release();
             }
         }
 
