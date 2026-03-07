@@ -93,7 +93,7 @@
                                    Foreground="{DynamicResource ContentSubtitleText}" />
                     </StackPanel>
 
-                    <!-- Donation Section (shown when not a donor) -->
+                    <!-- Buy Me a Coffee Section (shown when not a supporter) -->
                     <StackPanel x:Name="DonateSection" Spacing="6" Margin="0,4,0,4">
                         <Grid ColumnDefinitions="*,8,*">
                             <Button Grid.Column="0"
@@ -106,7 +106,7 @@
                                     <PathIcon Data="{StaticResource HeartIcon}"
                                               Width="14" Height="14"
                                               Foreground="{DynamicResource DonationHeartColor}" />
-                                    <TextBlock Text="Donate" FontSize="13" />
+                                    <TextBlock Text="Buy Me a Coffee" FontSize="13" />
                                 </StackPanel>
                             </Button>
                             <Button Grid.Column="2"
@@ -121,7 +121,7 @@
                         </Grid>
                     </StackPanel>
 
-                    <!-- Donor Badge (shown when verified donor) -->
+                    <!-- Supporter Badge (shown when verified supporter) -->
                     <Border x:Name="DonorBadgeSection"
                             IsVisible="False"
                             Background="{DynamicResource DonorBadgeBackground}"

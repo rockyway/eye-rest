@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="EyeRest.UI.Views.DonationCodeDialog"
-        Title="Enter Donation Code"
+        Title="Enter License Code"
         Width="400"
         Height="300"
         CanResize="False"
@@ -23,12 +23,12 @@
             <Grid RowDefinitions="Auto,Auto,*,Auto">
                 <!-- Title -->
                 <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
-                    <TextBlock Text="Enter Donation Code"
+                    <TextBlock Text="Enter License Code"
                                FontSize="18"
                                FontWeight="Bold"
                                HorizontalAlignment="Center"
                                Foreground="{DynamicResource NavButtonActiveText}" />
-                    <TextBlock Text="Enter the license key from your donation email"
+                    <TextBlock Text="Enter the license key from your supporter email"
                                FontSize="12"
                                HorizontalAlignment="Center"
                                Foreground="{DynamicResource ContentSubtitleText}" />
