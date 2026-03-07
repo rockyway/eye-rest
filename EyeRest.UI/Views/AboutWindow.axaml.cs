@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -21,6 +22,13 @@ public partial class AboutWindow : Window
         if (version != null)
         {
             VersionText.Text = $"Version {version.Major}.{version.Minor}.{version.Build}";
+        }
+
+        var assemblyPath = Assembly.GetExecutingAssembly().Location;
+        if (!string.IsNullOrEmpty(assemblyPath) && File.Exists(assemblyPath))
+        {
+            var buildTime = File.GetLastWriteTimeUtc(assemblyPath);
+            BuildTimestampText.Text = $"Built {buildTime:yyyy-MM-dd HH:mm:ss} UTC";
         }
 
         _donationService = App.Services?.GetService<IDonationService>();
