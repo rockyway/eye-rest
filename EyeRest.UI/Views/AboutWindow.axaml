@@ -44,6 +44,13 @@
                                HorizontalAlignment="Center"
                                Foreground="{DynamicResource ContentSubtitleText}"/>
 
+                    <TextBlock x:Name="BuildTimestampText"
+                               Text=""
+                               FontSize="11"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource ContentSubtitleText}"
+                               Opacity="0.7"/>
+
                     <TextBlock Text="Automated eye rest and break reminders to keep your eyes healthy while working."
                                FontSize="13"
                                TextWrapping="Wrap"

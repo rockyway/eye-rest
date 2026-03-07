@@ -1649,8 +1649,8 @@ namespace EyeRest.UI.ViewModels
             if (BreakDurationMinutes < 1 || BreakDurationMinutes > 30)
                 errors.Add("Break duration must be between 1 and 30 minutes");
 
-            if (BreakWarningSeconds < 10 || BreakWarningSeconds > 120)
-                errors.Add("Break warning time must be between 10 and 120 seconds");
+            if (BreakWarningSeconds < 10 || BreakWarningSeconds > 300)
+                errors.Add("Break warning time must be between 10 and 300 seconds");
 
             if (OverlayOpacityPercent < 0 || OverlayOpacityPercent > 100)
                 errors.Add("Overlay opacity must be between 0 and 100 percent");

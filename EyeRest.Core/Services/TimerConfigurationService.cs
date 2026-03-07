@@ -173,7 +173,7 @@ namespace EyeRest.Services
                 config.Break.DurationMinutes = 5;
             }
 
-            if (config.Break.WarningSeconds < 10 || config.Break.WarningSeconds > 120)
+            if (config.Break.WarningSeconds < 10 || config.Break.WarningSeconds > 300)
             {
                 _logger.LogWarning($"Invalid warning seconds: {config.Break.WarningSeconds}, using default");
                 config.Break.WarningSeconds = 30;

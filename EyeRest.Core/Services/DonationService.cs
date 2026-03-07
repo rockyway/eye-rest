@@ -219,9 +219,10 @@ namespace EyeRest.Services
         {
             try
             {
-                var config = await _configurationService.LoadConfigurationAsync();
-                config.Donation = _settings;
-                await _configurationService.SaveConfigurationAsync(config);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Donation = _settings;
+                });
             }
             catch (Exception ex)
             {

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using EyeRest.Models;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace EyeRest.Services
 
         private readonly ILogger<ConfigurationService> _logger;
         private readonly string _configFilePath;
+        private readonly SemaphoreSlim _configLock = new(1, 1);
         private AppConfiguration? _currentConfiguration;
 
         public event EventHandler<ConfigurationChangedEventArgs>? ConfigurationChanged;
@@ -200,6 +202,21 @@ namespace EyeRest.Services
             }
         }
 
+        public async Task UpdateConfigurationAsync(Action<AppConfiguration> modifier)
+        {
+            await _configLock.WaitAsync();
+            try
+            {
+                var config = await LoadConfigurationAsync();
+                modifier(config);
+                await SaveConfigurationAsync(config);
+            }
+            finally
+            {
+                _configLock.Release();
+            }
+        }
+
         public Task<AppConfiguration> GetDefaultConfiguration()
         {
             var defaultConfig = new AppConfiguration
@@ -292,7 +309,7 @@ namespace EyeRest.Services
                 config.Break.DurationMinutes = 5;
             }
 
-            if (config.Break.WarningSeconds < 10 || config.Break.WarningSeconds > 120)
+            if (config.Break.WarningSeconds < 10 || config.Break.WarningSeconds > 300)
             {
                 _logger.LogWarning($"Invalid warning seconds: {config.Break.WarningSeconds}, using default");
                 config.Break.WarningSeconds = 30;
