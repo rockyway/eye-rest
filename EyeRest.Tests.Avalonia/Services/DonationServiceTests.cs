@@ -230,7 +230,7 @@ namespace EyeRest.Tests.Avalonia.Services
         {
             await _service.InitializeAsync();
 
-            Assert.Contains("eyerest.net", _service.DonationUrl);
+            Assert.Contains("buymeacoffee.com", _service.DonationUrl);
         }
     }
 }

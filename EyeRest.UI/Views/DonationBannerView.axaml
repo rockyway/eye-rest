@@ -28,7 +28,7 @@
                        VerticalAlignment="Center"
                        TextWrapping="Wrap" />
 
-            <!-- Donate button -->
+            <!-- Buy Me a Coffee button -->
             <Button Grid.Column="2"
                     Classes="ActionBtnPrimary"
                     Height="28"
@@ -36,7 +36,7 @@
                     Margin="6,0"
                     Command="{Binding OpenDonationLinkCommand}"
                     Cursor="Hand">
-                <TextBlock Text="Support Us"
+                <TextBlock Text="Buy Me a Coffee"
                            FontSize="11"
                            FontWeight="SemiBold" />
             </Button>

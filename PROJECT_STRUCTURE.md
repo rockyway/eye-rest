@@ -113,7 +113,7 @@ eye-rest/
 │   └── ViewModels/                   (1 file) MainWindowViewModelTests (26 tests)
 │
 ├── docs/                             [Documentation]
-│   ├── assets/                       (2 files) LemonSqueezy product images
+│   ├── assets/                       (2 files) Product images
 │   ├── features/                     (1 file) Break done screen enhancements
 │   ├── lessons-learned/              (3 files) Crisis resolution, macOS icon sizing
 │   ├── plan/                         (1 file) Popup redesign plan
@@ -161,7 +161,7 @@ The foundational layer. Contains only interfaces and data models with zero exter
 | `ComplianceReport` | User compliance statistics |
 | `PresenceAnalytic` / `MeetingAnalytic` | Presence and meeting tracking |
 | `ChartDataPoint` | UI chart data |
-| `DonationSettings` | Donation tracking: session count, usage minutes, prompt state, LemonSqueezy URL |
+| `DonationSettings` | Supporter tracking: session count, usage minutes, prompt state, Buy Me a Coffee URL |
 
 **Key Enums:** `RestEventType`, `UserAction`, `UserPresenceState`, `TimerType`, `TrayIconState`, `BreakAction`, `PauseReason`, `MeetingDetectionMethod`, `MeetingApplication`, `ExportFormat`
 
@@ -189,7 +189,7 @@ The foundational layer. Contains only interfaces and data models with zero exter
 | `IPopupWindowFactory` | Popup window creation |
 | `ILoggingService` | Supplementary file logging |
 | `IPerformanceMonitor` | Memory/CPU monitoring |
-| `IDonationService` | Donation code validation and tracking |
+| `IDonationService` | Supporter license code validation and tracking |
 | `ISecureStorageService` | Platform-agnostic secure key-value storage |
 
 ---
@@ -213,7 +213,7 @@ Platform-agnostic business logic. Contains all timer logic, configuration manage
 | `ReportingService` | `IReportingService` | Text reports from analytics data |
 | `LoggingService` | `ILoggingService` | Supplementary file logger (legacy) |
 | `PerformanceMonitor` | `IPerformanceMonitor` | Memory/CPU monitoring, GC trigger at 40MB |
-| `DonationService` | `IDonationService` | LemonSqueezy license key validation, usage tracking |
+| `DonationService` | `IDonationService` | Buy Me a Coffee license key validation, usage tracking |
 | `MeetingDetectionManager` | — | Coordinates meeting detection strategies |
 
 **Infrastructure (1 file):** `WeakEventManager` — `ConditionalWeakTable`-based weak event subscriptions.
@@ -313,8 +313,8 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 | `BreakWarningPopup` | UserControl | — | Pre-break 30s warning |
 | `AboutWindow` | Window | 360x340 | App info dialog |
 | `ConfirmDialog` | Window | — | Generic confirmation dialog |
-| `DonationBannerView` | UserControl | — | Inline donation prompt with Donate/Dismiss |
-| `DonationCodeDialog` | Window | 400x300 | License key entry dialog for LemonSqueezy validation |
+| `DonationBannerView` | UserControl | — | Inline Buy Me a Coffee prompt with Support/Dismiss |
+| `DonationCodeDialog` | Window | 400x300 | License key entry dialog for supporter validation |
 
 **ViewModels (2 files):**
 
@@ -385,7 +385,7 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 10. **Cross-Platform** — Windows + macOS (native P/Invoke via AppKit/IOKit).
 11. **macOS .app Bundle** — Code-signed with hardened runtime, generated via `scripts/bundle-macos.sh`.
 12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
-13. **Voluntary Donation Workflow** — LemonSqueezy-integrated license key validation with DPAPI (Windows) / Keychain (macOS) secure storage, usage-based prompts, and inline banner UI.
+13. **Buy Me a Coffee Workflow** — License key validation with DPAPI (Windows) / Keychain (macOS) secure storage, usage-based prompts, and inline banner UI.
 14. **MSIX Packaging** — Microsoft Store distribution with auto-signing, full-trust Desktop Bridge, MSIX startup task, and sideload support.
 
 ---
@@ -545,8 +545,8 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 | Date | Change |
 |------|--------|
 | 2026-02-25 | Added MSIX packaging for Microsoft Store distribution, build-msix.ps1 script, MSIX-aware StartupManager and toast notifications, 22 visual assets, version metadata |
-| 2026-02-25 | Routed donation link through eyerest.net website instead of direct LemonSqueezy checkout |
-| 2026-02-25 | Added voluntary donation workflow with LemonSqueezy integration, secure storage (DPAPI/Keychain), donation UI views, React marketing frontend, updated test suite to 86 tests |
+| 2026-02-25 | Routed support link through eyerest.net website instead of direct checkout |
+| 2026-02-25 | Added Buy Me a Coffee workflow with license key validation, secure storage (DPAPI/Keychain), supporter UI views, React marketing frontend, updated test suite to 86 tests |
 | 2026-02-25 | Removed legacy WPF project (EyeRest.csproj) and WPF test project (EyeRest.Tests) |
 | 2026-02-25 | Downgraded to .NET 8 LTS for macOS 12+ compatibility |
 | 2026-02-25 | Merged Avalonia UI, macOS bundling, and code signing |
