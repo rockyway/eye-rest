@@ -74,8 +74,19 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task SaveConfigurationAsync(AppConfiguration config)
+        public async Task SaveConfigurationAsync(AppConfiguration config, [System.Runtime.CompilerServices.CallerMemberName] string? caller = null)
         {
+            // Stamp metadata for tracing who/what wrote to the config
+            config.Meta ??= new Models.ConfigMetadata();
+            config.Meta.SaveCount++;
+            config.Meta.LastSavedBy = caller;
+            config.Meta.LastSavedAt = DateTime.UtcNow.ToString("O");
+            var asm = System.Reflection.Assembly.GetEntryAssembly();
+            config.Meta.AppVersion = asm?.GetName().Version?.ToString();
+            config.Meta.BuildTimestamp = asm?.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                is System.Reflection.AssemblyInformationalVersionAttribute[] attrs && attrs.Length > 0
+                    ? attrs[0].InformationalVersion : null;
+
             const int maxRetries = 3;
             var retryDelay = TimeSpan.FromMilliseconds(100);
 
@@ -202,14 +213,14 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task UpdateConfigurationAsync(Action<AppConfiguration> modifier)
+        public async Task UpdateConfigurationAsync(Action<AppConfiguration> modifier, [System.Runtime.CompilerServices.CallerMemberName] string? caller = null)
         {
             await _configLock.WaitAsync();
             try
             {
                 var config = await LoadConfigurationAsync();
                 modifier(config);
-                await SaveConfigurationAsync(config);
+                await SaveConfigurationAsync(config, caller);
             }
             finally
             {
