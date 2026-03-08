@@ -22,9 +22,11 @@ namespace EyeRest.UI.Views
         private TimeSpan _animDuration;
         private Window? _parentWindow;
         private bool _isCompact;
+        private bool _isFading;
         private DispatcherTimer? _fadeTimer;
         private int _fadeStep;
         private bool _fadingOut;
+        private bool _stopped;
 
         public event EventHandler? WarningCompleted;
 
@@ -68,6 +70,8 @@ namespace EyeRest.UI.Views
         {
             _totalDuration = TimeSpan.FromSeconds(seconds);
             _isCompact = false;
+            _isFading = false;
+            _stopped = false;
 
             Debug.WriteLine($"EyeRestWarningPopup: Starting countdown for {seconds} seconds");
 
@@ -92,6 +96,8 @@ namespace EyeRest.UI.Views
 
         private void OnSelfCountdownTick(object? sender, EventArgs e)
         {
+            if (_stopped) return;
+
             var elapsed = DateTime.UtcNow - _countdownStartTime;
             var remaining = _totalDuration - elapsed;
 
@@ -122,6 +128,8 @@ namespace EyeRest.UI.Views
         /// </summary>
         public void UpdateCountdown(TimeSpan remaining)
         {
+            if (_stopped) return;
+
             StopSelfCountdown();
 
             Debug.WriteLine($"EyeRestWarningPopup: UpdateCountdown called with {remaining.TotalSeconds} seconds remaining");
@@ -135,7 +143,7 @@ namespace EyeRest.UI.Views
                     CountdownText.Text = "Eye rest starting now!";
 
                 Debug.WriteLine("EyeRestWarningPopup: Countdown complete - firing WarningCompleted event");
-                WarningCompleted?.Invoke(this, EventArgs.Empty);
+                FireCompleted();
                 return;
             }
 
@@ -156,12 +164,15 @@ namespace EyeRest.UI.Views
 
         private void TransitionToCompact()
         {
-            if (_isCompact) return;
+            if (_isCompact || _stopped) return;
             _isCompact = true;
+            _isFading = true;
 
             Debug.WriteLine("EyeRestWarningPopup: Transitioning to compact mode");
 
+            // Sync compact controls with current state before fade
             CompactProgressBar.Value = ProgressBar.Value;
+            CompactCountdownText.Text = CountdownText.Text;
 
             _fadingOut = true;
             _fadeStep = 0;
@@ -173,6 +184,12 @@ namespace EyeRest.UI.Views
 
         private void OnFadeTick(object? sender, EventArgs e)
         {
+            if (_stopped)
+            {
+                StopFadeTimer();
+                return;
+            }
+
             _fadeStep++;
             var progress = Math.Min((double)_fadeStep / FadeSteps, 1.0);
 
@@ -196,6 +213,7 @@ namespace EyeRest.UI.Views
 
                 if (progress >= 1.0)
                 {
+                    _isFading = false;
                     StopFadeTimer();
                 }
             }
@@ -213,12 +231,16 @@ namespace EyeRest.UI.Views
 
         private void UpdateDisplay(TimeSpan remaining)
         {
+            if (_stopped) return;
+
             var remainingSeconds = (int)Math.Ceiling(remaining.TotalSeconds);
             var text = $"{remainingSeconds} second{(remainingSeconds != 1 ? "s" : "")}";
 
             if (_isCompact)
             {
                 CompactCountdownText.Text = text;
+                if (_isFading)
+                    CountdownText.Text = text;
             }
             else
             {
@@ -259,6 +281,12 @@ namespace EyeRest.UI.Views
 
         private void OnSmoothAnimationTick(object? sender, EventArgs e)
         {
+            if (_stopped)
+            {
+                _smoothAnimationTimer?.Stop();
+                return;
+            }
+
             var elapsed = DateTime.Now - _animStartTime;
             var progress = Math.Min(elapsed.TotalMilliseconds / _animDuration.TotalMilliseconds, 1.0);
 
@@ -267,7 +295,12 @@ namespace EyeRest.UI.Views
 
             var value = _animStartValue + (_targetProgressValue - _animStartValue) * progress;
 
-            if (_isCompact)
+            if (_isFading)
+            {
+                ProgressBar.Value = value;
+                CompactProgressBar.Value = value;
+            }
+            else if (_isCompact)
                 CompactProgressBar.Value = value;
             else
                 ProgressBar.Value = value;
@@ -275,15 +308,33 @@ namespace EyeRest.UI.Views
             if (progress >= 1.0)
             {
                 _smoothAnimationTimer?.Stop();
-                if (_isCompact)
+                if (_isFading)
+                {
+                    ProgressBar.Value = _targetProgressValue;
+                    CompactProgressBar.Value = _targetProgressValue;
+                }
+                else if (_isCompact)
                     CompactProgressBar.Value = _targetProgressValue;
                 else
                     ProgressBar.Value = _targetProgressValue;
             }
         }
 
+        /// <summary>
+        /// Fire the WarningCompleted event exactly once, preventing double-fire from
+        /// concurrent close paths (ESC + countdown zero, close button + timer, etc.)
+        /// </summary>
+        private void FireCompleted()
+        {
+            if (_stopped) return;
+            StopCountdown();
+            WarningCompleted?.Invoke(this, EventArgs.Empty);
+        }
+
         public void StopCountdown()
         {
+            _stopped = true;
+
             StopSelfCountdown();
             StopFadeTimer();
 
@@ -307,16 +358,14 @@ namespace EyeRest.UI.Views
         {
             if (e.Key == Key.Escape)
             {
-                StopCountdown();
-                WarningCompleted?.Invoke(this, EventArgs.Empty);
+                FireCompleted();
                 e.Handled = true;
             }
         }
 
         private void CloseButton_Click(object? sender, RoutedEventArgs e)
         {
-            StopCountdown();
-            WarningCompleted?.Invoke(this, EventArgs.Empty);
+            FireCompleted();
         }
     }
 }
