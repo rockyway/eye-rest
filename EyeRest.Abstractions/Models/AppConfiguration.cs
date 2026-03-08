@@ -14,6 +14,7 @@ namespace EyeRest.Models
         public AnalyticsSettings Analytics { get; set; } = new();
         public TimerControlSettings TimerControls { get; set; } = new();
         public DonationSettings Donation { get; set; } = new();
+        public ConfigMetadata Meta { get; set; } = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
         
@@ -182,10 +183,19 @@ namespace EyeRest.Models
         /// <summary>
         /// Legacy property for backward compatibility - maps to WindowPollingIntervalSeconds
         /// </summary>
-        public int MonitoringIntervalSeconds 
-        { 
-            get => WindowPollingIntervalSeconds; 
-            set => WindowPollingIntervalSeconds = value; 
+        public int MonitoringIntervalSeconds
+        {
+            get => WindowPollingIntervalSeconds;
+            set => WindowPollingIntervalSeconds = value;
         }
+    }
+
+    public class ConfigMetadata
+    {
+        public string? LastSavedBy { get; set; }
+        public string? LastSavedAt { get; set; }
+        public string? AppVersion { get; set; }
+        public string? BuildTimestamp { get; set; }
+        public int SaveCount { get; set; }
     }
 }

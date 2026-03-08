@@ -76,7 +76,7 @@ namespace EyeRest.Tests.Avalonia.Services
             await _service.InitializeAsync();
 
             Assert.NotNull(_testConfig.Donation.FirstInstallDate);
-            _mockConfigService.Verify(x => x.SaveConfigurationAsync(It.IsAny<AppConfiguration>()), Times.Once);
+            _mockConfigService.Verify(x => x.SaveConfigurationAsync(It.IsAny<AppConfiguration>(), It.IsAny<string>()), Times.Once);
         }
 
         [Fact]

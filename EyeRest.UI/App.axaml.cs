@@ -404,7 +404,14 @@ public partial class App : Application
         mainWindow.Activate();
 
         if (mainWindow is Views.MainWindow mw)
+        {
             mw.IsHiddenToTray = false;
+
+            // On Windows, force re-layout after Show() to fix white gap caused by
+            // stale non-client area calculation with ExtendClientAreaToDecorationsHint
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                mw.ResetWindowSizeForCurrentMode();
+        }
     }
 
     /// <summary>
