@@ -272,6 +272,10 @@ public partial class MainWindow : Window
         e.Cancel = true;
         IsHiddenToTray = true;
 
+        // Stop any in-progress resize animation to prevent stale size state
+        _resizeTimer?.Stop();
+        _resizeTimer = null;
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             // On macOS: use native orderOut to properly hide, then hide dock icon
@@ -294,6 +298,33 @@ public partial class MainWindow : Window
     }
 
     private IBrush? _savedBackground;
+
+    /// <summary>
+    /// Force the correct window size and re-layout after restoring from tray.
+    /// On Windows, Hide()/Show() with ExtendClientAreaToDecorationsHint can leave
+    /// the non-client area calculation stale, causing a white gap on the right side.
+    /// </summary>
+    public void ResetWindowSizeForCurrentMode()
+    {
+        if (DataContext is MainWindowViewModel vm && vm.IsConfigurationMode)
+        {
+            Width = 900;
+            Height = 700;
+            MinWidth = 900;
+            MinHeight = 600;
+        }
+        else
+        {
+            Width = 340;
+            Height = 580;
+            MinWidth = 340;
+            MinHeight = 500;
+        }
+
+        InvalidateMeasure();
+        InvalidateArrange();
+        InvalidateVisual();
+    }
 
     public void ShowDimOverlay()
     {
