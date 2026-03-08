@@ -9,6 +9,9 @@ namespace EyeRest.UI.Views
 {
     public partial class BreakWarningPopup : UserControl
     {
+        private const double CompactTransitionSeconds = 30.0;
+        private const int FadeSteps = 15; // ~250ms at 16ms per tick
+
         private TimeSpan _totalDuration;
         private DispatcherTimer? _smoothAnimationTimer;
         private DispatcherTimer? _selfCountdownTimer;
@@ -18,6 +21,10 @@ namespace EyeRest.UI.Views
         private DateTime _animStartTime;
         private TimeSpan _animDuration;
         private Window? _parentWindow;
+        private bool _isCompact;
+        private DispatcherTimer? _fadeTimer;
+        private int _fadeStep;
+        private bool _fadingOut; // true = fading out full, false = fading in compact
 
         public event EventHandler? Completed;
 
@@ -25,11 +32,11 @@ namespace EyeRest.UI.Views
         {
             InitializeComponent();
 
-            // ESC key handling using tunnel strategy
             AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
 
             Loaded += OnLoaded;
             CloseButton.Click += CloseButton_Click;
+            CompactCloseButton.Click += CloseButton_Click;
         }
 
         private void OnLoaded(object? sender, RoutedEventArgs e)
@@ -41,7 +48,6 @@ namespace EyeRest.UI.Views
                 _parentWindow.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
             }
 
-            // Subscribe to Unloaded for cleanup
             this.Unloaded += OnUnloaded;
         }
 
@@ -58,15 +64,19 @@ namespace EyeRest.UI.Views
         public void StartCountdown(TimeSpan timeUntilBreak)
         {
             _totalDuration = timeUntilBreak;
+            _isCompact = false;
 
             Debug.WriteLine($"BreakWarningPopup: Starting countdown for {timeUntilBreak.TotalSeconds} seconds");
 
-            // Initialize display
-            UpdateDisplay(timeUntilBreak);
-            ProgressBar.Value = 100; // Start at 100%
+            // Ensure full layout is visible
+            FullLayout.IsVisible = true;
+            FullLayout.Opacity = 1;
+            CompactLayout.IsVisible = false;
+            CompactLayout.Opacity = 0;
 
-            // Start self-driving countdown timer so the popup counts down
-            // even in test mode (when TimerService doesn't drive updates)
+            UpdateDisplay(timeUntilBreak);
+            ProgressBar.Value = 100;
+
             StopSelfCountdown();
             _countdownStartTime = DateTime.UtcNow;
             _selfCountdownTimer = new DispatcherTimer
@@ -89,6 +99,9 @@ namespace EyeRest.UI.Views
                 return;
             }
 
+            // Check if we should transition to compact mode
+            CheckCompactTransition(elapsed);
+
             UpdateDisplay(remaining);
         }
 
@@ -104,7 +117,6 @@ namespace EyeRest.UI.Views
 
         /// <summary>
         /// Update the countdown display externally (called by TimerService).
-        /// Stops the self-driving timer since TimerService is now driving updates.
         /// </summary>
         public void UpdateCountdown(TimeSpan remaining)
         {
@@ -114,42 +126,121 @@ namespace EyeRest.UI.Views
 
             if (remaining <= TimeSpan.Zero)
             {
-                // Final state - animate to 0
                 AnimateProgressTo(0, TimeSpan.FromMilliseconds(200));
-                CountdownText.Text = "Break starting now!";
+                if (_isCompact)
+                    CompactCountdownText.Text = "Starting now!";
+                else
+                    CountdownText.Text = "Break starting now!";
 
                 Debug.WriteLine("BreakWarningPopup: Countdown complete - firing Completed event");
                 Completed?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
+            var elapsed = _totalDuration - remaining;
+            CheckCompactTransition(elapsed);
+
             UpdateDisplay(remaining);
+        }
+
+        private void CheckCompactTransition(TimeSpan elapsed)
+        {
+            if (!_isCompact && _totalDuration.TotalSeconds > CompactTransitionSeconds
+                && elapsed.TotalSeconds >= CompactTransitionSeconds)
+            {
+                TransitionToCompact();
+            }
+        }
+
+        private void TransitionToCompact()
+        {
+            if (_isCompact) return;
+            _isCompact = true;
+
+            Debug.WriteLine("BreakWarningPopup: Transitioning to compact mode");
+
+            // Sync compact progress bar with current value
+            CompactProgressBar.Value = ProgressBar.Value;
+
+            // Start fade-out of full layout
+            _fadingOut = true;
+            _fadeStep = 0;
+            StopFadeTimer();
+            _fadeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            _fadeTimer.Tick += OnFadeTick;
+            _fadeTimer.Start();
+        }
+
+        private void OnFadeTick(object? sender, EventArgs e)
+        {
+            _fadeStep++;
+            var progress = Math.Min((double)_fadeStep / FadeSteps, 1.0);
+
+            if (_fadingOut)
+            {
+                // Fade out full layout
+                FullLayout.Opacity = 1.0 - progress;
+
+                if (progress >= 1.0)
+                {
+                    FullLayout.IsVisible = false;
+                    CompactLayout.IsVisible = true;
+                    CompactLayout.Opacity = 0;
+
+                    // Switch to fade-in
+                    _fadingOut = false;
+                    _fadeStep = 0;
+                }
+            }
+            else
+            {
+                // Fade in compact layout
+                CompactLayout.Opacity = progress;
+
+                if (progress >= 1.0)
+                {
+                    StopFadeTimer();
+                }
+            }
+        }
+
+        private void StopFadeTimer()
+        {
+            if (_fadeTimer != null)
+            {
+                _fadeTimer.Stop();
+                _fadeTimer.Tick -= OnFadeTick;
+                _fadeTimer = null;
+            }
         }
 
         private void UpdateDisplay(TimeSpan remaining)
         {
-            // Update countdown text
             var remainingSeconds = (int)Math.Ceiling(remaining.TotalSeconds);
-            CountdownText.Text = $"{remainingSeconds} second{(remainingSeconds != 1 ? "s" : "")}";
+            var text = $"{remainingSeconds} second{(remainingSeconds != 1 ? "s" : "")}";
 
-            // Update progress bar - calculate percentage based on total duration
+            if (_isCompact)
+            {
+                CompactCountdownText.Text = text;
+            }
+            else
+            {
+                CountdownText.Text = text;
+            }
+
             if (_totalDuration.TotalSeconds > 0)
             {
                 var progressPercent = (remaining.TotalSeconds / _totalDuration.TotalSeconds) * 100;
                 var targetValue = Math.Max(progressPercent, 0);
 
-                // Smooth animation to new progress value
                 AnimateProgressTo(targetValue, TimeSpan.FromMilliseconds(100));
             }
         }
 
-        /// <summary>
-        /// Animate progress bar value smoothly using a single reusable DispatcherTimer
-        /// </summary>
         private void AnimateProgressTo(double targetValue, TimeSpan duration)
         {
             _targetProgressValue = targetValue;
-            _animStartValue = ProgressBar.Value;
+            _animStartValue = _isCompact ? CompactProgressBar.Value : ProgressBar.Value;
             _animStartTime = DateTime.Now;
             _animDuration = duration;
 
@@ -157,7 +248,7 @@ namespace EyeRest.UI.Views
             {
                 _smoothAnimationTimer = new DispatcherTimer
                 {
-                    Interval = TimeSpan.FromMilliseconds(16) // ~60fps
+                    Interval = TimeSpan.FromMilliseconds(16)
                 };
                 _smoothAnimationTimer.Tick += OnSmoothAnimationTick;
             }
@@ -177,18 +268,27 @@ namespace EyeRest.UI.Views
             // Ease-out quadratic
             progress = 1.0 - (1.0 - progress) * (1.0 - progress);
 
-            ProgressBar.Value = _animStartValue + (_targetProgressValue - _animStartValue) * progress;
+            var value = _animStartValue + (_targetProgressValue - _animStartValue) * progress;
+
+            if (_isCompact)
+                CompactProgressBar.Value = value;
+            else
+                ProgressBar.Value = value;
 
             if (progress >= 1.0)
             {
                 _smoothAnimationTimer?.Stop();
-                ProgressBar.Value = _targetProgressValue;
+                if (_isCompact)
+                    CompactProgressBar.Value = _targetProgressValue;
+                else
+                    ProgressBar.Value = _targetProgressValue;
             }
         }
 
         public void StopCountdown()
         {
             StopSelfCountdown();
+            StopFadeTimer();
 
             if (_smoothAnimationTimer != null)
             {
@@ -197,7 +297,6 @@ namespace EyeRest.UI.Views
                 _smoothAnimationTimer = null;
             }
 
-            // Clean up window key handler
             if (_parentWindow != null)
             {
                 _parentWindow.RemoveHandler(KeyDownEvent, OnKeyDown);
