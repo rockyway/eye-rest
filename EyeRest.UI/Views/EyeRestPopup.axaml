@@ -43,7 +43,8 @@
                                    Foreground="{DynamicResource ContentSubtitleText}"
                                    HorizontalAlignment="Center"
                                    TextWrapping="Wrap"
-                                   TextAlignment="Center">
+                                   TextAlignment="Center"
+                                   MaxWidth="300">
                             <Run Text="Please look at something " />
                             <Run Text="20ft (~6m)" Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" />
                             <Run Text=" away to rest your eyes" />

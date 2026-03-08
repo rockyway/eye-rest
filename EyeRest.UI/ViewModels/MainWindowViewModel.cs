@@ -1150,8 +1150,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveAutoOpenSettingAsync called with value: {value}");
 
-                _configuration.Analytics.AutoOpenDashboard = value;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Analytics.AutoOpenDashboard = value;
+                    _configuration.Analytics.AutoOpenDashboard = value;
+                });
 
                 _originalConfiguration.Analytics.AutoOpenDashboard = value;
 
@@ -1190,9 +1193,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveOverlayOpacityAsync called with value: {OverlayOpacityPercent}%");
 
-                UpdateConfigurationFromProperties();
-                _configuration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Break.OverlayOpacityPercent = OverlayOpacityPercent;
+                    _configuration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
+                });
                 _originalConfiguration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
 
                 _logger.LogInformation($"Auto-saved overlay opacity to {OverlayOpacityPercent}%");
@@ -1219,8 +1224,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveAudioVolumeAsync called with value: {AudioVolume}");
 
-                _configuration.Audio.Volume = AudioVolume;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Audio.Volume = AudioVolume;
+                    _configuration.Audio.Volume = AudioVolume;
+                });
                 _originalConfiguration.Audio.Volume = AudioVolume;
 
                 _logger.LogInformation($"Auto-saved audio volume: {AudioVolume}%");
@@ -1247,8 +1255,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveThemeModeAsync called with value: {themeMode}");
 
-                _configuration.Application.ThemeMode = themeMode;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Application.ThemeMode = themeMode;
+                    _configuration.Application.ThemeMode = themeMode;
+                });
                 _originalConfiguration.Application.ThemeMode = themeMode;
 
                 _logger.LogInformation($"Auto-saved theme mode: {themeMode}");
@@ -1813,8 +1824,11 @@ namespace EyeRest.UI.ViewModels
                 // Meeting detection is currently disabled in the orchestrator.
                 // When re-enabled, this would call IMeetingDetectionManager.SwitchMethodAsync().
                 _logger.LogInformation("Meeting detection method switch saved to config (feature disabled at runtime)");
-                _configuration.MeetingDetection.DetectionMethod = MeetingDetectionMethod;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.MeetingDetection.DetectionMethod = MeetingDetectionMethod;
+                    _configuration.MeetingDetection.DetectionMethod = MeetingDetectionMethod;
+                });
             }
             catch (Exception ex)
             {
@@ -2154,8 +2168,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveStartupSettingAsync called with value: {startWithWindows}");
 
-                _configuration.Application.StartWithWindows = startWithWindows;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Application.StartWithWindows = startWithWindows;
+                    _configuration.Application.StartWithWindows = startWithWindows;
+                });
 
                 if (startWithWindows)
                 {
@@ -2182,8 +2199,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveMinimizeToTrayAsync called with value: {minimizeToTray}");
 
-                _configuration.Application.MinimizeToTray = minimizeToTray;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Application.MinimizeToTray = minimizeToTray;
+                    _configuration.Application.MinimizeToTray = minimizeToTray;
+                });
                 _originalConfiguration.Application.MinimizeToTray = minimizeToTray;
 
                 _logger.LogInformation($"Auto-saved minimize to tray: {minimizeToTray}");
@@ -2200,8 +2220,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveShowInTaskbarAsync called with value: {showInTaskbar}");
 
-                _configuration.Application.ShowInTaskbar = showInTaskbar;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Application.ShowInTaskbar = showInTaskbar;
+                    _configuration.Application.ShowInTaskbar = showInTaskbar;
+                });
                 _originalConfiguration.Application.ShowInTaskbar = showInTaskbar;
 
                 _logger.LogInformation($"Auto-saved show in taskbar: {showInTaskbar}");
@@ -2218,8 +2241,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveStartMinimizedAsync called with value: {startMinimized}");
 
-                _configuration.Application.StartMinimized = startMinimized;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Application.StartMinimized = startMinimized;
+                    _configuration.Application.StartMinimized = startMinimized;
+                });
                 _originalConfiguration.Application.StartMinimized = startMinimized;
 
                 if (_configuration.Application.StartWithWindows)
@@ -2242,8 +2268,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveShowTrayNotificationsAsync called with value: {showTrayNotifications}");
 
-                _configuration.Application.ShowTrayNotifications = showTrayNotifications;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Application.ShowTrayNotifications = showTrayNotifications;
+                    _configuration.Application.ShowTrayNotifications = showTrayNotifications;
+                });
                 _originalConfiguration.Application.ShowTrayNotifications = showTrayNotifications;
 
                 _logger.LogInformation($"Auto-saved show tray notifications: {showTrayNotifications}");
@@ -2260,8 +2289,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveAudioEnabledAsync called with value: {audioEnabled}");
 
-                _configuration.Audio.Enabled = audioEnabled;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Audio.Enabled = audioEnabled;
+                    _configuration.Audio.Enabled = audioEnabled;
+                });
                 _originalConfiguration.Audio.Enabled = audioEnabled;
 
                 _logger.LogInformation($"Auto-saved audio enabled: {audioEnabled}");
@@ -2278,8 +2310,11 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveCustomSoundPathAsync called with value: {customSoundPath}");
 
-                _configuration.Audio.CustomSoundPath = customSoundPath;
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.Audio.CustomSoundPath = customSoundPath;
+                    _configuration.Audio.CustomSoundPath = customSoundPath;
+                });
                 _originalConfiguration.Audio.CustomSoundPath = customSoundPath;
 
                 _logger.LogInformation($"Auto-saved custom sound path: {customSoundPath}");
@@ -2323,8 +2358,23 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation("SaveTimerSettingAsync called - auto-saving timer configuration");
 
-                UpdateConfigurationFromProperties();
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    config.EyeRest.IntervalMinutes = EyeRestIntervalMinutes;
+                    config.EyeRest.DurationSeconds = EyeRestDurationSeconds;
+                    config.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
+                    config.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
+                    config.EyeRest.WarningEnabled = EyeRestWarningEnabled;
+                    config.EyeRest.WarningSeconds = EyeRestWarningSeconds;
+                    config.Break.IntervalMinutes = BreakIntervalMinutes;
+                    config.Break.DurationMinutes = BreakDurationMinutes;
+                    config.Break.WarningEnabled = BreakWarningEnabled;
+                    config.Break.WarningSeconds = BreakWarningSeconds;
+                    config.Break.OverlayOpacityPercent = OverlayOpacityPercent;
+                    config.Break.RequireConfirmationAfterBreak = RequireConfirmationAfterBreak;
+                    config.Break.ResetTimersOnBreakConfirmation = ResetTimersOnBreakConfirmation;
+                    _configuration = config;
+                });
                 _originalConfiguration = CloneConfiguration(_configuration);
 
                 // Push updated intervals into the running timer service immediately
