@@ -59,6 +59,37 @@ public partial class MainWindow : Window
         };
         _countdownTimer.Tick += OnCountdownTimerTick;
         _countdownTimer.Start();
+
+        // Prevent Sliders and ComboBoxes inside the config ScrollViewer from
+        // stealing trackpad/mouse-wheel scroll events. On macOS, trackpad scrolling
+        // over a Slider silently changes its value, corrupting user settings.
+        ConfigContentScrollViewer.AddHandler(
+            PointerWheelChangedEvent,
+            OnConfigScrollViewerPointerWheel,
+            RoutingStrategies.Tunnel);
+    }
+
+    private void OnConfigScrollViewerPointerWheel(object? sender, PointerWheelEventArgs e)
+    {
+        // Walk up from the event source to see if it targets a Slider or ComboBox
+        var source = e.Source as Control;
+        while (source != null && source != ConfigContentScrollViewer)
+        {
+            if (source is Slider or ComboBox)
+            {
+                // Block the event from reaching the Slider/ComboBox
+                e.Handled = true;
+
+                // Manually scroll the ScrollViewer instead
+                var offset = ConfigContentScrollViewer.Offset;
+                var scrollAmount = e.Delta.Y * 50;
+                ConfigContentScrollViewer.Offset = new Avalonia.Vector(
+                    offset.X,
+                    offset.Y - scrollAmount);
+                return;
+            }
+            source = source.Parent as Control;
+        }
     }
 
     protected override void OnOpened(EventArgs e)
@@ -241,6 +272,10 @@ public partial class MainWindow : Window
         e.Cancel = true;
         IsHiddenToTray = true;
 
+        // Stop any in-progress resize animation to prevent stale size state
+        _resizeTimer?.Stop();
+        _resizeTimer = null;
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             // On macOS: use native orderOut to properly hide, then hide dock icon
@@ -263,6 +298,33 @@ public partial class MainWindow : Window
     }
 
     private IBrush? _savedBackground;
+
+    /// <summary>
+    /// Force the correct window size and re-layout after restoring from tray.
+    /// On Windows, Hide()/Show() with ExtendClientAreaToDecorationsHint can leave
+    /// the non-client area calculation stale, causing a white gap on the right side.
+    /// </summary>
+    public void ResetWindowSizeForCurrentMode()
+    {
+        if (DataContext is MainWindowViewModel vm && vm.IsConfigurationMode)
+        {
+            Width = 900;
+            Height = 700;
+            MinWidth = 900;
+            MinHeight = 600;
+        }
+        else
+        {
+            Width = 340;
+            Height = 580;
+            MinWidth = 340;
+            MinHeight = 500;
+        }
+
+        InvalidateMeasure();
+        InvalidateArrange();
+        InvalidateVisual();
+    }
 
     public void ShowDimOverlay()
     {

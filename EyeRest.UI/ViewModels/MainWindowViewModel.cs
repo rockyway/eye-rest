@@ -109,7 +109,9 @@ namespace EyeRest.UI.ViewModels
 
         // Save State
         private bool _isSaving = false;
-        private bool _isLoadingConfiguration = false;
+        // Start as true to block all debounced saves until first config load completes.
+        // UpdatePropertiesFromConfiguration() will set this to false after loading.
+        private bool _isLoadingConfiguration = true;
 
         // Meeting Detection Properties
         private MeetingDetectionMethod _meetingDetectionMethod = MeetingDetectionMethod.WindowBased;
