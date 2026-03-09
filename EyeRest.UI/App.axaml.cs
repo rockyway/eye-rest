@@ -62,12 +62,16 @@ public partial class App : Application
         var builder = Host.CreateDefaultBuilder();
         builder.UseSerilog((context, config) =>
         {
+            var logPath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "EyeRest", "logs", "eyerest-.log");
             config.WriteTo.Console()
                   .WriteTo.File(
-                      System.IO.Path.Combine(
-                          Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                          "EyeRest", "logs", "eyerest.log"),
-                      rollingInterval: Serilog.RollingInterval.Day);
+                      logPath,
+                      rollingInterval: Serilog.RollingInterval.Hour,
+                      retainedFileCountLimit: 24,
+                      rollOnFileSizeLimit: true,
+                      fileSizeLimitBytes: 5 * 1024 * 1024);
         });
 
         builder.ConfigureServices(services =>

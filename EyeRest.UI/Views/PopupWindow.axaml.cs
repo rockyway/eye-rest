@@ -20,6 +20,7 @@ namespace EyeRest.UI.Views
         public Control? PopupContent { get; private set; }
         private double _positionHintWidth;
         private double _positionHintHeight;
+        private PopupPlacement? _pendingPlacement;
 
         /// <summary>
         /// Tracks whether our app was the active (frontmost) app before this popup was shown.
@@ -150,6 +151,15 @@ namespace EyeRest.UI.Views
         {
             base.OnOpened(e);
 
+            // Reposition using actual rendered size (SizeToContent makes the window
+            // smaller than the hint, so initial positioning from PositionOnScreen
+            // leaves a gap on the right edge).
+            if (_pendingPlacement.HasValue && FrameSize.HasValue)
+            {
+                RepositionWithActualSize(_pendingPlacement.Value);
+                _pendingPlacement = null;
+            }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 // Give this popup keyboard focus without activating the app.
@@ -162,6 +172,35 @@ namespace EyeRest.UI.Views
 
             Focus();
             Focusable = true;
+        }
+
+        private void RepositionWithActualSize(PopupPlacement placement)
+        {
+            var screen = GetScreenWithCursor();
+            if (screen == null || !FrameSize.HasValue) return;
+
+            var workArea = screen.WorkingArea;
+            var scaling = screen.Scaling;
+            var actualWidth = (int)(FrameSize.Value.Width * scaling);
+            var actualHeight = (int)(FrameSize.Value.Height * scaling);
+
+            switch (placement)
+            {
+                case PopupPlacement.TopRight:
+                    var marginPx = (int)(8 * scaling);
+                    Position = new PixelPoint(
+                        workArea.Right - actualWidth - marginPx,
+                        workArea.Y + marginPx
+                    );
+                    break;
+
+                case PopupPlacement.Center:
+                    Position = new PixelPoint(
+                        workArea.X + (workArea.Width - actualWidth) / 2,
+                        workArea.Y + (workArea.Height - actualHeight) / 2
+                    );
+                    break;
+            }
         }
 
         protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -191,6 +230,7 @@ namespace EyeRest.UI.Views
         /// </summary>
         public void PositionOnScreen(PopupPlacement placement = PopupPlacement.TopRight)
         {
+            _pendingPlacement = placement;
             var screen = GetScreenWithCursor();
             if (screen == null)
                 return;
@@ -206,7 +246,7 @@ namespace EyeRest.UI.Views
             {
                 case PopupPlacement.TopRight:
                     // Position at top-right of the working area with some margin
-                    var marginPx = (int)(20 * scaling);
+                    var marginPx = (int)(8 * scaling);
                     Position = new PixelPoint(
                         workArea.Right - windowWidthPx - marginPx,
                         workArea.Y + marginPx

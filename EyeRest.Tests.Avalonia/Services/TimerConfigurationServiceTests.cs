@@ -33,7 +33,7 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.True(config.EyeRest.StartSoundEnabled);
             Assert.True(config.EyeRest.EndSoundEnabled);
             Assert.True(config.EyeRest.WarningEnabled);
-            Assert.Equal(30, config.EyeRest.WarningSeconds);
+            Assert.Equal(15, config.EyeRest.WarningSeconds);
 
             Assert.Equal(55, config.Break.IntervalMinutes);
             Assert.Equal(5, config.Break.DurationMinutes);

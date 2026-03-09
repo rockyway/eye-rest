@@ -122,7 +122,7 @@ namespace EyeRest.Services
                     StartSoundEnabled = true,
                     EndSoundEnabled = true,
                     WarningEnabled = true,
-                    WarningSeconds = 30
+                    WarningSeconds = 15
                 },
                 Break = new BreakSettings
                 {
@@ -157,7 +157,7 @@ namespace EyeRest.Services
             if (config.EyeRest.WarningSeconds < 10 || config.EyeRest.WarningSeconds > 120)
             {
                 _logger.LogWarning($"Invalid eye rest warning seconds: {config.EyeRest.WarningSeconds}, using default");
-                config.EyeRest.WarningSeconds = 30;
+                config.EyeRest.WarningSeconds = 15;
             }
 
             // Break validation
