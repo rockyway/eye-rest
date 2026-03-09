@@ -116,6 +116,7 @@ namespace EyeRest.Services
                 // Restore timer with remaining time
                 if (_breakRemainingTime > TimeSpan.Zero)
                 {
+                    _breakInterval = _breakRemainingTime;
                     _breakTimer!.Interval = _breakRemainingTime;
                     _breakTimer!.Start();
                     _breakStartTime = DateTime.Now;
