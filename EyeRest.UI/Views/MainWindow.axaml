@@ -136,7 +136,8 @@
                                 <Grid ColumnDefinitions="*,8,*">
 
                                     <!-- Eye Rest Timer Card -->
-                                    <Border Grid.Column="0" Classes="TimerMiniCard">
+                                    <Border Grid.Column="0" Classes="TimerMiniCard"
+                                            ToolTip.Tip="{Binding EyeRestTimerTooltip}">
                                         <StackPanel Spacing="7">
                                             <Border Classes="TimerIconCircle"
                                                     HorizontalAlignment="Center">
@@ -167,7 +168,8 @@
                                     </Border>
 
                                     <!-- Break Timer Card -->
-                                    <Border Grid.Column="2" Classes="TimerMiniCard">
+                                    <Border Grid.Column="2" Classes="TimerMiniCard"
+                                            ToolTip.Tip="{Binding BreakTimerTooltip}">
                                         <StackPanel Spacing="7">
                                             <Border Classes="TimerIconCircle"
                                                     HorizontalAlignment="Center">
@@ -404,7 +406,8 @@
                                 <Grid ColumnDefinitions="*,6,*">
 
                                     <!-- Eye Rest Timer Card -->
-                                    <Border Grid.Column="0" Classes="TimerMiniCard">
+                                    <Border Grid.Column="0" Classes="TimerMiniCard"
+                                            ToolTip.Tip="{Binding EyeRestTimerTooltip}">
                                         <StackPanel Spacing="6">
                                             <Border Classes="TimerIconCircle"
                                                     HorizontalAlignment="Center">
@@ -436,7 +439,8 @@
                                     </Border>
 
                                     <!-- Break Timer Card -->
-                                    <Border Grid.Column="2" Classes="TimerMiniCard">
+                                    <Border Grid.Column="2" Classes="TimerMiniCard"
+                                            ToolTip.Tip="{Binding BreakTimerTooltip}">
                                         <StackPanel Spacing="6">
                                             <Border Classes="TimerIconCircle"
                                                     HorizontalAlignment="Center">
@@ -1405,6 +1409,26 @@
             </Grid>
 
             </Panel>
+            <!-- Info toast message (auto-dismiss, overlays without pushing content) -->
+            <Panel Grid.Row="1"
+                   IsVisible="{Binding HasInfoMessage}"
+                   IsHitTestVisible="False"
+                   ZIndex="100">
+                <Border Background="#E0336699"
+                        CornerRadius="8"
+                        Padding="14,10"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Margin="16,40,16,0"
+                        MaxWidth="500">
+                    <TextBlock Text="{Binding InfoMessage}"
+                               Foreground="White"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center" />
+                </Border>
+            </Panel>
+
             <!-- Dim overlay for modal dialogs (75% black) -->
             <Border Name="DimOverlay"
                     Grid.RowSpan="2"

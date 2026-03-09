@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using EyeRest.UI.Helpers;
 using EyeRest.UI.ViewModels;
 
@@ -60,35 +61,20 @@ public partial class MainWindow : Window
         _countdownTimer.Tick += OnCountdownTimerTick;
         _countdownTimer.Start();
 
-        // Prevent Sliders and ComboBoxes inside the config ScrollViewer from
-        // stealing trackpad/mouse-wheel scroll events. On macOS, trackpad scrolling
-        // over a Slider silently changes its value, corrupting user settings.
-        ConfigContentScrollViewer.AddHandler(
-            PointerWheelChangedEvent,
-            OnConfigScrollViewerPointerWheel,
-            RoutingStrategies.Tunnel);
     }
 
-    private void OnConfigScrollViewerPointerWheel(object? sender, PointerWheelEventArgs e)
+    private void OnWindowPointerWheel(object? sender, PointerWheelEventArgs e)
     {
-        // Walk up from the event source to see if it targets a Slider or ComboBox
-        var source = e.Source as Control;
-        while (source != null && source != ConfigContentScrollViewer)
+        // Walk up from event source — if any ancestor is a Slider or ComboBox, block the event
+        var source = e.Source as Avalonia.Visual;
+        while (source != null && source != this)
         {
             if (source is Slider or ComboBox)
             {
-                // Block the event from reaching the Slider/ComboBox
                 e.Handled = true;
-
-                // Manually scroll the ScrollViewer instead
-                var offset = ConfigContentScrollViewer.Offset;
-                var scrollAmount = e.Delta.Y * 50;
-                ConfigContentScrollViewer.Offset = new Avalonia.Vector(
-                    offset.X,
-                    offset.Y - scrollAmount);
                 return;
             }
-            source = source.Parent as Control;
+            source = source.GetVisualParent();
         }
     }
 
@@ -96,6 +82,12 @@ public partial class MainWindow : Window
     {
         base.OnOpened(e);
         DisableMaximizeButton();
+
+        // Prevent ALL Sliders and ComboBoxes from responding to trackpad/mouse-wheel.
+        // On macOS, trackpad scrolling over a Slider silently changes its value, corrupting settings.
+        // Window-level tunnel handler catches wheel events before they reach any Slider/ComboBox,
+        // even those created later when switching from simple to config mode.
+        this.AddHandler(PointerWheelChangedEvent, OnWindowPointerWheel, RoutingStrategies.Tunnel);
 
         // On macOS, ensure the window comes to front on startup.
         // dotnet run launches from Terminal which keeps focus, so we

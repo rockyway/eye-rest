@@ -254,6 +254,7 @@ namespace EyeRest.Services
                     }
                     else if (_eyeRestRemainingTime > TimeSpan.Zero)
                     {
+                        _eyeRestInterval = _eyeRestRemainingTime;
                         _eyeRestTimer!.Interval = _eyeRestRemainingTime;
                         _eyeRestStartTime = DateTime.Now;
                         _logger.LogCritical($"🔧 SMART RESUME: Restored eye rest remaining {_eyeRestRemainingTime.TotalMinutes:F1}min");
@@ -272,6 +273,7 @@ namespace EyeRest.Services
                     }
                     else if (_breakRemainingTime > TimeSpan.Zero)
                     {
+                        _breakInterval = _breakRemainingTime;
                         _breakTimer!.Interval = _breakRemainingTime;
                         _breakStartTime = DateTime.Now;
                         _breakTimerStartTime = DateTime.Now;
