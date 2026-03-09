@@ -50,6 +50,7 @@ namespace EyeRest.Services
         void StopBreakWarningTimer(); // Stop warning timer when popup is dismissed early
         
         // Smart coordination methods
+        void SmartPauseBreakTimerForEyeRest();
         void SmartResumeBreakTimerAfterEyeRest();
         void SmartResumeEyeRestTimerAfterBreak();
         

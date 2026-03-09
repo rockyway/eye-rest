@@ -106,6 +106,7 @@ namespace EyeRest.UI.ViewModels
         // Error Indicators
         private string _errorMessage = "";
         private bool _hasValidationErrors = false;
+        private string _infoMessage = "";
 
         // Save State
         private bool _isSaving = false;
@@ -217,6 +218,10 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestIntervalMinutes;
             set
             {
+                if (value != _eyeRestIntervalMinutes)
+                {
+                    _logger.LogWarning($"🔍 EyeRestIntervalMinutes CHANGING: {_eyeRestIntervalMinutes} → {value} (isLoading={_isLoadingConfiguration}) | Stack: {Environment.StackTrace.Substring(0, Math.Min(500, Environment.StackTrace.Length))}");
+                }
                 if (SetProperty(ref _eyeRestIntervalMinutes, value) && !_isLoadingConfiguration)
                 {
                     DebouncedSaveTimerSetting();
@@ -675,6 +680,44 @@ namespace EyeRest.UI.ViewModels
             private set => SetProperty(ref _breakCountdownText, value);
         }
 
+        public string EyeRestTimerTooltip
+        {
+            get
+            {
+                var interval = _configuration?.EyeRest?.IntervalMinutes ?? 20;
+                var warnSec = _configuration?.EyeRest?.WarningSeconds ?? 15;
+                var warnOn = _configuration?.EyeRest?.WarningEnabled ?? true;
+                if (warnOn && warnSec > 0)
+                {
+                    var effectiveSec = interval * 60 - warnSec;
+                    var effMin = effectiveSec / 60;
+                    var effSec = effectiveSec % 60;
+                    var effDisplay = effSec > 0 ? $"{effMin}m {effSec}s" : $"{effMin}m";
+                    return $"Interval: {interval}min\nWarning starts {warnSec}s before\nCountdown shows {effDisplay}";
+                }
+                return $"Interval: {interval}min";
+            }
+        }
+
+        public string BreakTimerTooltip
+        {
+            get
+            {
+                var interval = _configuration?.Break?.IntervalMinutes ?? 55;
+                var warnSec = _configuration?.Break?.WarningSeconds ?? 30;
+                var warnOn = _configuration?.Break?.WarningEnabled ?? true;
+                if (warnOn && warnSec > 0)
+                {
+                    var effectiveSec = interval * 60 - warnSec;
+                    var effMin = effectiveSec / 60;
+                    var effSec = effectiveSec % 60;
+                    var effDisplay = effSec > 0 ? $"{effMin}m {effSec}s" : $"{effMin}m";
+                    return $"Interval: {interval}min\nWarning starts {warnSec}s before\nCountdown shows {effDisplay}";
+                }
+                return $"Interval: {interval}min";
+            }
+        }
+
         public double EyeRestProgressPercent
         {
             get => _eyeRestProgressPercent;
@@ -746,6 +789,32 @@ namespace EyeRest.UI.ViewModels
         {
             get => _isSaving;
             private set => SetProperty(ref _isSaving, value);
+        }
+
+        public string InfoMessage
+        {
+            get => _infoMessage;
+            private set
+            {
+                if (SetProperty(ref _infoMessage, value))
+                    OnPropertyChanged(nameof(HasInfoMessage));
+            }
+        }
+
+        public bool HasInfoMessage => !string.IsNullOrEmpty(_infoMessage);
+
+        private void ShowInfoMessage(string message, int durationMs = 5000)
+        {
+            InfoMessage = message;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(durationMs);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (InfoMessage == message)
+                        InfoMessage = "";
+                });
+            });
         }
 
         // Meeting Detection Properties
@@ -1073,6 +1142,8 @@ namespace EyeRest.UI.ViewModels
             {
                 _isLoadingConfiguration = false;
                 _settingsDebounceTimer?.Stop(); // Cancel any save queued by Slider write-back during load
+                OnPropertyChanged(nameof(EyeRestTimerTooltip));
+                OnPropertyChanged(nameof(BreakTimerTooltip));
             }
         }
 
@@ -1314,8 +1385,30 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
+                // Flush any pending debounced save so StartAsync reads the latest values from disk
+                if (_settingsDebounceTimer?.IsEnabled == true)
+                {
+                    _settingsDebounceTimer.Stop();
+                    await SaveTimerSettingAsync();
+                    _logger.LogInformation("Flushed pending debounced save before starting timers");
+                }
+
                 await _timerService.StartAsync();
                 UpdateTimerStatus();
+
+                // Show info toast explaining warning time deduction
+                var eyeWarn = _configuration?.EyeRest?.WarningEnabled == true ? _configuration.EyeRest.WarningSeconds : 0;
+                var breakWarn = _configuration?.Break?.WarningEnabled == true ? _configuration.Break.WarningSeconds : 0;
+                if (eyeWarn > 0 || breakWarn > 0)
+                {
+                    var parts = new System.Collections.Generic.List<string>();
+                    if (eyeWarn > 0)
+                        parts.Add($"Eye Rest {_configuration!.EyeRest.IntervalMinutes}min (warns {eyeWarn}s early)");
+                    if (breakWarn > 0)
+                        parts.Add($"Break {_configuration!.Break.IntervalMinutes}min (warns {breakWarn}s early)");
+                    ShowInfoMessage($"Timers started: {string.Join(", ", parts)}");
+                }
+
                 _logger.LogInformation("Timers started");
             }
             catch (Exception ex)
@@ -2382,6 +2475,8 @@ namespace EyeRest.UI.ViewModels
                 // Push updated intervals into the running timer service immediately
                 _timerService.UpdateConfiguration(_configuration);
 
+                OnPropertyChanged(nameof(EyeRestTimerTooltip));
+                OnPropertyChanged(nameof(BreakTimerTooltip));
                 _logger.LogInformation("Auto-saved timer settings to main config");
             }
             catch (Exception ex)

@@ -274,6 +274,7 @@ namespace EyeRest.Services
                 _logger.LogInformation("🚨 EYE REST WARNING EVENT FIRED! TimerService event received by ApplicationOrchestrator");
                 _logger.LogInformation($"Warning details - TriggeredAt: {e.TriggeredAt}, NextInterval: {e.NextInterval.TotalSeconds} seconds, Type: {e.Type}");
                 _logger.LogInformation($"🧠 Smart coordination active: Break timer is paused during eye rest warning to prevent conflicts");
+                _timerService.SmartPauseBreakTimerForEyeRest();
 
                 // Show eye rest warning
                 await _notificationService.ShowEyeRestWarningAsync(e.NextInterval);
