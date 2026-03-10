@@ -515,7 +515,15 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
-                await _configurationService.SaveConfigurationAsync(_currentConfiguration);
+                await _configurationService.UpdateConfigurationAsync(config =>
+                {
+                    if (_currentConfiguration?.Analytics != null)
+                    {
+                        config.Analytics.Enabled = _currentConfiguration.Analytics.Enabled;
+                        config.Analytics.AllowDataExport = _currentConfiguration.Analytics.AllowDataExport;
+                        config.Analytics.DataRetentionDays = _currentConfiguration.Analytics.DataRetentionDays;
+                    }
+                });
                 _logger.LogInformation("Analytics configuration saved successfully");
             }
             catch (Exception ex)

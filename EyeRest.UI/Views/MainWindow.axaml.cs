@@ -102,6 +102,11 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.PropertyChanged += OnViewModelPropertyChanged;
+
+            // Defense against Slider midpoint write-backs: after UI has fully rendered,
+            // re-apply all config values to overwrite any Slider initialization artifacts.
+            Dispatcher.UIThread.Post(() => vm.ReapplyConfigurationValues(),
+                DispatcherPriority.Loaded);
         }
     }
 

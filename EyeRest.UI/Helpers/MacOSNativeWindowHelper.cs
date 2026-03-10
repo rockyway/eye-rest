@@ -43,6 +43,7 @@ internal static class MacOSNativeWindowHelper
 
     private static readonly IntPtr Sel_OrderOut = sel_registerName("orderOut:");
     private static readonly IntPtr Sel_OrderBack = sel_registerName("orderBack:");
+    private static readonly IntPtr Sel_OrderFront = sel_registerName("orderFront:");
     private static readonly IntPtr Sel_MakeKeyWindow = sel_registerName("makeKeyWindow");
     private static readonly IntPtr Sel_MakeKeyAndOrderFront = sel_registerName("makeKeyAndOrderFront:");
     private static readonly IntPtr Sel_SetActivationPolicy = sel_registerName("setActivationPolicy:");
@@ -137,6 +138,35 @@ internal static class MacOSNativeWindowHelper
     }
 
     /// <summary>
+    /// Calls [NSWindow orderFront:nil] to bring the window to the front of its level
+    /// WITHOUT activating the application. Combined with SetWindowLevel, this makes
+    /// the popup visible above all other windows without disturbing the main window.
+    /// </summary>
+    internal static bool OrderFront(Window window, ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            if (handle == IntPtr.Zero)
+            {
+                logger?.LogDebug("OrderFront: No platform handle available");
+                return false;
+            }
+
+            objc_msgSend_Void_IntPtr(handle, Sel_OrderFront, IntPtr.Zero);
+            logger?.LogDebug("OrderFront: NSWindow brought to front of its level");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "OrderFront: Failed");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Calls [NSWindow makeKeyWindow] to make the window the key (focused) window
     /// WITHOUT activating the application. This gives the window keyboard focus
     /// without bringing other app windows to the front.
@@ -189,6 +219,70 @@ internal static class MacOSNativeWindowHelper
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "MakeKeyAndOrderFront: Failed");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Calls [NSWindow setLevel:] to explicitly set the window's Z-order level.
+    /// Use this to guarantee the window appears above all other apps.
+    /// Common levels:
+    ///   0  = NSNormalWindowLevel (default)
+    ///   3  = NSFloatingWindowLevel (above normal windows)
+    ///   8  = NSModalPanelWindowLevel
+    ///   25 = NSStatusWindowLevel (above floating windows)
+    /// </summary>
+    internal static bool SetWindowLevel(Window window, long level, ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            if (handle == IntPtr.Zero)
+            {
+                logger?.LogDebug("SetWindowLevel: No platform handle available");
+                return false;
+            }
+
+            var selSetLevel = sel_registerName("setLevel:");
+            objc_msgSend_Void_Long(handle, selSetLevel, level);
+            logger?.LogDebug("SetWindowLevel: NSWindow level set to {Level}", level);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "SetWindowLevel: Failed to set level {Level}", level);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Calls [NSApp activateIgnoringOtherApps:YES] to force the app to the foreground.
+    /// Use this to undo a prior HideApplication() call when showing a new popup.
+    /// </summary>
+    internal static bool ActivateIgnoringOtherApps(ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var nsAppClass = objc_getClass("NSApplication");
+            var nsApp = objc_msgSend(nsAppClass, Sel_SharedApplication);
+            if (nsApp == IntPtr.Zero)
+            {
+                logger?.LogDebug("ActivateIgnoringOtherApps: Could not get NSApplication");
+                return false;
+            }
+
+            var selActivate = sel_registerName("activateIgnoringOtherApps:");
+            objc_msgSend_Void_Bool(nsApp, selActivate, true);
+            logger?.LogDebug("ActivateIgnoringOtherApps: App force-activated");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "ActivateIgnoringOtherApps: Failed");
             return false;
         }
     }

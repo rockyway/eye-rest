@@ -624,8 +624,8 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Rest Interval" FontSize="14" FontWeight="SemiBold" />
-                                                <Slider Value="{Binding EyeRestIntervalMinutes}"
-                                                        Minimum="1" Maximum="60"
+                                                <Slider Minimum="1" Maximum="60"
+                                                        Value="{Binding EyeRestIntervalMinutes}"
                                                         TickFrequency="1" IsSnapToTickEnabled="True" />
                                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
                                                     <TextBlock Grid.Column="0" Text="1 min" FontSize="11"
@@ -650,8 +650,8 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Duration" FontSize="14" FontWeight="SemiBold" />
-                                                <Slider Value="{Binding EyeRestDurationSeconds}"
-                                                        Minimum="5" Maximum="60"
+                                                <Slider Minimum="5" Maximum="60"
+                                                        Value="{Binding EyeRestDurationSeconds}"
                                                         TickFrequency="5" IsSnapToTickEnabled="True" />
                                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
                                                     <TextBlock Grid.Column="0" Text="5 sec" FontSize="11"
@@ -726,8 +726,8 @@
                                               IsEnabled="{Binding EyeRestWarningEnabled}">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Warning Time" FontSize="14" FontWeight="SemiBold" />
-                                                <Slider Value="{Binding EyeRestWarningSeconds}"
-                                                        Minimum="5" Maximum="120"
+                                                <Slider Minimum="5" Maximum="120"
+                                                        Value="{Binding EyeRestWarningSeconds}"
                                                         TickFrequency="5" IsSnapToTickEnabled="True" />
                                             </StackPanel>
                                             <Border Grid.Column="1" Classes="SliderBadge"
@@ -814,8 +814,8 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Work Interval" FontSize="14" FontWeight="SemiBold" />
-                                                <Slider Value="{Binding BreakIntervalMinutes}"
-                                                        Minimum="1" Maximum="120"
+                                                <Slider Minimum="1" Maximum="120"
+                                                        Value="{Binding BreakIntervalMinutes}"
                                                         TickFrequency="5" IsSnapToTickEnabled="True" />
                                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
                                                     <TextBlock Grid.Column="0" Text="1 min" FontSize="11"
@@ -840,8 +840,8 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Break Duration" FontSize="14" FontWeight="SemiBold" />
-                                                <Slider Value="{Binding BreakDurationMinutes}"
-                                                        Minimum="1" Maximum="30"
+                                                <Slider Minimum="1" Maximum="30"
+                                                        Value="{Binding BreakDurationMinutes}"
                                                         TickFrequency="1" IsSnapToTickEnabled="True" />
                                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
                                                     <TextBlock Grid.Column="0" Text="1 min" FontSize="11"
@@ -915,8 +915,8 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Overlay Opacity" FontSize="14" FontWeight="SemiBold" />
-                                                <Slider Value="{Binding OverlayOpacityPercent}"
-                                                        Minimum="0" Maximum="100"
+                                                <Slider Minimum="0" Maximum="100"
+                                                        Value="{Binding OverlayOpacityPercent}"
                                                         TickFrequency="5" IsSnapToTickEnabled="True" />
                                             </StackPanel>
                                             <Border Grid.Column="1" Classes="SliderBadge"
@@ -936,8 +936,8 @@
                                               IsEnabled="{Binding BreakWarningEnabled}">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Warning Time" FontSize="14" FontWeight="SemiBold" />
-                                                <Slider Value="{Binding BreakWarningSeconds}"
-                                                        Minimum="5" Maximum="300"
+                                                <Slider Minimum="5" Maximum="300"
+                                                        Value="{Binding BreakWarningSeconds}"
                                                         TickFrequency="5" IsSnapToTickEnabled="True" />
                                             </StackPanel>
                                             <Border Grid.Column="1" Classes="SliderBadge"
@@ -1062,8 +1062,8 @@
                                         <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding PauseOnIdle}" Margin="28,0,0,0">
                                             <StackPanel Grid.Column="0" Spacing="6">
                                                 <TextBlock Text="Idle Timeout" FontSize="15" FontWeight="Medium" />
-                                                <Slider Value="{Binding IdleTimeoutMinutes}"
-                                                        Minimum="1" Maximum="60"
+                                                <Slider Minimum="1" Maximum="60"
+                                                        Value="{Binding IdleTimeoutMinutes}"
                                                         TickFrequency="1" IsSnapToTickEnabled="True" />
                                             </StackPanel>
                                             <Border Grid.Column="1" Classes="SliderBadge"
@@ -1101,8 +1101,8 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Grid.Column="0" Spacing="6">
                                                     <TextBlock Text="Volume" FontSize="15" FontWeight="Medium" />
-                                                    <Slider Value="{Binding AudioVolume}"
-                                                            Minimum="0" Maximum="100"
+                                                    <Slider Minimum="0" Maximum="100"
+                                                            Value="{Binding AudioVolume}"
                                                             TickFrequency="5" IsSnapToTickEnabled="True" />
                                                 </StackPanel>
                                                 <Border Grid.Column="1" Classes="SliderBadge"

@@ -655,16 +655,14 @@ namespace EyeRest.Services
                         var resumeReason = "User returned";
                         await _analyticsService.ResumeSessionAsync(resumeReason);
                         
-                        // CRITICAL FIX: Also check for manual pause state and clear it when user returns
+                        // CRITICAL FIX: Clear manual pause state when user returns
                         if (_timerService.IsManuallyPaused)
                         {
                             _logger.LogCritical($"👤 USER PRESENT FIX: Manual pause active when user returned - clearing manual pause state");
-                            
-                            // Clear manual pause state explicitly when user returns
-                            // This prevents the "Paused (Manual)" UI display bug after extended away periods
+
                             try
                             {
-                                await _timerService.ResumeAsync(); // This will clear manual pause and restart service
+                                await _timerService.ResumeAsync();
                                 _logger.LogCritical($"👤 MANUAL PAUSE CLEARED: Timer service resumed, IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                             }
                             catch (Exception ex)
@@ -672,13 +670,14 @@ namespace EyeRest.Services
                                 _logger.LogError(ex, "👤 Failed to clear manual pause on user return");
                             }
                         }
-                        // Also resume timers if they were smart-paused
-                        else if (_timerService.IsSmartPaused)
+                        // CRITICAL FIX: Also clear smart pause — both can be active simultaneously
+                        // (e.g., user clicks Meet 30m, then idle detection fires during meeting)
+                        if (_timerService.IsSmartPaused)
                         {
                             await _timerService.SmartResumeAsync();
                             _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                             _systemTrayService.UpdateTimerStatus("Running");
-                            
+
                             // Notify pause reminder service
                             await _pauseReminderService.OnTimersResumedAsync();
                         }
