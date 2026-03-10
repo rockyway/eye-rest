@@ -1147,6 +1147,40 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
+        /// <summary>
+        /// Forcefully re-apply all Slider-bound properties from the loaded configuration.
+        /// Called from MainWindow.OnOpened after the UI has fully rendered, to overwrite
+        /// any Slider midpoint write-backs that may have occurred during XAML initialization.
+        /// </summary>
+        public void ReapplyConfigurationValues()
+        {
+            if (_configuration == null) return;
+
+            _isLoadingConfiguration = true;
+            try
+            {
+                // Re-apply all Slider-bound values from the authoritative config
+                EyeRestIntervalMinutes = _configuration.EyeRest.IntervalMinutes;
+                EyeRestDurationSeconds = _configuration.EyeRest.DurationSeconds;
+                EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
+                BreakIntervalMinutes = _configuration.Break.IntervalMinutes;
+                BreakDurationMinutes = _configuration.Break.DurationMinutes;
+                BreakWarningSeconds = _configuration.Break.WarningSeconds;
+                OverlayOpacityPercent = _configuration.Break.OverlayOpacityPercent;
+                AudioVolume = _configuration.Audio.Volume;
+                IdleTimeoutMinutes = _configuration.UserPresence.IdleTimeoutMinutes;
+
+                _logger.LogInformation(
+                    $"🛡️ CONFIG RE-APPLY: EyeRest={EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, " +
+                    $"Break={BreakIntervalMinutes}min/{BreakDurationMinutes}min, Theme={SelectedThemeMode}");
+            }
+            finally
+            {
+                _isLoadingConfiguration = false;
+                _settingsDebounceTimer?.Stop(); // Cancel any save triggered during re-apply
+            }
+        }
+
         private void UpdateConfigurationFromProperties()
         {
             if (_configuration == null) return;
@@ -1465,6 +1499,7 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
+                await _notificationService.HideAllNotifications();
                 await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(30), "Manual meeting pause from UI");
                 UpdateTimerStatus();
                 RefreshCanExecuteStates();
@@ -1480,6 +1515,7 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
+                await _notificationService.HideAllNotifications();
                 await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(60), "Manual 1-hour meeting pause from UI");
                 UpdateTimerStatus();
                 RefreshCanExecuteStates();

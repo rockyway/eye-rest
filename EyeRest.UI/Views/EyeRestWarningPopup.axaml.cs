@@ -215,6 +215,9 @@ namespace EyeRest.UI.Views
                 {
                     _isFading = false;
                     StopFadeTimer();
+
+                    // Reposition window after compact transition to prevent off-screen drift
+                    (_parentWindow as PopupWindow)?.Reposition();
                 }
             }
         }

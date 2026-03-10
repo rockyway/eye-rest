@@ -533,8 +533,12 @@ namespace EyeRest.Services
                 ClearEyeRestWarningProcessingFlag();
                 _logger.LogInformation("🔄 BREAK PRIORITY: Eye rest warning timers stopped - no interruptions during break");
 
-                // CRITICAL FIX: Don't set _isBreakNotificationActive here - it should already be set when warning started
-                // This prevents duplicate state setting that can cause blocking issues
+                // Mark break notification as active to prevent health check recovery from
+                // restarting timers, and to guard against duplicate break triggers
+                _isBreakNotificationActive = true;
+
+                // Stop break timer — it must not run during the break popup
+                _breakTimer?.Stop();
 
                 // Stop break warning timer
                 _breakWarningTimer?.Stop();

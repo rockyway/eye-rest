@@ -95,6 +95,7 @@ namespace EyeRest.Services
                 try
                 {
                     var validatedConfig = ValidateConfiguration(config);
+                    _logger.LogInformation($"💾 CONFIG SAVE [{caller}]: EyeRest={validatedConfig.EyeRest.IntervalMinutes}min, Theme={validatedConfig.Application.ThemeMode}, SaveCount={validatedConfig.Meta.SaveCount}");
 
                     // Ensure directory exists with proper permissions
                     var directory = Path.GetDirectoryName(_configFilePath);
@@ -260,7 +261,7 @@ namespace EyeRest.Services
                     StartWithWindows = false,
                     MinimizeToTray = true,
                     ShowInTaskbar = false,
-                    IsDarkMode = false
+                    ThemeMode = ThemeMode.Auto
                 },
                 Analytics = new AnalyticsSettings
                 {

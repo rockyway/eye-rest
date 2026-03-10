@@ -2,7 +2,6 @@ using System;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Platform;
 using EyeRest.UI.Helpers;
@@ -21,12 +20,12 @@ namespace EyeRest.UI.Views
         private double _positionHintWidth;
         private double _positionHintHeight;
         private PopupPlacement? _pendingPlacement;
+        private PopupPlacement _currentPlacement = PopupPlacement.TopRight;
 
         /// <summary>
-        /// Tracks whether our app was the active (frontmost) app before this popup was shown.
-        /// When true, the user was working on the Main UI, so we should NOT hide the app on close.
+        /// Tracks how many popup windows are currently open.
         /// </summary>
-        private bool _wasAppActiveBeforePopup;
+        private static int _activePopupCount;
 
         public PopupWindow()
         {
@@ -46,105 +45,23 @@ namespace EyeRest.UI.Views
 
         public new event EventHandler? Closed;
 
-        /// <summary>
-        /// Gets the main window, or null if not available.
-        /// </summary>
-        private static MainWindow? GetMainWindow()
-        {
-            return (Application.Current?.ApplicationLifetime
-                as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-        }
+
 
         /// <summary>
-        /// On macOS, removes the main window from the screen list so that app
-        /// activation (triggered by Show/Close) cannot bring it to the front.
-        /// </summary>
-        private static void HideMainWindowFromScreenList()
-        {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
-            var mw = GetMainWindow();
-            if (mw != null)
-                MacOSNativeWindowHelper.OrderOut(mw);
-        }
-
-        /// <summary>
-        /// On macOS, puts the main window back on screen behind all other windows.
-        /// If hidden to tray, keeps it ordered out.
-        /// </summary>
-        private static void RestoreMainWindowBehind()
-        {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
-            var mw = GetMainWindow();
-            if (mw == null) return;
-
-            if (mw.IsHiddenToTray)
-                MacOSNativeWindowHelper.OrderOut(mw);
-            else
-                MacOSNativeWindowHelper.OrderBack(mw);
-        }
-
-        /// <summary>
-        /// Show the popup. On macOS, temporarily removes the main window from the
-        /// screen list before base.Show() so app activation cannot bring it forward.
-        /// Captures whether the app was already active (user on Main UI) to decide
-        /// close behavior later.
+        /// Show the popup. The popup uses NSFloatingWindowLevel to appear above all
+        /// normal windows without needing to hide or manipulate the main window.
         /// </summary>
         public new void Show()
         {
-            // Capture BEFORE we touch any windows — if the app is active, the user
-            // was interacting with the Main UI and we should keep it visible on close.
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                _wasAppActiveBeforePopup = MacOSNativeWindowHelper.IsApplicationActive();
-
-            HideMainWindowFromScreenList();
+            _activePopupCount++;
             base.Show();
-            RestoreMainWindowBehind();
-        }
-
-        protected override void OnClosing(WindowClosingEventArgs e)
-        {
-            // When the user was in another app, remove main window from screen
-            // BEFORE macOS processes the close so it has no window to activate.
-            // When the user was on the Main UI, skip this — let macOS naturally
-            // re-focus the main window when the popup disappears.
-            if (!_wasAppActiveBeforePopup)
-                HideMainWindowFromScreenList();
-            base.OnClosing(e);
         }
 
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
+            _activePopupCount = Math.Max(0, _activePopupCount - 1);
             Closed?.Invoke(this, e);
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                var mw = GetMainWindow();
-                if (mw != null && mw.IsHiddenToTray)
-                {
-                    // Keep it ordered out
-                    MacOSNativeWindowHelper.OrderOut(mw);
-                }
-                else if (mw != null && !_wasAppActiveBeforePopup)
-                {
-                    // User was in another app. Hide our app so macOS activates
-                    // the previous app, then quietly restore main window behind everything.
-                    MacOSNativeWindowHelper.HideApplication();
-
-                    var restoreTimer = new Avalonia.Threading.DispatcherTimer
-                    {
-                        Interval = TimeSpan.FromMilliseconds(300)
-                    };
-                    restoreTimer.Tick += (s, args) =>
-                    {
-                        restoreTimer.Stop();
-                        MacOSNativeWindowHelper.OrderBack(mw);
-                    };
-                    restoreTimer.Start();
-                }
-                // else: _wasAppActiveBeforePopup — no action needed, macOS already
-                // re-focused the main window naturally when the popup closed.
-            }
         }
 
         protected override void OnOpened(EventArgs e)
@@ -162,7 +79,16 @@ namespace EyeRest.UI.Views
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                // Give this popup keyboard focus without activating the app.
+                // Set NSFloatingWindowLevel (3) so the popup floats above ALL normal
+                // windows — including other apps. This replaces the old approach of
+                // hiding/restoring the main window, which blocked users from accessing
+                // the main UI while a popup was showing.
+                MacOSNativeWindowHelper.SetWindowLevel(this, 3); // NSFloatingWindowLevel
+
+                // Bring popup to front of its level and give it keyboard focus.
+                // orderFront: does NOT activate the app, so the main window stays
+                // exactly where it was — no jumping in front of other apps.
+                MacOSNativeWindowHelper.OrderFront(this);
                 MacOSNativeWindowHelper.MakeKeyWindow(this);
             }
             else
@@ -228,9 +154,24 @@ namespace EyeRest.UI.Views
         /// Position popup on screen using the specified placement.
         /// Detects which screen the mouse cursor is on and positions accordingly.
         /// </summary>
+        /// <summary>
+        /// Reposition the popup window using its current placement and actual rendered size.
+        /// Call this after content changes (e.g., compact transition) that alter the window dimensions.
+        /// </summary>
+        public void Reposition()
+        {
+            // Post to ensure SizeToContent has finished resizing the window
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (FrameSize.HasValue)
+                    RepositionWithActualSize(_currentPlacement);
+            }, Avalonia.Threading.DispatcherPriority.Render);
+        }
+
         public void PositionOnScreen(PopupPlacement placement = PopupPlacement.TopRight)
         {
             _pendingPlacement = placement;
+            _currentPlacement = placement;
             var screen = GetScreenWithCursor();
             if (screen == null)
                 return;

@@ -146,7 +146,13 @@ namespace EyeRest.Services
                 }
                 
                 // CRITICAL FIX: Timer state validation - service running but timers disabled
-                var serviceRunningButTimersDisabled = IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused &&
+                // Skip this check when any notification/warning is active — timers are intentionally disabled
+                var anyNotificationActive = _isBreakNotificationActive || _isBreakWarningProcessing ||
+                                            _isAnyBreakWarningProcessing || _isBreakEventProcessing ||
+                                            _isAnyBreakEventProcessing || _isEyeRestNotificationActive ||
+                                            _eyeRestTimerPausedForBreak || _breakTimerPausedForEyeRest;
+                var serviceRunningButTimersDisabled = !anyNotificationActive &&
+                                                    IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused &&
                                                     (_eyeRestTimer?.IsEnabled != true || _breakTimer?.IsEnabled != true) &&
                                                     timeSinceLastHeartbeat.TotalMinutes >= 2.0;
                 

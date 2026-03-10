@@ -701,23 +701,23 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("⏰ Manual pause duration expired - auto-resuming");
-                
+                // BUGFIX: Save pause duration BEFORE clearing state (was reading zero after clear)
+                var pauseDuration = _manualPauseDuration;
+                _logger.LogInformation("⏰ Manual pause duration expired ({PauseMins:F0}min) - auto-resuming", pauseDuration.TotalMinutes);
+
                 // Stop the timer
                 _manualPauseTimer?.Stop();
                 _manualPauseTimer = null;
-                
+
                 // Clear manual pause state
                 IsManuallyPaused = false;
                 _manualPauseStartTime = DateTime.MinValue;
                 _manualPauseDuration = TimeSpan.Zero;
                 _pauseReason = string.Empty;
-                
+
                 // Resume if not otherwise paused
                 if (IsRunning && !IsPaused && !IsSmartPaused)
                 {
-                    // Calculate how long the pause lasted
-                    var pauseDuration = _manualPauseDuration;
                     var eyeRestDurationSeconds = _configuration?.EyeRest?.DurationSeconds ?? 20;
                     var breakDurationMinutes = _configuration?.Break?.DurationMinutes ?? 5;
 
