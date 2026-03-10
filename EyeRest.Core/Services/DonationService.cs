@@ -85,7 +85,10 @@ namespace EyeRest.Services
                 if (_settings.FirstInstallDate == null)
                 {
                     _settings.FirstInstallDate = DateTime.UtcNow;
-                    await _configurationService.SaveConfigurationAsync(config);
+                    await _configurationService.UpdateConfigurationAsync(c =>
+                    {
+                        c.Donation.FirstInstallDate = _settings.FirstInstallDate;
+                    });
                 }
 
                 var verifiedStr = await _secureStorage.GetAsync(SecureKey_Verified);

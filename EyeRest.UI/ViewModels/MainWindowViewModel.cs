@@ -1404,7 +1404,7 @@ namespace EyeRest.UI.ViewModels
                 UpdatePropertiesFromConfiguration();
                 CheckForChanges();
 
-                await _configurationService.SaveConfigurationAsync(_configuration);
+                await _configurationService.ReplaceConfigurationAsync(_configuration);
                 _originalConfiguration = CloneConfiguration(_configuration);
 
                 _logger.LogInformation("Settings restored to defaults and saved");

@@ -229,6 +229,19 @@ namespace EyeRest.Services
             }
         }
 
+        public async Task ReplaceConfigurationAsync(AppConfiguration config, [System.Runtime.CompilerServices.CallerMemberName] string? caller = null)
+        {
+            await _configLock.WaitAsync();
+            try
+            {
+                await SaveConfigurationAsync(config, caller);
+            }
+            finally
+            {
+                _configLock.Release();
+            }
+        }
+
         public Task<AppConfiguration> GetDefaultConfiguration()
         {
             var defaultConfig = new AppConfiguration
