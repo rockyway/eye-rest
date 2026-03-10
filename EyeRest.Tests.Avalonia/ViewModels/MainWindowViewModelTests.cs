@@ -291,7 +291,7 @@ namespace EyeRest.Tests.Avalonia.ViewModels
 
             // Assert
             _mockConfigService.Verify(x => x.GetDefaultConfiguration(), Times.AtLeastOnce);
-            _mockConfigService.Verify(x => x.SaveConfigurationAsync(It.IsAny<AppConfiguration>(), It.IsAny<string>()), Times.AtLeastOnce);
+            _mockConfigService.Verify(x => x.ReplaceConfigurationAsync(It.IsAny<AppConfiguration>(), It.IsAny<string>()), Times.AtLeastOnce);
         }
 
         [Fact]
