@@ -75,8 +75,8 @@ namespace EyeRest.Services
         }
 
         /// <summary>
-        /// Syncs the latest user configuration into the timer service without restarting.
-        /// Call this whenever timer-related settings are saved so intervals stay current.
+        /// Syncs the latest user configuration into the timer service and updates running timers.
+        /// Call this whenever timer-related settings are saved so intervals take effect immediately.
         /// </summary>
         public void UpdateConfiguration(AppConfiguration config)
         {
@@ -85,6 +85,75 @@ namespace EyeRest.Services
             _logger.LogInformation("⚙️ Timer configuration updated - Eye rest: {EyeRestInterval}min/{EyeRestDuration}sec, Break: {BreakInterval}min/{BreakDuration}min",
                 config.EyeRest.IntervalMinutes, config.EyeRest.DurationSeconds,
                 config.Break.IntervalMinutes, config.Break.DurationMinutes);
+
+            // Apply new intervals to running timers immediately
+            if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
+            {
+                ApplyUpdatedIntervalsToRunningTimers();
+            }
+        }
+
+        /// <summary>
+        /// Recalculates intervals from the current configuration and restarts running timers
+        /// so that setting changes take effect without a manual stop/start.
+        /// Already-elapsed time is subtracted so the user doesn't wait longer than the new interval.
+        /// </summary>
+        private void ApplyUpdatedIntervalsToRunningTimers()
+        {
+            try
+            {
+                var oldEyeRestInterval = _eyeRestInterval;
+                var oldBreakInterval = _breakInterval;
+
+                var (newEyeRestInterval, erTotalMin, _, _, erIsReduced) = CalculateEyeRestTimerInterval();
+                var (newBreakInterval, brTotalMin, _, _, brIsReduced) = CalculateBreakTimerInterval();
+
+                // Only restart a timer if its interval actually changed
+                if (newEyeRestInterval != oldEyeRestInterval && _eyeRestTimer != null && !_eyeRestTimerPausedForBreak && !_isEyeRestNotificationActive)
+                {
+                    _eyeRestInterval = newEyeRestInterval;
+                    var elapsed = DateTime.Now - _eyeRestStartTime;
+                    var remaining = newEyeRestInterval - elapsed;
+
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        // New interval already elapsed — fire immediately on next tick
+                        remaining = TimeSpan.FromMilliseconds(100);
+                    }
+
+                    _eyeRestTimer.Stop();
+                    _eyeRestTimer.Interval = remaining;
+                    _eyeRestTimer.Start();
+                    _eyeRestStartTime = DateTime.Now - elapsed; // preserve original start for heartbeat checks
+
+                    _logger.LogInformation("⚙️ Eye rest timer live-updated: {Old:F1}m → {New:F1}m (remaining: {Remaining:F1}m)",
+                        oldEyeRestInterval.TotalMinutes, newEyeRestInterval.TotalMinutes, remaining.TotalMinutes);
+                }
+
+                if (newBreakInterval != oldBreakInterval && _breakTimer != null && !_breakTimerPausedForEyeRest && !_isBreakNotificationActive)
+                {
+                    _breakInterval = newBreakInterval;
+                    var elapsed = DateTime.Now - _breakStartTime;
+                    var remaining = newBreakInterval - elapsed;
+
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        remaining = TimeSpan.FromMilliseconds(100);
+                    }
+
+                    _breakTimer.Stop();
+                    _breakTimer.Interval = remaining;
+                    _breakTimer.Start();
+                    _breakStartTime = DateTime.Now - elapsed;
+
+                    _logger.LogInformation("⚙️ Break timer live-updated: {Old:F1}m → {New:F1}m (remaining: {Remaining:F1}m)",
+                        oldBreakInterval.TotalMinutes, newBreakInterval.TotalMinutes, remaining.TotalMinutes);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "⚙️ Error applying updated intervals to running timers");
+            }
         }
 
         /// <summary>

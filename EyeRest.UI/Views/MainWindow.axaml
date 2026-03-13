@@ -816,7 +816,7 @@
                                                 <TextBlock Text="Work Interval" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Minimum="1" Maximum="120"
                                                         Value="{Binding BreakIntervalMinutes}"
-                                                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                                                        TickFrequency="1" IsSnapToTickEnabled="True" />
                                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,-15,0,0">
                                                     <TextBlock Grid.Column="0" Text="1 min" FontSize="11"
                                                                Foreground="{DynamicResource TextSecondaryBrush}" />

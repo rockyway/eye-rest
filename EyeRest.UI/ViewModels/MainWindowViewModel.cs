@@ -111,7 +111,7 @@ namespace EyeRest.UI.ViewModels
         // Save State
         private bool _isSaving = false;
         // Start as true to block all debounced saves until first config load completes.
-        // UpdatePropertiesFromConfiguration() will set this to false after loading.
+        // ReapplyConfigurationValues() releases this flag after UI fully stabilizes.
         private bool _isLoadingConfiguration = true;
 
         // Meeting Detection Properties
@@ -1025,7 +1025,8 @@ namespace EyeRest.UI.ViewModels
                 _originalConfiguration = CloneConfiguration(_configuration);
 
                 // Update UI properties from loaded configuration
-                UpdatePropertiesFromConfiguration();
+                // Hold loading flag — ReapplyConfigurationValues releases it after UI stabilizes
+                UpdatePropertiesFromConfiguration(holdLoadingFlag: true);
 
                 _logger.LogInformation("Configuration loaded immediately on window load - UI updated");
 
@@ -1056,7 +1057,8 @@ namespace EyeRest.UI.ViewModels
                 _originalConfiguration = CloneConfiguration(_configuration);
 
                 // Update UI properties from loaded configuration
-                UpdatePropertiesFromConfiguration();
+                // Hold loading flag — ReapplyConfigurationValues releases it after UI stabilizes
+                UpdatePropertiesFromConfiguration(holdLoadingFlag: true);
 
                 // Update donation banner visibility after config is loaded
                 UpdateDonationState();
@@ -1078,12 +1080,16 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
-        private void UpdatePropertiesFromConfiguration()
+        /// <param name="holdLoadingFlag">
+        /// When true (startup path), _isLoadingConfiguration stays true after return.
+        /// ReapplyConfigurationValues() releases it after UI stabilizes.
+        /// When false (RestoreDefaults, reload), releases the flag in a finally block.
+        /// </param>
+        private void UpdatePropertiesFromConfiguration(bool holdLoadingFlag = false)
         {
             _settingsDebounceTimer?.Stop(); // Cancel any pending save before loading
             _isLoadingConfiguration = true;
-            try
-            {
+
             _logger.LogInformation($"BEFORE UPDATE: Current UI values - EyeRest {EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, Break {BreakIntervalMinutes}min/{BreakDurationMinutes}min");
             _logger.LogInformation($"FROM CONFIG: Loading values - EyeRest {_configuration.EyeRest.IntervalMinutes}min/{_configuration.EyeRest.DurationSeconds}sec, Break {_configuration.Break.IntervalMinutes}min/{_configuration.Break.DurationMinutes}min");
 
@@ -1137,29 +1143,34 @@ namespace EyeRest.UI.ViewModels
             IdleTimeoutMinutes = _configuration.UserPresence.IdleTimeoutMinutes;
 
             _logger.LogInformation($"AFTER UPDATE: UI now shows - EyeRest {EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, Break {BreakIntervalMinutes}min/{BreakDurationMinutes}min");
-            }
-            finally
+
+            _settingsDebounceTimer?.Stop(); // Cancel any save queued by Slider write-back during load
+            if (!holdLoadingFlag)
             {
                 _isLoadingConfiguration = false;
-                _settingsDebounceTimer?.Stop(); // Cancel any save queued by Slider write-back during load
-                OnPropertyChanged(nameof(EyeRestTimerTooltip));
-                OnPropertyChanged(nameof(BreakTimerTooltip));
             }
+            OnPropertyChanged(nameof(EyeRestTimerTooltip));
+            OnPropertyChanged(nameof(BreakTimerTooltip));
         }
 
         /// <summary>
-        /// Forcefully re-apply all Slider-bound properties from the loaded configuration.
+        /// Forcefully re-apply all Slider-bound properties from the authoritative on-disk config.
         /// Called from MainWindow.OnOpened after the UI has fully rendered, to overwrite
         /// any Slider midpoint write-backs that may have occurred during XAML initialization.
+        /// Also releases the _isLoadingConfiguration flag that was held since UpdatePropertiesFromConfiguration.
         /// </summary>
-        public void ReapplyConfigurationValues()
+        public async void ReapplyConfigurationValues()
         {
-            if (_configuration == null) return;
-
-            _isLoadingConfiguration = true;
             try
             {
-                // Re-apply all Slider-bound values from the authoritative config
+                // CRITICAL: Reload from disk — the in-memory _configuration may already be
+                // corrupted by Slider midpoint write-backs that modified ViewModel properties
+                // and then flowed back into _configuration via SaveTimerSettingAsync.
+                var freshConfig = await _configurationService.LoadConfigurationAsync();
+                _configuration = freshConfig;
+                _originalConfiguration = CloneConfiguration(freshConfig);
+
+                // Re-apply all Slider-bound values from the authoritative disk config
                 EyeRestIntervalMinutes = _configuration.EyeRest.IntervalMinutes;
                 EyeRestDurationSeconds = _configuration.EyeRest.DurationSeconds;
                 EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
@@ -1173,6 +1184,10 @@ namespace EyeRest.UI.ViewModels
                 _logger.LogInformation(
                     $"🛡️ CONFIG RE-APPLY: EyeRest={EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, " +
                     $"Break={BreakIntervalMinutes}min/{BreakDurationMinutes}min, Theme={SelectedThemeMode}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "🛡️ CONFIG RE-APPLY: Failed to reload config from disk");
             }
             finally
             {
