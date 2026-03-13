@@ -33,10 +33,12 @@ namespace EyeRest.Services
         public event EventHandler? PauseTimersRequested;
         public event EventHandler? ResumeTimersRequested;
         public event EventHandler? PauseForMeetingRequested; // NEW: Manual pause for meeting
+        public event EventHandler? PauseForMeeting1hRequested;
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
 #pragma warning disable CS0067 // Windows uses its own icon rendering via IconService
         public event Action<TrayIconState>? TrayIconStateChanged;
+        public event Action<TimeSpan, TimeSpan, string>? TimerDetailsUpdated;
 #pragma warning restore CS0067
 
         public SystemTrayService(ILogger<SystemTrayService> logger, IconService iconService)
@@ -452,6 +454,7 @@ namespace EyeRest.Services
         public void OnPauseTimersRequested() => PauseTimersRequested?.Invoke(this, EventArgs.Empty);
         public void OnResumeTimersRequested() => ResumeTimersRequested?.Invoke(this, EventArgs.Empty);
         public void OnPauseForMeetingRequested() => PauseForMeetingRequested?.Invoke(this, EventArgs.Empty);
+        public void OnPauseForMeeting1hRequested() => PauseForMeeting1hRequested?.Invoke(this, EventArgs.Empty);
 
         public void Dispose()
         {

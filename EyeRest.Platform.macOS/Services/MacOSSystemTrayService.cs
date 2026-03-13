@@ -26,11 +26,13 @@ namespace EyeRest.Services
         public event EventHandler? PauseTimersRequested;
         public event EventHandler? ResumeTimersRequested;
         public event EventHandler? PauseForMeetingRequested;
+        public event EventHandler? PauseForMeeting1hRequested;
 #pragma warning disable CS0067 // Events required by interface but raised externally
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
 #pragma warning restore CS0067
         public event Action<TrayIconState>? TrayIconStateChanged;
+        public event Action<TimeSpan, TimeSpan, string>? TimerDetailsUpdated;
 
         public void Initialize()
         {
@@ -71,16 +73,21 @@ namespace EyeRest.Services
             }
         }
 
+        private string _lastStatusText = "Running";
+
         public void UpdateTimerStatus(string status)
         {
-            // Tooltip is handled by Avalonia TrayIcon ToolTipText
+            _lastStatusText = status;
             _logger.LogDebug("Timer status: {Status}", status);
         }
 
         public void UpdateTimerDetails(TimeSpan eyeRestRemaining, TimeSpan breakRemaining)
         {
-            var status = $"Eye Rest: {FormatTimeSpan(eyeRestRemaining)} | Break: {FormatTimeSpan(breakRemaining)}";
-            UpdateTimerStatus(status);
+            // _lastStatusText was set by UpdateTimerStatus() just before this call
+            var statusSnapshot = _lastStatusText;
+            var tooltipStatus = $"Eye Rest: {FormatTimeSpan(eyeRestRemaining)} | Break: {FormatTimeSpan(breakRemaining)}";
+            UpdateTimerStatus(tooltipStatus);
+            TimerDetailsUpdated?.Invoke(eyeRestRemaining, breakRemaining, statusSnapshot);
         }
 
         public void SetMeetingMode(bool isInMeeting, string meetingType = "")
@@ -103,6 +110,7 @@ namespace EyeRest.Services
         public void OnPauseTimersRequested() => PauseTimersRequested?.Invoke(this, EventArgs.Empty);
         public void OnResumeTimersRequested() => ResumeTimersRequested?.Invoke(this, EventArgs.Empty);
         public void OnPauseForMeetingRequested() => PauseForMeetingRequested?.Invoke(this, EventArgs.Empty);
+        public void OnPauseForMeeting1hRequested() => PauseForMeeting1hRequested?.Invoke(this, EventArgs.Empty);
 
         #region Private Helpers
 

@@ -2491,7 +2491,7 @@ namespace EyeRest.UI.ViewModels
 
         private void DebouncedSaveTimerSetting()
         {
-            if (_isLoadingConfiguration) return;
+            if (_isLoadingConfiguration || _disposed) return;
 
             _settingsDebounceTimer?.Stop();
             _settingsDebounceTimer?.Start();
@@ -2644,6 +2644,10 @@ namespace EyeRest.UI.ViewModels
         {
             if (!_disposed)
             {
+                // CRITICAL: Block all config saves immediately to prevent Slider teardown
+                // write-backs from corrupting config during shutdown
+                _isLoadingConfiguration = true;
+
                 if (disposing)
                 {
                     _settingsDebounceTimer?.Stop();

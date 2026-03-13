@@ -128,7 +128,8 @@ namespace EyeRest.Services
                 // Wire up system tray events
                 _systemTrayService.PauseTimersRequested += OnPauseTimersRequested;
                 _systemTrayService.ResumeTimersRequested += OnResumeTimersRequested;
-                _systemTrayService.PauseForMeetingRequested += OnPauseForMeetingRequested; // NEW
+                _systemTrayService.PauseForMeetingRequested += OnPauseForMeetingRequested;
+                _systemTrayService.PauseForMeeting1hRequested += OnPauseForMeeting1hRequested;
                 _systemTrayService.ShowTimerStatusRequested += OnShowTimerStatusRequested;
                 _systemTrayService.ShowAnalyticsRequested += OnShowAnalyticsRequested;
                 _logger.LogInformation("✅ System tray events subscribed");
@@ -216,7 +217,8 @@ namespace EyeRest.Services
                 // Unsubscribe from system tray events
                 _systemTrayService.PauseTimersRequested -= OnPauseTimersRequested;
                 _systemTrayService.ResumeTimersRequested -= OnResumeTimersRequested;
-                _systemTrayService.PauseForMeetingRequested -= OnPauseForMeetingRequested; // NEW
+                _systemTrayService.PauseForMeetingRequested -= OnPauseForMeetingRequested;
+                _systemTrayService.PauseForMeeting1hRequested -= OnPauseForMeeting1hRequested;
                 _systemTrayService.ShowTimerStatusRequested -= OnShowTimerStatusRequested;
                 _systemTrayService.ShowAnalyticsRequested -= OnShowAnalyticsRequested;
 
@@ -937,23 +939,33 @@ namespace EyeRest.Services
             }
         }
 
-        // NEW: Handle pause for meeting request
         private async void OnPauseForMeetingRequested(object? sender, EventArgs e)
+        {
+            await PauseForMeetingFromTray(TimeSpan.FromMinutes(30), "30 min");
+        }
+
+        private async void OnPauseForMeeting1hRequested(object? sender, EventArgs e)
+        {
+            await PauseForMeetingFromTray(TimeSpan.FromMinutes(60), "1 hour");
+        }
+
+        private async Task PauseForMeetingFromTray(TimeSpan duration, string label)
         {
             try
             {
-                _logger.LogInformation("🎥 30-minute meeting pause requested from system tray");
-                
+                _logger.LogInformation("🎥 {Label} meeting pause requested from system tray", label);
+
                 if (_timerService.IsRunning && !_timerService.IsManuallyPaused)
                 {
-                    // Pause for 30 minutes for meeting
-                    await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(30), "Manual meeting pause");
+                    // Close any active popups first — same behavior as UI meeting buttons
+                    await _notificationService.HideAllNotifications();
+
+                    await _timerService.PauseForDurationAsync(duration, $"Manual meeting pause ({label})");
                     _systemTrayService.UpdateTrayIcon(TrayIconState.ManuallyPaused);
-                    _systemTrayService.UpdateTimerStatus("Meeting Pause (30 min)");
-                    _systemTrayService.ShowBalloonTip("Meeting Pause Active", "Timers paused for 30 minutes. They will auto-resume when the time is up.");
-                    
-                    // Notify pause reminder service
-                    await _pauseReminderService.OnTimersPausedAsync("Manual meeting pause (30 min)");
+                    _systemTrayService.UpdateTimerStatus($"Meeting Pause ({label})");
+                    _systemTrayService.ShowBalloonTip("Meeting Pause Active", $"Timers paused for {label}. They will auto-resume when the time is up.");
+
+                    await _pauseReminderService.OnTimersPausedAsync($"Manual meeting pause ({label})");
                 }
                 else if (_timerService.IsManuallyPaused)
                 {
