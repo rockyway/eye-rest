@@ -113,6 +113,10 @@ namespace EyeRest.UI.ViewModels
         // Start as true to block all debounced saves until first config load completes.
         // UpdatePropertiesFromConfiguration() will set this to false after loading.
         private bool _isLoadingConfiguration = true;
+        // Tracks which timer properties were explicitly changed by user interaction.
+        // SaveTimerSettingAsync only writes properties in this set, preventing Slider
+        // midpoint write-back from corrupting unrelated config fields.
+        private readonly HashSet<string> _pendingTimerChanges = new();
 
         // Meeting Detection Properties
         private MeetingDetectionMethod _meetingDetectionMethod = MeetingDetectionMethod.WindowBased;
@@ -224,6 +228,7 @@ namespace EyeRest.UI.ViewModels
                 }
                 if (SetProperty(ref _eyeRestIntervalMinutes, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(EyeRestIntervalMinutes));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -236,6 +241,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _eyeRestDurationSeconds, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(EyeRestDurationSeconds));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -248,6 +254,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _eyeRestStartSoundEnabled, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(EyeRestStartSoundEnabled));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -260,6 +267,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _eyeRestEndSoundEnabled, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(EyeRestEndSoundEnabled));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -272,6 +280,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _eyeRestWarningEnabled, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(EyeRestWarningEnabled));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -284,6 +293,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _eyeRestWarningSeconds, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(EyeRestWarningSeconds));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -297,6 +307,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _breakIntervalMinutes, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(BreakIntervalMinutes));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -309,6 +320,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _breakDurationMinutes, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(BreakDurationMinutes));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -321,6 +333,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _breakWarningEnabled, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(BreakWarningEnabled));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -333,6 +346,7 @@ namespace EyeRest.UI.ViewModels
             {
                 if (SetProperty(ref _breakWarningSeconds, value) && !_isLoadingConfiguration)
                 {
+                    _pendingTimerChanges.Add(nameof(BreakWarningSeconds));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -356,9 +370,10 @@ namespace EyeRest.UI.ViewModels
             get => _requireConfirmationAfterBreak;
             set
             {
-                if (SetProperty(ref _requireConfirmationAfterBreak, value))
+                if (SetProperty(ref _requireConfirmationAfterBreak, value) && !_isLoadingConfiguration)
                 {
-                    CheckForChanges();
+                    _pendingTimerChanges.Add(nameof(RequireConfirmationAfterBreak));
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -368,9 +383,10 @@ namespace EyeRest.UI.ViewModels
             get => _resetTimersOnBreakConfirmation;
             set
             {
-                if (SetProperty(ref _resetTimersOnBreakConfirmation, value))
+                if (SetProperty(ref _resetTimersOnBreakConfirmation, value) && !_isLoadingConfiguration)
                 {
-                    CheckForChanges();
+                    _pendingTimerChanges.Add(nameof(ResetTimersOnBreakConfirmation));
+                    DebouncedSaveTimerSetting();
                 }
             }
         }
@@ -1176,8 +1192,18 @@ namespace EyeRest.UI.ViewModels
             }
             finally
             {
-                _isLoadingConfiguration = false;
-                _settingsDebounceTimer?.Stop(); // Cancel any save triggered during re-apply
+                _settingsDebounceTimer?.Stop();
+                _pendingTimerChanges.Clear();
+
+                // CRITICAL: Release the loading flag at a LOWER dispatcher priority than Layout/Loaded.
+                // This ensures all deferred Slider coercion events (which fire during layout passes)
+                // are processed while the guard is still active, preventing midpoint write-backs.
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    _isLoadingConfiguration = false;
+                    _settingsDebounceTimer?.Stop();
+                    _pendingTimerChanges.Clear();
+                }, Avalonia.Threading.DispatcherPriority.Background);
             }
         }
 
@@ -2487,23 +2513,47 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
-                _logger.LogInformation("SaveTimerSettingAsync called - auto-saving timer configuration");
+                // Snapshot and clear the dirty set atomically
+                var changed = new HashSet<string>(_pendingTimerChanges);
+                _pendingTimerChanges.Clear();
+
+                if (changed.Count == 0)
+                {
+                    _logger.LogInformation("SaveTimerSettingAsync called but no pending changes — skipping save");
+                    return;
+                }
+
+                _logger.LogInformation("SaveTimerSettingAsync called - saving {Count} changed properties: {Props}",
+                    changed.Count, string.Join(", ", changed));
 
                 await _configurationService.UpdateConfigurationAsync(config =>
                 {
-                    config.EyeRest.IntervalMinutes = EyeRestIntervalMinutes;
-                    config.EyeRest.DurationSeconds = EyeRestDurationSeconds;
-                    config.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
-                    config.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
-                    config.EyeRest.WarningEnabled = EyeRestWarningEnabled;
-                    config.EyeRest.WarningSeconds = EyeRestWarningSeconds;
-                    config.Break.IntervalMinutes = BreakIntervalMinutes;
-                    config.Break.DurationMinutes = BreakDurationMinutes;
-                    config.Break.WarningEnabled = BreakWarningEnabled;
-                    config.Break.WarningSeconds = BreakWarningSeconds;
-                    config.Break.OverlayOpacityPercent = OverlayOpacityPercent;
-                    config.Break.RequireConfirmationAfterBreak = RequireConfirmationAfterBreak;
-                    config.Break.ResetTimersOnBreakConfirmation = ResetTimersOnBreakConfirmation;
+                    // Only write properties the user explicitly changed.
+                    // This prevents Slider midpoint write-back from corrupting unrelated fields.
+                    if (changed.Contains(nameof(EyeRestIntervalMinutes)))
+                        config.EyeRest.IntervalMinutes = EyeRestIntervalMinutes;
+                    if (changed.Contains(nameof(EyeRestDurationSeconds)))
+                        config.EyeRest.DurationSeconds = EyeRestDurationSeconds;
+                    if (changed.Contains(nameof(EyeRestStartSoundEnabled)))
+                        config.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
+                    if (changed.Contains(nameof(EyeRestEndSoundEnabled)))
+                        config.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
+                    if (changed.Contains(nameof(EyeRestWarningEnabled)))
+                        config.EyeRest.WarningEnabled = EyeRestWarningEnabled;
+                    if (changed.Contains(nameof(EyeRestWarningSeconds)))
+                        config.EyeRest.WarningSeconds = EyeRestWarningSeconds;
+                    if (changed.Contains(nameof(BreakIntervalMinutes)))
+                        config.Break.IntervalMinutes = BreakIntervalMinutes;
+                    if (changed.Contains(nameof(BreakDurationMinutes)))
+                        config.Break.DurationMinutes = BreakDurationMinutes;
+                    if (changed.Contains(nameof(BreakWarningEnabled)))
+                        config.Break.WarningEnabled = BreakWarningEnabled;
+                    if (changed.Contains(nameof(BreakWarningSeconds)))
+                        config.Break.WarningSeconds = BreakWarningSeconds;
+                    if (changed.Contains(nameof(RequireConfirmationAfterBreak)))
+                        config.Break.RequireConfirmationAfterBreak = RequireConfirmationAfterBreak;
+                    if (changed.Contains(nameof(ResetTimersOnBreakConfirmation)))
+                        config.Break.ResetTimersOnBreakConfirmation = ResetTimersOnBreakConfirmation;
                     _configuration = config;
                 });
                 _originalConfiguration = CloneConfiguration(_configuration);

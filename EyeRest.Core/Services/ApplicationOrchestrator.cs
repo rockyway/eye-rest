@@ -86,7 +86,7 @@ namespace EyeRest.Services
 
             try
             {
-                _logger.LogCritical($"🚀 ORCHESTRATOR INITIALIZATION STARTED at {DateTime.Now:HH:mm:ss.fff} - Process ID: {Environment.ProcessId}");
+                _logger.LogInformation($"🚀 ORCHESTRATOR INITIALIZATION STARTED at {DateTime.Now:HH:mm:ss.fff} - Process ID: {Environment.ProcessId}");
                 _logger.LogInformation("🚀 Initializing comprehensive application orchestrator with advanced features");
 
                 // Initialize analytics database (always run - uses IF NOT EXISTS for safety,
@@ -151,9 +151,9 @@ namespace EyeRest.Services
                 _systemTrayService.UpdateTimerStatus("Ready");
                 
                 // CRITICAL: Start the timer service - this was missing!
-                _logger.LogCritical($"🎯 Starting timer service at {DateTime.Now:HH:mm:ss.fff}");
+                _logger.LogInformation($"🎯 Starting timer service at {DateTime.Now:HH:mm:ss.fff}");
                 await _timerService.StartAsync();
-                _logger.LogCritical($"✅ Timer service started successfully - timers are now active");
+                _logger.LogInformation($"✅ Timer service started successfully - timers are now active");
                 
                 // ENHANCED: Start periodic timer details update for system tray tooltip
                 StartTrayUpdateTimer();
@@ -167,7 +167,7 @@ namespace EyeRest.Services
                 StartUsageTrackingTimer();
 
                 _isInitialized = true;
-                _logger.LogCritical($"✅ ORCHESTRATOR INITIALIZATION COMPLETED at {DateTime.Now:HH:mm:ss.fff} - ALL SERVICES ACTIVE");
+                _logger.LogInformation($"✅ ORCHESTRATOR INITIALIZATION COMPLETED at {DateTime.Now:HH:mm:ss.fff} - ALL SERVICES ACTIVE");
                 _logger.LogInformation("🎯 Comprehensive application orchestrator initialized successfully - ALL ADVANCED FEATURES ACTIVE");
             }
             catch (Exception ex)
@@ -349,17 +349,17 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogCritical("🚨🚨🚨 BREAK WARNING RECEIVED BY ORCHESTRATOR! 🚨🚨🚨");
-                _logger.LogCritical($"Break warning triggered with smart timer coordination at {DateTime.Now:HH:mm:ss}");
+                _logger.LogInformation("🚨🚨🚨 BREAK WARNING RECEIVED BY ORCHESTRATOR! 🚨🚨🚨");
+                _logger.LogInformation($"Break warning triggered with smart timer coordination at {DateTime.Now:HH:mm:ss}");
                 _logger.LogInformation($"🧠 Smart coordination: Eye rest timer is paused during break warning to prevent conflicts");
 
                 // Play warning sound
                 await _audioService.PlayBreakWarningSound();
 
                 // Show break warning
-                _logger.LogCritical("🚨 CALLING NotificationService.ShowBreakWarningAsync...");
+                _logger.LogInformation("🚨 CALLING NotificationService.ShowBreakWarningAsync...");
                 await _notificationService.ShowBreakWarningAsync(e.NextInterval);
-                _logger.LogCritical("🚨 NotificationService.ShowBreakWarningAsync COMPLETED");
+                _logger.LogInformation("🚨 NotificationService.ShowBreakWarningAsync COMPLETED");
 
                 _logger.LogInformation("Break warning completed");
             }
@@ -599,7 +599,7 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogCritical($"👤 USER PRESENCE: Changed from {e.PreviousState} → {e.CurrentState} at {DateTime.Now:HH:mm:ss.fff}");
+                _logger.LogInformation($"👤 USER PRESENCE: Changed from {e.PreviousState} → {e.CurrentState} at {DateTime.Now:HH:mm:ss.fff}");
                 
                 // CRITICAL FIX: Validate state transition to prevent invalid presence changes
                 if (e.PreviousState == e.CurrentState)
@@ -619,11 +619,11 @@ namespace EyeRest.Services
                     // Check if we have an active break popup waiting for confirmation
                     if (_notificationService.IsBreakActive)
                     {
-                        _logger.LogCritical($"👤 USER PRESENCE: User no longer present but break is active - keeping popup open for confirmation");
+                        _logger.LogInformation($"👤 USER PRESENCE: User no longer present but break is active - keeping popup open for confirmation");
                     }
                     else
                     {
-                        _logger.LogCritical($"👤 USER PRESENCE: User no longer present - clearing active popups");
+                        _logger.LogInformation($"👤 USER PRESENCE: User no longer present - clearing active popups");
                         await _notificationService.HideAllNotifications();
                     }
                 }
@@ -658,12 +658,12 @@ namespace EyeRest.Services
                         // CRITICAL FIX: Clear manual pause state when user returns
                         if (_timerService.IsManuallyPaused)
                         {
-                            _logger.LogCritical($"👤 USER PRESENT FIX: Manual pause active when user returned - clearing manual pause state");
+                            _logger.LogWarning($"👤 USER PRESENT FIX: Manual pause active when user returned - clearing manual pause state");
 
                             try
                             {
                                 await _timerService.ResumeAsync();
-                                _logger.LogCritical($"👤 MANUAL PAUSE CLEARED: Timer service resumed, IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
+                                _logger.LogWarning($"👤 MANUAL PAUSE CLEARED: Timer service resumed, IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                             }
                             catch (Exception ex)
                             {
@@ -684,11 +684,11 @@ namespace EyeRest.Services
                         // CRITICAL FIX: Ensure service is running even if no pause states detected
                         else if (!_timerService.IsRunning)
                         {
-                            _logger.LogCritical($"👤 USER PRESENT FIX: Timer service stopped with no pause states - ensuring service restart");
+                            _logger.LogWarning($"👤 USER PRESENT FIX: Timer service stopped with no pause states - ensuring service restart");
                             try
                             {
                                 await _timerService.StartAsync();
-                                _logger.LogCritical($"👤 SERVICE RESTART: Timer service started, IsRunning={_timerService.IsRunning}");
+                                _logger.LogWarning($"👤 SERVICE RESTART: Timer service started, IsRunning={_timerService.IsRunning}");
                                 _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                                 _systemTrayService.UpdateTimerStatus("Running");
                             }
@@ -734,17 +734,17 @@ namespace EyeRest.Services
 
                 var config = _cachedConfig ?? await _configurationService.LoadConfigurationAsync();
 
-                _logger.LogCritical($"🔥 EXTENDED AWAY SESSION DETECTED!");
-                _logger.LogCritical($"🔥 Away duration: {e.TotalAwayTime.TotalMinutes:F1} minutes");
-                _logger.LogCritical($"🔥 Away start: {e.AwayStartTime:HH:mm:ss}, Return: {e.ReturnTime:HH:mm:ss}");
-                _logger.LogCritical($"🔥 Config - EnableSmartSessionReset: {config.UserPresence.EnableSmartSessionReset}");
-                _logger.LogCritical($"🔥 Config - ExtendedAwayThresholdMinutes: {config.UserPresence.ExtendedAwayThresholdMinutes}");
-                _logger.LogCritical($"🔥 Config - ShowSessionResetNotification: {config.UserPresence.ShowSessionResetNotification}");
+                _logger.LogInformation($"🔥 EXTENDED AWAY SESSION DETECTED!");
+                _logger.LogInformation($"🔥 Away duration: {e.TotalAwayTime.TotalMinutes:F1} minutes");
+                _logger.LogInformation($"🔥 Away start: {e.AwayStartTime:HH:mm:ss}, Return: {e.ReturnTime:HH:mm:ss}");
+                _logger.LogInformation($"🔥 Config - EnableSmartSessionReset: {config.UserPresence.EnableSmartSessionReset}");
+                _logger.LogInformation($"🔥 Config - ExtendedAwayThresholdMinutes: {config.UserPresence.ExtendedAwayThresholdMinutes}");
+                _logger.LogInformation($"🔥 Config - ShowSessionResetNotification: {config.UserPresence.ShowSessionResetNotification}");
 
                 // Check if smart session reset is enabled
                 if (!config.UserPresence.EnableSmartSessionReset)
                 {
-                    _logger.LogCritical($"🚨 SMART SESSION RESET DISABLED - Extended away session detected ({e.TotalAwayTime.TotalMinutes:F1} min) but smart session reset is disabled in config");
+                    _logger.LogInformation($"🚨 SMART SESSION RESET DISABLED - Extended away session detected ({e.TotalAwayTime.TotalMinutes:F1} min) but smart session reset is disabled in config");
                     return;
                 }
 
@@ -1178,16 +1178,16 @@ namespace EyeRest.Services
                         {
                             if (!_timerService.IsManuallyPaused && !isSmartPaused && !isPaused)
                             {
-                                _logger.LogCritical($"🚨 MANUAL PAUSE COORDINATION ISSUE DETECTED: User present, timers stopped, but no pause states active");
-                                _logger.LogCritical($"🚨 This indicates manual pause was cleared during recovery but timer service coordination failed");
-                                _logger.LogCritical($"🚨 State: IsRunning={timerState}, IsManuallyPaused={_timerService.IsManuallyPaused}, IsSmartPaused={isSmartPaused}, IsPaused={isPaused}");
+                                _logger.LogWarning($"🚨 MANUAL PAUSE COORDINATION ISSUE DETECTED: User present, timers stopped, but no pause states active");
+                                _logger.LogWarning($"🚨 This indicates manual pause was cleared during recovery but timer service coordination failed");
+                                _logger.LogWarning($"🚨 State: IsRunning={timerState}, IsManuallyPaused={_timerService.IsManuallyPaused}, IsSmartPaused={isSmartPaused}, IsPaused={isPaused}");
                                 
                                 // Direct restart instead of recovery to avoid complex recovery logic
                                 try
                                 {
-                                    _logger.LogCritical($"🔧 MANUAL PAUSE COORDINATION FIX: Attempting direct timer service restart");
+                                    _logger.LogWarning($"🔧 MANUAL PAUSE COORDINATION FIX: Attempting direct timer service restart");
                                     await _timerService.StartAsync();
-                                    _logger.LogCritical($"🔧 MANUAL PAUSE COORDINATION SUCCESS: Timer service restarted after clearing pause states: IsRunning={_timerService.IsRunning}");
+                                    _logger.LogWarning($"🔧 MANUAL PAUSE COORDINATION SUCCESS: Timer service restarted after clearing pause states: IsRunning={_timerService.IsRunning}");
                                 }
                                 catch (Exception startEx)
                                 {

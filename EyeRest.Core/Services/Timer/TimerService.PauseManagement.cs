@@ -139,7 +139,7 @@ namespace EyeRest.Services
                     var elapsed = DateTime.Now - _eyeRestStartTime;
                     var remaining = _eyeRestInterval - elapsed;
                     _eyeRestRemainingTime = remaining > TimeSpan.Zero ? remaining : _eyeRestInterval;
-                    _logger.LogCritical($"🔧 SMART PAUSE: Preserved eye rest remaining time: {_eyeRestRemainingTime.TotalMinutes:F1} minutes");
+                    _logger.LogInformation($"🔧 SMART PAUSE: Preserved eye rest remaining time: {_eyeRestRemainingTime.TotalMinutes:F1} minutes");
                 }
 
                 if (_breakTimer?.IsEnabled == true && _breakStartTime != DateTime.MinValue)
@@ -147,13 +147,13 @@ namespace EyeRest.Services
                     var elapsed = DateTime.Now - _breakStartTime;
                     var remaining = _breakInterval - elapsed;
                     _breakRemainingTime = remaining > TimeSpan.Zero ? remaining : _breakInterval;
-                    _logger.LogCritical($"🔧 SMART PAUSE: Preserved break remaining time: {_breakRemainingTime.TotalMinutes:F1} minutes");
+                    _logger.LogInformation($"🔧 SMART PAUSE: Preserved break remaining time: {_breakRemainingTime.TotalMinutes:F1} minutes");
                 }
 
                 IsSmartPaused = true;
                 _pauseReason = reason;
                 _pauseStartTime = DateTime.Now; // Track when pause started for extended away detection
-                _logger.LogCritical($"🔄 PAUSE LIFECYCLE: Smart pause activated - Reason: '{reason}', PauseStartTime: {_pauseStartTime:HH:mm:ss}");
+                _logger.LogInformation($"🔄 PAUSE LIFECYCLE: Smart pause activated - Reason: '{reason}', PauseStartTime: {_pauseStartTime:HH:mm:ss}");
                 
                 _eyeRestTimer?.Stop();
                 _breakTimer?.Stop();
@@ -211,20 +211,20 @@ namespace EyeRest.Services
                 // after the user returned from a long idle period.
                 var savedPauseStartTime = _pauseStartTime;
                 _pauseStartTime = DateTime.MinValue; // Clear pause start time
-                _logger.LogCritical($"🔄 PAUSE LIFECYCLE: Smart pause cleared - Reason: '{reason}', PauseReason cleared: '{_pauseReason}' → ''");
+                _logger.LogInformation($"🔄 PAUSE LIFECYCLE: Smart pause cleared - Reason: '{reason}', PauseReason cleared: '{_pauseReason}' → ''");
 
                 if (!IsPaused)
                 {
                     // Ensure timers are actually created before starting
                     if (_eyeRestTimer == null)
                     {
-                        _logger.LogCritical($"🔧 SMART RESUME FIX: Eye rest timer is null - recreating");
+                        _logger.LogWarning($"🔧 SMART RESUME FIX: Eye rest timer is null - recreating");
                         InitializeEyeRestTimer();
                     }
 
                     if (_breakTimer == null)
                     {
-                        _logger.LogCritical($"🔧 SMART RESUME FIX: Break timer is null - recreating");
+                        _logger.LogWarning($"🔧 SMART RESUME FIX: Break timer is null - recreating");
                         InitializeBreakTimer();
                     }
 
@@ -235,7 +235,7 @@ namespace EyeRest.Services
                     var eyeRestDurationSeconds = _configuration?.EyeRest?.DurationSeconds ?? 20;
                     var eyeRestIntervalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;
 
-                    _logger.LogCritical($"🧠 SMART RESUME: Idle duration={idleDuration.TotalMinutes:F1}min, EyeRest duration={eyeRestDurationSeconds}s, EyeRest interval={eyeRestIntervalMinutes}min");
+                    _logger.LogInformation($"🧠 SMART RESUME: Idle duration={idleDuration.TotalMinutes:F1}min, EyeRest duration={eyeRestDurationSeconds}s, EyeRest interval={eyeRestIntervalMinutes}min");
 
                     // If user was idle longer than the eye rest duration (e.g., 20s), they already
                     // rested their eyes naturally — reset eye rest timer to full interval
@@ -250,14 +250,14 @@ namespace EyeRest.Services
                         _eyeRestTimer!.Interval = _eyeRestInterval;
                         _eyeRestStartTime = DateTime.Now;
                         _eyeRestRemainingTime = TimeSpan.Zero;
-                        _logger.LogCritical($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {eyeRestDurationSeconds}s eye rest) — reset eye rest to full {_eyeRestInterval.TotalMinutes:F1}min");
+                        _logger.LogInformation($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {eyeRestDurationSeconds}s eye rest) — reset eye rest to full {_eyeRestInterval.TotalMinutes:F1}min");
                     }
                     else if (_eyeRestRemainingTime > TimeSpan.Zero)
                     {
                         _eyeRestInterval = _eyeRestRemainingTime;
                         _eyeRestTimer!.Interval = _eyeRestRemainingTime;
                         _eyeRestStartTime = DateTime.Now;
-                        _logger.LogCritical($"🔧 SMART RESUME: Restored eye rest remaining {_eyeRestRemainingTime.TotalMinutes:F1}min");
+                        _logger.LogInformation($"🔧 SMART RESUME: Restored eye rest remaining {_eyeRestRemainingTime.TotalMinutes:F1}min");
                     }
 
                     if (idleDuration.TotalMinutes >= breakDurationMinutes)
@@ -269,7 +269,7 @@ namespace EyeRest.Services
                         _breakStartTime = DateTime.Now;
                         _breakTimerStartTime = DateTime.Now;
                         _breakRemainingTime = TimeSpan.Zero;
-                        _logger.LogCritical($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {breakDurationMinutes}min break) — reset break to full {_breakInterval.TotalMinutes:F1}min");
+                        _logger.LogInformation($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {breakDurationMinutes}min break) — reset break to full {_breakInterval.TotalMinutes:F1}min");
                     }
                     else if (_breakRemainingTime > TimeSpan.Zero)
                     {
@@ -277,7 +277,7 @@ namespace EyeRest.Services
                         _breakTimer!.Interval = _breakRemainingTime;
                         _breakStartTime = DateTime.Now;
                         _breakTimerStartTime = DateTime.Now;
-                        _logger.LogCritical($"🔧 SMART RESUME: Restored break remaining {_breakRemainingTime.TotalMinutes:F1}min");
+                        _logger.LogInformation($"🔧 SMART RESUME: Restored break remaining {_breakRemainingTime.TotalMinutes:F1}min");
                     }
                     else
                     {
@@ -294,7 +294,7 @@ namespace EyeRest.Services
                     _breakTimer?.Start();
                     UpdateHeartbeatFromOperation("SmartResume");
 
-                    _logger.LogCritical($"🧠 Smart resume conditions - Timers started: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
+                    _logger.LogInformation($"🧠 Smart resume conditions - Timers started: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
 
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.SmartDetection);
 
@@ -319,14 +319,14 @@ namespace EyeRest.Services
                 // Reload configuration to ensure the latest user settings are applied
                 _configuration = await _configurationService.LoadConfigurationAsync();
 
-                _logger.LogCritical($"🔥 SMART SESSION RESET INITIATED - Reason: {reason}");
-                _logger.LogCritical($"🔥 Starting fresh {_configuration.EyeRest.IntervalMinutes}min/{_configuration.Break.IntervalMinutes}min cycle");
+                _logger.LogInformation($"🔥 SMART SESSION RESET INITIATED - Reason: {reason}");
+                _logger.LogInformation($"🔥 Starting fresh {_configuration.EyeRest.IntervalMinutes}min/{_configuration.Break.IntervalMinutes}min cycle");
                 
                 // Calculate current remaining times for logging
                 var eyeRestRemainingBefore = TimeUntilNextEyeRest;
                 var breakRemainingBefore = TimeUntilNextBreak;
                 
-                _logger.LogCritical($"🔥 BEFORE RESET - Eye rest remaining: {eyeRestRemainingBefore}, Break remaining: {breakRemainingBefore}");
+                _logger.LogInformation($"🔥 BEFORE RESET - Eye rest remaining: {eyeRestRemainingBefore}, Break remaining: {breakRemainingBefore}");
                 
                 // Stop all timers
                 _eyeRestTimer?.Stop();
@@ -338,20 +338,20 @@ namespace EyeRest.Services
 
                 // CRITICAL FIX: Stop and dispose warning fallback timers to prevent orphaned handlers
                 // These timers may be running with captured state from old warning handlers
-                _logger.LogCritical("🧹 SESSION RESET: Disposing warning fallback timers to prevent orphaned handlers");
+                _logger.LogInformation("🧹 SESSION RESET: Disposing warning fallback timers to prevent orphaned handlers");
                 try
                 {
                     if (_eyeRestWarningFallbackTimer != null)
                     {
                         _eyeRestWarningFallbackTimer.Stop();
                         _eyeRestWarningFallbackTimer = null;
-                        _logger.LogCritical("🧹 SESSION RESET: Eye rest warning fallback timer disposed");
+                        _logger.LogInformation("🧹 SESSION RESET: Eye rest warning fallback timer disposed");
                     }
                     if (_breakWarningFallbackTimer != null)
                     {
                         _breakWarningFallbackTimer.Stop();
                         _breakWarningFallbackTimer = null;
-                        _logger.LogCritical("🧹 SESSION RESET: Break warning fallback timer disposed");
+                        _logger.LogInformation("🧹 SESSION RESET: Break warning fallback timer disposed");
                     }
                 }
                 catch (Exception fallbackEx)
@@ -361,7 +361,7 @@ namespace EyeRest.Services
 
                 // CRITICAL FIX: Force complete any active warning popups to prevent frozen countdowns
                 // This prevents orphaned warning handlers from continuing to update stale popup references
-                _logger.LogCritical("🧹 SESSION RESET: Forcing completion of any active warning popups");
+                _logger.LogInformation("🧹 SESSION RESET: Forcing completion of any active warning popups");
                 try
                 {
                     // Get the notification service type to access private warning popup fields
@@ -376,7 +376,7 @@ namespace EyeRest.Services
                         var activeEyeRestWarningPopup = activeEyeRestWarningField?.GetValue(_notificationService);
                         if (activeEyeRestWarningPopup != null)
                         {
-                            _logger.LogCritical("🧹 SESSION RESET: Active eye rest warning popup found - forcing completion");
+                            _logger.LogInformation("🧹 SESSION RESET: Active eye rest warning popup found - forcing completion");
                             try
                             {
                                 // Get the WarningCompleted event
@@ -392,7 +392,7 @@ namespace EyeRest.Services
                                     {
                                         raiseMethod.Invoke(activeEyeRestWarningPopup,
                                             new object[] { activeEyeRestWarningPopup, EventArgs.Empty });
-                                        _logger.LogCritical("🧹 SESSION RESET: Eye rest warning popup completion event forced");
+                                        _logger.LogInformation("🧹 SESSION RESET: Eye rest warning popup completion event forced");
                                     }
                                 }
                             }
@@ -410,7 +410,7 @@ namespace EyeRest.Services
                         var activeBreakWarningPopup = activeBreakWarningField?.GetValue(_notificationService);
                         if (activeBreakWarningPopup != null)
                         {
-                            _logger.LogCritical("🧹 SESSION RESET: Active break warning popup found - forcing completion");
+                            _logger.LogInformation("🧹 SESSION RESET: Active break warning popup found - forcing completion");
                             try
                             {
                                 // Get the WarningCompleted event
@@ -426,7 +426,7 @@ namespace EyeRest.Services
                                     {
                                         raiseMethod.Invoke(activeBreakWarningPopup,
                                             new object[] { activeBreakWarningPopup, EventArgs.Empty });
-                                        _logger.LogCritical("🧹 SESSION RESET: Break warning popup completion event forced");
+                                        _logger.LogInformation("🧹 SESSION RESET: Break warning popup completion event forced");
                                     }
                                 }
                             }
@@ -456,14 +456,14 @@ namespace EyeRest.Services
                     _manualPauseTimer.Stop();
                     _manualPauseTimer.Tick -= OnManualPauseTimerTick;
                     _manualPauseTimer = null;
-                    _logger.LogCritical("🔧 SESSION RESET: Manual pause timer disposed during smart reset");
+                    _logger.LogInformation("🔧 SESSION RESET: Manual pause timer disposed during smart reset");
                 }
 
                 // CRITICAL FIX: Clear all popup windows before resetting to prevent stale popups
                 // This prevents race condition where old popups remain after session reset
                 try
                 {
-                    _logger.LogCritical("🧹 SESSION RESET: Clearing all popup windows for fresh session");
+                    _logger.LogInformation("🧹 SESSION RESET: Clearing all popup windows for fresh session");
                     _notificationService?.HideAllNotifications();
 
                     // Force clear notification service popup state using reflection
@@ -476,7 +476,7 @@ namespace EyeRest.Services
                     activeEyeRestField?.SetValue(_notificationService, null);
                     activeBreakField?.SetValue(_notificationService, null);
 
-                    _logger.LogCritical("🧹 SESSION RESET: All popup references cleared successfully");
+                    _logger.LogInformation("🧹 SESSION RESET: All popup references cleared successfully");
                 }
                 catch (Exception popupEx)
                 {
@@ -495,7 +495,7 @@ namespace EyeRest.Services
                 ClearBreakProcessingFlag();
                 ClearEyeRestWarningProcessingFlag();
                 ClearBreakWarningProcessingFlag();
-                _logger.LogCritical("🔄 SESSION RESET: Cleared all event processing flags to prevent stale lock state");
+                _logger.LogInformation("🔄 SESSION RESET: Cleared all event processing flags to prevent stale lock state");
 
                 // CRITICAL P0 FIX: Clear break completion state to prevent orphaned completion events
                 // This prevents force-closed break popups from triggering smart pause later if their orphaned timer fires
@@ -514,12 +514,12 @@ namespace EyeRest.Services
                     if (waitingForBreakField != null)
                     {
                         waitingForBreakField.SetValue(_notificationService, false);
-                        _logger.LogCritical("🔄 SESSION RESET: Cleared _isWaitingForBreakConfirmation flag to prevent orphaned completion events");
+                        _logger.LogInformation("🔄 SESSION RESET: Cleared _isWaitingForBreakConfirmation flag to prevent orphaned completion events");
                     }
                     if (completionInProgressField != null)
                     {
                         completionInProgressField.SetValue(_notificationService, false);
-                        _logger.LogCritical("🔄 SESSION RESET: Cleared _isBreakCompletionInProgress flag to prevent orphaned completion events");
+                        _logger.LogInformation("🔄 SESSION RESET: Cleared _isBreakCompletionInProgress flag to prevent orphaned completion events");
                     }
                 }
                 catch (Exception ex)
@@ -544,12 +544,12 @@ namespace EyeRest.Services
                     if (idleStartTimeField != null)
                     {
                         idleStartTimeField.SetValue(_userPresenceService, default(DateTime));
-                        _logger.LogCritical("🔄 P0 FIX - SESSION RESET: Cleared _idleStartTime tracking to prevent stale idle detection");
+                        _logger.LogInformation("🔄 P0 FIX - SESSION RESET: Cleared _idleStartTime tracking to prevent stale idle detection");
                     }
                     if (hasBeenAwayExtendedField != null)
                     {
                         hasBeenAwayExtendedField.SetValue(_userPresenceService, false);
-                        _logger.LogCritical("🔄 P0 FIX - SESSION RESET: Reset _hasBeenAwayExtended flag for fresh session");
+                        _logger.LogInformation("🔄 P0 FIX - SESSION RESET: Reset _hasBeenAwayExtended flag for fresh session");
                     }
                 }
                 catch (Exception ex)
@@ -573,7 +573,7 @@ namespace EyeRest.Services
                 _lastEyeRestTick = DateTime.MinValue;
                 _lastBreakTick = DateTime.MinValue;
                 _lastSystemCheck = DateTime.Now;
-                _logger.LogCritical("🔥 CLOCK JUMP DETECTION: Timestamps cleared for fresh session");
+                _logger.LogInformation("🔥 CLOCK JUMP DETECTION: Timestamps cleared for fresh session");
                 
                 // Set timers to full intervals using shared calculation (respects WarningEnabled)
                 var (eyeRestInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
@@ -584,13 +584,13 @@ namespace EyeRest.Services
                 // CRITICAL FIX: Ensure timers exist and are properly initialized before starting
                 if (_eyeRestTimer == null)
                 {
-                    _logger.LogCritical("🔥 SMART SESSION RESET FIX: Eye rest timer is null - creating new timer");
+                    _logger.LogWarning("🔥 SMART SESSION RESET FIX: Eye rest timer is null - creating new timer");
                     InitializeEyeRestTimer();
                 }
                 
                 if (_breakTimer == null)
                 {
-                    _logger.LogCritical("🔥 SMART SESSION RESET FIX: Break timer is null - creating new timer");
+                    _logger.LogWarning("🔥 SMART SESSION RESET FIX: Break timer is null - creating new timer");
                     InitializeBreakTimer();
                 }
                 
@@ -619,14 +619,14 @@ namespace EyeRest.Services
                 var eyeRestRemainingAfter = TimeUntilNextEyeRest;
                 var breakRemainingAfter = TimeUntilNextBreak;
                 
-                _logger.LogCritical($"🔥 AFTER RESET - Eye rest remaining: {eyeRestRemainingAfter}, Break remaining: {breakRemainingAfter}");
-                _logger.LogCritical($"🔥 TIMER CONFIG - Eye rest: {_configuration.EyeRest.IntervalMinutes}min, Break: {_configuration.Break.IntervalMinutes}min, Break warning: {_configuration.Break.WarningSeconds}s");
-                _logger.LogCritical($"🔥 TIMER INTERVALS - Break timer actual interval: {_breakTimer?.Interval.TotalMinutes:F1}min, Break display interval: {_breakInterval.TotalMinutes:F1}min");
+                _logger.LogInformation($"🔥 AFTER RESET - Eye rest remaining: {eyeRestRemainingAfter}, Break remaining: {breakRemainingAfter}");
+                _logger.LogInformation($"🔥 TIMER CONFIG - Eye rest: {_configuration.EyeRest.IntervalMinutes}min, Break: {_configuration.Break.IntervalMinutes}min, Break warning: {_configuration.Break.WarningSeconds}s");
+                _logger.LogInformation($"🔥 TIMER INTERVALS - Break timer actual interval: {_breakTimer?.Interval.TotalMinutes:F1}min, Break display interval: {_breakInterval.TotalMinutes:F1}min");
                 
                 // Record analytics event
                 await _analyticsService.RecordResumeEventAsync(ResumeReason.NewWorkingSession);
                 
-                _logger.LogCritical($"✅ SMART SESSION RESET COMPLETED - fresh {_configuration.EyeRest.IntervalMinutes}min/{_configuration.Break.IntervalMinutes}min cycle started");
+                _logger.LogInformation($"✅ SMART SESSION RESET COMPLETED - fresh {_configuration.EyeRest.IntervalMinutes}min/{_configuration.Break.IntervalMinutes}min cycle started");
                 
                 // Notify property changes for UI updates
                 OnPropertyChanged(nameof(TimeUntilNextEyeRest));

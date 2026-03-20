@@ -17,7 +17,7 @@ namespace EyeRest.Services
             try
             {
                 var now = DateTime.Now;
-                _logger.LogCritical($"👁️ TIMER EVENT: Eye rest timer tick fired at {now:HH:mm:ss.fff}");
+                _logger.LogInformation($"👁️ TIMER EVENT: Eye rest timer tick fired at {now:HH:mm:ss.fff}");
                 
                 // ENHANCED CLOCK JUMP DETECTION: Check time since last tick AND system resume
                 if (_lastEyeRestTick != DateTime.MinValue)
@@ -53,9 +53,9 @@ namespace EyeRest.Services
                     
                     if (likelySystemWake)
                     {
-                        _logger.LogCritical($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
-                        _logger.LogCritical($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
-                        
+                        _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
+                        _logger.LogWarning($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
+
                         // Reset session instead of triggering eye rest
                         _ = Task.Run(async () =>
                         {
@@ -94,16 +94,16 @@ namespace EyeRest.Services
                 // CRITICAL FIX: Verify timer timing is correct
                 var elapsed = now - _eyeRestStartTime;
                 var expectedInterval = _eyeRestInterval;
-                _logger.LogCritical("👁️ TIMER VERIFICATION: Timer elapsed={ElapsedMinutes:F2}m, expected={ExpectedMinutes:F2}m", 
+                _logger.LogInformation("👁️ TIMER VERIFICATION: Timer elapsed={ElapsedMinutes:F2}m, expected={ExpectedMinutes:F2}m",
                     elapsed.TotalMinutes, expectedInterval.TotalMinutes);
                 
                 // CLOCK JUMP DETECTION: Check if elapsed time indicates system sleep
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
-                    _logger.LogCritical($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
-                    _logger.LogCritical($"⏰ System likely woke from sleep - initiating smart session reset");
-                    
+                    _logger.LogWarning($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
+                    _logger.LogWarning($"⏰ System likely woke from sleep - initiating smart session reset");
+
                     // Reset session instead of triggering eye rest
                     _ = Task.Run(async () =>
                     {
@@ -127,13 +127,13 @@ namespace EyeRest.Services
                         elapsed < expectedInterval ? "before" : "after");
                 }
                 
-                _logger.LogCritical("👁️ TIMER EVENT: Stopping eye rest timer and starting warning timer");
+                _logger.LogInformation("👁️ TIMER EVENT: Stopping eye rest timer and starting warning timer");
                 _eyeRestTimer?.Stop();
                 
                 // Use public method to ensure proper thread safety
                 StartEyeRestWarningTimer();
                 
-                _logger.LogCritical("👁️ TIMER EVENT: Eye rest timer tick completed successfully");
+                _logger.LogInformation("👁️ TIMER EVENT: Eye rest timer tick completed successfully");
             }
             catch (Exception ex)
             {
@@ -158,7 +158,7 @@ namespace EyeRest.Services
             try
             {
                 var now = DateTime.Now;
-                _logger.LogCritical($"☕ TIMER EVENT: Break timer tick fired at {now:HH:mm:ss.fff}");
+                _logger.LogInformation($"☕ TIMER EVENT: Break timer tick fired at {now:HH:mm:ss.fff}");
                 
                 // ENHANCED CLOCK JUMP DETECTION: Check time since last tick AND system resume
                 if (_lastBreakTick != DateTime.MinValue)
@@ -194,9 +194,9 @@ namespace EyeRest.Services
                     
                     if (likelySystemWake)
                     {
-                        _logger.LogCritical($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
-                        _logger.LogCritical($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
-                        
+                        _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
+                        _logger.LogWarning($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
+
                         // Reset session instead of triggering break
                         _ = Task.Run(async () =>
                         {
@@ -240,9 +240,9 @@ namespace EyeRest.Services
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
-                    _logger.LogCritical($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
-                    _logger.LogCritical($"⏰ System likely woke from sleep - initiating smart session reset");
-                    
+                    _logger.LogWarning($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
+                    _logger.LogWarning($"⏰ System likely woke from sleep - initiating smart session reset");
+
                     // Reset session instead of triggering break
                     _ = Task.Run(async () =>
                     {
@@ -257,13 +257,13 @@ namespace EyeRest.Services
                     return;
                 }
                 
-                _logger.LogCritical("☕ TIMER EVENT: Stopping break timer and starting warning timer");
+                _logger.LogInformation("☕ TIMER EVENT: Stopping break timer and starting warning timer");
                 _breakTimer?.Stop();
                 
                 // Use public method to ensure proper thread safety
                 StartBreakWarningTimer();
                 
-                _logger.LogCritical("☕ TIMER EVENT: Break timer tick completed successfully");
+                _logger.LogInformation("☕ TIMER EVENT: Break timer tick completed successfully");
             }
             catch (Exception ex)
             {
@@ -382,7 +382,7 @@ namespace EyeRest.Services
                 // TIMELINE FIX: Record when main timer actually triggered
                 _lastEyeRestTriggeredTime = DateTime.Now;
 
-                _logger.LogCritical("👁️ TRIGGER EYE REST: Starting popup at {Time}", DateTime.Now.ToString("HH:mm:ss.fff"));
+                _logger.LogInformation("👁️ TRIGGER EYE REST: Starting popup at {Time}", DateTime.Now.ToString("HH:mm:ss.fff"));
 
                 // CRITICAL FIX: Verify notification service is available
                 if (_notificationService == null)
@@ -407,9 +407,9 @@ namespace EyeRest.Services
                 };
                 
                 // CRITICAL FIX: Log before and after event trigger
-                _logger.LogCritical("👁️ TRIGGER EYE REST: Invoking EyeRestDue event to show popup");
+                _logger.LogInformation("👁️ TRIGGER EYE REST: Invoking EyeRestDue event to show popup");
                 EyeRestDue?.Invoke(this, eventArgs);
-                _logger.LogCritical("👁️ TRIGGER EYE REST: EyeRestDue event invoked successfully");
+                _logger.LogInformation("👁️ TRIGGER EYE REST: EyeRestDue event invoked successfully");
 
                 // CRITICAL FIX: Don't record analytics here - triggering an event is not completing it
                 // Analytics should only be recorded based on actual user actions in the popup
@@ -712,9 +712,9 @@ namespace EyeRest.Services
                         // that the handler is still running with a captured startTime from BEFORE session reset
                         if (remaining.TotalSeconds < -1)
                         {
-                            _logger.LogCritical($"🚨 ORPHANED HANDLER DETECTED: Eye rest warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
-                            _logger.LogCritical($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
-                            _logger.LogCritical($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
+                            _logger.LogWarning($"🚨 ORPHANED HANDLER DETECTED: Eye rest warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
+                            _logger.LogWarning($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
+                            _logger.LogWarning($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
                             hasTriggered = true; // Mark as triggered to prevent further execution
                             return;
                         }
@@ -919,9 +919,9 @@ namespace EyeRest.Services
                         // that the handler is still running with a captured startTime from BEFORE session reset
                         if (remaining.TotalSeconds < -1)
                         {
-                            _logger.LogCritical($"🚨 ORPHANED HANDLER DETECTED: Break warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
-                            _logger.LogCritical($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
-                            _logger.LogCritical($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
+                            _logger.LogWarning($"🚨 ORPHANED HANDLER DETECTED: Break warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
+                            _logger.LogWarning($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
+                            _logger.LogWarning($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
                             hasTriggered = true; // Mark as triggered to prevent further execution
                             return;
                         }

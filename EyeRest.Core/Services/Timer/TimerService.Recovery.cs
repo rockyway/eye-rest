@@ -51,7 +51,7 @@ namespace EyeRest.Services
                 var now = DateTime.Now;
                 var timeSinceLastHeartbeat = now - _lastHeartbeat;
                 
-                _logger.LogCritical($"❤️ HEALTH CHECK at {now:HH:mm:ss.fff} - Last heartbeat: {timeSinceLastHeartbeat.TotalSeconds:F1}s ago");
+                _logger.LogDebug($"❤️ HEALTH CHECK at {now:HH:mm:ss.fff} - Last heartbeat: {timeSinceLastHeartbeat.TotalSeconds:F1}s ago");
                 
                 // CRITICAL FIX: Skip health checks during initial startup to prevent false positives
                 if (!_hasCompletedInitialStartup)
@@ -91,14 +91,14 @@ namespace EyeRest.Services
                 // Log current process and memory status
                 using (var process = System.Diagnostics.Process.GetCurrentProcess())
                 {
-                    _logger.LogCritical($"❤️ SERVICE STATUS: Running={IsRunning}, Paused={IsPaused}, SmartPaused={IsSmartPaused}");
-                    _logger.LogCritical($"❤️ TIMER STATUS: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
-                    _logger.LogCritical($"❤️ PROCESS STATUS: ID={process.Id}, Memory={process.WorkingSet64 / 1024 / 1024}MB");
+                    _logger.LogDebug($"❤️ SERVICE STATUS: Running={IsRunning}, Paused={IsPaused}, SmartPaused={IsSmartPaused}");
+                    _logger.LogDebug($"❤️ TIMER STATUS: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
+                    _logger.LogDebug($"❤️ PROCESS STATUS: ID={process.Id}, Memory={process.WorkingSet64 / 1024 / 1024}MB");
                 }
                 
                 // SOLID FIX: Calculate dynamic heartbeat threshold based on current timer intervals
                 var dynamicThresholdMinutes = CalculateDynamicHeartbeatThreshold();
-                _logger.LogCritical($"❤️ DYNAMIC THRESHOLD: {dynamicThresholdMinutes:F1} minutes (based on current timer intervals)");
+                _logger.LogDebug($"❤️ DYNAMIC THRESHOLD: {dynamicThresholdMinutes:F1} minutes (based on current timer intervals)");
                 
                 // ENHANCED: Check for multiple hang conditions
                 bool hangDetected = false;
@@ -142,7 +142,7 @@ namespace EyeRest.Services
                 {
                     hangDetected = true;
                     hangReason = $"Manual pause cleared but timer service stopped - state coordination failure detected (heartbeat: {timeSinceLastHeartbeat.TotalMinutes:F1}min)";
-                    _logger.LogCritical($"🚨 COORDINATION FAILURE: Manual pause cleared ({manualPauseCleared}) but service stopped ({timersRunning}) - this causes UI 'Paused (Manual)' display bug");
+                    _logger.LogWarning($"🚨 COORDINATION FAILURE: Manual pause cleared ({manualPauseCleared}) but service stopped ({timersRunning}) - this causes UI 'Paused (Manual)' display bug");
                 }
                 
                 // CRITICAL FIX: Timer state validation - service running but timers disabled
@@ -160,18 +160,18 @@ namespace EyeRest.Services
                 {
                     hangDetected = true;
                     hangReason = $"Service running but timers disabled - EyeRest enabled: {_eyeRestTimer?.IsEnabled}, Break enabled: {_breakTimer?.IsEnabled} (heartbeat: {timeSinceLastHeartbeat.TotalMinutes:F1}min)";
-                    _logger.LogCritical($"🚨 TIMER STATE FAILURE: Service={IsRunning}, Paused={IsPaused}, SmartPaused={IsSmartPaused}, ManualPaused={IsManuallyPaused}");
-                    _logger.LogCritical($"🚨 TIMER ENABLED STATE: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
+                    _logger.LogWarning($"🚨 TIMER STATE FAILURE: Service={IsRunning}, Paused={IsPaused}, SmartPaused={IsSmartPaused}, ManualPaused={IsManuallyPaused}");
+                    _logger.LogWarning($"🚨 TIMER ENABLED STATE: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
                 }
                 
                 if (hangDetected)
                 {
-                    _logger.LogCritical($"🚨 TIMER HANG DETECTED - {hangReason}!");
+                    _logger.LogWarning($"🚨 TIMER HANG DETECTED - {hangReason}!");
                     
                     // CRITICAL FIX: Special handling for manual pause coordination failures
                     if (hangReason.Contains("Manual pause cleared but timer service stopped"))
                     {
-                        _logger.LogCritical($"🔧 COORDINATION RECOVERY: Attempting direct timer service restart for manual pause issue");
+                        _logger.LogInformation($"🔧 COORDINATION RECOVERY: Attempting direct timer service restart for manual pause issue");
                         
                         // Use Task.Run since health monitor tick can't be async
                         _ = Task.Run(async () =>
@@ -179,14 +179,14 @@ namespace EyeRest.Services
                             try
                             {
                                 await StartAsync(); // Direct restart instead of full recovery
-                                _logger.LogCritical($"🔧 COORDINATION FIX: Timer service restarted, IsRunning={IsRunning}");
+                                _logger.LogInformation($"🔧 COORDINATION FIX: Timer service restarted, IsRunning={IsRunning}");
                                 
                                 // CRITICAL FIX: Force UI synchronization after coordination repair
                                 OnPropertyChanged(nameof(IsRunning));
                                 OnPropertyChanged(nameof(IsPaused));
                                 OnPropertyChanged(nameof(IsManuallyPaused));
                                 OnPropertyChanged(nameof(IsSmartPaused));
-                                _logger.LogCritical($"🔧 COORDINATION FIX: UI state synchronized after manual pause coordination repair");
+                                _logger.LogInformation($"🔧 COORDINATION FIX: UI state synchronized after manual pause coordination repair");
                             }
                             catch (Exception restartEx)
                             {
@@ -198,7 +198,7 @@ namespace EyeRest.Services
                     // CRITICAL FIX: Special handling for timer state failures (service running but timers disabled)
                     else if (hangReason.Contains("Service running but timers disabled"))
                     {
-                        _logger.LogCritical($"🔧 TIMER STATE RECOVERY: Attempting to re-enable disabled timers");
+                        _logger.LogInformation($"🔧 TIMER STATE RECOVERY: Attempting to re-enable disabled timers");
                         
                         // Use Task.Run since health monitor tick can't be async
                         _ = Task.Run(async () =>
@@ -209,12 +209,12 @@ namespace EyeRest.Services
                                 // Try to recreate and restart timers without full service restart
                                 if (_eyeRestTimer == null)
                                 {
-                                    _logger.LogCritical($"🔧 TIMER STATE FIX: Recreating null eye rest timer");
+                                    _logger.LogInformation($"🔧 TIMER STATE FIX: Recreating null eye rest timer");
                                     InitializeEyeRestTimer();
                                 }
                                 if (_breakTimer == null)
                                 {
-                                    _logger.LogCritical($"🔧 TIMER STATE FIX: Recreating null break timer");
+                                    _logger.LogInformation($"🔧 TIMER STATE FIX: Recreating null break timer");
                                     InitializeBreakTimer();
                                 }
                                 
@@ -228,7 +228,7 @@ namespace EyeRest.Services
                                 _breakTimer?.Start();
                                 UpdateHeartbeatFromOperation("Timer state recovery");
 
-                                _logger.LogCritical($"🔧 TIMER STATE FIX: Timers restarted with reset start times - EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
+                                _logger.LogInformation($"🔧 TIMER STATE FIX: Timers restarted with reset start times - EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
                                 
                                 // Force UI updates
                                 OnPropertyChanged(nameof(TimeUntilNextEyeRest));
@@ -244,7 +244,7 @@ namespace EyeRest.Services
                     }
                     else
                     {
-                        _logger.LogCritical($"🔧 INITIATING TIMER RECOVERY - Attempting to fix timer hang");
+                        _logger.LogInformation($"🔧 INITIATING TIMER RECOVERY - Attempting to fix timer hang");
                         RecoverTimersFromHang();
                     }
                 }
@@ -257,17 +257,17 @@ namespace EyeRest.Services
                     
                     if (timeSinceSmartPause.TotalMinutes > stuckPopupThresholdMinutes)
                     {
-                        _logger.LogCritical($"🚨 ZOMBIE POPUP DETECTED: Smart paused for break confirmation for {timeSinceSmartPause.TotalMinutes:F1} minutes (threshold: {stuckPopupThresholdMinutes}min)");
-                        _logger.LogCritical($"🚨 ZOMBIE POPUP STATE: PauseReason='{_pauseReason}', PauseStartTime={_pauseStartTime:HH:mm:ss}");
+                        _logger.LogWarning($"🚨 ZOMBIE POPUP DETECTED: Smart paused for break confirmation for {timeSinceSmartPause.TotalMinutes:F1} minutes (threshold: {stuckPopupThresholdMinutes}min)");
+                        _logger.LogWarning($"🚨 ZOMBIE POPUP STATE: PauseReason='{_pauseReason}', PauseStartTime={_pauseStartTime:HH:mm:ss}");
                         
                         // Force recovery by clearing smart pause state
                         _ = Task.Run(async () =>
                         {
                             try
                             {
-                                _logger.LogCritical($"🔧 ZOMBIE POPUP RECOVERY: Force resuming timers from stuck break confirmation");
+                                _logger.LogWarning($"🔧 ZOMBIE POPUP RECOVERY: Force resuming timers from stuck break confirmation");
                                 await SmartResumeAsync("Health Monitor: Zombie popup detection - force recovery");
-                                _logger.LogCritical($"✅ ZOMBIE POPUP RECOVERY: Successfully resumed timers, IsSmartPaused={IsSmartPaused}");
+                                _logger.LogWarning($"✅ ZOMBIE POPUP RECOVERY: Successfully resumed timers, IsSmartPaused={IsSmartPaused}");
                                 
                                 // Show user notification about the recovery
                                 try
@@ -349,8 +349,8 @@ namespace EyeRest.Services
                     // Use heartbeat staleness as indicator of extended away (system was idle/sleeping)
                     if (timeSinceLastHeartbeat.TotalMinutes >= extendedAwayThresholdMinutes)
                     {
-                        _logger.LogCritical($"🌙 EXTENDED AWAY DETECTED: Heartbeat stale for {timeSinceLastHeartbeat.TotalMinutes:F1}min >= threshold {extendedAwayThresholdMinutes}min");
-                        _logger.LogCritical($"🌙 User already took natural break - skipping backup trigger, initiating smart session reset instead");
+                        _logger.LogWarning($"🌙 EXTENDED AWAY DETECTED: Heartbeat stale for {timeSinceLastHeartbeat.TotalMinutes:F1}min >= threshold {extendedAwayThresholdMinutes}min");
+                        _logger.LogWarning($"🌙 User already took natural break - skipping backup trigger, initiating smart session reset instead");
 
                         // Trigger smart session reset instead of firing overdue events
                         _ = Task.Run(async () =>
@@ -363,7 +363,7 @@ namespace EyeRest.Services
                     if ((needsEyeRestTrigger || needsBreakTrigger) && !hasActivePopups)
                     {
                         var triggerReason = serviceStoppedWithDueEvents ? "SERVICE_STOPPED_WITH_DUE_EVENTS" : "SERVICE_RUNNING_BUT_NO_POPUPS";
-                        _logger.LogCritical($"🔥 BACKUP TRIGGER SYSTEM ({triggerReason}): Firing overdue events - EyeRest={needsEyeRestTrigger}, Break={needsBreakTrigger}, IsRunning={IsRunning}");
+                        _logger.LogWarning($"🔥 BACKUP TRIGGER SYSTEM ({triggerReason}): Firing overdue events - EyeRest={needsEyeRestTrigger}, Break={needsBreakTrigger}, IsRunning={IsRunning}");
                         
                         if (needsEyeRestTrigger)
                         {
@@ -381,7 +381,7 @@ namespace EyeRest.Services
                             }
                             else
                             {
-                                _logger.LogCritical($"🔥 Backup triggering overdue eye rest event");
+                                _logger.LogWarning($"🔥 Backup triggering overdue eye rest event");
                                 TriggerEyeRest();
 
                                 // CRITICAL FIX: Reset eye rest timer to prevent normal timer from also firing
@@ -392,14 +392,14 @@ namespace EyeRest.Services
                                 _eyeRestTimer!.Start();
                                 _eyeRestStartTime = DateTime.Now;
 
-                                _logger.LogCritical("🔄 BACKUP RESET: Eye rest timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
+                                _logger.LogInformation("🔄 BACKUP RESET: Eye rest timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
                                     _eyeRestInterval.TotalMinutes, DateTime.Now.Add(_eyeRestInterval).ToString("HH:mm:ss"));
                             }
                         }
                         
                         if (needsBreakTrigger)
                         {
-                            _logger.LogCritical($"🔥 Backup triggering overdue break event");
+                            _logger.LogWarning($"🔥 Backup triggering overdue break event");
                             TriggerBreak();
 
                             // CRITICAL FIX: Reset break timer to prevent normal timer from also firing
@@ -410,22 +410,22 @@ namespace EyeRest.Services
                             _breakTimer!.Start();
                             _breakStartTime = DateTime.Now;
 
-                            _logger.LogCritical("🔄 BACKUP RESET: Break timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
+                            _logger.LogInformation("🔄 BACKUP RESET: Break timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
                                 _breakInterval.TotalMinutes, DateTime.Now.Add(_breakInterval).ToString("HH:mm:ss"));
                         }
                         
                         // ADDITIONAL FIX: If service is stopped, attempt to restart it after firing backup triggers
                         if (serviceStoppedWithDueEvents)
                         {
-                            _logger.LogCritical($"🔄 ATTEMPTING SERVICE RESTART: Timer service is stopped with due events");
+                            _logger.LogWarning($"🔄 ATTEMPTING SERVICE RESTART: Timer service is stopped with due events");
                             _ = Task.Run(async () =>
                             {
                                 try
                                 {
                                     await Task.Delay(1000); // Brief delay to let backup triggers complete
-                                    _logger.LogCritical($"🔄 RESTART ATTEMPT: Starting timer service");
+                                    _logger.LogWarning($"🔄 RESTART ATTEMPT: Starting timer service");
                                     await StartAsync();
-                                    _logger.LogCritical($"🔄 RESTART SUCCESS: Timer service restarted, IsRunning={IsRunning}");
+                                    _logger.LogWarning($"🔄 RESTART SUCCESS: Timer service restarted, IsRunning={IsRunning}");
                                 }
                                 catch (Exception restartEx)
                                 {
@@ -477,7 +477,7 @@ namespace EyeRest.Services
                             return;
                         }
 
-                        _logger.LogCritical($"🚨 OVERDUE TIMER EVENTS: {overdueDescription.Trim()} - timer events are not firing!");
+                        _logger.LogWarning($"🚨 OVERDUE TIMER EVENTS: {overdueDescription.Trim()} - timer events are not firing!");
                         
                         // Use Task.Run since health monitor tick can't be async
                         _ = Task.Run(async () =>
@@ -487,11 +487,11 @@ namespace EyeRest.Services
                                 var success = await ForceTimerRecoveryAsync("Overdue timer events detected by health monitor");
                                 if (success)
                                 {
-                                    _logger.LogCritical($"🚨 EMERGENCY RECOVERY SUCCESS: Timer events should now be firing correctly");
+                                    _logger.LogWarning($"🚨 EMERGENCY RECOVERY SUCCESS: Timer events should now be firing correctly");
                                 }
                                 else
                                 {
-                                    _logger.LogCritical($"🚨 EMERGENCY RECOVERY FAILED: Manual application restart may be required");
+                                    _logger.LogWarning($"🚨 EMERGENCY RECOVERY FAILED: Manual application restart may be required");
                                 }
                             }
                             catch (Exception recoveryEx)
@@ -622,7 +622,7 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogCritical($"🔧 TIMER RECOVERY INITIATED at {DateTime.Now:HH:mm:ss.fff}");
+                _logger.LogInformation($"🔧 TIMER RECOVERY INITIATED at {DateTime.Now:HH:mm:ss.fff}");
                 
                 // Store current timer states before recovery
                 var eyeRestEnabled = _eyeRestTimer?.IsEnabled ?? false;
@@ -630,7 +630,7 @@ namespace EyeRest.Services
                 var eyeRestInterval = _eyeRestTimer?.Interval ?? TimeSpan.Zero;
                 var breakInterval = _breakTimer?.Interval ?? TimeSpan.Zero;
                 
-                _logger.LogCritical($"🔍 PRE-RECOVERY STATE: EyeRest={eyeRestEnabled}({eyeRestInterval.TotalMinutes:F1}m), Break={breakEnabled}({breakInterval.TotalMinutes:F1}m)");
+                _logger.LogInformation($"🔍 PRE-RECOVERY STATE: EyeRest={eyeRestEnabled}({eyeRestInterval.TotalMinutes:F1}m), Break={breakEnabled}({breakInterval.TotalMinutes:F1}m)");
                 
                 // STEP 1: Stop and dispose all existing timers
                 if (_eyeRestTimer != null)
@@ -638,7 +638,7 @@ namespace EyeRest.Services
                     _eyeRestTimer.Stop();
                     _eyeRestTimer.Tick -= OnEyeRestTimerTick;
                     _eyeRestTimer = null;
-                    _logger.LogCritical("🔧 Eye rest timer disposed");
+                    _logger.LogInformation("🔧 Eye rest timer disposed");
                 }
                 
                 if (_breakTimer != null)
@@ -646,21 +646,21 @@ namespace EyeRest.Services
                     _breakTimer.Stop();
                     _breakTimer.Tick -= OnBreakTimerTick;
                     _breakTimer = null;
-                    _logger.LogCritical("🔧 Break timer disposed");
+                    _logger.LogInformation("🔧 Break timer disposed");
                 }
                 
                 if (_eyeRestWarningTimer != null)
                 {
                     _eyeRestWarningTimer.Stop();
                     _eyeRestWarningTimer = null;
-                    _logger.LogCritical("🔧 Eye rest warning timer disposed");
+                    _logger.LogInformation("🔧 Eye rest warning timer disposed");
                 }
                 
                 if (_breakWarningTimer != null)
                 {
                     _breakWarningTimer.Stop();
                     _breakWarningTimer = null;
-                    _logger.LogCritical("🔧 Break warning timer disposed");
+                    _logger.LogInformation("🔧 Break warning timer disposed");
                 }
                 
                 // STEP 2: Force garbage collection to clean up timer resources
@@ -677,7 +677,7 @@ namespace EyeRest.Services
                     var hasTimerEventsDue = eyeRestTime <= TimeSpan.Zero || breakTime <= TimeSpan.Zero;
                     var hasActivePopups = _notificationService?.IsAnyPopupActive == true;
 
-                    _logger.LogCritical($"🔍 HANG RECOVERY CHECK: EyeRest={eyeRestTime.TotalSeconds:F1}s, Break={breakTime.TotalSeconds:F1}s, AnyDue={hasTimerEventsDue}, ActivePopups={hasActivePopups}");
+                    _logger.LogInformation($"🔍 HANG RECOVERY CHECK: EyeRest={eyeRestTime.TotalSeconds:F1}s, Break={breakTime.TotalSeconds:F1}s, AnyDue={hasTimerEventsDue}, ActivePopups={hasActivePopups}");
 
                     // P1 FIX: Add explicit check to prevent closing Done screen that's waiting for user confirmation
                     var isWaitingForConfirmationField = _notificationService?.GetType()?.GetField("_isWaitingForBreakConfirmation",
@@ -686,23 +686,23 @@ namespace EyeRest.Services
 
                     if (isWaitingForConfirmation)
                     {
-                        _logger.LogCritical("🚨 P1 FIX: HANG RECOVERY BLOCKED - Done screen is waiting for user confirmation, cannot close popup!");
-                        _logger.LogCritical("🚨 Skipping hang recovery popup clearing to prevent Done screen auto-close");
+                        _logger.LogInformation("🚨 P1 FIX: HANG RECOVERY BLOCKED - Done screen is waiting for user confirmation, cannot close popup!");
+                        _logger.LogInformation("🚨 Skipping hang recovery popup clearing to prevent Done screen auto-close");
 
                         // Skip popup clearing - user is waiting to click Done button
                         // Timer recreation will still fix the hang issue without disrupting popups
                     }
                     else if (hasTimerEventsDue && hasActivePopups)
                     {
-                        _logger.LogCritical("🚨 HANG RECOVERY: Timer events DUE with active popups - PRESERVING user interaction!");
-                        _logger.LogCritical("🚨 Skipping popup clearing during hang recovery to prevent auto-close issue");
+                        _logger.LogInformation("🚨 HANG RECOVERY: Timer events DUE with active popups - PRESERVING user interaction!");
+                        _logger.LogInformation("🚨 Skipping popup clearing during hang recovery to prevent auto-close issue");
 
                         // Skip popup clearing to preserve user interaction with due timer events
                         // Timer recreation will still fix the hang issue without disrupting popups
                     }
                     else
                     {
-                        _logger.LogCritical("🧹 HANG RECOVERY: No due events, active popups, or confirmation waiting - safe to clear popup references");
+                        _logger.LogInformation("🧹 HANG RECOVERY: No due events, active popups, or confirmation waiting - safe to clear popup references");
                         _notificationService?.HideAllNotifications();
                         
                         // Force clear all popup state in notification service
@@ -715,7 +715,7 @@ namespace EyeRest.Services
                         activeEyeRestField?.SetValue(_notificationService, null);
                         activeBreakField?.SetValue(_notificationService, null);
                         
-                        _logger.LogCritical("🧹 HANG RECOVERY: All popup references cleared safely");
+                        _logger.LogInformation("🧹 HANG RECOVERY: All popup references cleared safely");
                     }
                 }
                 catch (Exception popupEx)
@@ -724,7 +724,7 @@ namespace EyeRest.Services
                 }
                 
                 // STEP 3: Recreate all timers with fresh DispatcherTimer instances
-                _logger.LogCritical("🔧 Recreating all timers with fresh instances...");
+                _logger.LogInformation("🔧 Recreating all timers with fresh instances...");
                 InitializeEyeRestTimer();
                 InitializeEyeRestWarningTimer();
                 InitializeBreakTimer();
@@ -739,28 +739,28 @@ namespace EyeRest.Services
 
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
-                    _logger.LogCritical("🔧 Timers restarted after recovery with reset start times");
+                    _logger.LogInformation("🔧 Timers restarted after recovery with reset start times");
                 }
                 
                 // STEP 5: Reset heartbeat to mark recovery success
                 UpdateHeartbeat();
                 
                 // STEP 6: Verify recovery success
-                _logger.LogCritical($"✅ TIMER RECOVERY COMPLETED at {DateTime.Now:HH:mm:ss.fff}");
-                _logger.LogCritical($"🔍 POST-RECOVERY STATE: EyeRest={_eyeRestTimer?.IsEnabled}({_eyeRestTimer?.Interval.TotalMinutes:F1}m), Break={_breakTimer?.IsEnabled}({_breakTimer?.Interval.TotalMinutes:F1}m)");
-                _logger.LogCritical($"✅ Recovery successful - timers should now fire properly");
+                _logger.LogInformation($"✅ TIMER RECOVERY COMPLETED at {DateTime.Now:HH:mm:ss.fff}");
+                _logger.LogInformation($"🔍 POST-RECOVERY STATE: EyeRest={_eyeRestTimer?.IsEnabled}({_eyeRestTimer?.Interval.TotalMinutes:F1}m), Break={_breakTimer?.IsEnabled}({_breakTimer?.Interval.TotalMinutes:F1}m)");
+                _logger.LogInformation($"✅ Recovery successful - timers should now fire properly");
                 
                 // ENHANCED: Log expected next trigger times
                 if (_eyeRestTimer != null && _eyeRestTimer.IsEnabled)
                 {
                     var nextEyeRest = DateTime.Now.Add(_eyeRestTimer.Interval);
-                    _logger.LogCritical($"👁️ Next eye rest timer event expected at: {nextEyeRest:HH:mm:ss}");
+                    _logger.LogInformation($"👁️ Next eye rest timer event expected at: {nextEyeRest:HH:mm:ss}");
                 }
                 
                 if (_breakTimer != null && _breakTimer.IsEnabled)
                 {
                     var nextBreak = DateTime.Now.Add(_breakTimer.Interval);
-                    _logger.LogCritical($"🚨 Next break timer event expected at: {nextBreak:HH:mm:ss}");
+                    _logger.LogInformation($"🚨 Next break timer event expected at: {nextBreak:HH:mm:ss}");
                 }
             }
             catch (Exception ex)
@@ -782,7 +782,7 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogCritical($"🔄 SYSTEM RESUME RECOVERY: Attempting timer recovery - {reason}");
+                _logger.LogInformation($"🔄 SYSTEM RESUME RECOVERY: Attempting timer recovery - {reason}");
 
                 // FIX #4: Recovery debouncing to prevent duplicate recovery attempts within 5 seconds
                 var timeSinceLastRecovery = DateTime.Now - _lastRecoveryAttempt;
@@ -823,16 +823,16 @@ namespace EyeRest.Services
                 var breakElapsed = (_breakTimer?.IsEnabled == true && _breakStartTime != DateTime.MinValue) ?
                     DateTime.Now - _breakStartTime : TimeSpan.Zero;
 
-                _logger.LogCritical($"🔄 Pre-recovery state: Running={wasRunning}, Paused={wasPaused}, SmartPaused={wasSmartPaused}, ManuallyPaused={wasManuallyPaused}");
-                _logger.LogCritical($"🔄 Timer start times - EyeRest: {_eyeRestStartTime:HH:mm:ss}, Break: {_breakStartTime:HH:mm:ss}");
-                _logger.LogCritical($"🔄 Timer elapsed times - EyeRest: {eyeRestElapsed.TotalSeconds:F1}s, Break: {breakElapsed.TotalSeconds:F1}s");
+                _logger.LogInformation($"🔄 Pre-recovery state: Running={wasRunning}, Paused={wasPaused}, SmartPaused={wasSmartPaused}, ManuallyPaused={wasManuallyPaused}");
+                _logger.LogInformation($"🔄 Timer start times - EyeRest: {_eyeRestStartTime:HH:mm:ss}, Break: {_breakStartTime:HH:mm:ss}");
+                _logger.LogInformation($"🔄 Timer elapsed times - EyeRest: {eyeRestElapsed.TotalSeconds:F1}s, Break: {breakElapsed.TotalSeconds:F1}s");
                 
                 // CRITICAL FIX: If timer start times are not initialized, treat as fresh session
                 // This happens after extended standby when timers lose their state
                 if (_eyeRestStartTime == DateTime.MinValue || _breakStartTime == DateTime.MinValue)
                 {
-                    _logger.LogCritical($"🔄 UNINITIALIZED TIMERS DETECTED: Timer start times lost during standby");
-                    _logger.LogCritical($"🔄 Treating as fresh session to prevent immediate popup triggers");
+                    _logger.LogInformation($"🔄 UNINITIALIZED TIMERS DETECTED: Timer start times lost during standby");
+                    _logger.LogInformation($"🔄 Treating as fresh session to prevent immediate popup triggers");
 
                     // Reset timer states for a fresh start
                     _eyeRestStartTime = DateTime.Now;
@@ -857,9 +857,9 @@ namespace EyeRest.Services
                         _breakTimer.Start();
                     }
 
-                    _logger.LogCritical($"✅ FRESH SESSION STARTED: Timers reset to full intervals");
-                    _logger.LogCritical($"👁️ Next eye rest in: {_eyeRestInterval.TotalMinutes:F1} minutes");
-                    _logger.LogCritical($"☕ Next break in: {_breakInterval.TotalMinutes:F1} minutes");
+                    _logger.LogInformation($"✅ FRESH SESSION STARTED: Timers reset to full intervals");
+                    _logger.LogInformation($"👁️ Next eye rest in: {_eyeRestInterval.TotalMinutes:F1} minutes");
+                    _logger.LogInformation($"☕ Next break in: {_breakInterval.TotalMinutes:F1} minutes");
 
                     // Clear any lingering pause states
                     IsManuallyPaused = false;
@@ -873,7 +873,7 @@ namespace EyeRest.Services
                     // This prevents "GLOBAL LOCK PREVENTION" blocking popups after system resume
                     ClearEyeRestProcessingFlag();
                     ClearBreakProcessingFlag();
-                    _logger.LogCritical($"🔄 RECOVERY: Cleared all event processing flags to prevent stale lock state");
+                    _logger.LogInformation($"🔄 RECOVERY: Cleared all event processing flags to prevent stale lock state");
 
                     // Ensure service is marked as running
                     if (!IsRunning)
@@ -900,12 +900,12 @@ namespace EyeRest.Services
                 if (wasManuallyPaused && _manualPauseStartTime != DateTime.MinValue)
                 {
                     timeSincePause = DateTime.Now - _manualPauseStartTime;
-                    _logger.LogCritical($"🔄 Time since manual pause: {timeSincePause.TotalMinutes:F1} minutes");
+                    _logger.LogInformation($"🔄 Time since manual pause: {timeSincePause.TotalMinutes:F1} minutes");
                 }
                 else if ((wasPaused || wasSmartPaused) && _pauseStartTime != DateTime.MinValue)
                 {
                     timeSincePause = DateTime.Now - _pauseStartTime;
-                    _logger.LogCritical($"🔄 Time since pause: {timeSincePause.TotalMinutes:F1} minutes");
+                    _logger.LogInformation($"🔄 Time since pause: {timeSincePause.TotalMinutes:F1} minutes");
                 }
 
                 // FIX #2: Query UserPresenceService for actual away/idle time (PRIMARY CHECK)
@@ -915,12 +915,12 @@ namespace EyeRest.Services
                     userPresenceAwayTime = _userPresenceService.GetLastAwayDuration();
                     if (userPresenceAwayTime > TimeSpan.Zero)
                     {
-                        _logger.LogCritical($"🔍 UserPresenceService reports: User was away for {userPresenceAwayTime.TotalMinutes:F1} minutes");
+                        _logger.LogInformation($"🔍 UserPresenceService reports: User was away for {userPresenceAwayTime.TotalMinutes:F1} minutes");
                         // Use UserPresenceService data if it's more accurate than pause tracking
                         if (userPresenceAwayTime > timeSincePause)
                         {
                             timeSincePause = userPresenceAwayTime;
-                            _logger.LogCritical($"🔍 Using UserPresenceService away time as primary indicator");
+                            _logger.LogInformation($"🔍 Using UserPresenceService away time as primary indicator");
                         }
                     }
                 }
@@ -929,12 +929,12 @@ namespace EyeRest.Services
                 var heartbeatStaleness = DateTime.Now - _lastHeartbeat;
                 if (heartbeatStaleness.TotalMinutes >= extendedAwayThresholdMinutes)
                 {
-                    _logger.LogCritical($"🔍 STALE HEARTBEAT DETECTED: {heartbeatStaleness.TotalMinutes:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
+                    _logger.LogInformation($"🔍 STALE HEARTBEAT DETECTED: {heartbeatStaleness.TotalMinutes:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
                     // Use heartbeat staleness if it's greater than other indicators
                     if (heartbeatStaleness > timeSincePause)
                     {
                         timeSincePause = heartbeatStaleness;
-                        _logger.LogCritical($"🔍 Using stale heartbeat duration as extended away indicator");
+                        _logger.LogInformation($"🔍 Using stale heartbeat duration as extended away indicator");
                     }
                 }
 
@@ -947,31 +947,31 @@ namespace EyeRest.Services
 
                 if (shouldResetDueToExtendedElapsed)
                 {
-                    _logger.LogCritical($"🌙 OVERNIGHT STANDBY DETECTED: Timer elapsed {maxTimerElapsed:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
-                    _logger.LogCritical($"🌙 System was NOT paused before standby, but timer elapsed time indicates overnight gap");
+                    _logger.LogInformation($"🌙 OVERNIGHT STANDBY DETECTED: Timer elapsed {maxTimerElapsed:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
+                    _logger.LogInformation($"🌙 System was NOT paused before standby, but timer elapsed time indicates overnight gap");
                     // Use elapsed time if it's greater than other indicators
                     if (maxTimerElapsed > timeSincePause.TotalMinutes)
                     {
                         timeSincePause = TimeSpan.FromMinutes(maxTimerElapsed);
-                        _logger.LogCritical($"🌙 Using timer elapsed time as extended away indicator");
+                        _logger.LogInformation($"🌙 Using timer elapsed time as extended away indicator");
                     }
                 }
 
                 // Log all detection methods for debugging
-                _logger.LogCritical($"📊 EXTENDED AWAY DETECTION SUMMARY:");
-                _logger.LogCritical($"  • Explicit pause time: {(wasManuallyPaused || wasPaused || wasSmartPaused ? timeSincePause.TotalMinutes : 0):F1} min");
-                _logger.LogCritical($"  • UserPresence away time: {userPresenceAwayTime.TotalMinutes:F1} min");
-                _logger.LogCritical($"  • Heartbeat staleness: {heartbeatStaleness.TotalMinutes:F1} min");
-                _logger.LogCritical($"  • Timer elapsed (max): {maxTimerElapsed:F1} min");
-                _logger.LogCritical($"  • Final detection time: {timeSincePause.TotalMinutes:F1} min");
-                _logger.LogCritical($"  • Threshold: {extendedAwayThresholdMinutes} min");
+                _logger.LogInformation($"📊 EXTENDED AWAY DETECTION SUMMARY:");
+                _logger.LogInformation($"  • Explicit pause time: {(wasManuallyPaused || wasPaused || wasSmartPaused ? timeSincePause.TotalMinutes : 0):F1} min");
+                _logger.LogInformation($"  • UserPresence away time: {userPresenceAwayTime.TotalMinutes:F1} min");
+                _logger.LogInformation($"  • Heartbeat staleness: {heartbeatStaleness.TotalMinutes:F1} min");
+                _logger.LogInformation($"  • Timer elapsed (max): {maxTimerElapsed:F1} min");
+                _logger.LogInformation($"  • Final detection time: {timeSincePause.TotalMinutes:F1} min");
+                _logger.LogInformation($"  • Threshold: {extendedAwayThresholdMinutes} min");
 
                 // ENHANCED: Check for extended away period (overnight standby)
                 // Consider any pause/away period >= 30 minutes as extended away requiring fresh session
                 if (timeSincePause.TotalMinutes >= extendedAwayThresholdMinutes && config.UserPresence.EnableSmartSessionReset)
                 {
-                    _logger.LogCritical($"🌅 EXTENDED AWAY DETECTED: {timeSincePause.TotalMinutes:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
-                    _logger.LogCritical($"🌅 Treating as NEW WORKING SESSION after overnight/extended standby");
+                    _logger.LogInformation($"🌅 EXTENDED AWAY DETECTED: {timeSincePause.TotalMinutes:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
+                    _logger.LogInformation($"🌅 Treating as NEW WORKING SESSION after overnight/extended standby");
 
                     // P0 REQUIREMENT: ALWAYS reset to fresh session when extended away detected
                     // Even if timer events were due before sleep, clear them and start fresh
@@ -979,20 +979,20 @@ namespace EyeRest.Services
                     var breakTime = TimeUntilNextBreak;
                     var hasTimerEventsDue = eyeRestTime <= TimeSpan.Zero || breakTime <= TimeSpan.Zero;
 
-                    _logger.LogCritical($"🔍 DUE EVENTS CHECK: EyeRest={eyeRestTime.TotalSeconds:F1}s, Break={breakTime.TotalSeconds:F1}s, AnyDue={hasTimerEventsDue}");
+                    _logger.LogInformation($"🔍 DUE EVENTS CHECK: EyeRest={eyeRestTime.TotalSeconds:F1}s, Break={breakTime.TotalSeconds:F1}s, AnyDue={hasTimerEventsDue}");
 
                     if (hasTimerEventsDue)
                     {
-                        _logger.LogCritical($"🚨 P0 FIX: Timer events are DUE but extended away detected - CLEARING due events for fresh session!");
-                        _logger.LogCritical($"🚨 User was away {timeSincePause.TotalMinutes:F1}min - resetting timers regardless of due state");
+                        _logger.LogWarning($"🚨 P0 FIX: Timer events are DUE but extended away detected - CLEARING due events for fresh session!");
+                        _logger.LogWarning($"🚨 User was away {timeSincePause.TotalMinutes:F1}min - resetting timers regardless of due state");
                     }
                     else
                     {
-                        _logger.LogCritical($"✅ No timer events due - proceeding with clean session reset");
+                        _logger.LogInformation($"✅ No timer events due - proceeding with clean session reset");
                     }
                     
                     // CRITICAL FIX: Clear all pause states INCLUDING manual pause timer cleanup
-                    _logger.LogCritical($"🔧 EXTENDED AWAY FIX: Clearing all pause states and cleaning up manual pause resources");
+                    _logger.LogInformation($"🔧 EXTENDED AWAY FIX: Clearing all pause states and cleaning up manual pause resources");
                     IsManuallyPaused = false;
                     IsPaused = false;
                     IsSmartPaused = false;
@@ -1006,19 +1006,19 @@ namespace EyeRest.Services
                         _manualPauseTimer.Stop();
                         _manualPauseTimer.Tick -= OnManualPauseTimerTick;
                         _manualPauseTimer = null;
-                        _logger.LogCritical($"🔧 EXTENDED AWAY FIX: Manual pause timer disposed during session reset");
+                        _logger.LogInformation($"🔧 EXTENDED AWAY FIX: Manual pause timer disposed during session reset");
                     }
 
                     // CRITICAL FIX: Clear any stale event processing flags from extended idle
                     // This prevents "GLOBAL LOCK PREVENTION" blocking popups after returning from idle
                     ClearEyeRestProcessingFlag();
                     ClearBreakProcessingFlag();
-                    _logger.LogCritical($"🔄 EXTENDED AWAY: Cleared all event processing flags to prevent stale lock state");
+                    _logger.LogInformation($"🔄 EXTENDED AWAY: Cleared all event processing flags to prevent stale lock state");
 
                     // Perform smart session reset for fresh start
                     await SmartSessionResetAsync($"Extended away ({timeSincePause.TotalMinutes:F0}min) - new working session after standby");
                     
-                    _logger.LogCritical($"✅ NEW SESSION STARTED: Fresh timers after extended standby with complete manual pause cleanup");
+                    _logger.LogInformation($"✅ NEW SESSION STARTED: Fresh timers after extended standby with complete manual pause cleanup");
                     return; // Exit early - session reset handles everything
                 }
                 
@@ -1049,18 +1049,18 @@ namespace EyeRest.Services
                         
                         if (remainingPauseDuration > TimeSpan.Zero)
                         {
-                            _logger.LogCritical($"🔄 Restoring manual pause with {remainingPauseDuration.TotalMinutes:F1} minutes remaining");
+                            _logger.LogInformation($"🔄 Restoring manual pause with {remainingPauseDuration.TotalMinutes:F1} minutes remaining");
                             await PauseForDurationAsync(remainingPauseDuration, currentPauseReason ?? "System resume recovery");
                         }
                         else
                         {
-                            _logger.LogCritical($"🔄 Manual pause expired during system sleep, resuming timers");
+                            _logger.LogInformation($"🔄 Manual pause expired during system sleep, resuming timers");
                             await StartAsync();
                         }
                     }
                     else if (wasPaused || wasSmartPaused)
                     {
-                        _logger.LogCritical($"🔄 Restoring paused state - reason: {currentPauseReason}");
+                        _logger.LogInformation($"🔄 Restoring paused state - reason: {currentPauseReason}");
                         await StartAsync();
                         if (wasSmartPaused)
                         {
@@ -1074,7 +1074,7 @@ namespace EyeRest.Services
                     else
                     {
                         // Normal running state - restart with elapsed time compensation
-                        _logger.LogCritical($"🔄 Restoring running state with time compensation");
+                        _logger.LogInformation($"🔄 Restoring running state with time compensation");
                         await StartAsync();
                         
                         // Compensate for elapsed time during system sleep
@@ -1083,10 +1083,10 @@ namespace EyeRest.Services
                 }
                 else
                 {
-                    _logger.LogCritical($"🔄 Timers were stopped before system sleep, keeping stopped");
+                    _logger.LogInformation($"🔄 Timers were stopped before system sleep, keeping stopped");
                 }
                 
-                _logger.LogCritical($"🔄 SYSTEM RESUME RECOVERY COMPLETED SUCCESSFULLY");
+                _logger.LogInformation($"🔄 SYSTEM RESUME RECOVERY COMPLETED SUCCESSFULLY");
                 
                 // FINAL SAFETY CHECK: Ensure due timer events are triggered after recovery
                 await Task.Delay(100); // Brief delay to let recovery settle
@@ -1095,28 +1095,28 @@ namespace EyeRest.Services
                 var hasFinalDueEvents = finalEyeRestTime <= TimeSpan.Zero || finalBreakTime <= TimeSpan.Zero;
                 var hasFinalActivePopups = _notificationService?.IsAnyPopupActive == true;
                 
-                _logger.LogCritical($"🔍 FINAL RECOVERY CHECK: EyeRest={finalEyeRestTime.TotalSeconds:F1}s, Break={finalBreakTime.TotalSeconds:F1}s, AnyDue={hasFinalDueEvents}, ActivePopups={hasFinalActivePopups}");
+                _logger.LogInformation($"🔍 FINAL RECOVERY CHECK: EyeRest={finalEyeRestTime.TotalSeconds:F1}s, Break={finalBreakTime.TotalSeconds:F1}s, AnyDue={hasFinalDueEvents}, ActivePopups={hasFinalActivePopups}");
                 
                 // CRITICAL FIX: Remove IsRunning requirement - allow final safety triggers even if service stopped
                 if (hasFinalDueEvents && !hasFinalActivePopups)
                 {
-                    _logger.LogCritical($"🔥 FINAL SAFETY TRIGGER: Due events still pending after recovery - ensuring service runs before triggers");
+                    _logger.LogInformation($"🔥 FINAL SAFETY TRIGGER: Due events still pending after recovery - ensuring service runs before triggers");
                     
                     // CRITICAL FIX: Ensure service is running before triggering final safety events
                     if (!IsRunning)
                     {
-                        _logger.LogCritical($"🔧 FINAL SAFETY: Service stopped with due events - attempting restart");
+                        _logger.LogInformation($"🔧 FINAL SAFETY: Service stopped with due events - attempting restart");
                         try
                         {
                             await StartAsync();
-                            _logger.LogCritical($"🔧 Final safety service restart successful: IsRunning={IsRunning}");
+                            _logger.LogInformation($"🔧 Final safety service restart successful: IsRunning={IsRunning}");
                             
                             // CRITICAL FIX: Ensure UI synchronization after final safety restart
                             OnPropertyChanged(nameof(IsRunning));
                             OnPropertyChanged(nameof(IsPaused));
                             OnPropertyChanged(nameof(IsManuallyPaused));
                             OnPropertyChanged(nameof(IsSmartPaused));
-                            _logger.LogCritical($"🔧 Final safety UI sync: All state properties notified after service restart");
+                            _logger.LogInformation($"🔧 Final safety UI sync: All state properties notified after service restart");
                         }
                         catch (Exception startEx)
                         {
@@ -1142,13 +1142,13 @@ namespace EyeRest.Services
                         }
                         else
                         {
-                            _logger.LogCritical($"🔥 Final trigger for overdue eye rest event (verified not active)");
+                            _logger.LogInformation($"🔥 Final trigger for overdue eye rest event (verified not active)");
                             TriggerEyeRest();
                         }
                     }
                     if (finalBreakTime <= TimeSpan.Zero && !_isBreakNotificationActive)
                     {
-                        _logger.LogCritical($"🔥 Final trigger for overdue break event (verified not active)");
+                        _logger.LogInformation($"🔥 Final trigger for overdue break event (verified not active)");
                         TriggerBreak();
                     }
                 }
@@ -1163,10 +1163,10 @@ namespace EyeRest.Services
                 // Emergency fallback: try to restart normally
                 try
                 {
-                    _logger.LogCritical($"🔄 EMERGENCY FALLBACK: Attempting normal restart");
+                    _logger.LogWarning($"🔄 EMERGENCY FALLBACK: Attempting normal restart");
                     await StopAsync();
                     await StartAsync();
-                    _logger.LogCritical($"🔄 EMERGENCY FALLBACK: Restart completed");
+                    _logger.LogWarning($"🔄 EMERGENCY FALLBACK: Restart completed");
                 }
                 catch (Exception fallbackEx)
                 {
@@ -1183,13 +1183,13 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogCritical($"🚨 EMERGENCY TIMER RECOVERY INITIATED: {reason}");
+                _logger.LogWarning($"🚨 EMERGENCY TIMER RECOVERY INITIATED: {reason}");
                 
                 // Test if timer infrastructure is fundamentally broken
                 var (isWorking, issue) = await TestTimerFunctionality();
                 if (!isWorking)
                 {
-                    _logger.LogCritical($"🚨 TIMER INFRASTRUCTURE BROKEN: {issue} - recreating all timers");
+                    _logger.LogWarning($"🚨 TIMER INFRASTRUCTURE BROKEN: {issue} - recreating all timers");
                     
                     // Force complete timer recreation
                     RecreateTimerInstances();
@@ -1198,8 +1198,8 @@ namespace EyeRest.Services
                     var (isWorkingAfter, issueAfter) = await TestTimerFunctionality();
                     if (!isWorkingAfter)
                     {
-                        _logger.LogCritical($"🚨 TIMER RECOVERY FAILED: {issueAfter}");
-                        _logger.LogCritical($"🆘 DispatcherTimer system completely broken - activating emergency fallback");
+                        _logger.LogWarning($"🚨 TIMER RECOVERY FAILED: {issueAfter}");
+                        _logger.LogWarning($"🆘 DispatcherTimer system completely broken - activating emergency fallback");
                         ActivateEmergencyFallbackTimer();
                         return true; // Return true because fallback is now active
                     }
@@ -1208,7 +1208,7 @@ namespace EyeRest.Services
                 // Check for overdue events and trigger them immediately
                 await TriggerOverdueEventsAsync();
                 
-                _logger.LogCritical($"✅ EMERGENCY TIMER RECOVERY COMPLETED SUCCESSFULLY");
+                _logger.LogInformation($"✅ EMERGENCY TIMER RECOVERY COMPLETED SUCCESSFULLY");
                 return true;
             }
             catch (Exception ex)
@@ -1236,7 +1236,7 @@ namespace EyeRest.Services
                 !_isBreakNotificationActive && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing &&
                 !_isBreakEventProcessing && !_isAnyBreakEventProcessing)
             {
-                _logger.LogCritical($"🚨 TRIGGERING OVERDUE EYE REST (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
+                _logger.LogWarning($"🚨 TRIGGERING OVERDUE EYE REST (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
                 // Call TriggerEyeRest() directly instead of OnEyeRestTimerTick() to bypass
                 // the 50% elapsed guard which would reject the call after start-time reset
                 _eyeRestTimer?.Stop();
@@ -1256,7 +1256,7 @@ namespace EyeRest.Services
                 !_isBreakNotificationActive && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing &&
                 !_isBreakEventProcessing && !_isAnyBreakEventProcessing)
             {
-                _logger.LogCritical($"🚨 TRIGGERING OVERDUE BREAK (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
+                _logger.LogWarning($"🚨 TRIGGERING OVERDUE BREAK (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
                 // Call TriggerBreak() directly instead of OnBreakTimerTick() to bypass
                 // the 50% elapsed guard which would reject the call after start-time reset
                 _breakTimer?.Stop();
@@ -1292,7 +1292,7 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogCritical("🆘 ACTIVATING EMERGENCY FALLBACK TIMER - DispatcherTimer system completely broken");
+                _logger.LogWarning("🆘 ACTIVATING EMERGENCY FALLBACK TIMER - DispatcherTimer system completely broken");
                 
                 // Stop any existing fallback timer
                 _emergencyFallbackTimer?.Dispose();
@@ -1301,7 +1301,7 @@ namespace EyeRest.Services
                 _emergencyFallbackTimer = new System.Threading.Timer(OnEmergencyFallbackTick, null, 
                     TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10));
                     
-                _logger.LogCritical("🆘 Emergency fallback timer activated - will check for overdue events every 10 seconds");
+                _logger.LogWarning("🆘 Emergency fallback timer activated - will check for overdue events every 10 seconds");
             }
             catch (Exception ex)
             {
@@ -1321,7 +1321,7 @@ namespace EyeRest.Services
                 {
                     try
                     {
-                        _logger.LogCritical("🆘 EMERGENCY FALLBACK: Checking for overdue timer events");
+                        _logger.LogWarning("🆘 EMERGENCY FALLBACK: Checking for overdue timer events");
 
                         if (!IsRunning) return;
 
@@ -1332,7 +1332,7 @@ namespace EyeRest.Services
                         if (eyeRestRemaining <= TimeSpan.Zero && !_isEyeRestNotificationActive && _eyeRestWarningTimer?.IsEnabled != true &&
                             !_isEyeRestEventProcessing && !_isAnyEyeRestEventProcessing && !_isEyeRestWarningProcessing && !_isAnyEyeRestWarningProcessing)
                         {
-                            _logger.LogCritical($"🆘 FALLBACK: Triggering overdue eye rest (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
+                            _logger.LogWarning($"🆘 FALLBACK: Triggering overdue eye rest (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
                             _eyeRestTimer?.Stop();
                             TriggerEyeRest();
                             _eyeRestStartTime = DateTime.Now;
@@ -1343,7 +1343,7 @@ namespace EyeRest.Services
                         if (breakRemaining <= TimeSpan.Zero && !_isBreakNotificationActive && _breakWarningTimer?.IsEnabled != true &&
                             !_isBreakEventProcessing && !_isAnyBreakEventProcessing && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing)
                         {
-                            _logger.LogCritical($"🆘 FALLBACK: Triggering overdue break (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
+                            _logger.LogWarning($"🆘 FALLBACK: Triggering overdue break (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
                             _breakTimer?.Stop();
                             StartBreakWarningTimer();
                             _breakStartTime = DateTime.Now;
@@ -1353,14 +1353,14 @@ namespace EyeRest.Services
 
                         // Update heartbeat to show fallback system is working
                         UpdateHeartbeat();
-                        _logger.LogCritical("🆘 FALLBACK: Heartbeat updated, system functioning via emergency timer");
+                        _logger.LogInformation("🆘 FALLBACK: Heartbeat updated, system functioning via emergency timer");
 
                         // RECOVERY ATTEMPT: Try to restore timer functionality every 5 minutes (30 ticks)
                         _emergencyFallbackTickCount++;
                         if (_emergencyFallbackTickCount >= 30) // 30 ticks * 10 seconds = 5 minutes
                         {
                             _emergencyFallbackTickCount = 0;
-                            _logger.LogCritical("🔧 FALLBACK RECOVERY: Attempting to restore timer functionality after 5 minutes");
+                            _logger.LogWarning("🔧 FALLBACK RECOVERY: Attempting to restore timer functionality after 5 minutes");
 
                             // Try to restore normal timer operation in background
                             _ = Task.Run(async () =>
@@ -1370,7 +1370,7 @@ namespace EyeRest.Services
                                     var (isWorking, issue) = await TestTimerFunctionality();
                                     if (isWorking)
                                     {
-                                        _logger.LogCritical("✅ FALLBACK RECOVERY SUCCESS: Timer system restored - deactivating emergency fallback");
+                                        _logger.LogInformation("✅ FALLBACK RECOVERY SUCCESS: Timer system restored - deactivating emergency fallback");
 
                                         // Dispose emergency fallback timer
                                         _emergencyFallbackTimer?.Dispose();
@@ -1379,7 +1379,7 @@ namespace EyeRest.Services
                                         // Recreate and start normal timers
                                         InitializeEyeRestTimer();
                                         InitializeBreakTimer();
-                                        _logger.LogCritical("✅ FALLBACK RECOVERY COMPLETE: Normal timer operation restored");
+                                        _logger.LogInformation("✅ FALLBACK RECOVERY COMPLETE: Normal timer operation restored");
                                     }
                                     else
                                     {
