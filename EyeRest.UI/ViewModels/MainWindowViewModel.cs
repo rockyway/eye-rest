@@ -1195,15 +1195,104 @@ namespace EyeRest.UI.ViewModels
                 _settingsDebounceTimer?.Stop();
                 _pendingTimerChanges.Clear();
 
-                // CRITICAL: Release the loading flag at a LOWER dispatcher priority than Layout/Loaded.
-                // This ensures all deferred Slider coercion events (which fire during layout passes)
-                // are processed while the guard is still active, preventing midpoint write-backs.
+                // CRITICAL: Release the loading flag at Background priority (lower than Layout/DataBind).
+                // Then schedule a correction pass at SystemIdle to catch any Slider coercion that fires
+                // in subsequent dispatcher frames after the flag release.
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     _isLoadingConfiguration = false;
                     _settingsDebounceTimer?.Stop();
                     _pendingTimerChanges.Clear();
+
+                    // Layer 3: Post-release drift correction at the LOWEST priority.
+                    // Avalonia Sliders may coerce to midpoint in subsequent layout passes
+                    // after the flag is released. This final pass catches and reverts any drift.
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        CorrectSliderDrift();
+                    }, Avalonia.Threading.DispatcherPriority.SystemIdle);
                 }, Avalonia.Threading.DispatcherPriority.Background);
+            }
+        }
+
+        /// <summary>
+        /// Detects and corrects Slider midpoint write-back drift by comparing ViewModel
+        /// properties against the authoritative _configuration loaded from disk.
+        /// </summary>
+        private void CorrectSliderDrift()
+        {
+            if (_configuration == null) return;
+
+            bool drifted = false;
+            _isLoadingConfiguration = true;
+            try
+            {
+                // Compare each Slider-bound property against the authoritative config
+                if (EyeRestIntervalMinutes != _configuration.EyeRest.IntervalMinutes)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: EyeRestIntervalMinutes was {Actual}, expected {Expected}",
+                        EyeRestIntervalMinutes, _configuration.EyeRest.IntervalMinutes);
+                    EyeRestIntervalMinutes = _configuration.EyeRest.IntervalMinutes;
+                    drifted = true;
+                }
+                if (EyeRestDurationSeconds != _configuration.EyeRest.DurationSeconds)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: EyeRestDurationSeconds was {Actual}, expected {Expected}",
+                        EyeRestDurationSeconds, _configuration.EyeRest.DurationSeconds);
+                    EyeRestDurationSeconds = _configuration.EyeRest.DurationSeconds;
+                    drifted = true;
+                }
+                if (EyeRestWarningSeconds != _configuration.EyeRest.WarningSeconds)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: EyeRestWarningSeconds was {Actual}, expected {Expected}",
+                        EyeRestWarningSeconds, _configuration.EyeRest.WarningSeconds);
+                    EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
+                    drifted = true;
+                }
+                if (BreakIntervalMinutes != _configuration.Break.IntervalMinutes)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: BreakIntervalMinutes was {Actual}, expected {Expected}",
+                        BreakIntervalMinutes, _configuration.Break.IntervalMinutes);
+                    BreakIntervalMinutes = _configuration.Break.IntervalMinutes;
+                    drifted = true;
+                }
+                if (BreakDurationMinutes != _configuration.Break.DurationMinutes)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: BreakDurationMinutes was {Actual}, expected {Expected}",
+                        BreakDurationMinutes, _configuration.Break.DurationMinutes);
+                    BreakDurationMinutes = _configuration.Break.DurationMinutes;
+                    drifted = true;
+                }
+                if (BreakWarningSeconds != _configuration.Break.WarningSeconds)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: BreakWarningSeconds was {Actual}, expected {Expected}",
+                        BreakWarningSeconds, _configuration.Break.WarningSeconds);
+                    BreakWarningSeconds = _configuration.Break.WarningSeconds;
+                    drifted = true;
+                }
+                if (OverlayOpacityPercent != _configuration.Break.OverlayOpacityPercent)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: OverlayOpacityPercent was {Actual}, expected {Expected}",
+                        OverlayOpacityPercent, _configuration.Break.OverlayOpacityPercent);
+                    OverlayOpacityPercent = _configuration.Break.OverlayOpacityPercent;
+                    drifted = true;
+                }
+                if (AudioVolume != _configuration.Audio.Volume)
+                {
+                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: AudioVolume was {Actual}, expected {Expected}",
+                        AudioVolume, _configuration.Audio.Volume);
+                    AudioVolume = _configuration.Audio.Volume;
+                    drifted = true;
+                }
+
+                if (!drifted)
+                    _logger.LogInformation("🛡️ Slider drift check passed — all values match config");
+            }
+            finally
+            {
+                _isLoadingConfiguration = false;
+                _settingsDebounceTimer?.Stop();
+                _pendingTimerChanges.Clear();
             }
         }
 
