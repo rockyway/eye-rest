@@ -80,3 +80,7 @@ master-agent.md
 
 # Database files
 *.db
+
+# Code signing secrets (Azure Trusted Signing credentials)
+signing/.env
+signing/metadata.json

@@ -20,6 +20,9 @@ namespace EyeRest.Services
         private readonly string _configFilePath;
         private readonly SemaphoreSlim _configLock = new(1, 1);
         private AppConfiguration? _currentConfiguration;
+        private AppConfiguration? _cachedConfiguration;
+        private DateTime _cacheTimestamp;
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMilliseconds(500);
 
         public event EventHandler<ConfigurationChangedEventArgs>? ConfigurationChanged;
 
@@ -39,6 +42,12 @@ namespace EyeRest.Services
 
         public async Task<AppConfiguration> LoadConfigurationAsync()
         {
+            // Short-lived cache to avoid redundant disk reads during startup burst
+            if (_cachedConfiguration != null && (DateTime.UtcNow - _cacheTimestamp) < CacheDuration)
+            {
+                return _cachedConfiguration;
+            }
+
             try
             {
                 if (!File.Exists(_configFilePath))
@@ -62,6 +71,8 @@ namespace EyeRest.Services
                     // Validate configuration
                     var validatedConfig = ValidateConfiguration(configuration);
                     _currentConfiguration = validatedConfig;
+                    _cachedConfiguration = validatedConfig;
+                    _cacheTimestamp = DateTime.UtcNow;
 
                     _logger.LogInformation("Configuration loaded successfully");
                     return validatedConfig;
@@ -156,6 +167,7 @@ namespace EyeRest.Services
                     }
 
                     _logger.LogInformation("Configuration saved successfully on attempt {Attempt}", attempt);
+                    _cachedConfiguration = null;
                     return; // Success - exit retry loop
                 }
                 catch (UnauthorizedAccessException uaEx)

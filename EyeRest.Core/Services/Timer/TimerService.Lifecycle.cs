@@ -59,7 +59,7 @@ namespace EyeRest.Services
                 var hadPauseStates = IsManuallyPaused || IsPaused || IsSmartPaused;
                 if (hadPauseStates)
                 {
-                    _logger.LogCritical($"🔧 STARTUP COORDINATION: Clearing lingering pause states - Manual={IsManuallyPaused}, Paused={IsPaused}, Smart={IsSmartPaused}");
+                    _logger.LogWarning($"🔧 STARTUP COORDINATION: Clearing lingering pause states - Manual={IsManuallyPaused}, Paused={IsPaused}, Smart={IsSmartPaused}");
                     IsManuallyPaused = false;
                     IsPaused = false;
                     IsSmartPaused = false;
@@ -67,7 +67,7 @@ namespace EyeRest.Services
                     _manualPauseStartTime = DateTime.MinValue;
                     _pauseStartTime = DateTime.MinValue;
                     _manualPauseDuration = TimeSpan.Zero;
-                    _logger.LogCritical($"🔧 STARTUP COORDINATION: All pause states cleared - service will show as Running");
+                    _logger.LogWarning($"🔧 STARTUP COORDINATION: All pause states cleared - service will show as Running");
                 }
                 
                 // Start timers (start times already set above)
@@ -89,8 +89,6 @@ namespace EyeRest.Services
                 // 1. Warning fallback timers (fire 2s after warning period if warning timer fails)
                 // 2. Health monitor (emergency backup for truly stuck timers)
                 // This eliminates the "7+ timer systems" race condition.
-                
-                await _analyticsService.RecordSessionStartAsync();
                 
                 _logger.LogInformation("✅ Timer service started successfully");
             }
