@@ -184,6 +184,11 @@ public partial class App : Application
             // Subscribe to tray icon state changes to swap the menu bar icon color
             systemTrayService.TrayIconStateChanged += state =>
                 Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateTrayIconForState(state));
+
+            // Subscribe to timer updates to refresh the tray menu countdown text
+            systemTrayService.TimerDetailsUpdated += (eyeRest, breakTime, status) =>
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateTrayTimerMenuItem(eyeRest, breakTime, status));
+
             logger.LogInformation("System tray initialized");
 
             // Start the orchestrator (this starts timers, analytics, presence monitoring, etc.)
@@ -245,11 +250,20 @@ public partial class App : Application
     /// This replaces the broken ObjC NSStatusItem approach — Avalonia manages its own
     /// NSStatusItem internally and the two conflict.
     /// </summary>
+    // Timer info menu item — updated every 5s by UpdateTrayTimerMenuItem()
+    private NativeMenuItem? _trayTimerInfoItem;
+
     private void SetupTrayIcon(ISystemTrayService systemTrayService)
     {
         try
         {
             var trayMenu = new NativeMenu();
+
+            // Timer countdown — first row for quick glance
+            _trayTimerInfoItem = new NativeMenuItem("Eye Rest: --m | Break: --m") { IsEnabled = false };
+            trayMenu.Add(_trayTimerInfoItem);
+
+            trayMenu.Add(new NativeMenuItemSeparator());
 
             trayMenu.Add(new NativeMenuItem("Show Eye Rest")
             {
@@ -270,9 +284,13 @@ public partial class App : Application
             {
                 Command = new RelayCommand(() => systemTrayService.OnResumeTimersRequested())
             });
-            trayMenu.Add(new NativeMenuItem("Pause for Meeting")
+            trayMenu.Add(new NativeMenuItem("Meeting 30m")
             {
                 Command = new RelayCommand(() => systemTrayService.OnPauseForMeetingRequested())
+            });
+            trayMenu.Add(new NativeMenuItem("Meeting 1h")
+            {
+                Command = new RelayCommand(() => systemTrayService.OnPauseForMeeting1hRequested())
             });
 
             trayMenu.Add(new NativeMenuItemSeparator());
@@ -357,6 +375,32 @@ public partial class App : Application
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to update tray icon for state {State}", state);
+        }
+    }
+
+    private void UpdateTrayTimerMenuItem(TimeSpan eyeRest, TimeSpan breakTime, string status)
+    {
+        if (_trayTimerInfoItem == null) return;
+        try
+        {
+            string FormatTs(TimeSpan ts) => ts.TotalHours >= 1
+                ? $"{(int)ts.TotalHours}h {ts.Minutes:D2}m"
+                : $"{ts.Minutes}m {ts.Seconds:D2}s";
+
+            var text = status switch
+            {
+                "Stopped" => "Timers stopped",
+                var s when s.StartsWith("Meeting Pause") => $"Meeting pause  {s.Replace("Meeting Pause ", "")}",
+                var s when s.StartsWith("Paused") => "Paused",
+                var s when s.StartsWith("Smart Paused") => $"Smart paused",
+                _ => $"Eye Rest {FormatTs(eyeRest)}  |  Break {FormatTs(breakTime)}"
+            };
+
+            _trayTimerInfoItem.Header = text;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to update tray timer menu item");
         }
     }
 
