@@ -440,7 +440,7 @@ namespace EyeRest.Services
                                     // Add a brief delay to ensure system is stable after unlock
                                     await Task.Delay(1000);
                                     await _timerService.RecoverFromSystemResumeAsync("Session unlocked - potential system resume");
-                                    _logger.LogCritical($"🔓 Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
+                                    _logger.LogInformation($"🔓 Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -469,7 +469,7 @@ namespace EyeRest.Services
                                     // Add a brief delay to ensure system is stable after console connect
                                     await Task.Delay(1000);
                                     await _timerService.RecoverFromSystemResumeAsync("Console connected - potential system resume");
-                                    _logger.LogCritical($"💻 Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
+                                    _logger.LogInformation($"💻 Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -521,7 +521,7 @@ namespace EyeRest.Services
                                     // Add a brief delay to ensure system is stable after monitor power on
                                     await Task.Delay(1000);
                                     await _timerService.RecoverFromSystemResumeAsync("Monitor power on - potential system resume");
-                                    _logger.LogCritical($"🖥️ Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
+                                    _logger.LogInformation($"🖥️ Recovery completed: IsRunning={_timerService.IsRunning}, ManuallyPaused={_timerService.IsManuallyPaused}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -640,7 +640,7 @@ namespace EyeRest.Services
                     if (idleDuration.TotalMinutes >= extendedAwayThresholdMinutes && !_hasBeenAwayExtended)
                     {
                         _hasBeenAwayExtended = true;
-                        _logger.LogCritical($"⚡ P0 FIX - EXTENDED IDLE DETECTED: {idleDuration.TotalMinutes:F1} minutes idle (threshold: {extendedAwayThresholdMinutes}min) - triggering smart session reset");
+                        _logger.LogWarning($"⚡ P0 FIX - EXTENDED IDLE DETECTED: {idleDuration.TotalMinutes:F1} minutes idle (threshold: {extendedAwayThresholdMinutes}min) - triggering smart session reset");
 
                         var extendedAwayArgs = new ExtendedAwayEventArgs
                         {
