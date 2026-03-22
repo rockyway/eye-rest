@@ -674,10 +674,27 @@ namespace EyeRest.Services
                 _manualPauseDuration = duration;
                 _pauseReason = reason;
 
-                // Stop timers
+                // Stop all timers — including warning timers and fallbacks
                 _eyeRestTimer?.Stop();
                 _breakTimer?.Stop();
-                
+                _eyeRestWarningTimer?.Stop();
+                _breakWarningTimer?.Stop();
+                _eyeRestWarningFallbackTimer?.Stop();
+                _eyeRestWarningFallbackTimer = null;
+                _breakWarningFallbackTimer?.Stop();
+                _breakWarningFallbackTimer = null;
+
+                // Clear notification and processing states
+                _isEyeRestNotificationActive = false;
+                _isBreakNotificationActive = false;
+                ClearEyeRestWarningProcessingFlag();
+                ClearBreakWarningProcessingFlag();
+                ClearEyeRestProcessingFlag();
+                ClearBreakProcessingFlag();
+
+                // Hide any active popups
+                _notificationService?.HideAllNotifications();
+
                 // Create timer for auto-resume
                 _manualPauseTimer = _timerFactory.CreateTimer();
                 _manualPauseTimer.Interval = duration;
