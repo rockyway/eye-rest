@@ -68,6 +68,26 @@ namespace EyeRest.Services
                         return await GetDefaultConfiguration();
                     }
 
+                    // Detect external config overwrite (SaveCount regression)
+                    if (_currentConfiguration?.Meta != null && configuration.Meta != null
+                        && configuration.Meta.SaveCount < _currentConfiguration.Meta.SaveCount)
+                    {
+                        _logger.LogWarning(
+                            "🚨 CONFIG OVERWRITE DETECTED: SaveCount dropped from {Old} to {New}. " +
+                            "File was overwritten by PID={PID}, Exe={Exe}. Restoring previous values.",
+                            _currentConfiguration.Meta.SaveCount,
+                            configuration.Meta.SaveCount,
+                            configuration.Meta.ProcessId,
+                            configuration.Meta.ExecutablePath);
+
+                        // Preserve timer settings from the known-good config
+                        configuration.EyeRest = _currentConfiguration.EyeRest;
+                        configuration.Break = _currentConfiguration.Break;
+                        configuration.Audio = _currentConfiguration.Audio;
+                        configuration.Application = _currentConfiguration.Application;
+                        configuration.UserPresence = _currentConfiguration.UserPresence;
+                    }
+
                     // Validate configuration
                     var validatedConfig = ValidateConfiguration(configuration);
                     _currentConfiguration = validatedConfig;
@@ -92,6 +112,8 @@ namespace EyeRest.Services
             config.Meta.SaveCount++;
             config.Meta.LastSavedBy = caller;
             config.Meta.LastSavedAt = DateTime.UtcNow.ToString("O");
+            config.Meta.ProcessId = Environment.ProcessId;
+            config.Meta.ExecutablePath = Environment.ProcessPath;
             var asm = System.Reflection.Assembly.GetEntryAssembly();
             config.Meta.AppVersion = asm?.GetName().Version?.ToString();
             config.Meta.BuildTimestamp = asm?.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
