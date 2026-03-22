@@ -352,6 +352,14 @@ namespace EyeRest.Services
         {
             try
             {
+                // Guard: Don't show eye rest popup if timers were paused during the warning countdown
+                if (IsPaused || IsManuallyPaused || IsSmartPaused)
+                {
+                    _logger.LogInformation("👁️ TriggerEyeRest blocked — service is paused (Manual={Manual}, Smart={Smart}, Paused={Paused})",
+                        IsManuallyPaused, IsSmartPaused, IsPaused);
+                    return;
+                }
+
                 // BREAK PRIORITY: Check if any break event is active or processing
                 if (_isBreakNotificationActive || _isBreakWarningProcessing || _isAnyBreakWarningProcessing ||
                     _isBreakEventProcessing || _isAnyBreakEventProcessing)
@@ -498,6 +506,14 @@ namespace EyeRest.Services
         {
             try
             {
+                // Guard: Don't show break popup if timers were paused during the warning countdown
+                if (IsPaused || IsManuallyPaused || IsSmartPaused)
+                {
+                    _logger.LogInformation("☕ TriggerBreak blocked — service is paused (Manual={Manual}, Smart={Smart}, Paused={Paused})",
+                        IsManuallyPaused, IsSmartPaused, IsPaused);
+                    return;
+                }
+
                 // ATOMIC FLAG OPERATION: Use Interlocked.CompareExchange to atomically check and set
                 // This eliminates the race window between checking and setting the flag
                 var previousValue = System.Threading.Interlocked.CompareExchange(ref _atomicBreakProcessing, 1, 0);
