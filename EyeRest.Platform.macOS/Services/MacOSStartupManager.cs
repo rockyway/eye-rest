@@ -54,6 +54,15 @@ namespace EyeRest.Services
                     return;
                 }
 
+                // Prevent dev builds from registering as LaunchAgents — only .app bundles
+                // should auto-start. Dev builds (dotnet run) use bin/Debug or bin/Release paths
+                // and create ghost processes that corrupt the shared config file.
+                if (executablePath.Contains("/bin/Debug/") || executablePath.Contains("/bin/Release/"))
+                {
+                    _logger.LogWarning("Auto-start skipped — running from dev build path: {Path}", executablePath);
+                    return;
+                }
+
                 // Ensure the LaunchAgents directory exists
                 var launchAgentsDir = Path.GetDirectoryName(PlistPath)!;
                 if (!Directory.Exists(launchAgentsDir))

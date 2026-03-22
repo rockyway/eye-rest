@@ -197,5 +197,7 @@ namespace EyeRest.Models
         public string? AppVersion { get; set; }
         public string? BuildTimestamp { get; set; }
         public int SaveCount { get; set; }
+        public int ProcessId { get; set; }
+        public string? ExecutablePath { get; set; }
     }
 }
