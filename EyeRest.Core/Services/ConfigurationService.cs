@@ -105,6 +105,9 @@ namespace EyeRest.Services
             }
         }
 
+        /// <summary>
+        /// Saves configuration atomically (tmp → backup → move) with forensic metadata stamping.
+        /// </summary>
         public async Task SaveConfigurationAsync(AppConfiguration config, [System.Runtime.CompilerServices.CallerMemberName] string? caller = null)
         {
             // Stamp metadata for tracing who/what wrote to the config
