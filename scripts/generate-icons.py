@@ -160,13 +160,14 @@ def make_ico(output_path: Path, sizes: list[int] = [16, 32, 48, 256]):
         img = draw_eye_icon(sz, DEFAULT_FILL, DEFAULT_BORDER, background=True)
         images.append(img)
 
-    # Save as ICO
+    # Save as ICO — the largest image must be first for Pillow to include all sizes
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    images[0].save(
+    images_reversed = list(reversed(images))  # largest first
+    images_reversed[0].save(
         str(output_path),
         format="ICO",
-        sizes=[(img.width, img.height) for img in images],
-        append_images=images[1:],
+        append_images=images_reversed[1:],
+        sizes=[(img.width, img.height) for img in images_reversed],
     )
     print(f"  Created {output_path} ({', '.join(f'{s}px' for s in sizes)})")
 
