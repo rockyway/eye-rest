@@ -76,6 +76,7 @@ namespace EyeRest.UI.ViewModels
         private string _analyticsHealthStatusText = "";
         private bool _isAnalyticsLoading = false;
         private bool _hasAnalyticsData = false;
+        private int _analyticsPeriodDays = 7;
 
         // UI State
         private int _selectedTabIndex = 0;
@@ -186,6 +187,23 @@ namespace EyeRest.UI.ViewModels
             // Mode toggle command
             ToggleConfigurationModeCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => IsConfigurationMode = !IsConfigurationMode);
 
+            // Navigate to specific config tab from simple view
+            NavigateToConfigurationTabCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(param =>
+            {
+                if (param is string tabStr && int.TryParse(tabStr, out var tabIndex))
+                {
+                    SelectedTabIndex = tabIndex;
+                    IsConfigurationMode = true;
+                }
+            });
+
+            // Analytics period selector command
+            SetAnalyticsPeriodCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(param =>
+            {
+                if (param is string daysStr && int.TryParse(daysStr, out var days))
+                    AnalyticsPeriodDays = days;
+            });
+
             // Donation commands
             OpenDonationLinkCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => OpenDonationLink());
             DismissDonationCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => DismissDonation());
@@ -222,11 +240,7 @@ namespace EyeRest.UI.ViewModels
             get => _eyeRestIntervalMinutes;
             set
             {
-                if (value != _eyeRestIntervalMinutes)
-                {
-                    _logger.LogWarning($"🔍 EyeRestIntervalMinutes CHANGING: {_eyeRestIntervalMinutes} → {value} (isLoading={_isLoadingConfiguration}) | Stack: {Environment.StackTrace.Substring(0, Math.Min(500, Environment.StackTrace.Length))}");
-                }
-                if (SetProperty(ref _eyeRestIntervalMinutes, value) && !_isLoadingConfiguration)
+                if (SetProperty(ref _eyeRestIntervalMinutes, value) && !_isLoadingConfiguration && !App.IsExiting)
                 {
                     _pendingTimerChanges.Add(nameof(EyeRestIntervalMinutes));
                     DebouncedSaveTimerSetting();
@@ -503,6 +517,22 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _isConfigurationMode, value))
                 {
                     OnPropertyChanged(nameof(IsNotConfigurationMode));
+
+                    if (value)
+                    {
+                        // Guard against Slider midpoint coercion during first render.
+                        // Release after layout stabilizes at Background priority.
+                        _isLoadingConfiguration = true;
+                        _settingsDebounceTimer?.Stop();
+                        _pendingTimerChanges.Clear();
+
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            _isLoadingConfiguration = false;
+                            _settingsDebounceTimer?.Stop();
+                            _pendingTimerChanges.Clear();
+                        }, Avalonia.Threading.DispatcherPriority.Background);
+                    }
                 }
             }
         }
@@ -605,6 +635,39 @@ namespace EyeRest.UI.ViewModels
             get => _analyticsHealthStatusText;
             private set => SetProperty(ref _analyticsHealthStatusText, value);
         }
+
+        public int AnalyticsPeriodDays
+        {
+            get => _analyticsPeriodDays;
+            set
+            {
+                if (SetProperty(ref _analyticsPeriodDays, value))
+                {
+                    OnPropertyChanged(nameof(AnalyticsPeriodLabel));
+                    OnPropertyChanged(nameof(IsAnalyticsPeriod7));
+                    OnPropertyChanged(nameof(IsAnalyticsPeriod30));
+                    OnPropertyChanged(nameof(IsAnalyticsPeriod90));
+                    OnPropertyChanged(nameof(IsAnalyticsPeriodAll));
+                    _ = LoadAnalyticsSummaryAsync();
+                }
+            }
+        }
+
+        public string AnalyticsPeriodLabel => _analyticsPeriodDays switch
+        {
+            7 => "Last 7 days",
+            30 => "Last 30 days",
+            90 => "Last 90 days",
+            0 => "All time",
+            _ => $"Last {_analyticsPeriodDays} days"
+        };
+
+        public bool IsAnalyticsPeriod7 => _analyticsPeriodDays == 7;
+        public bool IsAnalyticsPeriod30 => _analyticsPeriodDays == 30;
+        public bool IsAnalyticsPeriod90 => _analyticsPeriodDays == 90;
+        public bool IsAnalyticsPeriodAll => _analyticsPeriodDays == 0;
+
+        public ICommand SetAnalyticsPeriodCommand { get; }
 
         public bool IsAnalyticsLoading
         {
@@ -1005,6 +1068,7 @@ namespace EyeRest.UI.ViewModels
 
         // Mode toggle command
         public ICommand ToggleConfigurationModeCommand { get; }
+        public ICommand NavigateToConfigurationTabCommand { get; }
 
         // Donation commands
         public ICommand OpenDonationLinkCommand { get; }
@@ -1175,211 +1239,25 @@ namespace EyeRest.UI.ViewModels
         /// any Slider midpoint write-backs that may have occurred during XAML initialization.
         /// Also releases the _isLoadingConfiguration flag that was held since UpdatePropertiesFromConfiguration.
         /// </summary>
-        public async void ReapplyConfigurationValues()
+        public void ReapplyConfigurationValues()
         {
-            try
-            {
-                // CRITICAL: Reload from disk — the in-memory _configuration may already be
-                // corrupted by Slider midpoint write-backs that modified ViewModel properties
-                // and then flowed back into _configuration via SaveTimerSettingAsync.
-                var freshConfig = await _configurationService.LoadConfigurationAsync();
-                _configuration = freshConfig;
-                _originalConfiguration = CloneConfiguration(freshConfig);
+            _settingsDebounceTimer?.Stop();
+            _pendingTimerChanges.Clear();
 
-                // Re-apply all Slider-bound values from the authoritative disk config
-                EyeRestIntervalMinutes = _configuration.EyeRest.IntervalMinutes;
-                EyeRestDurationSeconds = _configuration.EyeRest.DurationSeconds;
-                EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
-                BreakIntervalMinutes = _configuration.Break.IntervalMinutes;
-                BreakDurationMinutes = _configuration.Break.DurationMinutes;
-                BreakWarningSeconds = _configuration.Break.WarningSeconds;
-                OverlayOpacityPercent = _configuration.Break.OverlayOpacityPercent;
-                AudioVolume = _configuration.Audio.Volume;
-                IdleTimeoutMinutes = _configuration.UserPresence.IdleTimeoutMinutes;
+            _logger.LogInformation(
+                $"🛡️ CONFIG RE-APPLY: EyeRest={EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, " +
+                $"Break={BreakIntervalMinutes}min/{BreakDurationMinutes}min, Theme={SelectedThemeMode}");
 
-                _logger.LogInformation(
-                    $"🛡️ CONFIG RE-APPLY: EyeRest={EyeRestIntervalMinutes}min/{EyeRestDurationSeconds}sec, " +
-                    $"Break={BreakIntervalMinutes}min/{BreakDurationMinutes}min, Theme={SelectedThemeMode}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "🛡️ CONFIG RE-APPLY: Failed to reload config from disk");
-            }
-            finally
-            {
-                _settingsDebounceTimer?.Stop();
-                _pendingTimerChanges.Clear();
-
-                // CRITICAL: Release the loading flag at Background priority (lower than Layout/DataBind).
-                // Then schedule a correction pass at SystemIdle to catch any Slider coercion that fires
-                // in subsequent dispatcher frames after the flag release.
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    _isLoadingConfiguration = false;
-                    _settingsDebounceTimer?.Stop();
-                    _pendingTimerChanges.Clear();
-
-                    // Layer 3: Post-release drift correction at the LOWEST priority.
-                    // Avalonia Sliders may coerce to midpoint in subsequent layout passes
-                    // after the flag is released. This final pass catches and reverts any drift.
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                    {
-                        CorrectSliderDrift();
-                    }, Avalonia.Threading.DispatcherPriority.SystemIdle);
-                }, Avalonia.Threading.DispatcherPriority.Background);
-            }
-        }
-
-        /// <summary>
-        /// Detects and corrects Slider midpoint write-back drift by comparing ViewModel
-        /// properties against the authoritative _configuration loaded from disk.
-        /// </summary>
-        private void CorrectSliderDrift()
-        {
-            if (_configuration == null) return;
-
-            bool drifted = false;
-            _isLoadingConfiguration = true;
-            try
-            {
-                // Compare each Slider-bound property against the authoritative config
-                if (EyeRestIntervalMinutes != _configuration.EyeRest.IntervalMinutes)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: EyeRestIntervalMinutes was {Actual}, expected {Expected}",
-                        EyeRestIntervalMinutes, _configuration.EyeRest.IntervalMinutes);
-                    EyeRestIntervalMinutes = _configuration.EyeRest.IntervalMinutes;
-                    drifted = true;
-                }
-                if (EyeRestDurationSeconds != _configuration.EyeRest.DurationSeconds)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: EyeRestDurationSeconds was {Actual}, expected {Expected}",
-                        EyeRestDurationSeconds, _configuration.EyeRest.DurationSeconds);
-                    EyeRestDurationSeconds = _configuration.EyeRest.DurationSeconds;
-                    drifted = true;
-                }
-                if (EyeRestWarningSeconds != _configuration.EyeRest.WarningSeconds)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: EyeRestWarningSeconds was {Actual}, expected {Expected}",
-                        EyeRestWarningSeconds, _configuration.EyeRest.WarningSeconds);
-                    EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
-                    drifted = true;
-                }
-                if (BreakIntervalMinutes != _configuration.Break.IntervalMinutes)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: BreakIntervalMinutes was {Actual}, expected {Expected}",
-                        BreakIntervalMinutes, _configuration.Break.IntervalMinutes);
-                    BreakIntervalMinutes = _configuration.Break.IntervalMinutes;
-                    drifted = true;
-                }
-                if (BreakDurationMinutes != _configuration.Break.DurationMinutes)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: BreakDurationMinutes was {Actual}, expected {Expected}",
-                        BreakDurationMinutes, _configuration.Break.DurationMinutes);
-                    BreakDurationMinutes = _configuration.Break.DurationMinutes;
-                    drifted = true;
-                }
-                if (BreakWarningSeconds != _configuration.Break.WarningSeconds)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: BreakWarningSeconds was {Actual}, expected {Expected}",
-                        BreakWarningSeconds, _configuration.Break.WarningSeconds);
-                    BreakWarningSeconds = _configuration.Break.WarningSeconds;
-                    drifted = true;
-                }
-                if (OverlayOpacityPercent != _configuration.Break.OverlayOpacityPercent)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: OverlayOpacityPercent was {Actual}, expected {Expected}",
-                        OverlayOpacityPercent, _configuration.Break.OverlayOpacityPercent);
-                    OverlayOpacityPercent = _configuration.Break.OverlayOpacityPercent;
-                    drifted = true;
-                }
-                if (AudioVolume != _configuration.Audio.Volume)
-                {
-                    _logger.LogWarning("🛡️ SLIDER DRIFT CORRECTED: AudioVolume was {Actual}, expected {Expected}",
-                        AudioVolume, _configuration.Audio.Volume);
-                    AudioVolume = _configuration.Audio.Volume;
-                    drifted = true;
-                }
-
-                if (!drifted)
-                    _logger.LogInformation("🛡️ Slider drift check passed — all values match config");
-            }
-            finally
+            // Release the loading flag at Background priority — after Slider layout coercion completes.
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 _isLoadingConfiguration = false;
                 _settingsDebounceTimer?.Stop();
                 _pendingTimerChanges.Clear();
-            }
+            }, Avalonia.Threading.DispatcherPriority.Background);
         }
 
-        private void UpdateConfigurationFromProperties()
-        {
-            if (_configuration == null) return;
 
-            // Eye Rest
-            if (_configuration.EyeRest != null)
-            {
-                _configuration.EyeRest.IntervalMinutes = EyeRestIntervalMinutes;
-                _configuration.EyeRest.DurationSeconds = EyeRestDurationSeconds;
-                _configuration.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
-                _configuration.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
-                _configuration.EyeRest.WarningEnabled = EyeRestWarningEnabled;
-                _configuration.EyeRest.WarningSeconds = EyeRestWarningSeconds;
-            }
-
-            // Break
-            if (_configuration.Break != null)
-            {
-                _configuration.Break.IntervalMinutes = BreakIntervalMinutes;
-                _configuration.Break.DurationMinutes = BreakDurationMinutes;
-                _configuration.Break.WarningEnabled = BreakWarningEnabled;
-                _configuration.Break.WarningSeconds = BreakWarningSeconds;
-                _configuration.Break.OverlayOpacityPercent = OverlayOpacityPercent;
-                _configuration.Break.RequireConfirmationAfterBreak = RequireConfirmationAfterBreak;
-                _configuration.Break.ResetTimersOnBreakConfirmation = ResetTimersOnBreakConfirmation;
-            }
-
-            // Audio
-            if (_configuration.Audio != null)
-            {
-                _configuration.Audio.Enabled = AudioEnabled;
-                _configuration.Audio.Volume = AudioVolume;
-                _configuration.Audio.CustomSoundPath = CustomSoundPath;
-            }
-
-            // Application
-            if (_configuration.Application != null)
-            {
-                _configuration.Application.StartWithWindows = StartWithWindows;
-                _configuration.Application.MinimizeToTray = MinimizeToTray;
-                _configuration.Application.StartMinimized = StartMinimized;
-                _configuration.Application.ShowTrayNotifications = ShowTrayNotifications;
-                _configuration.Application.ShowInTaskbar = ShowInTaskbar;
-                _configuration.Application.ThemeMode = SelectedThemeMode;
-            }
-
-            // Analytics
-            if (_configuration.Analytics != null)
-            {
-                _configuration.Analytics.AutoOpenDashboard = AutoOpenDashboard;
-            }
-
-            // Meeting Detection
-            if (_configuration.MeetingDetection != null)
-            {
-                _configuration.MeetingDetection.DetectionMethod = MeetingDetectionMethod;
-                _configuration.MeetingDetection.LogDetectionActivity = LogDetectionActivity;
-                _configuration.MeetingDetection.EnableFallbackDetection = EnableFallbackDetection;
-            }
-
-            // User Presence
-            if (_configuration.UserPresence != null)
-            {
-                _configuration.UserPresence.PauseOnScreenLock = PauseOnScreenLock;
-                _configuration.UserPresence.PauseOnMonitorOff = PauseOnMonitorOff;
-                _configuration.UserPresence.PauseOnIdle = PauseOnIdle;
-                _configuration.UserPresence.IdleTimeoutMinutes = IdleTimeoutMinutes;
-            }
-        }
 
         private async Task SaveAutoOpenSettingAsync(bool value)
         {
@@ -2161,7 +2039,11 @@ namespace EyeRest.UI.ViewModels
                 IsAnalyticsLoading = true;
 
                 var endDate = DateTime.Now;
-                var startDate = endDate.AddDays(-7);
+                var periodDays = _analyticsPeriodDays;
+                // 0 = All time: use 10 years back (covers all possible data)
+                var startDate = periodDays == 0
+                    ? endDate.AddYears(-10)
+                    : endDate.AddDays(-periodDays);
 
                 var healthMetrics = await _analyticsService.GetHealthMetricsAsync(startDate, endDate);
 
@@ -2178,7 +2060,14 @@ namespace EyeRest.UI.ViewModels
                     ? $"{(double)healthMetrics.BreaksSkipped / totalBreaks:P0} of total"
                     : "No data";
                 AnalyticsTotalActiveTimeText = $"{healthMetrics.TotalActiveTime.TotalHours:F1}h";
-                AnalyticsDailyAverageText = $"~{healthMetrics.TotalActiveTime.TotalHours / 7:F1}h/day avg";
+                if (periodDays > 0)
+                {
+                    AnalyticsDailyAverageText = $"~{healthMetrics.TotalActiveTime.TotalHours / periodDays:F1}h/day avg";
+                }
+                else
+                {
+                    AnalyticsDailyAverageText = "all time";
+                }
 
                 // Health score logic
                 var hasMinimalData = totalBreaks < 5 || healthMetrics.TotalActiveTime.TotalHours < 2;
@@ -2606,7 +2495,7 @@ namespace EyeRest.UI.ViewModels
 
         private void DebouncedSaveTimerSetting()
         {
-            if (_isLoadingConfiguration || _disposed) return;
+            if (_isLoadingConfiguration || _disposed || App.IsExiting) return;
 
             _settingsDebounceTimer?.Stop();
             _settingsDebounceTimer?.Start();
@@ -2615,6 +2504,12 @@ namespace EyeRest.UI.ViewModels
 
         private async Task SaveTimerSettingAsync()
         {
+            if (App.IsExiting)
+            {
+                _logger.LogWarning("SaveTimerSettingAsync blocked — app is exiting");
+                return;
+            }
+
             try
             {
                 // Snapshot and clear the dirty set atomically
@@ -2783,10 +2678,6 @@ namespace EyeRest.UI.ViewModels
         {
             if (!_disposed)
             {
-                // CRITICAL: Block all config saves immediately to prevent Slider teardown
-                // write-backs from corrupting config during shutdown
-                _isLoadingConfiguration = true;
-
                 if (disposing)
                 {
                     _settingsDebounceTimer?.Stop();

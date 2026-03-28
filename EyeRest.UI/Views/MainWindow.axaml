@@ -135,69 +135,83 @@
                                 <!-- Two timer cards side by side -->
                                 <Grid ColumnDefinitions="*,8,*">
 
-                                    <!-- Eye Rest Timer Card -->
-                                    <Border Grid.Column="0" Classes="TimerMiniCard"
+                                    <!-- Eye Rest Timer Card (clickable → navigates to Eye Rest config tab) -->
+                                    <Button Grid.Column="0"
+                                            Command="{Binding NavigateToConfigurationTabCommand}"
+                                            CommandParameter="0"
+                                            Background="Transparent" BorderThickness="0" Padding="0"
+                                            Cursor="Hand"
+                                            HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding EyeRestTimerTooltip}">
-                                        <StackPanel Spacing="7">
-                                            <Border Classes="TimerIconCircle"
-                                                    HorizontalAlignment="Center">
-                                                <PathIcon Data="{StaticResource EyeIcon}"
-                                                          Width="14" Height="14"
-                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
-                                            </Border>
-                                            <TextBlock Text="{Binding EyeRestCountdownText}"
-                                                       Classes="TimerCountdown"
-                                                       HorizontalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <Border Height="4" CornerRadius="2" Margin="4,2"
-                                                    Background="{DynamicResource StatusCardBackground}"
-                                                    ClipToBounds="True">
-                                                <Border Background="{DynamicResource PrimaryBrush}"
-                                                        CornerRadius="2"
-                                                        HorizontalAlignment="Stretch"
-                                                        RenderTransformOrigin="0%,50%">
-                                                    <Border.RenderTransform>
-                                                        <ScaleTransform ScaleX="{Binding EyeRestProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
-                                                    </Border.RenderTransform>
+                                        <Border Classes="TimerMiniCard">
+                                            <StackPanel Spacing="7">
+                                                <Border Classes="TimerIconCircle"
+                                                        HorizontalAlignment="Center">
+                                                    <PathIcon Data="{StaticResource EyeIcon}"
+                                                              Width="14" Height="14"
+                                                              Foreground="{DynamicResource ToggleCardIconColor}" />
                                                 </Border>
-                                            </Border>
-                                            <TextBlock Text="Eye Rest"
-                                                       Classes="TimerLabel"
-                                                       HorizontalAlignment="Center" />
-                                        </StackPanel>
-                                    </Border>
+                                                <TextBlock Text="{Binding EyeRestCountdownText}"
+                                                           Classes="TimerCountdown"
+                                                           HorizontalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <Border Height="4" CornerRadius="2" Margin="4,2"
+                                                        Background="{DynamicResource StatusCardBackground}"
+                                                        ClipToBounds="True">
+                                                    <Border Background="{DynamicResource PrimaryBrush}"
+                                                            CornerRadius="2"
+                                                            HorizontalAlignment="Stretch"
+                                                            RenderTransformOrigin="0%,50%">
+                                                        <Border.RenderTransform>
+                                                            <ScaleTransform ScaleX="{Binding EyeRestProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
+                                                        </Border.RenderTransform>
+                                                    </Border>
+                                                </Border>
+                                                <TextBlock Text="Eye Rest"
+                                                           Classes="TimerLabel"
+                                                           HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Button>
 
-                                    <!-- Break Timer Card -->
-                                    <Border Grid.Column="2" Classes="TimerMiniCard"
+                                    <!-- Break Timer Card (clickable → navigates to Break config tab) -->
+                                    <Button Grid.Column="2"
+                                            Command="{Binding NavigateToConfigurationTabCommand}"
+                                            CommandParameter="1"
+                                            Background="Transparent" BorderThickness="0" Padding="0"
+                                            Cursor="Hand"
+                                            HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding BreakTimerTooltip}">
-                                        <StackPanel Spacing="7">
-                                            <Border Classes="TimerIconCircle"
-                                                    HorizontalAlignment="Center">
-                                                <PathIcon Data="{StaticResource ClockIcon}"
-                                                          Width="14" Height="14"
-                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
-                                            </Border>
-                                            <TextBlock Text="{Binding BreakCountdownText}"
-                                                       Classes="TimerCountdown"
-                                                       HorizontalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <Border Height="4" CornerRadius="2" Margin="4,2"
-                                                    Background="{DynamicResource StatusCardBackground}"
-                                                    ClipToBounds="True">
-                                                <Border Background="{DynamicResource AccentBrush}"
-                                                        CornerRadius="2"
-                                                        HorizontalAlignment="Stretch"
-                                                        RenderTransformOrigin="0%,50%">
-                                                    <Border.RenderTransform>
-                                                        <ScaleTransform ScaleX="{Binding BreakProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
-                                                    </Border.RenderTransform>
+                                        <Border Classes="TimerMiniCard">
+                                            <StackPanel Spacing="7">
+                                                <Border Classes="TimerIconCircle"
+                                                        HorizontalAlignment="Center">
+                                                    <PathIcon Data="{StaticResource ClockIcon}"
+                                                              Width="14" Height="14"
+                                                              Foreground="{DynamicResource ToggleCardIconColor}" />
                                                 </Border>
-                                            </Border>
-                                            <TextBlock Text="Break"
-                                                       Classes="TimerLabel"
-                                                       HorizontalAlignment="Center" />
-                                        </StackPanel>
-                                    </Border>
+                                                <TextBlock Text="{Binding BreakCountdownText}"
+                                                           Classes="TimerCountdown"
+                                                           HorizontalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <Border Height="4" CornerRadius="2" Margin="4,2"
+                                                        Background="{DynamicResource StatusCardBackground}"
+                                                        ClipToBounds="True">
+                                                    <Border Background="{DynamicResource AccentBrush}"
+                                                            CornerRadius="2"
+                                                            HorizontalAlignment="Stretch"
+                                                            RenderTransformOrigin="0%,50%">
+                                                        <Border.RenderTransform>
+                                                            <ScaleTransform ScaleX="{Binding BreakProgressPercent, Converter={StaticResource PercentToScaleConverter}}" />
+                                                        </Border.RenderTransform>
+                                                    </Border>
+                                                </Border>
+                                                <TextBlock Text="Break"
+                                                           Classes="TimerLabel"
+                                                           HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Button>
 
                                 </Grid>
                             </StackPanel>
@@ -1244,10 +1258,44 @@
                             <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=3}"
                                         Spacing="8" Margin="0,8,0,0">
 
-                                <!-- Section Header -->
-                                <TextBlock Text="Key Performance Metrics"
-                                           FontSize="15" FontWeight="SemiBold"
-                                           Margin="4,0,0,4" />
+                                <!-- Section Header with Period Selector -->
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Grid.Column="0"
+                                               Text="Key Performance Metrics"
+                                               FontSize="15" FontWeight="SemiBold"
+                                               Margin="4,0,0,0"
+                                               VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                HorizontalAlignment="Right"
+                                                Spacing="4"
+                                                VerticalAlignment="Center">
+                                        <Button Classes="PeriodPill"
+                                                Classes.active="{Binding IsAnalyticsPeriod7}"
+                                                Command="{Binding SetAnalyticsPeriodCommand}"
+                                                CommandParameter="7">
+                                            <TextBlock Text="7d" />
+                                        </Button>
+                                        <Button Classes="PeriodPill"
+                                                Classes.active="{Binding IsAnalyticsPeriod30}"
+                                                Command="{Binding SetAnalyticsPeriodCommand}"
+                                                CommandParameter="30">
+                                            <TextBlock Text="30d" />
+                                        </Button>
+                                        <Button Classes="PeriodPill"
+                                                Classes.active="{Binding IsAnalyticsPeriod90}"
+                                                Command="{Binding SetAnalyticsPeriodCommand}"
+                                                CommandParameter="90">
+                                            <TextBlock Text="90d" />
+                                        </Button>
+                                        <Button Classes="PeriodPill"
+                                                Classes.active="{Binding IsAnalyticsPeriodAll}"
+                                                Command="{Binding SetAnalyticsPeriodCommand}"
+                                                CommandParameter="0">
+                                            <TextBlock Text="All" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
 
                                 <!-- Row 1: Compliance Rate | Breaks Completed -->
                                 <Grid ColumnDefinitions="*,6,*">
@@ -1357,26 +1405,18 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- View Details Button (hidden until details dialog is revised) -->
-                                <!--
+                                <!-- View Details opens full Analytics Dashboard with Event History tab -->
                                 <Button Classes="ActionBtnPrimary"
                                         Command="{Binding ShowAnalyticsCommand}"
                                         HorizontalAlignment="Stretch"
                                         Height="38" Margin="0,4,0,0"
-                                        ToolTip.Tip="Open full analytics dashboard with detailed charts and reports">
+                                        ToolTip.Tip="Open full analytics dashboard with event history and detailed charts">
                                     <StackPanel Orientation="Horizontal" Spacing="8"
                                                 HorizontalAlignment="Center">
                                         <PathIcon Data="{StaticResource ChartIcon}" Width="14" Height="14" />
                                         <TextBlock Text="View Details" FontSize="13" />
                                     </StackPanel>
                                 </Button>
-
-                                <CheckBox Content="Auto-open dashboard when clicking Analytics tab"
-                                          IsChecked="{Binding AutoOpenDashboard}"
-                                          HorizontalAlignment="Center"
-                                          FontSize="11"
-                                          Margin="0,0,0,4" />
-                                -->
                             </StackPanel>
 
                             <!-- ============================================ -->

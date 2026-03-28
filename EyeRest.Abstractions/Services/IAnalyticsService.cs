@@ -26,7 +26,11 @@ namespace EyeRest.Services
         Task RecordMeetingEventAsync(MeetingApplication meeting, bool timersPaused);
         Task RecordPauseEventAsync(PauseReason reason);
         Task RecordResumeEventAsync(ResumeReason reason);
-        
+
+        // Event History
+        Task RecordEventAsync(EventHistoryType eventType, string description, Dictionary<string, object?>? metadata = null);
+        Task<List<EventHistoryEntry>> GetEventHistoryAsync(DateTime startDate, DateTime endDate, int? limit = null);
+
         Task<HealthMetrics> GetHealthMetricsAsync(DateTime startDate, DateTime endDate);
         Task<ComplianceReport> GenerateComplianceReportAsync(int days = 30);
         Task<string> ExportDataAsync(ExportFormat format, DateTime? startDate = null, DateTime? endDate = null);

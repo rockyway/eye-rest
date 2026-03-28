@@ -1,0 +1,98 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EyeRest.UI.ViewModels"
+             x:Class="EyeRest.UI.Views.Analytics.EventHistoryTab"
+             x:DataType="vm:AnalyticsDashboardViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16,0,16,24">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+            <TextBlock Text="Event Timeline"
+                       FontSize="20" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="Recent activity across all features"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+        </StackPanel>
+
+        <!-- Data Table -->
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource ControlBorderBrush}"
+                BorderThickness="1" CornerRadius="12"
+                MinHeight="300"
+                IsVisible="{Binding HasEventHistory}">
+            <Grid RowDefinitions="Auto,*">
+                <Border Grid.Row="0" BorderBrush="{DynamicResource ControlBorderBrush}"
+                        BorderThickness="0,0,0,1" Padding="16,10">
+                    <Grid ColumnDefinitions="170,140,*">
+                        <TextBlock Grid.Column="0" Text="Timestamp" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="Event" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Grid.Column="2" Text="Description" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </Grid>
+                </Border>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding EventHistory}" x:CompileBindings="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="0,0,0,0.5" Padding="16,8">
+                                    <Grid ColumnDefinitions="170,140,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding TimestampText}" FontSize="13"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding EventTypeText}" FontSize="13"
+                                                   Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Description}" FontSize="13"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Paging Controls -->
+        <Border Grid.Row="2" Margin="0,12,0,0"
+                IsVisible="{Binding HasEventHistory}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Button Grid.Column="0" Content="Previous"
+                        Command="{Binding EventHistoryPreviousCommand}"
+                        IsEnabled="{Binding CanEventHistoryPrevious}"
+                        Padding="12,6" CornerRadius="8" FontSize="12" Cursor="Hand"
+                        Background="{DynamicResource GlassCardBackground}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
+                        BorderBrush="{DynamicResource GlassCardBorder}" BorderThickness="1" />
+                <TextBlock Grid.Column="1" Text="{Binding EventHistoryPageInfo}"
+                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Content="Next"
+                        Command="{Binding EventHistoryNextCommand}"
+                        IsEnabled="{Binding CanEventHistoryNext}"
+                        Padding="12,6" CornerRadius="8" FontSize="12" Cursor="Hand"
+                        Background="{DynamicResource GlassCardBackground}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
+                        BorderBrush="{DynamicResource GlassCardBorder}" BorderThickness="1" />
+            </Grid>
+        </Border>
+
+        <!-- Empty state -->
+        <Border Grid.Row="1" Classes="GlassCard" Padding="40"
+                IsVisible="{Binding !HasEventHistory}" MinHeight="200">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                <PathIcon Data="{StaticResource ClockIcon}" Width="48" Height="48"
+                          Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                <TextBlock Text="No events recorded yet" FontSize="18" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                <TextBlock Text="Events will appear here as you use the app." FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"
+                           TextAlignment="Center" TextWrapping="Wrap" MaxWidth="400" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

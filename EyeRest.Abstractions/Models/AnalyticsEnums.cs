@@ -23,4 +23,24 @@ namespace EyeRest.Models
         Locked,
         Unknown
     }
+
+    public enum EventHistoryType
+    {
+        EyeRestWarning,
+        EyeRestShown,
+        EyeRestCompleted,
+        BreakWarning,
+        BreakShown,
+        BreakCompleted,
+        BreakSkipped,
+        BreakDelayed,
+        Paused,
+        Resumed,
+        UserIdle,
+        UserReturned,
+        MeetingModeOn,
+        MeetingModeOff,
+        SettingsChanged,
+        SessionReset
+    }
 }

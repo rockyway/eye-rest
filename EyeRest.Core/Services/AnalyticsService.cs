@@ -168,6 +168,19 @@ namespace EyeRest.Services
                 )";
             command.ExecuteNonQuery();
 
+            // Create EventHistory table (JSON metadata column for extensibility)
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS EventHistory (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Timestamp DATETIME NOT NULL,
+                    EventType TEXT NOT NULL,
+                    Description TEXT NOT NULL,
+                    Metadata TEXT DEFAULT '{}',
+                    SessionId INTEGER,
+                    FOREIGN KEY (SessionId) REFERENCES UserSessions (Id)
+                )";
+            command.ExecuteNonQuery();
+
             _logger.LogInformation("📊 Database tables created successfully");
         }
 
@@ -182,6 +195,8 @@ namespace EyeRest.Services
                 CREATE INDEX IF NOT EXISTS idx_presenceevents_timestamp ON PresenceEvents (Timestamp);
                 CREATE INDEX IF NOT EXISTS idx_resumeevents_timestamp ON ResumeEvents (Timestamp);
                 CREATE INDEX IF NOT EXISTS idx_pauseevents_timestamp ON PauseEvents (Timestamp);
+                CREATE INDEX IF NOT EXISTS idx_eventhistory_timestamp ON EventHistory (Timestamp);
+                CREATE INDEX IF NOT EXISTS idx_eventhistory_eventtype ON EventHistory (EventType);
             ";
             command.ExecuteNonQuery();
             
@@ -1348,7 +1363,7 @@ namespace EyeRest.Services
                     
                     try
                     {
-                        var tables = new[] { "RestEvents", "PresenceEvents", "MeetingEvents", "UserSessions" };
+                        var tables = new[] { "RestEvents", "PresenceEvents", "MeetingEvents", "EventHistory", "UserSessions" };
                         
                         foreach (var table in tables)
                         {
@@ -1686,6 +1701,82 @@ namespace EyeRest.Services
             }
         }
 
+        public async Task RecordEventAsync(EventHistoryType eventType, string description, Dictionary<string, object?>? metadata = null)
+        {
+            try
+            {
+                var metadataJson = metadata != null && metadata.Count > 0
+                    ? JsonSerializer.Serialize(metadata)
+                    : "{}";
+
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+                    using var command = connection.CreateCommand();
+                    command.CommandText = "INSERT INTO EventHistory (Timestamp, EventType, Description, Metadata, SessionId) VALUES (@timestamp, @eventType, @description, @metadata, @sessionId)";
+                    command.Parameters.AddWithValue("@timestamp", DateTime.Now);
+                    command.Parameters.AddWithValue("@eventType", eventType.ToString());
+                    command.Parameters.AddWithValue("@description", description);
+                    command.Parameters.AddWithValue("@metadata", metadataJson);
+                    command.Parameters.AddWithValue("@sessionId",
+                        _currentSessionId != -1 ? (object)_currentSessionId : DBNull.Value);
+                    command.ExecuteNonQuery();
+                }
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error recording event history: {EventType}", eventType);
+            }
+        }
+
+        public async Task<List<EventHistoryEntry>> GetEventHistoryAsync(DateTime startDate, DateTime endDate, int? limit = null)
+        {
+            var results = new List<EventHistoryEntry>();
+            try
+            {
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+                    using var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        SELECT Id, Timestamp, EventType, Description, Metadata, SessionId
+                        FROM EventHistory
+                        WHERE Timestamp >= @startDate AND Timestamp <= @endDate
+                        ORDER BY Timestamp DESC"
+                        + (limit.HasValue ? " LIMIT @limit" : "");
+                    command.Parameters.AddWithValue("@startDate", startDate);
+                    command.Parameters.AddWithValue("@endDate", endDate);
+                    if (limit.HasValue)
+                        command.Parameters.AddWithValue("@limit", limit.Value);
+
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var entry = new EventHistoryEntry
+                        {
+                            Id = reader.GetInt32(0),
+                            Timestamp = reader.GetDateTime(1),
+                            EventType = Enum.TryParse<EventHistoryType>(reader.GetString(2), out var et)
+                                ? et : EventHistoryType.EyeRestShown,
+                            Description = reader.GetString(3),
+                            SessionId = reader.IsDBNull(5) ? null : reader.GetInt32(5)
+                        };
+                        entry.MetadataJson = reader.IsDBNull(4) ? "{}" : reader.GetString(4);
+                        results.Add(entry);
+                    }
+                }
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting event history");
+            }
+            return results;
+        }
+
         public async Task CleanupOldDataAsync(int retentionDays = 90)
         {
             try
@@ -1702,7 +1793,8 @@ namespace EyeRest.Services
                         DELETE FROM PresenceEvents WHERE Timestamp < @cutoffDate;
                         DELETE FROM UserSessions WHERE StartTime < @cutoffDate;
                         DELETE FROM PauseEvents WHERE Timestamp < @cutoffDate;
-                        DELETE FROM ResumeEvents WHERE Timestamp < @cutoffDate;";
+                        DELETE FROM ResumeEvents WHERE Timestamp < @cutoffDate;
+                        DELETE FROM EventHistory WHERE Timestamp < @cutoffDate;";
 
                     command.Parameters.AddWithValue("@cutoffDate", cutoffDate);
 
