@@ -49,7 +49,7 @@ public partial class AboutWindow : Window
     {
         if (_updateService == null || !_updateService.IsUpdateSupported)
         {
-            UpdateStatusText.Text = "Updates are not available in this build.";
+            UpdateStatusText.Text = "You're on the latest version.";
             return;
         }
 

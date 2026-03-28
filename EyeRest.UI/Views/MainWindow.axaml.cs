@@ -320,6 +320,15 @@ public partial class MainWindow : Window
             MinHeight = 500;
         }
 
+        // On Windows, toggling ExtendClientAreaToDecorationsHint forces
+        // a full non-client area recalculation, eliminating the right-side gap
+        // left by stale DWM frame metrics after Hide()/Show().
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            ExtendClientAreaToDecorationsHint = false;
+            ExtendClientAreaToDecorationsHint = true;
+        }
+
         InvalidateMeasure();
         InvalidateArrange();
         InvalidateVisual();

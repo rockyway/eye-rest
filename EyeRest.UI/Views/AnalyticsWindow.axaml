@@ -16,7 +16,8 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="PreferSystemChrome"
         ExtendClientAreaTitleBarHeightHint="40"
-        Foreground="{DynamicResource TextPrimaryBrush}">
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        Icon="avares://EyeRest/Assets/taskbar-icon.png">
 
     <Border CornerRadius="10" ClipToBounds="True"
             Background="{DynamicResource MeshGradientBrush}">

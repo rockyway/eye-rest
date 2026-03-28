@@ -30,6 +30,7 @@ namespace EyeRest.Services
 #pragma warning disable CS0067 // Events required by interface but raised externally
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
+        public event EventHandler? BalloonTipClicked;
 #pragma warning restore CS0067
         public event Action<TrayIconState>? TrayIconStateChanged;
         public event Action<TimeSpan, TimeSpan, string>? TimerDetailsUpdated;
