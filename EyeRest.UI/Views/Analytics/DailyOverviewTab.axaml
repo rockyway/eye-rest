@@ -1,0 +1,384 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EyeRest.UI.ViewModels"
+             x:Class="EyeRest.UI.Views.Analytics.DailyOverviewTab"
+             x:DataType="vm:AnalyticsDashboardViewModel">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="20" Margin="16,0,16,24">
+
+            <!-- Header -->
+            <TextBlock Text="Daily Overview"
+                       FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+            <!-- 2x2 Chart Grid -->
+            <Grid RowDefinitions="Auto,Auto"
+                  ColumnDefinitions="*,*">
+                <Grid.Styles>
+                    <Style Selector="Border.ChartCard">
+                        <Setter Property="Margin" Value="4" />
+                    </Style>
+                </Grid.Styles>
+
+                <!-- ============================================================ -->
+                <!-- Chart 1: Compliance Trend (Row 0, Col 0)                     -->
+                <!-- ============================================================ -->
+                <Border Grid.Row="0" Grid.Column="0"
+                        Classes="GlassCard ChartCard">
+                    <StackPanel Spacing="12">
+                        <!-- Title -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource ChartIcon}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource PrimaryBrush}" />
+                            <TextBlock Text="Compliance Trend"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+
+                        <TextBlock Text="Daily compliance percentage over the selected period"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                        <!-- Bar Chart Container -->
+                        <Border Height="200" ClipToBounds="True"
+                                Background="{DynamicResource StatusCardBackground}"
+                                CornerRadius="8" Padding="8"
+                                IsVisible="{Binding HasChartData}">
+                            <ItemsControl ItemsSource="{Binding ComplianceChartData}"
+                                          VerticalAlignment="Bottom">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="2"
+                                                    VerticalAlignment="Bottom"
+                                                    HorizontalAlignment="Left" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ChartDataPoint">
+                                        <StackPanel VerticalAlignment="Bottom" Spacing="1">
+                                            <Border Width="12"
+                                                    Height="{Binding Y, FallbackValue=10}"
+                                                    Background="{DynamicResource PrimaryBrush}"
+                                                    CornerRadius="2,2,0,0"
+                                                    VerticalAlignment="Bottom"
+                                                    ToolTip.Tip="{Binding Tooltip}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+
+                        <!-- Empty State -->
+                        <Border Height="200" CornerRadius="8"
+                                Background="{DynamicResource StatusCardBackground}"
+                                IsVisible="{Binding !HasChartData}">
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <PathIcon Data="{StaticResource ChartIcon}"
+                                          Width="32" Height="32"
+                                          Foreground="{DynamicResource TextSecondaryBrush}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="No compliance data available"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Chart 2: Break Patterns (Row 0, Col 1)                       -->
+                <!-- ============================================================ -->
+                <Border Grid.Row="0" Grid.Column="1"
+                        Classes="GlassCard ChartCard">
+                    <StackPanel Spacing="12">
+                        <!-- Title -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource FitnessIcon}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="Break Patterns"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+
+                        <!-- Total Breaks - Prominent Display -->
+                        <Border Background="{DynamicResource StatusCardBackground}"
+                                CornerRadius="12" Padding="20"
+                                HorizontalAlignment="Center"
+                                MinWidth="160">
+                            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                <TextBlock Text="{Binding TotalBreaksText}"
+                                           FontSize="24" FontWeight="Bold"
+                                           Foreground="{DynamicResource PrimaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center" />
+                                <TextBlock Text="Total Breaks"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Stats Rows -->
+                        <StackPanel Spacing="10" Margin="4,8,4,0">
+                            <!-- Completed -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                            Spacing="8" VerticalAlignment="Center">
+                                    <Ellipse Width="10" Height="10"
+                                             Fill="{DynamicResource AccentBrush}" />
+                                    <TextBlock Text="Completed"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                            Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TotalBreaksCompleted}"
+                                               FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AccentBrush}" />
+                                    <TextBlock Text="{Binding CompletedBreaksPercentageText}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Separator -->
+                            <Border Height="1"
+                                    Background="{DynamicResource GlassCardBorder}" />
+
+                            <!-- Skipped -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                            Spacing="8" VerticalAlignment="Center">
+                                    <Ellipse Width="10" Height="10"
+                                             Fill="{DynamicResource ErrorBrush}" />
+                                    <TextBlock Text="Skipped"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                            Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TotalBreaksSkipped}"
+                                               FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ErrorBrush}" />
+                                    <TextBlock Text="{Binding SkippedBreaksPercentageText}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Separator -->
+                            <Border Height="1"
+                                    Background="{DynamicResource GlassCardBorder}" />
+
+                            <!-- Compliance Rate -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                            Spacing="8" VerticalAlignment="Center">
+                                    <Ellipse Width="10" Height="10"
+                                             Fill="{DynamicResource WarningBrush}" />
+                                    <TextBlock Text="Compliance Rate"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding ComplianceRateText}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource WarningBrush}"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Chart 3: Weekly Trends (Row 1, Col 0)                        -->
+                <!-- ============================================================ -->
+                <Border Grid.Row="1" Grid.Column="0"
+                        Classes="GlassCard ChartCard">
+                    <StackPanel Spacing="12">
+                        <!-- Title -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource TimerAddIcon}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="Weekly Trends"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+
+                        <TextBlock Text="Weekly aggregated compliance data"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                        <!-- Bar Chart Container -->
+                        <Border Height="200" ClipToBounds="True"
+                                Background="{DynamicResource StatusCardBackground}"
+                                CornerRadius="8" Padding="8"
+                                IsVisible="{Binding WeeklyTrendData.Count}">
+                            <ItemsControl ItemsSource="{Binding WeeklyTrendData}"
+                                          VerticalAlignment="Bottom">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="4"
+                                                    VerticalAlignment="Bottom"
+                                                    HorizontalAlignment="Left" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ChartDataPoint">
+                                        <StackPanel VerticalAlignment="Bottom" Spacing="1">
+                                            <Border Width="24"
+                                                    Height="{Binding Y, FallbackValue=10}"
+                                                    Background="{DynamicResource AccentBrush}"
+                                                    CornerRadius="3,3,0,0"
+                                                    VerticalAlignment="Bottom"
+                                                    ToolTip.Tip="{Binding Tooltip}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+
+                        <!-- Empty State -->
+                        <Border Height="200" CornerRadius="8"
+                                Background="{DynamicResource StatusCardBackground}"
+                                IsVisible="{Binding !WeeklyTrendData.Count}">
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <PathIcon Data="{StaticResource ChartIcon}"
+                                          Width="32" Height="32"
+                                          Foreground="{DynamicResource TextSecondaryBrush}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Not enough data for weekly trends"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Chart 4: Activity Summary (Row 1, Col 1)                     -->
+                <!-- ============================================================ -->
+                <Border Grid.Row="1" Grid.Column="1"
+                        Classes="GlassCard ChartCard">
+                    <StackPanel Spacing="12">
+                        <!-- Title -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource VisibilityIcon}"
+                                      Width="16" Height="16"
+                                      Foreground="{DynamicResource InfoBrush}" />
+                            <TextBlock Text="Activity Summary"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+
+                        <!-- Total Active Time - Prominent -->
+                        <Border Background="{DynamicResource StatusCardBackground}"
+                                CornerRadius="12" Padding="16"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                <TextBlock Text="{Binding TotalActiveTimeText}"
+                                           FontSize="32" FontWeight="Bold"
+                                           Foreground="{DynamicResource PrimaryBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="Total Active Time"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Stat Rows -->
+                        <StackPanel Spacing="10" Margin="4,4,4,0">
+                            <!-- Daily Average -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                            Spacing="8" VerticalAlignment="Center">
+                                    <PathIcon Data="{StaticResource ClockIcon}"
+                                              Width="14" Height="14"
+                                              Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="Daily Average"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding DailyAverageActiveTimeText}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+
+                            <!-- Separator -->
+                            <Border Height="1"
+                                    Background="{DynamicResource GlassCardBorder}" />
+
+                            <!-- Average Break Duration -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                            Spacing="8" VerticalAlignment="Center">
+                                    <PathIcon Data="{StaticResource TimerAddIcon}"
+                                              Width="14" Height="14"
+                                              Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Text="Avg Break Duration"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding AverageBreakDurationText}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+
+                            <!-- Separator -->
+                            <Border Height="1"
+                                    Background="{DynamicResource GlassCardBorder}" />
+
+                            <!-- Health Score with Badge -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                            Spacing="8" VerticalAlignment="Center">
+                                    <PathIcon Data="{StaticResource HeartIcon}"
+                                              Width="14" Height="14"
+                                              Foreground="{DynamicResource ErrorBrush}" />
+                                    <TextBlock Text="Health Score"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                            Spacing="8" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding HealthScoreText}"
+                                               FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center" />
+                                    <Border Classes="StatusPillBadge"
+                                            Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource AccentBrush}"
+                                            BorderThickness="1.5"
+                                            Padding="8,2">
+                                        <TextBlock Text="{Binding HealthStatusText}"
+                                                   FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AccentBrush}" />
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

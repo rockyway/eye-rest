@@ -4,18 +4,68 @@
         xmlns:vm="using:EyeRest.UI.ViewModels"
         x:Class="EyeRest.UI.Views.AnalyticsWindow"
         x:DataType="vm:AnalyticsDashboardViewModel"
-        Title="Eye-rest Analytics Dashboard"
+        Title="Eye-rest Analytics"
         Height="800"
         Width="1200"
-        WindowStartupLocation="CenterScreen"
-        CanResize="True"
         MinHeight="600"
         MinWidth="800"
-        Background="{DynamicResource BackgroundBrush}"
+        WindowStartupLocation="CenterScreen"
+        CanResize="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="PreferSystemChrome"
+        ExtendClientAreaTitleBarHeightHint="40"
         Foreground="{DynamicResource TextPrimaryBrush}">
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                  VerticalScrollBarVisibility="Auto">
-        <views:AnalyticsDashboardView DataContext="{Binding}" />
-    </ScrollViewer>
+    <Border CornerRadius="10" ClipToBounds="True"
+            Background="{DynamicResource MeshGradientBrush}">
+        <Grid RowDefinitions="40,*">
+
+            <!-- Row 0: Custom title bar -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource TitleBarBackground}"
+                    PointerPressed="TitleBar_PointerPressed">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- macOS traffic lights space -->
+                    <Border Grid.Column="0" Width="78"
+                            IsVisible="{OnPlatform True, Windows=False}" />
+
+                    <!-- Title -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Spacing="8">
+                        <PathIcon Data="{StaticResource ChartIcon}" Width="14" Height="14"
+                                  Foreground="{DynamicResource PrimaryBrush}" />
+                        <TextBlock Text="Analytics Dashboard" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </StackPanel>
+
+                    <!-- Windows caption buttons -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                IsVisible="{OnPlatform False, Windows=True}">
+                        <Button Classes="CaptionBtn" Click="MinimizeButton_Click"
+                                Content="&#xE921;" FontFamily="Segoe MDL2 Assets"
+                                Width="46" Height="40" Background="Transparent"
+                                Foreground="{DynamicResource TextSecondaryBrush}"
+                                FontSize="10" VerticalContentAlignment="Center"
+                                HorizontalContentAlignment="Center" />
+                        <Button Classes="CaptionBtn" Click="CloseButton_Click"
+                                Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets"
+                                Width="46" Height="40" Background="Transparent"
+                                Foreground="{DynamicResource TextSecondaryBrush}"
+                                FontSize="10" VerticalContentAlignment="Center"
+                                HorizontalContentAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Row 1: Dashboard content -->
+            <ScrollViewer Grid.Row="1"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <views:AnalyticsDashboardView DataContext="{Binding}" />
+            </ScrollViewer>
+        </Grid>
+    </Border>
 </Window>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EyeRest.Services;
@@ -279,6 +280,7 @@ namespace EyeRest.Services
                 _timerService.SmartPauseBreakTimerForEyeRest();
 
                 // Show eye rest warning
+                await _analyticsService.RecordEventAsync(EventHistoryType.EyeRestWarning, "Eye rest warning displayed");
                 await _notificationService.ShowEyeRestWarningAsync(e.NextInterval);
 
                 _logger.LogInformation("🚨 Eye rest warning completed - popup should be visible");
@@ -307,8 +309,9 @@ namespace EyeRest.Services
                 var duration = TimeSpan.FromSeconds(config.EyeRest.DurationSeconds);
                 var startTime = DateTime.Now;
                 
+                await _analyticsService.RecordEventAsync(EventHistoryType.EyeRestShown, "Eye rest popup shown");
                 await _notificationService.ShowEyeRestReminderAsync(duration);
-                
+
                 var actualDuration = DateTime.Now - startTime;
 
                 // Play end sound
@@ -318,6 +321,8 @@ namespace EyeRest.Services
                 if (!_notificationService.IsTestMode)
                 {
                     await _analyticsService.RecordEyeRestEventAsync(RestEventType.EyeRest, UserAction.Completed, actualDuration);
+                    await _analyticsService.RecordEventAsync(EventHistoryType.EyeRestCompleted, "Eye rest completed",
+                        new Dictionary<string, object?> { ["durationSeconds"] = (int)actualDuration.TotalSeconds });
                 }
                 else
                 {
@@ -360,6 +365,7 @@ namespace EyeRest.Services
 
                 // Show break warning
                 _logger.LogInformation("🚨 CALLING NotificationService.ShowBreakWarningAsync...");
+                await _analyticsService.RecordEventAsync(EventHistoryType.BreakWarning, "Break warning displayed");
                 await _notificationService.ShowBreakWarningAsync(e.NextInterval);
                 _logger.LogInformation("🚨 NotificationService.ShowBreakWarningAsync COMPLETED");
 
@@ -387,6 +393,7 @@ namespace EyeRest.Services
                 _logger.LogInformation($"🟢 Break duration from config: {duration.TotalMinutes} minutes");
                 
                 _logger.LogInformation("🟢 Calling NotificationService.ShowBreakReminderAsync");
+                await _analyticsService.RecordEventAsync(EventHistoryType.BreakShown, "Break popup shown");
                 var result = await _notificationService.ShowBreakReminderAsync(duration, progress);
                 _logger.LogInformation($"🟢 ShowBreakReminderAsync returned with result: {result}");
 
@@ -399,6 +406,8 @@ namespace EyeRest.Services
                         if (!_notificationService.IsTestMode)
                         {
                             await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakCompleted, "Break completed",
+                                new Dictionary<string, object?> { ["durationSeconds"] = (int)duration.TotalSeconds });
                         }
                         else
                         {
@@ -414,6 +423,8 @@ namespace EyeRest.Services
                         if (!_notificationService.IsTestMode)
                         {
                             await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed1Min, TimeSpan.Zero);
+                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakDelayed, "Break delayed by 1 minute",
+                                new Dictionary<string, object?> { ["delayMinutes"] = 1 });
                         }
                         else
                         {
@@ -426,6 +437,8 @@ namespace EyeRest.Services
                         if (!_notificationService.IsTestMode)
                         {
                             await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed5Min, TimeSpan.Zero);
+                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakDelayed, "Break delayed by 5 minutes",
+                                new Dictionary<string, object?> { ["delayMinutes"] = 5 });
                         }
                         else
                         {
@@ -438,6 +451,7 @@ namespace EyeRest.Services
                         if (!_notificationService.IsTestMode)
                         {
                             await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Skipped, TimeSpan.Zero);
+                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakSkipped, "Break skipped by user");
                         }
                         else
                         {
@@ -639,6 +653,8 @@ namespace EyeRest.Services
                         // Pause analytics session tracking when user becomes inactive
                         var pauseReason = $"User {e.CurrentState.ToString().ToLower()}";
                         await _analyticsService.PauseSessionAsync(e.CurrentState, pauseReason);
+                        await _analyticsService.RecordEventAsync(EventHistoryType.UserIdle, $"User became {e.CurrentState.ToString().ToLower()}",
+                            new Dictionary<string, object?> { ["state"] = e.CurrentState.ToString(), ["idleSeconds"] = (int)e.IdleDuration.TotalSeconds });
                         
                         // CRITICAL FIX: Coordinate smart pause with timer events
                         if (_timerService.IsRunning && !_timerService.IsSmartPaused)
@@ -656,6 +672,7 @@ namespace EyeRest.Services
                         // Resume analytics session tracking when user returns
                         var resumeReason = "User returned";
                         await _analyticsService.ResumeSessionAsync(resumeReason);
+                        await _analyticsService.RecordEventAsync(EventHistoryType.UserReturned, "User returned to active");
                         
                         // CRITICAL FIX: Clear manual pause state when user returns
                         if (_timerService.IsManuallyPaused)
@@ -758,7 +775,9 @@ namespace EyeRest.Services
 
                 // Perform smart session reset unconditionally per P0 requirement
                 await _timerService.SmartSessionResetAsync(reason);
-                
+                await _analyticsService.RecordEventAsync(EventHistoryType.SessionReset, "Session reset after extended away",
+                    new Dictionary<string, object?> { ["awayMinutes"] = (int)e.TotalAwayTime.TotalMinutes });
+
                 // Update system tray to show fresh session
                 _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                 _systemTrayService.UpdateTimerStatus("Fresh Session");
@@ -862,6 +881,7 @@ namespace EyeRest.Services
                 if (_timerService.IsRunning && (_timerService.IsPaused || _timerService.IsSmartPaused))
                 {
                     await _timerService.ResumeAsync();
+                    await _analyticsService.RecordEventAsync(EventHistoryType.Resumed, $"Auto-resumed after {e.TotalPauseDuration.TotalHours:F1}h pause");
                     _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                     _systemTrayService.UpdateTimerStatus("Running (Auto-resumed)");
                     
@@ -900,6 +920,7 @@ namespace EyeRest.Services
                     }
 
                     await _timerService.PauseAsync();
+                    await _analyticsService.RecordEventAsync(EventHistoryType.Paused, "Timer paused manually");
                     _systemTrayService.UpdateTrayIcon(TrayIconState.Paused);
                     _systemTrayService.UpdateTimerStatus("Paused (Manual)");
                     _systemTrayService.ShowBalloonTip("Timers Paused", "Eye rest and break timers have been paused manually.");
@@ -924,6 +945,7 @@ namespace EyeRest.Services
                 if (_timerService.IsRunning && (_timerService.IsPaused || _timerService.IsSmartPaused || _timerService.IsManuallyPaused))
                 {
                     await _timerService.ResumeAsync();
+                    await _analyticsService.RecordEventAsync(EventHistoryType.Resumed, "Timer resumed manually");
                     _systemTrayService.UpdateTrayIcon(TrayIconState.Active);
                     _systemTrayService.UpdateTimerStatus("Running");
                     _systemTrayService.ShowBalloonTip("Timers Resumed", "Eye rest and break timers have been resumed.");
@@ -961,6 +983,8 @@ namespace EyeRest.Services
                     await _notificationService.HideAllNotifications();
 
                     await _timerService.PauseForDurationAsync(duration, $"Manual meeting pause ({label})");
+                    await _analyticsService.RecordEventAsync(EventHistoryType.MeetingModeOn, $"Meeting pause activated ({label})",
+                        new Dictionary<string, object?> { ["durationMinutes"] = (int)duration.TotalMinutes });
                     _systemTrayService.UpdateTrayIcon(TrayIconState.ManuallyPaused);
                     _systemTrayService.UpdateTimerStatus($"Meeting Pause ({label})");
                     _systemTrayService.ShowBalloonTip("Meeting Pause Active", $"Timers paused for {label}. They will auto-resume when the time is up.");

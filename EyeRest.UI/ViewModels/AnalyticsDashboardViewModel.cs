@@ -53,6 +53,12 @@ namespace EyeRest.UI.ViewModels
         private ObservableCollection<WeeklyMetrics> _weeklyMetrics = new();
         private ObservableCollection<MonthlyMetrics> _monthlyMetrics = new();
 
+        // Event History
+        private ObservableCollection<EventHistoryEntry> _eventHistory = new();
+        private List<EventHistoryEntry> _allEventHistory = new();
+        private int _eventHistoryPage = 0;
+        private const int EventHistoryPageSize = 50;
+
         // Export and Privacy Properties
         private bool _allowDataExport = true;
         private bool _enableAnalytics = true;
@@ -284,6 +290,47 @@ namespace EyeRest.UI.ViewModels
             set => SetProperty(ref _monthlyMetrics, value);
         }
 
+        public ObservableCollection<EventHistoryEntry> EventHistory
+        {
+            get => _eventHistory;
+            set => SetProperty(ref _eventHistory, value);
+        }
+
+        // Event History paging
+        public string EventHistoryPageInfo => _allEventHistory.Count > 0
+            ? $"Page {_eventHistoryPage + 1} of {EventHistoryTotalPages} ({_allEventHistory.Count} events)"
+            : "No events";
+        public int EventHistoryTotalPages => Math.Max(1, (int)Math.Ceiling((double)_allEventHistory.Count / EventHistoryPageSize));
+        public bool CanEventHistoryPrevious => _eventHistoryPage > 0;
+        public bool CanEventHistoryNext => _eventHistoryPage < EventHistoryTotalPages - 1;
+
+        public ICommand EventHistoryPreviousCommand => new CrossPlatformRelayCommand(() =>
+        {
+            if (CanEventHistoryPrevious) { _eventHistoryPage--; ApplyEventHistoryPage(); }
+        });
+
+        public ICommand EventHistoryNextCommand => new CrossPlatformRelayCommand(() =>
+        {
+            if (CanEventHistoryNext) { _eventHistoryPage++; ApplyEventHistoryPage(); }
+        });
+
+        private void ApplyEventHistoryPage()
+        {
+            var page = _allEventHistory.Skip(_eventHistoryPage * EventHistoryPageSize).Take(EventHistoryPageSize);
+            EventHistory = new ObservableCollection<EventHistoryEntry>(page);
+            OnPropertyChanged(nameof(EventHistoryPageInfo));
+            OnPropertyChanged(nameof(CanEventHistoryPrevious));
+            OnPropertyChanged(nameof(CanEventHistoryNext));
+            OnPropertyChanged(nameof(HasEventHistory));
+        }
+
+        // Empty-state helpers for tab visibility
+        public bool HasDailyData => DailyMetrics.Count > 0;
+        public bool HasWeeklyData => WeeklyMetrics.Count > 0;
+        public bool HasMonthlyData => MonthlyMetrics.Count > 0;
+        public bool HasEventHistory => EventHistory.Count > 0;
+        public bool HasChartData => ComplianceChartData.Count > 0;
+
         public string TotalBreaksText
         {
             get => _totalBreaksText;
@@ -483,7 +530,11 @@ namespace EyeRest.UI.ViewModels
             ClearDataCommand = new CrossPlatformRelayCommand(async () => await ClearAnalyticsDataAsync());
             GenerateReportCommand = new CrossPlatformRelayCommand(async () => await GenerateHealthReportAsync());
             SelectPeriodCommand = new CrossPlatformRelayCommand(
-                param => { if (param is int days) SelectedPeriodDays = days; });
+                param =>
+                {
+                    if (param is int days) SelectedPeriodDays = days;
+                    else if (param is string s && int.TryParse(s, out var parsed)) SelectedPeriodDays = parsed;
+                });
         }
 
         #endregion
@@ -598,6 +649,15 @@ namespace EyeRest.UI.ViewModels
                 await LoadDatabaseInfoAsync();
                 token.ThrowIfCancellationRequested();
 
+                // Load event history
+                _allEventHistory = await _analyticsService.GetEventHistoryAsync(StartDateValue, EndDateValue);
+                token.ThrowIfCancellationRequested();
+                _eventHistoryPage = 0;
+                ApplyEventHistoryPage();
+
+                _logger.LogInformation("📊 Data loaded — Daily={Daily}, Weekly={Weekly}, Monthly={Monthly}, Events={Events}, Charts={Charts}",
+                    DailyMetrics.Count, WeeklyMetrics.Count, MonthlyMetrics.Count, EventHistory.Count, ComplianceChartData.Count);
+
                 // Notify UI of property changes
                 OnPropertyChanged(nameof(ComplianceRateText));
                 OnPropertyChanged(nameof(TotalActiveTimeText));
@@ -608,6 +668,13 @@ namespace EyeRest.UI.ViewModels
                 // Update weekly/monthly summary texts
                 UpdateWeeklySummaryTexts();
                 UpdateMonthlySummaryTexts();
+
+                // Notify empty-state properties
+                OnPropertyChanged(nameof(HasDailyData));
+                OnPropertyChanged(nameof(HasWeeklyData));
+                OnPropertyChanged(nameof(HasMonthlyData));
+                OnPropertyChanged(nameof(HasEventHistory));
+                OnPropertyChanged(nameof(HasChartData));
 
                 _logger.LogInformation("Analytics dashboard data loaded successfully");
 
@@ -1022,15 +1089,22 @@ namespace EyeRest.UI.ViewModels
                 ComplianceChartData.Clear();
                 if (healthMetrics.DailyBreakdown != null && healthMetrics.DailyBreakdown.Count > 0)
                 {
-                    for (int i = 0; i < healthMetrics.DailyBreakdown.Count; i++)
+                    // Only include days with actual activity to avoid invisible 0-height bars
+                    // consuming horizontal space and pushing real bars off-screen
+                    var activeDays = healthMetrics.DailyBreakdown
+                        .Where(d => d.BreaksDue > 0 || d.BreaksCompleted > 0 || d.EyeRestsCompleted > 0)
+                        .ToList();
+
+                    for (int i = 0; i < activeDays.Count; i++)
                     {
-                        var daily = healthMetrics.DailyBreakdown[i];
+                        var daily = activeDays[i];
                         ComplianceChartData.Add(new ChartDataPoint
                         {
                             X = i,
                             Y = daily.ComplianceRate * 100,
                             Label = daily.Date.ToString("MM/dd"),
-                            Category = "Compliance"
+                            Category = "Compliance",
+                            Tooltip = $"{daily.Date:MMM dd}: {daily.ComplianceRate:P0} compliance"
                         });
                     }
                 }
@@ -1050,7 +1124,8 @@ namespace EyeRest.UI.ViewModels
                             X = i,
                             Y = compliance,
                             Label = date.ToString("MM/dd"),
-                            Category = "Demo"
+                            Category = "Demo",
+                            Tooltip = $"{date:MMM dd}: {compliance:F0}% compliance (demo)"
                         });
                     }
 
@@ -1098,7 +1173,8 @@ namespace EyeRest.UI.ViewModels
                             X = i,
                             Y = avgCompliance * 100,
                             Label = $"Week {week.Key}",
-                            Category = "Weekly"
+                            Category = "Weekly",
+                            Tooltip = $"Week {week.Key}: {avgCompliance:P0} compliance ({week.Count()} days)"
                         });
                     }
                 }
@@ -1135,6 +1211,7 @@ namespace EyeRest.UI.ViewModels
 
                 if (CurrentHealthMetrics?.DailyBreakdown != null)
                 {
+                    _logger.LogInformation("📊 Daily breakdown: {Count} days", CurrentHealthMetrics.DailyBreakdown.Count);
                     foreach (var daily in CurrentHealthMetrics.DailyBreakdown.OrderByDescending(d => d.Date))
                     {
                         DailyMetrics.Add(new DailyMetricViewModel
@@ -1170,8 +1247,12 @@ namespace EyeRest.UI.ViewModels
                 WeeklyMetrics.Clear();
                 var weeklyData = await _analyticsService.GetWeeklyMetricsAsync(StartDateValue, EndDateValue);
 
+                _logger.LogInformation("📊 Weekly data loaded: {Count} weeks", weeklyData.Count);
                 foreach (var weekly in weeklyData)
                 {
+                    _logger.LogInformation("📊 Week {Week}: Days={Days}, Breaks={Breaks}, Completed={Completed}, Compliance={Rate}, WeekText={Text}",
+                        weekly.WeekNumber, weekly.DaysActive, weekly.TotalBreaks, weekly.CompletedBreaks,
+                        weekly.ComplianceRate, weekly.WeekText);
                     WeeklyMetrics.Add(weekly);
                 }
             }
