@@ -1,13 +1,9 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using EyeRest.UI.ViewModels;
 
 namespace EyeRest.UI.Views
 {
-    /// <summary>
-    /// Analytics window that hosts the AnalyticsDashboardView.
-    /// Cross-platform Avalonia port - no WPF theme management needed
-    /// since Avalonia's DynamicResource system handles theme propagation.
-    /// </summary>
     public partial class AnalyticsWindow : Window
     {
         public AnalyticsWindow()
@@ -19,5 +15,17 @@ namespace EyeRest.UI.Views
         {
             DataContext = viewModel;
         }
+
+        private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                BeginMoveDrag(e);
+        }
+
+        private void MinimizeButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+            => WindowState = WindowState.Minimized;
+
+        private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+            => Close();
     }
 }

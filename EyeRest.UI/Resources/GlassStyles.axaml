@@ -52,23 +52,64 @@
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Medium" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
     </Style>
     <Style Selector="Button.NavButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource NavButtonHoverBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
     </Style>
     <Style Selector="Button.NavButton.active">
         <Setter Property="Background" Value="{DynamicResource NavButtonActiveBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource NavButtonActiveText}" />
         <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
     </Style>
     <Style Selector="Button.NavButton.active /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource NavButtonActiveBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource NavButtonActiveText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
     </Style>
     <Style Selector="Button.NavButton.active:pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource NavButtonActiveBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource NavButtonActiveText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Period Pill Button Style                                      -->
+    <!-- ============================================================ -->
+    <Style Selector="Button.PeriodPill">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassPanelBorder}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Height" Value="26" />
+    </Style>
+    <Style Selector="Button.PeriodPill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource NavButtonHoverBackground}" />
+    </Style>
+    <Style Selector="Button.PeriodPill.active">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.PeriodPill.active /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.PeriodPill.active:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
     </Style>
 
     <!-- ============================================================ -->

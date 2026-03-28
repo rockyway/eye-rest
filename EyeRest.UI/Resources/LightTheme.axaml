@@ -73,7 +73,7 @@
         <SolidColorBrush x:Key="GlassCardHoverBackground" Color="#59FFFFFF" />
         <SolidColorBrush x:Key="SidebarBackground" Color="#1AFFFFFF" />
         <SolidColorBrush x:Key="NavButtonHoverBackground" Color="#1AFFFFFF" />
-        <SolidColorBrush x:Key="NavButtonActiveBackground" Color="#4DFFFFFF" />
+        <SolidColorBrush x:Key="NavButtonActiveBackground" Color="#1A2196F3" />
         <SolidColorBrush x:Key="NavButtonActiveText" Color="#2563EB" />
         <SolidColorBrush x:Key="NavButtonText" Color="#374151" />
         <SolidColorBrush x:Key="TitleBarBackground" Color="#1AFFFFFF" />

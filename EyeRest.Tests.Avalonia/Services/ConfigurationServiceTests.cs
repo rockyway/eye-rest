@@ -13,10 +13,24 @@ namespace EyeRest.Tests.Avalonia.Services
     {
         private readonly Mock<ILogger<ConfigurationService>> _mockLogger;
         private readonly ConfigurationService _configurationService;
+        private readonly string _configFilePath;
+        private readonly string _configBackupPath;
+        private readonly bool _hadExistingConfig;
 
         public ConfigurationServiceTests()
         {
             _mockLogger = new Mock<ILogger<ConfigurationService>>();
+
+            // Backup the production config before tests modify it
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            _configFilePath = Path.Combine(appDataPath, "EyeRest", "config.json");
+            _configBackupPath = _configFilePath + ".test-backup";
+            _hadExistingConfig = File.Exists(_configFilePath);
+            if (_hadExistingConfig)
+            {
+                File.Copy(_configFilePath, _configBackupPath, overwrite: true);
+            }
+
             _configurationService = new ConfigurationService(_mockLogger.Object);
         }
 
@@ -129,21 +143,26 @@ namespace EyeRest.Tests.Avalonia.Services
 
         public void Dispose()
         {
-            // Clean up test files
+            // Restore the production config from backup to prevent test pollution
             try
             {
-                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var testDir = Path.Combine(appDataPath, "EyeRest");
-                if (Directory.Exists(testDir))
+                if (_hadExistingConfig && File.Exists(_configBackupPath))
                 {
-                    // Only delete config files we may have created, not the entire folder
-                    var configFile = Path.Combine(testDir, "config.json");
-                    var tmpFile = configFile + ".tmp";
-                    var backupFile = configFile + ".backup";
-
-                    if (File.Exists(tmpFile)) File.Delete(tmpFile);
-                    if (File.Exists(backupFile)) File.Delete(backupFile);
+                    File.Copy(_configBackupPath, _configFilePath, overwrite: true);
+                    File.Delete(_configBackupPath);
                 }
+                else if (!_hadExistingConfig && File.Exists(_configFilePath))
+                {
+                    // Tests created a config that didn't exist before — remove it
+                    File.Delete(_configFilePath);
+                }
+
+                // Clean up temp files
+                var tmpFile = _configFilePath + ".tmp";
+                var backupFile = _configFilePath + ".backup";
+                if (File.Exists(tmpFile)) File.Delete(tmpFile);
+                if (File.Exists(backupFile)) File.Delete(backupFile);
+                if (File.Exists(_configBackupPath)) File.Delete(_configBackupPath);
             }
             catch
             {

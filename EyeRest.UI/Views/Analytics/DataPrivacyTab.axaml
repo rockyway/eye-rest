@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:EyeRest.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="700"
+             x:Class="EyeRest.UI.Views.Analytics.DataPrivacyTab"
+             x:DataType="vm:AnalyticsDashboardViewModel">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="20" Margin="16,0,16,16">
+
+            <!-- 1. Privacy Notice -->
+            <Border Classes="GlassCard"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="3,0,0,0">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Your Data Privacy"
+                               FontSize="18" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <TextBlock Text="All analytics data is stored locally on your device. No data is transmitted to any external servers. You have full control over your data."
+                               FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- 2. Privacy Settings -->
+            <Border Classes="GlassCard">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Privacy Settings"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                    <CheckBox Content="Enable analytics data collection"
+                              IsChecked="{Binding EnableAnalytics}" />
+
+                    <CheckBox Content="Allow data export"
+                              IsChecked="{Binding AllowDataExport}" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Data retention:"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBox Text="{Binding DataRetentionDays}"
+                                 Width="80"
+                                 VerticalAlignment="Center" />
+                        <TextBlock Text="days"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 3. Data Management -->
+            <Border Classes="GlassCard">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Data Management"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Database size:"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding DatabaseSizeText}"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <Button Command="{Binding ClearDataCommand}"
+                            Background="{DynamicResource ErrorBrush}"
+                            Foreground="White"
+                            Padding="16,8"
+                            CornerRadius="8"
+                            Cursor="Hand"
+                            HorizontalAlignment="Left">
+                        <TextBlock Text="Clear All Data"
+                                   FontSize="13" FontWeight="SemiBold" />
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- 4. Storage Location -->
+            <Border Classes="GlassCard">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Storage Location"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                    <Border Background="{DynamicResource ControlBackgroundBrush}"
+                            Padding="12" CornerRadius="6">
+                        <TextBlock Text="{Binding DatabasePath}"
+                                   FontFamily="Consolas"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- 5. Status Message (only visible when there is an error/status message) -->
+            <Border IsVisible="{Binding HasErrorMessage}"
+                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Background="{DynamicResource GlassCardBackground}">
+                <TextBlock Text="{Binding ErrorMessage}"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap" />
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

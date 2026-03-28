@@ -153,25 +153,27 @@ public partial class MainWindow : Window
         MinWidth = Math.Min(_animTargetMinWidth, _animStartWidth);
         MinHeight = Math.Min(_animTargetMinHeight, _animStartHeight);
 
-        // Calculate target position: expand/collapse from window center, clamped to screen
+        // Calculate target position: anchor left edge, expand/collapse to the right
         var currentScreen = Screens.ScreenFromVisual(this) ?? Screens.Primary;
         if (currentScreen is { } screen)
         {
             var scaling = screen.Scaling;
             var wa = screen.WorkingArea;
 
-            // Current center in physical pixels
-            var centerX = _animStartX + (int)(_animStartWidth * scaling / 2);
-            var centerY = _animStartY + (int)(_animStartHeight * scaling / 2);
-
-            // Target position keeping center fixed
             var targetPhysW = (int)(_animTargetWidth * scaling);
             var targetPhysH = (int)(_animTargetHeight * scaling);
-            _animTargetX = centerX - targetPhysW / 2;
+
+            // Keep left edge (X) fixed — only expand width to the right
+            _animTargetX = _animStartX;
+
+            // Keep vertical center fixed
+            var centerY = _animStartY + (int)(_animStartHeight * scaling / 2);
             _animTargetY = centerY - targetPhysH / 2;
 
-            // Clamp to screen working area
-            _animTargetX = Math.Max(wa.X, Math.Min(_animTargetX, wa.X + wa.Width - targetPhysW));
+            // Clamp to screen working area (right edge and vertical bounds)
+            if (_animTargetX + targetPhysW > wa.X + wa.Width)
+                _animTargetX = wa.X + wa.Width - targetPhysW;
+            _animTargetX = Math.Max(wa.X, _animTargetX);
             _animTargetY = Math.Max(wa.Y, Math.Min(_animTargetY, wa.Y + wa.Height - targetPhysH));
         }
         else

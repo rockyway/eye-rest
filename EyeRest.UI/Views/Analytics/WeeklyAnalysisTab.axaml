@@ -1,0 +1,151 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EyeRest.UI.ViewModels"
+             x:Class="EyeRest.UI.Views.Analytics.WeeklyAnalysisTab"
+             x:DataType="vm:AnalyticsDashboardViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="16,0,16,24">
+
+            <!-- Header -->
+            <TextBlock Grid.Row="0" Text="Weekly Compliance Trends"
+                       FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,0,0,16" />
+
+            <!-- Summary Cards Row -->
+            <UniformGrid Grid.Row="1" Columns="4" Rows="1" Margin="0,0,0,16"
+                         IsVisible="{Binding HasWeeklyData}">
+                <Border Classes="GlassCard" Padding="16" Margin="0,0,8,0">
+                    <StackPanel HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock Text="{Binding CurrentWeekComplianceText}"
+                                   FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="This Week"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="GlassCard" Padding="16" Margin="4,0">
+                    <StackPanel HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock Text="{Binding LastWeekComplianceText}"
+                                   FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Last Week"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="GlassCard" Padding="16" Margin="4,0">
+                    <StackPanel HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock Text="{Binding BestWeekComplianceText}"
+                                   FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Best Week"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="GlassCard" Padding="16" Margin="8,0,0,0">
+                    <StackPanel HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock Text="{Binding WeeklyAverageComplianceText}"
+                                   FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource InfoBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="12-Week Avg"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Data Table using ItemsControl (avoids DataGrid compiled binding issues) -->
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="0"
+                    MinHeight="200"
+                    IsVisible="{Binding HasWeeklyData}">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Header Row -->
+                    <Border Grid.Row="0" BorderBrush="{DynamicResource ControlBorderBrush}"
+                            BorderThickness="0,0,0,1" Padding="16,10">
+                        <Grid ColumnDefinitions="2*,80,80,80,80,90,80">
+                            <TextBlock Grid.Column="0" Text="Week" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBlock Grid.Column="1" Text="Days" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="Breaks" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="Done" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="4" Text="Comply" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="5" Text="Avg Break" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="6" Text="Active" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Data Rows -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding WeeklyMetrics}" x:CompileBindings="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource ControlBorderBrush}"
+                                            BorderThickness="0,0,0,0.5" Padding="16,8">
+                                        <Grid ColumnDefinitions="2*,80,80,80,80,90,80">
+                                            <TextBlock Grid.Column="0" Text="{Binding WeekText}" FontSize="13"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding DaysActive}" FontSize="13"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding TotalBreaks}" FontSize="13"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" Text="{Binding CompletedBreaks}" FontSize="13"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="4" Text="{Binding ComplianceRateText}" FontSize="13"
+                                                       Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="5" Text="{Binding AverageBreakTimeText}" FontSize="13"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="6" Text="{Binding TotalActiveTimeText}" FontSize="13"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       HorizontalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Empty State -->
+            <Border Grid.Row="2" Classes="GlassCard" Padding="40"
+                    IsVisible="{Binding !HasWeeklyData}"
+                    HorizontalAlignment="Stretch"
+                    MinHeight="200">
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="12">
+                    <PathIcon Data="{StaticResource ChartIcon}"
+                              Width="40" Height="40"
+                              Foreground="{DynamicResource TextSecondaryBrush}"
+                              HorizontalAlignment="Center" />
+                    <TextBlock Text="No weekly data available for the selected period."
+                               FontSize="14"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+    </Grid>
+</UserControl>
