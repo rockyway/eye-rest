@@ -20,6 +20,7 @@ namespace EyeRest.Services
         event EventHandler PauseForMeeting1hRequested;
         event EventHandler ShowTimerStatusRequested;
         event EventHandler ShowAnalyticsRequested;
+        event EventHandler BalloonTipClicked;
 
         /// <summary>
         /// Raised when the tray icon state changes, so the UI layer can update the visual icon.

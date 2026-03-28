@@ -36,10 +36,11 @@ namespace EyeRest.Services
         public event EventHandler? PauseForMeeting1hRequested;
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
+        public event EventHandler? BalloonTipClicked;
 #pragma warning disable CS0067 // Windows uses its own icon rendering via IconService
         public event Action<TrayIconState>? TrayIconStateChanged;
-        public event Action<TimeSpan, TimeSpan, string>? TimerDetailsUpdated;
 #pragma warning restore CS0067
+        public event Action<TimeSpan, TimeSpan, string>? TimerDetailsUpdated;
 
         public SystemTrayService(ILogger<SystemTrayService> logger, IconService iconService)
         {
@@ -51,6 +52,7 @@ namespace EyeRest.Services
         {
             _notifyIcon = new NotifyIcon();
             _notifyIcon.DoubleClick += (s, e) => RestoreRequested?.Invoke(this, e);
+            _notifyIcon.BalloonTipClicked += (s, e) => BalloonTipClicked?.Invoke(this, e);
 
             CreateContextMenu();
             _notifyIcon.ContextMenuStrip = _contextMenu;
@@ -142,10 +144,13 @@ namespace EyeRest.Services
             _eyeRestRemaining = eyeRestRemaining;
             _breakRemaining = breakRemaining;
             _lastTimerUpdate = DateTime.Now;
-            
+
             // Update tooltip with new timer information
             UpdateTooltipWithTimerDetails();
-            
+
+            // Fire event so Avalonia TrayIcon menu can update its countdown text
+            TimerDetailsUpdated?.Invoke(eyeRestRemaining, breakRemaining, _currentTimerStatus);
+
             _logger.LogDebug($"🎛️ Timer details updated - Eye rest: {FormatTimeSpan(eyeRestRemaining)}, Break: {FormatTimeSpan(breakRemaining)}");
         }
         

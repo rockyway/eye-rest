@@ -9,7 +9,8 @@
         SystemDecorations="None"
         Background="Transparent"
         TransparencyLevelHint="Transparent"
-        ExtendClientAreaToDecorationsHint="False">
+        ExtendClientAreaToDecorationsHint="False"
+        Icon="avares://EyeRest/Assets/taskbar-icon.png">
 
     <!-- Mesh gradient clipped to window shape -->
     <Border Background="{DynamicResource MeshGradientBrush}"

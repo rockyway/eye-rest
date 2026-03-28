@@ -34,6 +34,12 @@ public partial class App : Application
     public static bool IsExiting { get; set; }
 
     /// <summary>
+    /// Set when a background update check finds a new version.
+    /// Used to open the About window when the user clicks the balloon notification.
+    /// </summary>
+    private volatile bool _updateNotificationPending;
+
+    /// <summary>
     /// Debug flag: force the donation banner to show regardless of eligibility.
     /// Set via --show-donation startup argument.
     /// </summary>
@@ -190,6 +196,16 @@ public partial class App : Application
             systemTrayService.TimerDetailsUpdated += (eyeRest, breakTime, status) =>
                 Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateTrayTimerMenuItem(eyeRest, breakTime, status));
 
+            // Open About window when user clicks the update balloon notification
+            systemTrayService.BalloonTipClicked += (_, _) =>
+            {
+                if (_updateNotificationPending)
+                {
+                    _updateNotificationPending = false;
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow());
+                }
+            };
+
             logger.LogInformation("System tray initialized");
 
             // Start the orchestrator (this starts timers, analytics, presence monitoring, etc.)
@@ -206,32 +222,46 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Silently checks for updates ~30 seconds after startup.
-    /// If an update is found, logs it. The user discovers it via the About window.
+    /// Checks for updates 30 seconds after startup, then every 4 hours.
+    /// When an update is found, shows a tray balloon notification.
+    /// Clicking the notification opens the About window (download/restart flow).
     /// </summary>
     private void CheckForUpdatesInBackground()
     {
 #if !STORE_BUILD
         _ = Task.Run(async () =>
         {
-            try
+            await Task.Delay(TimeSpan.FromSeconds(30));
+
+            while (Services != null && !IsExiting)
             {
-                await Task.Delay(TimeSpan.FromSeconds(30));
-
-                var updateService = Services?.GetService<IUpdateService>();
-                if (updateService == null || !updateService.IsUpdateSupported)
-                    return;
-
-                var updateInfo = await updateService.CheckForUpdatesAsync();
-                if (updateInfo != null)
+                try
                 {
-                    Log.Information("Background update check: v{Version} available",
-                        updateInfo.TargetVersion);
+                    var updateService = Services?.GetService<IUpdateService>();
+                    if (updateService == null || !updateService.IsUpdateSupported)
+                        return;
+
+                    var updateInfo = await updateService.CheckForUpdatesAsync();
+                    if (updateInfo != null)
+                    {
+                        var version = updateInfo.TargetVersion;
+                        Log.Information("Update available: v{Version}", version);
+
+                        _updateNotificationPending = true;
+                        var trayService = Services?.GetService<ISystemTrayService>();
+                        trayService?.ShowBalloonTip(
+                            "Update Available",
+                            $"Eye Rest v{version} is ready to download. Click here to update.");
+
+                        return; // Stop checking — user has been notified
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Log.Debug(ex, "Background update check failed (non-critical)");
+                catch (Exception ex)
+                {
+                    Log.Debug(ex, "Background update check failed (non-critical)");
+                }
+
+                await Task.Delay(TimeSpan.FromHours(4));
             }
         });
 #endif
@@ -321,6 +351,8 @@ public partial class App : Application
                 Menu = trayMenu,
                 IsVisible = true
             };
+
+            _trayIcon.Clicked += (_, _) => ShowMainWindow();
 
             var trayIcons = new TrayIcons { _trayIcon };
             TrayIcon.SetIcons(this, trayIcons);
@@ -496,7 +528,16 @@ public partial class App : Application
             {
                 if (args.Kind == ActivationKind.Reopen)
                 {
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowMainWindow());
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        ShowMainWindow();
+                        // On macOS, balloon click events don't fire — open About on dock click instead
+                        if (_updateNotificationPending)
+                        {
+                            _updateNotificationPending = false;
+                            ShowAboutWindow();
+                        }
+                    });
                 }
             };
         }
