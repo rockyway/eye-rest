@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EyeRest.UI.ViewModels"
+             x:Class="EyeRest.UI.Views.Analytics.DailyDetailsTab"
+             x:DataType="vm:AnalyticsDashboardViewModel">
+
+    <Grid RowDefinitions="Auto,*" Margin="16,0,16,24">
+
+            <TextBlock Grid.Row="0" Text="Daily Break Metrics"
+                       FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,0,0,16" />
+
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="0"
+                    MinHeight="300"
+                    IsVisible="{Binding HasDailyData}">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" BorderBrush="{DynamicResource ControlBorderBrush}"
+                            BorderThickness="0,0,0,1" Padding="16,10">
+                        <Grid ColumnDefinitions="100,80,80,70,80,80,*">
+                            <TextBlock Grid.Column="0" Text="Date" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBlock Grid.Column="1" Text="Due" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="Done" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="Skip" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="4" Text="Eye Rest" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="5" Text="Comply" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="6" Text="Break Time" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding DailyMetrics}" x:CompileBindings="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="0,0,0,0.5" Padding="16,8">
+                                        <Grid ColumnDefinitions="100,80,80,70,80,80,*">
+                                            <TextBlock Grid.Column="0" Text="{Binding DateText}" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding BreaksDue}" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding BreaksCompleted}" FontSize="13" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" Text="{Binding BreaksSkipped}" FontSize="13" Foreground="{DynamicResource ErrorBrush}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="4" Text="{Binding EyeRestsCompleted}" FontSize="13" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="5" Text="{Binding ComplianceRateText}" FontSize="13" Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="6" Text="{Binding TotalBreakTimeText}" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Classes="GlassCard" Padding="40"
+                    IsVisible="{Binding !HasDailyData}" HorizontalAlignment="Stretch" MinHeight="200">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                    <PathIcon Data="{StaticResource ChartIcon}" Width="40" Height="40" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="No daily data available for the selected period." FontSize="14"
+                               Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" />
+                </StackPanel>
+            </Border>
+    </Grid>
+</UserControl>

@@ -161,11 +161,12 @@ public partial class App : Application
             var hostLifetime = _host.Services.GetRequiredService<IHostApplicationLifetime>();
             hostLifetime.ApplicationStopping.Register(() =>
             {
+                // Set immediately (thread-safe) to block Slider write-backs before the Post is processed
+                IsExiting = true;
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime dt)
                     {
-                        IsExiting = true;
                         dt.Shutdown();
                     }
                 });
