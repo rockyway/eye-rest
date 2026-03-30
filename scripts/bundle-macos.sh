@@ -26,14 +26,20 @@ echo "  Signing:        $SIGNING_IDENTITY"
 echo ""
 
 # ── Step 1: Publish self-contained ───────────
-echo "[1/5] Publishing $CONFIGURATION build for $RID..."
-dotnet publish "$UI_PROJECT/EyeRest.UI.csproj" \
-    -c "$CONFIGURATION" \
-    -r "$RID" \
-    --self-contained true \
-    -p:PublishSingleFile=false \
-    -p:PublishTrimmed=false \
-    -p:UseAppHost=true
+# SKIP_PUBLISH=1 allows the caller (publish-release.sh) to skip this step
+# when it has already published with version params.
+if [ "${SKIP_PUBLISH:-0}" != "1" ]; then
+    echo "[1/5] Publishing $CONFIGURATION build for $RID..."
+    dotnet publish "$UI_PROJECT/EyeRest.UI.csproj" \
+        -c "$CONFIGURATION" \
+        -r "$RID" \
+        --self-contained true \
+        -p:PublishSingleFile=false \
+        -p:PublishTrimmed=false \
+        -p:UseAppHost=true
+else
+    echo "[1/5] Skipping publish (already built by caller)"
+fi
 
 # ── Step 2: Create .app bundle structure ─────
 echo "[2/5] Creating $APP_NAME.app bundle..."

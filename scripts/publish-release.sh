@@ -53,12 +53,12 @@ dotnet publish EyeRest.UI/EyeRest.UI.csproj \
     -p:AssemblyVersion="${VERSION}.0" \
     -p:FileVersion="${VERSION}.0" \
     -p:InformationalVersion="$VERSION" \
-    -o "$DIST_DIR/osx-arm64" --verbosity quiet
+    --verbosity quiet
 echo "  ✓ macOS ARM64 published"
 
 # ── Step 3: Bundle macOS .app ────────────────
 echo "[3/7] Bundling macOS .app..."
-SIGNING_IDENTITY="$SIGNING_IDENTITY" bash "$SCRIPT_DIR/bundle-macos.sh" 2>&1 | tail -3
+SIGNING_IDENTITY="$SIGNING_IDENTITY" SKIP_PUBLISH=1 bash "$SCRIPT_DIR/bundle-macos.sh" 2>&1 | tail -3
 echo "  ✓ macOS .app bundled"
 
 # ── Step 4: Publish Windows x64 ─────────────
