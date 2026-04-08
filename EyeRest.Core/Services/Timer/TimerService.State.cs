@@ -82,6 +82,7 @@ namespace EyeRest.Services
         private bool _isBreakDelayed;
         private DateTime _delayStartTime;
         private TimeSpan _delayDuration;
+        private int _consecutiveBreakDelayCount;
         
         // State preservation for pause/resume
         private TimeSpan _eyeRestRemainingTime;
@@ -415,6 +416,8 @@ namespace EyeRest.Services
         }
 
         public bool IsAnyNotificationActive => _isEyeRestNotificationActive || _isBreakNotificationActive;
+
+        public int ConsecutiveBreakDelayCount => _consecutiveBreakDelayCount;
         
         #endregion
 
