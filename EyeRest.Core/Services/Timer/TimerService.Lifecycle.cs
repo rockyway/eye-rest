@@ -309,7 +309,8 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation("♻️ Restarting break timer after completion");
-                
+                _consecutiveBreakDelayCount = 0;
+
                 // Clear notification state
                 _isBreakNotificationActive = false;
                 
@@ -356,7 +357,20 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("⏳ Delaying break for {Minutes} minutes", delay.TotalMinutes);
+                _consecutiveBreakDelayCount++;
+                var maxDelays = _configuration?.Break?.MaxBreakDelayCount ?? 3;
+
+                if (maxDelays > 0 && _consecutiveBreakDelayCount > maxDelays)
+                {
+                    _logger.LogWarning("🚫 BREAK DELAY LIMIT REACHED: {Count}/{Max} consecutive delays — forcing session reset instead of further delay",
+                        _consecutiveBreakDelayCount, maxDelays);
+                    _consecutiveBreakDelayCount = 0;
+                    await SmartSessionResetAsync($"Break delay limit reached ({maxDelays} consecutive delays) — forcing fresh session");
+                    return;
+                }
+
+                _logger.LogInformation("⏳ Delaying break for {Minutes} minutes (delay {Count}/{Max})",
+                    delay.TotalMinutes, _consecutiveBreakDelayCount, maxDelays);
 
                 IsBreakDelayed = true;
                 _delayStartTime = DateTime.Now;

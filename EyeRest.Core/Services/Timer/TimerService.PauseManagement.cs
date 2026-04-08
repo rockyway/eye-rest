@@ -321,6 +321,7 @@ namespace EyeRest.Services
 
                 _logger.LogInformation($"🔥 SMART SESSION RESET INITIATED - Reason: {reason}");
                 _logger.LogInformation($"🔥 Starting fresh {_configuration.EyeRest.IntervalMinutes}min/{_configuration.Break.IntervalMinutes}min cycle");
+                _consecutiveBreakDelayCount = 0;
                 
                 // Calculate current remaining times for logging
                 var eyeRestRemainingBefore = TimeUntilNextEyeRest;

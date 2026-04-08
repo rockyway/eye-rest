@@ -45,6 +45,7 @@ namespace EyeRest.Models
         public int OverlayOpacityPercent { get; set; } = 50; // Screen overlay opacity (0-100%)
         public bool RequireConfirmationAfterBreak { get; set; } = true; // Keep popup open until user confirms completion
         public bool ResetTimersOnBreakConfirmation { get; set; } = true; // Start fresh session after break confirmation
+        public int MaxBreakDelayCount { get; set; } = 3; // Maximum consecutive delays before break is forced (0 = unlimited)
     }
 
     public class AudioSettings
