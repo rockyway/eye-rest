@@ -22,6 +22,7 @@ namespace EyeRest.Services
         TimeSpan? ManualPauseRemaining { get; } // NEW: Remaining manual pause time
         string? PauseReason { get; } // NEW: Reason for current pause
         bool IsAnyNotificationActive { get; } // NEW: Check if either notification is active
+        int ConsecutiveBreakDelayCount { get; } // Track consecutive break delays for max-delay enforcement
         
         Task StartAsync();
         Task StopAsync();
