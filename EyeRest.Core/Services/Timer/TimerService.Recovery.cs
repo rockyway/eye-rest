@@ -13,8 +13,8 @@ namespace EyeRest.Services
     {
         #region Health Monitoring
 
-        // Health monitoring fields
-        private DateTime _lastHeartbeat = DateTime.Now;
+        // Health monitoring fields. Initialized in the TimerService ctor (clock-bound).
+        private DateTime _lastHeartbeat = DateTime.MinValue;
         // Health monitor timer is declared in TimerService.State.cs
 
         // Recovery debouncing fields (Fix #4: Prevent duplicate recovery attempts)
@@ -48,7 +48,7 @@ namespace EyeRest.Services
         {
             try
             {
-                var now = DateTime.Now;
+                var now = _clock.Now;
                 var timeSinceLastHeartbeat = now - _lastHeartbeat;
                 
                 _logger.LogDebug($"❤️ HEALTH CHECK at {now:HH:mm:ss.fff} - Last heartbeat: {timeSinceLastHeartbeat.TotalSeconds:F1}s ago");
@@ -114,9 +114,9 @@ namespace EyeRest.Services
                 // CRITICAL: Aggressive detection for disabled timers with due events
                 // Check actual timer state instead of TimeUntil* properties since they now return defaults when !IsRunning
                 var eyeRestOverdue = !(_eyeRestTimer?.IsEnabled ?? false) && !IsRunning && 
-                                   (_eyeRestStartTime != DateTime.MinValue && DateTime.Now - _eyeRestStartTime >= _eyeRestInterval);
+                                   (_eyeRestStartTime != DateTime.MinValue && _clock.Now - _eyeRestStartTime >= _eyeRestInterval);
                 var breakOverdue = !(_breakTimer?.IsEnabled ?? false) && !IsRunning && 
-                                 (_breakStartTime != DateTime.MinValue && DateTime.Now - _breakStartTime >= _breakInterval);
+                                 (_breakStartTime != DateTime.MinValue && _clock.Now - _breakStartTime >= _breakInterval);
                 var hasDisabledTimersDue = eyeRestOverdue || breakOverdue;
                 
                 if (hasDisabledTimersDue && timeSinceLastHeartbeat.TotalMinutes >= 5.0)
@@ -219,9 +219,9 @@ namespace EyeRest.Services
                                 }
                                 
                                 // Reset start times so elapsed-time checks don't see stale overdue state
-                                _eyeRestStartTime = DateTime.Now;
-                                _breakStartTime = DateTime.Now;
-                                _breakTimerStartTime = DateTime.Now;
+                                _eyeRestStartTime = _clock.Now;
+                                _breakStartTime = _clock.Now;
+                                _breakTimerStartTime = _clock.Now;
 
                                 // Start the timers
                                 _eyeRestTimer?.Start();
@@ -334,7 +334,7 @@ namespace EyeRest.Services
                                            (breakOverdue && !_isBreakNotificationActive && !_isBreakEventProcessing && !_isAnyBreakEventProcessing && !_isBreakWarningProcessing && !_isAnyBreakWarningProcessing);
 
                     // CRITICAL FIX: Add startup grace period check to prevent early triggers
-                    var serviceUptime = DateTime.Now - (_eyeRestStartTime != DateTime.MinValue ? _eyeRestStartTime : DateTime.Now);
+                    var serviceUptime = _clock.Now - (_eyeRestStartTime != DateTime.MinValue ? _eyeRestStartTime : _clock.Now);
                     if (serviceUptime < TimeSpan.FromSeconds(30))
                     {
                         _logger.LogInformation($"🛡️ STARTUP PROTECTION: Ignoring backup triggers during startup grace period (uptime={serviceUptime.TotalSeconds:F1}s)");
@@ -390,10 +390,10 @@ namespace EyeRest.Services
                                 _eyeRestInterval = interval;
                                 _eyeRestTimer!.Interval = _eyeRestInterval;
                                 _eyeRestTimer!.Start();
-                                _eyeRestStartTime = DateTime.Now;
+                                _eyeRestStartTime = _clock.Now;
 
                                 _logger.LogInformation("🔄 BACKUP RESET: Eye rest timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
-                                    _eyeRestInterval.TotalMinutes, DateTime.Now.Add(_eyeRestInterval).ToString("HH:mm:ss"));
+                                    _eyeRestInterval.TotalMinutes, _clock.Now.Add(_eyeRestInterval).ToString("HH:mm:ss"));
                             }
                         }
                         
@@ -408,10 +408,10 @@ namespace EyeRest.Services
                             _breakInterval = interval;
                             _breakTimer!.Interval = _breakInterval;
                             _breakTimer!.Start();
-                            _breakStartTime = DateTime.Now;
+                            _breakStartTime = _clock.Now;
 
                             _logger.LogInformation("🔄 BACKUP RESET: Break timer reset after backup trigger - interval: {IntervalMinutes:F1}m, next trigger: {NextTime}",
-                                _breakInterval.TotalMinutes, DateTime.Now.Add(_breakInterval).ToString("HH:mm:ss"));
+                                _breakInterval.TotalMinutes, _clock.Now.Add(_breakInterval).ToString("HH:mm:ss"));
                         }
                         
                         // ADDITIONAL FIX: If service is stopped, attempt to restart it after firing backup triggers
@@ -557,7 +557,7 @@ namespace EyeRest.Services
             if (_eyeRestTimer?.IsEnabled != true || _eyeRestStartTime == DateTime.MinValue)
                 return false;
 
-            var elapsed = DateTime.Now - _eyeRestStartTime;
+            var elapsed = _clock.Now - _eyeRestStartTime;
             var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateEyeRestTimerInterval();
 
             // Calculate the TOTAL interval (including warning time) to determine true overdue state
@@ -590,7 +590,7 @@ namespace EyeRest.Services
             if (_breakTimer?.IsEnabled != true || _breakStartTime == DateTime.MinValue)
                 return false;
 
-            var elapsed = DateTime.Now - _breakStartTime;
+            var elapsed = _clock.Now - _breakStartTime;
             var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
 
             // Calculate the TOTAL interval (including warning time) to determine true overdue state
@@ -611,7 +611,7 @@ namespace EyeRest.Services
 
         private void UpdateHeartbeat()
         {
-            _lastHeartbeat = DateTime.Now;
+            _lastHeartbeat = _clock.Now;
         }
         
         /// <summary>
@@ -622,7 +622,7 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation($"🔧 TIMER RECOVERY INITIATED at {DateTime.Now:HH:mm:ss.fff}");
+                _logger.LogInformation($"🔧 TIMER RECOVERY INITIATED at {_clock.Now:HH:mm:ss.fff}");
                 
                 // Store current timer states before recovery
                 var eyeRestEnabled = _eyeRestTimer?.IsEnabled ?? false;
@@ -733,9 +733,9 @@ namespace EyeRest.Services
                 // STEP 4: Reset start times and restart timers if they were previously enabled
                 if (IsRunning && !IsPaused)
                 {
-                    _eyeRestStartTime = DateTime.Now;
-                    _breakStartTime = DateTime.Now;
-                    _breakTimerStartTime = DateTime.Now;
+                    _eyeRestStartTime = _clock.Now;
+                    _breakStartTime = _clock.Now;
+                    _breakTimerStartTime = _clock.Now;
 
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
@@ -746,20 +746,20 @@ namespace EyeRest.Services
                 UpdateHeartbeat();
                 
                 // STEP 6: Verify recovery success
-                _logger.LogInformation($"✅ TIMER RECOVERY COMPLETED at {DateTime.Now:HH:mm:ss.fff}");
+                _logger.LogInformation($"✅ TIMER RECOVERY COMPLETED at {_clock.Now:HH:mm:ss.fff}");
                 _logger.LogInformation($"🔍 POST-RECOVERY STATE: EyeRest={_eyeRestTimer?.IsEnabled}({_eyeRestTimer?.Interval.TotalMinutes:F1}m), Break={_breakTimer?.IsEnabled}({_breakTimer?.Interval.TotalMinutes:F1}m)");
                 _logger.LogInformation($"✅ Recovery successful - timers should now fire properly");
                 
                 // ENHANCED: Log expected next trigger times
                 if (_eyeRestTimer != null && _eyeRestTimer.IsEnabled)
                 {
-                    var nextEyeRest = DateTime.Now.Add(_eyeRestTimer.Interval);
+                    var nextEyeRest = _clock.Now.Add(_eyeRestTimer.Interval);
                     _logger.LogInformation($"👁️ Next eye rest timer event expected at: {nextEyeRest:HH:mm:ss}");
                 }
                 
                 if (_breakTimer != null && _breakTimer.IsEnabled)
                 {
-                    var nextBreak = DateTime.Now.Add(_breakTimer.Interval);
+                    var nextBreak = _clock.Now.Add(_breakTimer.Interval);
                     _logger.LogInformation($"🚨 Next break timer event expected at: {nextBreak:HH:mm:ss}");
                 }
             }
@@ -785,13 +785,13 @@ namespace EyeRest.Services
                 _logger.LogInformation($"🔄 SYSTEM RESUME RECOVERY: Attempting timer recovery - {reason}");
 
                 // FIX #4: Recovery debouncing to prevent duplicate recovery attempts within 5 seconds
-                var timeSinceLastRecovery = DateTime.Now - _lastRecoveryAttempt;
+                var timeSinceLastRecovery = _clock.Now - _lastRecoveryAttempt;
                 if (timeSinceLastRecovery.TotalSeconds < RECOVERY_DEBOUNCE_SECONDS)
                 {
                     _logger.LogInformation($"🔄 DEBOUNCE: Skipping duplicate recovery - last attempt {timeSinceLastRecovery.TotalSeconds:F1}s ago (threshold: {RECOVERY_DEBOUNCE_SECONDS}s)");
                     return;
                 }
-                _lastRecoveryAttempt = DateTime.Now;
+                _lastRecoveryAttempt = _clock.Now;
                 _logger.LogDebug($"🔄 Recovery debounce check passed - proceeding with recovery");
 
                 // CRITICAL FIX: Prevent recovery during initial startup to avoid race condition
@@ -802,7 +802,7 @@ namespace EyeRest.Services
                 }
 
                 // ADDITIONAL SAFETY: Add grace period after startup completion
-                var timeSinceStartup = DateTime.Now - (_eyeRestStartTime != DateTime.MinValue ? _eyeRestStartTime : DateTime.Now);
+                var timeSinceStartup = _clock.Now - (_eyeRestStartTime != DateTime.MinValue ? _eyeRestStartTime : _clock.Now);
                 if (timeSinceStartup < TimeSpan.FromSeconds(30))
                 {
                     _logger.LogInformation($"🛡️ STARTUP PROTECTION: Ignoring recovery during grace period (uptime={timeSinceStartup.TotalSeconds:F1}s) - {reason}");
@@ -819,9 +819,9 @@ namespace EyeRest.Services
                 // CRITICAL FIX: Check if start times are initialized before calculating elapsed time
                 // When app first starts, these are DateTime.MinValue which would result in massive elapsed times
                 var eyeRestElapsed = (_eyeRestTimer?.IsEnabled == true && _eyeRestStartTime != DateTime.MinValue) ?
-                    DateTime.Now - _eyeRestStartTime : TimeSpan.Zero;
+                    _clock.Now - _eyeRestStartTime : TimeSpan.Zero;
                 var breakElapsed = (_breakTimer?.IsEnabled == true && _breakStartTime != DateTime.MinValue) ?
-                    DateTime.Now - _breakStartTime : TimeSpan.Zero;
+                    _clock.Now - _breakStartTime : TimeSpan.Zero;
 
                 _logger.LogInformation($"🔄 Pre-recovery state: Running={wasRunning}, Paused={wasPaused}, SmartPaused={wasSmartPaused}, ManuallyPaused={wasManuallyPaused}");
                 _logger.LogInformation($"🔄 Timer start times - EyeRest: {_eyeRestStartTime:HH:mm:ss}, Break: {_breakStartTime:HH:mm:ss}");
@@ -835,9 +835,9 @@ namespace EyeRest.Services
                     _logger.LogInformation($"🔄 Treating as fresh session to prevent immediate popup triggers");
 
                     // Reset timer states for a fresh start
-                    _eyeRestStartTime = DateTime.Now;
-                    _breakStartTime = DateTime.Now;
-                    _breakTimerStartTime = DateTime.Now;
+                    _eyeRestStartTime = _clock.Now;
+                    _breakStartTime = _clock.Now;
+                    _breakTimerStartTime = _clock.Now;
 
                     // Reset intervals to full configured values
                     var (eyeRestInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
@@ -899,12 +899,12 @@ namespace EyeRest.Services
                 var timeSincePause = TimeSpan.Zero;
                 if (wasManuallyPaused && _manualPauseStartTime != DateTime.MinValue)
                 {
-                    timeSincePause = DateTime.Now - _manualPauseStartTime;
+                    timeSincePause = _clock.Now - _manualPauseStartTime;
                     _logger.LogInformation($"🔄 Time since manual pause: {timeSincePause.TotalMinutes:F1} minutes");
                 }
                 else if ((wasPaused || wasSmartPaused) && _pauseStartTime != DateTime.MinValue)
                 {
-                    timeSincePause = DateTime.Now - _pauseStartTime;
+                    timeSincePause = _clock.Now - _pauseStartTime;
                     _logger.LogInformation($"🔄 Time since pause: {timeSincePause.TotalMinutes:F1} minutes");
                 }
 
@@ -926,7 +926,7 @@ namespace EyeRest.Services
                 }
 
                 // FIX #5: Check stale heartbeat as extended away indicator (SECONDARY CHECK)
-                var heartbeatStaleness = DateTime.Now - _lastHeartbeat;
+                var heartbeatStaleness = _clock.Now - _lastHeartbeat;
                 if (heartbeatStaleness.TotalMinutes >= extendedAwayThresholdMinutes)
                 {
                     _logger.LogInformation($"🔍 STALE HEARTBEAT DETECTED: {heartbeatStaleness.TotalMinutes:F1} minutes (threshold: {extendedAwayThresholdMinutes} min)");
@@ -1044,7 +1044,7 @@ namespace EyeRest.Services
                     if (wasManuallyPaused)
                     {
                         // Calculate remaining manual pause time
-                        var manualPauseElapsed = DateTime.Now - _manualPauseStartTime;
+                        var manualPauseElapsed = _clock.Now - _manualPauseStartTime;
                         var remainingPauseDuration = _manualPauseDuration - manualPauseElapsed;
                         
                         if (remainingPauseDuration > TimeSpan.Zero)
@@ -1246,7 +1246,7 @@ namespace EyeRest.Services
                 var (erInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
                 _eyeRestInterval = erInterval;
                 _eyeRestTimer!.Interval = _eyeRestInterval;
-                _eyeRestStartTime = DateTime.Now;
+                _eyeRestStartTime = _clock.Now;
                 _eyeRestTimer.Start();
             }
 
@@ -1266,8 +1266,8 @@ namespace EyeRest.Services
                 var (brInterval, _, _, _, _) = CalculateBreakTimerInterval();
                 _breakInterval = brInterval;
                 _breakTimer!.Interval = _breakInterval;
-                _breakStartTime = DateTime.Now;
-                _breakTimerStartTime = DateTime.Now;
+                _breakStartTime = _clock.Now;
+                _breakTimerStartTime = _clock.Now;
                 _breakTimer.Start();
             }
 
@@ -1335,7 +1335,7 @@ namespace EyeRest.Services
                             _logger.LogWarning($"🆘 FALLBACK: Triggering overdue eye rest (overdue by {Math.Abs(eyeRestRemaining.TotalSeconds):F1}s)");
                             _eyeRestTimer?.Stop();
                             TriggerEyeRest();
-                            _eyeRestStartTime = DateTime.Now;
+                            _eyeRestStartTime = _clock.Now;
                             _eyeRestTimer?.Start();
                         }
 
@@ -1346,8 +1346,8 @@ namespace EyeRest.Services
                             _logger.LogWarning($"🆘 FALLBACK: Triggering overdue break (overdue by {Math.Abs(breakRemaining.TotalSeconds):F1}s)");
                             _breakTimer?.Stop();
                             StartBreakWarningTimer();
-                            _breakStartTime = DateTime.Now;
-                            _breakTimerStartTime = DateTime.Now;
+                            _breakStartTime = _clock.Now;
+                            _breakTimerStartTime = _clock.Now;
                             _breakTimer?.Start();
                         }
 

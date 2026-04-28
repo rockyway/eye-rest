@@ -126,7 +126,7 @@ namespace EyeRest.Services
         // Clock jump detection fields
         private DateTime _lastEyeRestTick = DateTime.MinValue;
         private DateTime _lastBreakTick = DateTime.MinValue;
-        private DateTime _lastSystemCheck = DateTime.Now;
+        private DateTime _lastSystemCheck = DateTime.MinValue; // Initialized in ctor (clock-bound)
 
         // Rate-limit overdue log messages (prevent flooding from UI-polled properties)
         private DateTime _lastEyeRestOverdueLog = DateTime.MinValue;
@@ -199,7 +199,7 @@ namespace EyeRest.Services
                 if (!IsManuallyPaused || _manualPauseDuration == TimeSpan.Zero)
                     return null;
                     
-                var elapsed = DateTime.Now - _manualPauseStartTime;
+                var elapsed = _clock.Now - _manualPauseStartTime;
                 var remaining = _manualPauseDuration - elapsed;
                 return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
             }
@@ -237,13 +237,13 @@ namespace EyeRest.Services
                         return _eyeRestInterval > TimeSpan.Zero ? _eyeRestInterval : TimeSpan.FromMinutes(20);
                     }
                     
-                    var elapsed = DateTime.Now - _eyeRestStartTime;
+                    var elapsed = _clock.Now - _eyeRestStartTime;
                     
                     // SAFETY CHECK: Prevent negative elapsed time on clock changes or startup issues
                     if (elapsed < TimeSpan.Zero)
                     {
                         _logger?.LogWarning("👁️ Negative elapsed time detected ({Elapsed}), resetting start time", elapsed);
-                        _eyeRestStartTime = DateTime.Now;
+                        _eyeRestStartTime = _clock.Now;
                         return _eyeRestInterval;
                     }
                     
@@ -252,7 +252,7 @@ namespace EyeRest.Services
                     // Log when timer is overdue (rate-limited to once per 60s to prevent log flooding)
                     if (remaining <= TimeSpan.Zero)
                     {
-                        var now = DateTime.Now;
+                        var now = _clock.Now;
                         if ((now - _lastEyeRestOverdueLog).TotalSeconds >= 60)
                         {
                             _lastEyeRestOverdueLog = now;
@@ -308,7 +308,7 @@ namespace EyeRest.Services
                 
                 if (IsBreakDelayed)
                 {
-                    var delayElapsed = DateTime.Now - _delayStartTime;
+                    var delayElapsed = _clock.Now - _delayStartTime;
                     var delayRemaining = _delayDuration - delayElapsed;
                     
                     if (delayRemaining > TimeSpan.Zero)
@@ -330,13 +330,13 @@ namespace EyeRest.Services
                         return _breakInterval > TimeSpan.Zero ? _breakInterval : TimeSpan.FromMinutes(55);
                     }
                     
-                    var elapsed = DateTime.Now - _breakStartTime;
+                    var elapsed = _clock.Now - _breakStartTime;
                     
                     // SAFETY CHECK: Prevent negative elapsed time on clock changes or startup issues
                     if (elapsed < TimeSpan.Zero)
                     {
                         _logger?.LogWarning("☕ Negative elapsed time detected ({Elapsed}), resetting start time", elapsed);
-                        _breakStartTime = DateTime.Now;
+                        _breakStartTime = _clock.Now;
                         return _breakInterval;
                     }
                     
@@ -345,7 +345,7 @@ namespace EyeRest.Services
                     // Log when break timer is overdue (rate-limited to once per 60s to prevent log flooding)
                     if (remaining <= TimeSpan.Zero)
                     {
-                        var now = DateTime.Now;
+                        var now = _clock.Now;
                         if ((now - _lastBreakOverdueLog).TotalSeconds >= 60)
                         {
                             _lastBreakOverdueLog = now;
@@ -409,7 +409,7 @@ namespace EyeRest.Services
                 if (!IsBreakDelayed)
                     return TimeSpan.Zero;
                     
-                var elapsed = DateTime.Now - _delayStartTime;
+                var elapsed = _clock.Now - _delayStartTime;
                 var remaining = _delayDuration - elapsed;
                 return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
             }
