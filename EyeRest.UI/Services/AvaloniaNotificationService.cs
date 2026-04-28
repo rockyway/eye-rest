@@ -74,6 +74,10 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestWarningPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
+
+                    // Same defence as break popups: any close path resolves the awaiting task.
+                    myPopup.Closed += (_, _) => tcs.TrySetResult(false);
+
                     myPopup.Show();
 
                     if (myPopup.PopupContent is EyeRestWarningPopup warningPopup)
@@ -133,6 +137,10 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
+
+                    // Same defence as break popups: any close path resolves the awaiting task.
+                    myPopup.Closed += (_, _) => tcs.TrySetResult(false);
+
                     myPopup.Show();
 
                     if (myPopup.PopupContent is EyeRestPopup eyeRestPopup)
@@ -185,6 +193,12 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakWarningPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
+
+                    // Symmetric defence with the break-reminder popup: any close path
+                    // (window-X, app shutdown, exception killing the popup) resolves the
+                    // awaiting task so callers don't depend on the Task.Delay timeout race.
+                    myPopup.Closed += (_, _) => tcs.TrySetResult(false);
+
                     myPopup.Show();
 
                     if (myPopup.PopupContent is BreakWarningPopup breakWarningPopup)
@@ -303,6 +317,15 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.Center);
+
+                    // Safety net: if the popup window closes by any path that doesn't go through
+                    // ActionSelected (e.g., user clicks the window-X during the active break, the
+                    // app shuts down, an exception kills the popup), resolve the awaiting task as
+                    // Skipped so the orchestrator runs SmartSessionResetAsync and clears
+                    // _isBreakNotificationActive in TimerService. Without this, that flag could
+                    // stay stuck true forever, breaking subsequent SmartResume logic.
+                    myPopup.Closed += (_, _) => tcs.TrySetResult(BreakAction.Skipped);
+
                     myPopup.Show();
 
                     if (myPopup.PopupContent is BreakPopup breakPopup)

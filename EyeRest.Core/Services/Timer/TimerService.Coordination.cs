@@ -22,7 +22,7 @@ namespace EyeRest.Services
                 _eyeRestTimerPausedForBreak = true;
                 
                 // Calculate and store remaining time
-                var elapsed = DateTime.Now - _eyeRestStartTime;
+                var elapsed = _clock.Now - _eyeRestStartTime;
                 _eyeRestRemainingTime = _eyeRestInterval - elapsed;
                 
                 // Only store positive remaining time
@@ -56,7 +56,7 @@ namespace EyeRest.Services
                 _eyeRestInterval = interval;
                 _eyeRestTimer!.Interval = _eyeRestInterval;
                 _eyeRestTimer!.Start();
-                _eyeRestStartTime = DateTime.Now;
+                _eyeRestStartTime = _clock.Now;
 
                 if (isReduced)
                 {
@@ -89,7 +89,7 @@ namespace EyeRest.Services
                 _breakTimerPausedForEyeRest = true;
                 
                 // Calculate and store remaining time
-                var elapsed = DateTime.Now - _breakStartTime;
+                var elapsed = _clock.Now - _breakStartTime;
                 _breakRemainingTime = _breakInterval - elapsed;
                 
                 // Only store positive remaining time
@@ -119,7 +119,7 @@ namespace EyeRest.Services
                     _breakInterval = _breakRemainingTime;
                     _breakTimer!.Interval = _breakRemainingTime;
                     _breakTimer!.Start();
-                    _breakStartTime = DateTime.Now;
+                    _breakStartTime = _clock.Now;
                     _logger.LogInformation($"🔄 Break timer resumed with {_breakRemainingTime.TotalMinutes:F1} minutes remaining");
                 }
                 else
@@ -129,7 +129,7 @@ namespace EyeRest.Services
                     _breakInterval = interval;
                     _breakTimer!.Interval = _breakInterval;
                     _breakTimer!.Start();
-                    _breakStartTime = DateTime.Now;
+                    _breakStartTime = _clock.Now;
 
                     if (isReduced)
                     {

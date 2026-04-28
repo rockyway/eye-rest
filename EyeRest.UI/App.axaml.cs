@@ -84,6 +84,7 @@ public partial class App : Application
         {
             // Cross-platform dispatcher service (must be registered before platform services)
             services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
+            services.AddSingleton<IClock, SystemClock>();
 
             // Platform services — guarded by compile constants so the
             // unused platform assembly is never referenced at compile time,
