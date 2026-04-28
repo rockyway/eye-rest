@@ -75,8 +75,12 @@ namespace EyeRest.Services
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
 
-                    // Same defence as break popups: any close path resolves the awaiting task.
-                    myPopup.Closed += (_, _) => tcs.TrySetResult(false);
+                    // Deferred via Dispatcher.Post — see ShowBreakReminderInternalAsync
+                    // for the full race-condition explanation.
+                    myPopup.Closed += (_, _) =>
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(false),
+                            DispatcherPriority.Background);
 
                     myPopup.Show();
 
@@ -138,8 +142,12 @@ namespace EyeRest.Services
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
 
-                    // Same defence as break popups: any close path resolves the awaiting task.
-                    myPopup.Closed += (_, _) => tcs.TrySetResult(false);
+                    // Deferred via Dispatcher.Post — see ShowBreakReminderInternalAsync
+                    // for the full race-condition explanation.
+                    myPopup.Closed += (_, _) =>
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(false),
+                            DispatcherPriority.Background);
 
                     myPopup.Show();
 
@@ -194,10 +202,14 @@ namespace EyeRest.Services
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
 
-                    // Symmetric defence with the break-reminder popup: any close path
-                    // (window-X, app shutdown, exception killing the popup) resolves the
-                    // awaiting task so callers don't depend on the Task.Delay timeout race.
-                    myPopup.Closed += (_, _) => tcs.TrySetResult(false);
+                    // Symmetric defence; deferred via Dispatcher.Post for the same reason
+                    // documented in ShowBreakReminderInternalAsync — the factory's
+                    // Completed → popup.Close() handler fires myPopup.Closed synchronously
+                    // before the inner Completed handler can resolve with `true`.
+                    myPopup.Closed += (_, _) =>
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(false),
+                            DispatcherPriority.Background);
 
                     myPopup.Show();
 
@@ -318,13 +330,25 @@ namespace EyeRest.Services
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.Center);
 
-                    // Safety net: if the popup window closes by any path that doesn't go through
-                    // ActionSelected (e.g., user clicks the window-X during the active break, the
-                    // app shuts down, an exception kills the popup), resolve the awaiting task as
-                    // Skipped so the orchestrator runs SmartSessionResetAsync and clears
-                    // _isBreakNotificationActive in TimerService. Without this, that flag could
-                    // stay stuck true forever, breaking subsequent SmartResume logic.
-                    myPopup.Closed += (_, _) => tcs.TrySetResult(BreakAction.Skipped);
+                    // Safety net: any close path that does NOT go through ActionSelected
+                    // (X-button, app shutdown, etc.) must resolve the awaiting task as Skipped
+                    // so the orchestrator can run SmartSessionResetAsync and clear
+                    // _isBreakNotificationActive.
+                    //
+                    // CRITICAL (2026-04-28 regression): the resolution must be DEFERRED via
+                    // Dispatcher.Post. The factory's ActionSelected handler (registered first)
+                    // calls popup.Close() synchronously, which fires myPopup.Closed inside the
+                    // multicast-delegate chain BEFORE the inner ActionSelected handler that
+                    // resolves with the user's actual action runs. Direct resolution here
+                    // races and wins, converting "Delay 5 Minutes" into "Skipped".
+                    // Background priority defers until the synchronous ActionSelected chain
+                    // completes — by then tcs is already resolved with the user's action and
+                    // this Skipped TrySetResult is a no-op. For pure X-close paths (no
+                    // ActionSelected fires), the deferred Skipped wins as intended.
+                    myPopup.Closed += (_, _) =>
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(BreakAction.Skipped),
+                            DispatcherPriority.Background);
 
                     myPopup.Show();
 
