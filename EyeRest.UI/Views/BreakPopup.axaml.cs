@@ -55,6 +55,45 @@ namespace EyeRest.UI.Views
             }
         }
 
+        /// <summary>
+        /// Configures the "LAST" chip + tooltip on the delay buttons. When the next delay click would
+        /// be the final allowed one before the limit forces a session reset, both delay buttons
+        /// surface a red "LAST" chip and a descriptive tooltip. Pass maxDelays = 0 to disable
+        /// (e.g. test mode or unlimited-delay configuration).
+        /// </summary>
+        public void SetDelayChipState(int consecutiveDelayCount, int maxDelays)
+        {
+            // maxDelays == 0 means "unlimited" — no chip, default tooltip
+            // We show "LAST" when this delay click would be the final one before the limit kicks in.
+            // The limit fires when count *exceeds* maxDelays, so the click that takes count from
+            // (maxDelays - 1) → maxDelays is the last allowed one.
+            bool isLast = maxDelays > 0 && consecutiveDelayCount >= maxDelays - 1;
+
+            DelayOneMinuteLastChip.IsVisible = isLast;
+            DelayFiveMinutesLastChip.IsVisible = isLast;
+
+            string oneMinTip, fiveMinTip;
+            if (isLast)
+            {
+                oneMinTip = $"LAST CHANCE — this is your final allowed delay ({consecutiveDelayCount + 1}/{maxDelays}). After this, the next delay attempt will force a fresh session reset.";
+                fiveMinTip = oneMinTip;
+            }
+            else if (maxDelays > 0)
+            {
+                int remaining = maxDelays - consecutiveDelayCount;
+                oneMinTip = $"Delay this break by 1 minute. ({remaining} delays remaining out of {maxDelays} max)";
+                fiveMinTip = $"Delay this break by 5 minutes. ({remaining} delays remaining out of {maxDelays} max)";
+            }
+            else
+            {
+                oneMinTip = "Delay this break by 1 minute.";
+                fiveMinTip = "Delay this break by 5 minutes.";
+            }
+
+            ToolTip.SetTip(DelayOneMinuteButton, oneMinTip);
+            ToolTip.SetTip(DelayFiveMinutesButton, fiveMinTip);
+        }
+
         public void StartCountdown(TimeSpan duration, IProgress<double>? progress = null)
         {
             // Clean up existing timer before creating new one

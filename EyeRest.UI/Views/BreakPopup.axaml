@@ -160,6 +160,18 @@
                                           Width="14" Height="14" />
                                 <TextBlock Text="Delay 1 Min"
                                            VerticalAlignment="Center" />
+                                <Border Name="DelayOneMinuteLastChip"
+                                        IsVisible="False"
+                                        Background="#FFD32F2F"
+                                        CornerRadius="6"
+                                        Padding="6,1"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="LAST"
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               VerticalAlignment="Center" />
+                                </Border>
                             </StackPanel>
                         </Button>
 
@@ -172,6 +184,18 @@
                                           Width="14" Height="14" />
                                 <TextBlock Text="Delay 5 Min"
                                            VerticalAlignment="Center" />
+                                <Border Name="DelayFiveMinutesLastChip"
+                                        IsVisible="False"
+                                        Background="#FFD32F2F"
+                                        CornerRadius="6"
+                                        Padding="6,1"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="LAST"
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               VerticalAlignment="Center" />
+                                </Border>
                             </StackPanel>
                         </Button>
 

@@ -395,7 +395,9 @@ namespace EyeRest.Services
                 _logger.LogInformation("🟢 Calling NotificationService.ShowBreakReminderAsync (source={Source})", e.Source);
                 await _analyticsService.RecordEventAsync(EventHistoryType.BreakShown, "Break popup shown",
                     new Dictionary<string, object?> { ["triggerSource"] = e.Source.ToString() });
-                var result = await _notificationService.ShowBreakReminderAsync(duration, progress);
+                var maxDelays = config.Break?.MaxBreakDelayCount ?? 3;
+                var consecutiveDelays = _timerService.ConsecutiveBreakDelayCount;
+                var result = await _notificationService.ShowBreakReminderAsync(duration, progress, consecutiveDelays, maxDelays);
                 _logger.LogInformation($"🟢 ShowBreakReminderAsync returned with result: {result}");
 
                 // Handle user action and record analytics (skip if in test mode)
@@ -481,6 +483,13 @@ namespace EyeRest.Services
                         if (!_notificationService.IsTestMode)
                         {
                             await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration, e.Source);
+                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakCompleted, "Break completed (user confirmed)",
+                                new Dictionary<string, object?>
+                                {
+                                    ["durationSeconds"] = (int)duration.TotalSeconds,
+                                    ["triggerSource"] = e.Source.ToString(),
+                                    ["confirmation"] = "user"
+                                });
                         }
                         else
                         {
@@ -504,6 +513,13 @@ namespace EyeRest.Services
                         {
                             // Record as completed but with auto-timeout indicator
                             await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration, e.Source);
+                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakCompleted, "Break completed (auto-timeout)",
+                                new Dictionary<string, object?>
+                                {
+                                    ["durationSeconds"] = (int)duration.TotalSeconds,
+                                    ["triggerSource"] = e.Source.ToString(),
+                                    ["confirmation"] = "auto"
+                                });
                         }
                         else
                         {
