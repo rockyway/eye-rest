@@ -15,7 +15,24 @@ namespace EyeRest.Models
 
         // Display helpers for DataGrid binding
         public string TimestampText => Timestamp.ToString("MM/dd/yyyy HH:mm:ss");
-        public string EventTypeText => FormatEventType(EventType);
+        public string EventTypeText
+        {
+            get
+            {
+                var label = FormatEventType(EventType);
+                if (Metadata.TryGetValue("triggerSource", out var src)
+                    && src is not null
+                    && string.Equals(src.ToString(), "Manual", StringComparison.OrdinalIgnoreCase)
+                    && (EventType == EventHistoryType.BreakShown
+                        || EventType == EventHistoryType.BreakCompleted
+                        || EventType == EventHistoryType.BreakSkipped
+                        || EventType == EventHistoryType.BreakDelayed))
+                {
+                    return $"{label} (Manual)";
+                }
+                return label;
+            }
+        }
 
         // Serialize/deserialize helpers for DB round-trip
         public string MetadataJson

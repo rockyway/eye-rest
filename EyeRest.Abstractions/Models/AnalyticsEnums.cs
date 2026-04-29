@@ -15,6 +15,12 @@ namespace EyeRest.Models
         Closed
     }
 
+    public enum BreakTriggerSource
+    {
+        Automatic,
+        Manual
+    }
+
     public enum UserPresenceState
     {
         Present,

@@ -64,6 +64,7 @@ namespace EyeRest.UI.ViewModels
         private bool _autoOpenDashboard = false;
 
         // Analytics KPI Summary
+        private string _breaksAutoManualSummary = "Auto: 0 · Manual: 0";
         private string _analyticsComplianceRateText = "--";
         private double _analyticsComplianceRateValue = 0;
         private string _analyticsTotalBreaksCompleted = "--";
@@ -168,6 +169,7 @@ namespace EyeRest.UI.ViewModels
             ResumeTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await ResumeTimers(), () => CanResumeTimers);
             PauseForMeetingCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await PauseForMeeting(), () => CanPauseMeeting);
             PauseForMeeting1hCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await PauseForMeeting1h(), () => CanPauseMeeting);
+            TriggerImmediateBreakCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TriggerImmediateBreakAsync(), () => CanTriggerImmediateBreak);
 
             ExitApplicationCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(ExitApplication);
             ShowAnalyticsCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(ShowAnalyticsWindow);
@@ -586,6 +588,12 @@ namespace EyeRest.UI.ViewModels
         {
             get => _analyticsComplianceRateValue;
             private set => SetProperty(ref _analyticsComplianceRateValue, value);
+        }
+
+        public string BreaksAutoManualSummary
+        {
+            get => _breaksAutoManualSummary;
+            set => SetProperty(ref _breaksAutoManualSummary, value);
         }
 
         public string AnalyticsTotalBreaksCompleted
@@ -1050,6 +1058,9 @@ namespace EyeRest.UI.ViewModels
         public ICommand ResumeTimersCommand { get; }
         public ICommand PauseForMeetingCommand { get; }
         public ICommand PauseForMeeting1hCommand { get; }
+        public ICommand TriggerImmediateBreakCommand { get; }
+
+        public bool CanTriggerImmediateBreak => _timerService.IsRunning && !_timerService.IsAnyNotificationActive;
 
         public ICommand ExitApplicationCommand { get; }
         public ICommand ShowAnalyticsCommand { get; }
@@ -1540,6 +1551,7 @@ namespace EyeRest.UI.ViewModels
             OnPropertyChanged(nameof(CanPauseTimers));
             OnPropertyChanged(nameof(CanResumeTimers));
             OnPropertyChanged(nameof(CanPauseMeeting));
+            OnPropertyChanged(nameof(CanTriggerImmediateBreak));
 
             OnPropertyChanged(nameof(StartButtonTooltip));
             OnPropertyChanged(nameof(StopButtonTooltip));
@@ -1555,6 +1567,7 @@ namespace EyeRest.UI.ViewModels
             (ResumeTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
             (PauseForMeetingCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
             (PauseForMeeting1hCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
+            (TriggerImmediateBreakCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private void OnTimerServicePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1920,6 +1933,19 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
+        private async Task TriggerImmediateBreakAsync()
+        {
+            try
+            {
+                _logger.LogInformation("User clicked Break Now");
+                await _timerService.TriggerImmediateBreakAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to trigger immediate break");
+            }
+        }
+
         private async Task TestBreakPopup()
         {
             try
@@ -2052,6 +2078,8 @@ namespace EyeRest.UI.ViewModels
                 AnalyticsComplianceRateText = $"{healthMetrics.ComplianceRate:P1}";
                 AnalyticsComplianceRateValue = healthMetrics.ComplianceRate * 100;
                 AnalyticsTotalBreaksCompleted = healthMetrics.BreaksCompleted.ToString();
+                var (autoCount, manualCount) = await _analyticsService.GetBreakCountsBySourceAsync(periodDays == 0 ? 365 * 10 : periodDays);
+                BreaksAutoManualSummary = $"Auto: {autoCount} · Manual: {manualCount}";
                 AnalyticsCompletedPercentageText = totalBreaks > 0
                     ? $"{(double)healthMetrics.BreaksCompleted / totalBreaks:P0} of total"
                     : "No data";

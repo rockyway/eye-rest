@@ -392,8 +392,9 @@ namespace EyeRest.Services
                 var duration = TimeSpan.FromMinutes(config.Break.DurationMinutes); // CRITICAL FIX: Use actual config
                 _logger.LogInformation($"🟢 Break duration from config: {duration.TotalMinutes} minutes");
                 
-                _logger.LogInformation("🟢 Calling NotificationService.ShowBreakReminderAsync");
-                await _analyticsService.RecordEventAsync(EventHistoryType.BreakShown, "Break popup shown");
+                _logger.LogInformation("🟢 Calling NotificationService.ShowBreakReminderAsync (source={Source})", e.Source);
+                await _analyticsService.RecordEventAsync(EventHistoryType.BreakShown, "Break popup shown",
+                    new Dictionary<string, object?> { ["triggerSource"] = e.Source.ToString() });
                 var result = await _notificationService.ShowBreakReminderAsync(duration, progress);
                 _logger.LogInformation($"🟢 ShowBreakReminderAsync returned with result: {result}");
 
@@ -405,9 +406,13 @@ namespace EyeRest.Services
                         _logger.LogInformation("🟢 Break completed successfully");
                         if (!_notificationService.IsTestMode)
                         {
-                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration, e.Source);
                             await _analyticsService.RecordEventAsync(EventHistoryType.BreakCompleted, "Break completed",
-                                new Dictionary<string, object?> { ["durationSeconds"] = (int)duration.TotalSeconds });
+                                new Dictionary<string, object?>
+                                {
+                                    ["durationSeconds"] = (int)duration.TotalSeconds,
+                                    ["triggerSource"] = e.Source.ToString()
+                                });
                         }
                         else
                         {
@@ -422,9 +427,13 @@ namespace EyeRest.Services
                         _logger.LogInformation("🟢 Break delayed by 1 minute");
                         if (!_notificationService.IsTestMode)
                         {
-                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed1Min, TimeSpan.Zero);
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed1Min, TimeSpan.Zero, e.Source);
                             await _analyticsService.RecordEventAsync(EventHistoryType.BreakDelayed, "Break delayed by 1 minute",
-                                new Dictionary<string, object?> { ["delayMinutes"] = 1 });
+                                new Dictionary<string, object?>
+                                {
+                                    ["delayMinutes"] = 1,
+                                    ["triggerSource"] = e.Source.ToString()
+                                });
                         }
                         else
                         {
@@ -436,9 +445,13 @@ namespace EyeRest.Services
                         _logger.LogInformation("🟢 Break delayed by 5 minutes");
                         if (!_notificationService.IsTestMode)
                         {
-                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed5Min, TimeSpan.Zero);
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Delayed5Min, TimeSpan.Zero, e.Source);
                             await _analyticsService.RecordEventAsync(EventHistoryType.BreakDelayed, "Break delayed by 5 minutes",
-                                new Dictionary<string, object?> { ["delayMinutes"] = 5 });
+                                new Dictionary<string, object?>
+                                {
+                                    ["delayMinutes"] = 5,
+                                    ["triggerSource"] = e.Source.ToString()
+                                });
                         }
                         else
                         {
@@ -450,8 +463,9 @@ namespace EyeRest.Services
                         _logger.LogInformation("🟢 Break skipped by user");
                         if (!_notificationService.IsTestMode)
                         {
-                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Skipped, TimeSpan.Zero);
-                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakSkipped, "Break skipped by user");
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Skipped, TimeSpan.Zero, e.Source);
+                            await _analyticsService.RecordEventAsync(EventHistoryType.BreakSkipped, "Break skipped by user",
+                                new Dictionary<string, object?> { ["triggerSource"] = e.Source.ToString() });
                         }
                         else
                         {
@@ -466,7 +480,7 @@ namespace EyeRest.Services
                         _logger.LogInformation("🟢 Break completion confirmed by user");
                         if (!_notificationService.IsTestMode)
                         {
-                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration, e.Source);
                         }
                         else
                         {
@@ -489,7 +503,7 @@ namespace EyeRest.Services
                         if (!_notificationService.IsTestMode)
                         {
                             // Record as completed but with auto-timeout indicator
-                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration);
+                            await _analyticsService.RecordBreakEventAsync(RestEventType.Break, UserAction.Completed, duration, e.Source);
                         }
                         else
                         {
