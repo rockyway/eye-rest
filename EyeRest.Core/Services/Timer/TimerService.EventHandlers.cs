@@ -502,12 +502,31 @@ namespace EyeRest.Services
             }
         }
 
-        private void TriggerBreak()
+        public Task TriggerImmediateBreakAsync()
+        {
+            _logger.LogInformation("☕ Manual break requested by user");
+            if (!IsRunning)
+            {
+                _logger.LogInformation("☕ Manual break ignored — timer service is not running");
+                return Task.CompletedTask;
+            }
+            if (IsAnyNotificationActive)
+            {
+                _logger.LogInformation("☕ Manual break ignored — popup already active");
+                return Task.CompletedTask;
+            }
+            _dispatcherService.BeginInvoke(() => TriggerBreak(BreakTriggerSource.Manual));
+            return Task.CompletedTask;
+        }
+
+        private void TriggerBreak(BreakTriggerSource source = BreakTriggerSource.Automatic)
         {
             try
             {
-                // Guard: Don't show break popup if timers were paused during the warning countdown
-                if (IsPaused || IsManuallyPaused || IsSmartPaused)
+                // Guard: Don't show break popup if timers were paused during the warning countdown.
+                // Manual triggers explicitly bypass this guard since the user has requested the break.
+                bool ignorePauseGuard = source == BreakTriggerSource.Manual;
+                if (!ignorePauseGuard && (IsPaused || IsManuallyPaused || IsSmartPaused))
                 {
                     _logger.LogInformation("☕ TriggerBreak blocked — service is paused (Manual={Manual}, Smart={Smart}, Paused={Paused})",
                         IsManuallyPaused, IsSmartPaused, IsPaused);
@@ -564,9 +583,10 @@ namespace EyeRest.Services
                 {
                     TriggeredAt = _clock.Now,
                     NextInterval = duration,
-                    Type = TimerType.Break
+                    Type = TimerType.Break,
+                    Source = source
                 };
-                
+
                 BreakDue?.Invoke(this, eventArgs);
 
                 // CRITICAL FIX: Don't record analytics here - triggering an event is not completing it

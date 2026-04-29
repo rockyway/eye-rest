@@ -26,6 +26,7 @@ namespace EyeRest.Services
         
         Task StartAsync();
         Task StopAsync();
+        Task TriggerImmediateBreakAsync(); // NEW: manual user-triggered break
         Task PauseAsync();
         Task ResumeAsync();
         Task SmartPauseAsync(string reason);
@@ -73,6 +74,7 @@ namespace EyeRest.Services
         public DateTime TriggeredAt { get; set; }
         public TimeSpan NextInterval { get; set; }
         public TimerType Type { get; set; }
+        public EyeRest.Models.BreakTriggerSource Source { get; set; } = EyeRest.Models.BreakTriggerSource.Automatic;
     }
 
     public enum TimerType

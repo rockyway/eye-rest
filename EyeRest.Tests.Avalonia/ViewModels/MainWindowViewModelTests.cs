@@ -281,6 +281,45 @@ namespace EyeRest.Tests.Avalonia.ViewModels
         }
 
         [Fact]
+        public void TriggerImmediateBreakCommand_WhenTimerStopped_CannotExecute()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(false);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(false);
+            Assert.False(_viewModel.TriggerImmediateBreakCommand.CanExecute(null));
+            Assert.False(_viewModel.CanTriggerImmediateBreak);
+        }
+
+        [Fact]
+        public void TriggerImmediateBreakCommand_WhenRunningAndNoPopup_CanExecute()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(true);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(false);
+            Assert.True(_viewModel.TriggerImmediateBreakCommand.CanExecute(null));
+            Assert.True(_viewModel.CanTriggerImmediateBreak);
+        }
+
+        [Fact]
+        public void TriggerImmediateBreakCommand_WhenNotificationActive_CannotExecute()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(true);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(true);
+            Assert.False(_viewModel.TriggerImmediateBreakCommand.CanExecute(null));
+            Assert.False(_viewModel.CanTriggerImmediateBreak);
+        }
+
+        [Fact]
+        public async Task TriggerImmediateBreakCommand_CallsTimerServiceTriggerImmediateBreak()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(true);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(false);
+            _mockTimerService.Setup(x => x.TriggerImmediateBreakAsync()).Returns(Task.CompletedTask);
+
+            await Task.Run(() => _viewModel.TriggerImmediateBreakCommand.Execute(null));
+
+            _mockTimerService.Verify(x => x.TriggerImmediateBreakAsync(), Times.Once);
+        }
+
+        [Fact]
         public async Task RestoreDefaultsCommand_RestoresDefaultConfiguration()
         {
             // Arrange

@@ -252,17 +252,30 @@
                                 </Button>
                             </Grid>
 
-                            <!-- Start Button (full width, slightly taller) -->
-                            <Button Classes="GradientStart"
-                                    Command="{Binding StartTimersCommand}"
-                                    ToolTip.Tip="{Binding StartButtonTooltip}"
-                                    Height="42" Margin="8,0">
-                                <StackPanel Orientation="Horizontal" Spacing="8"
-                                            HorizontalAlignment="Center">
-                                    <PathIcon Data="{StaticResource PlayIcon}" Width="14" Height="14" Foreground="White" />
-                                    <TextBlock Text="Start" Foreground="White" FontSize="14" />
-                                </StackPanel>
-                            </Button>
+                            <!-- Start + Break Now row (each half width) -->
+                            <Grid ColumnDefinitions="*,4,*" Margin="8,0">
+                                <Button Grid.Column="0" Classes="GradientStart"
+                                        Command="{Binding StartTimersCommand}"
+                                        ToolTip.Tip="{Binding StartButtonTooltip}"
+                                        Height="42" Margin="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource PlayIcon}" Width="14" Height="14" Foreground="White" />
+                                        <TextBlock Text="Start" Foreground="White" FontSize="14" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="2" Classes="GradientBreakNow"
+                                        Command="{Binding TriggerImmediateBreakCommand}"
+                                        IsEnabled="{Binding CanTriggerImmediateBreak}"
+                                        ToolTip.Tip="Take a break now (uses configured break duration)"
+                                        Height="42" Margin="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" Foreground="White" />
+                                        <TextBlock Text="Break Now" Foreground="White" FontSize="14" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
 
                             <!-- Stop + Pause row -->
                             <Grid ColumnDefinitions="*,*" Margin="4,0">
@@ -521,16 +534,30 @@
                                 </Button>
                             </Grid>
 
-                            <!-- Start Button (full width) -->
-                            <Button Classes="GradientStart"
-                                    Command="{Binding StartTimersCommand}"
-                                    ToolTip.Tip="{Binding StartButtonTooltip}">
-                                <StackPanel Orientation="Horizontal" Spacing="8"
-                                            HorizontalAlignment="Center">
-                                    <PathIcon Data="{StaticResource PlayIcon}" Width="14" Height="14" Foreground="White" />
-                                    <TextBlock Text="Start" Foreground="White" />
-                                </StackPanel>
-                            </Button>
+                            <!-- Start + Break Now row (each half width) -->
+                            <Grid ColumnDefinitions="*,4,*" Margin="4,0">
+                                <Button Grid.Column="0" Classes="GradientStart"
+                                        Command="{Binding StartTimersCommand}"
+                                        ToolTip.Tip="{Binding StartButtonTooltip}"
+                                        Margin="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource PlayIcon}" Width="14" Height="14" Foreground="White" />
+                                        <TextBlock Text="Start" Foreground="White" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="2" Classes="GradientBreakNow"
+                                        Command="{Binding TriggerImmediateBreakCommand}"
+                                        IsEnabled="{Binding CanTriggerImmediateBreak}"
+                                        ToolTip.Tip="Take a break now (uses configured break duration)"
+                                        Margin="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" Foreground="White" />
+                                        <TextBlock Text="Break Now" Foreground="White" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
 
                             <!-- Stop + Pause row -->
                             <Grid ColumnDefinitions="*,*" Margin="4,0">
@@ -1331,6 +1358,11 @@
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        HorizontalAlignment="Center" />
                                             <TextBlock Text="{Binding AnalyticsCompletedPercentageText}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,2,0,0" />
+                                            <TextBlock Text="{Binding BreaksAutoManualSummary}"
                                                        FontSize="10"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        HorizontalAlignment="Center"
