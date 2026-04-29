@@ -122,14 +122,32 @@ namespace EyeRest.Services
                 // Log if timer fired significantly early or late
                 if (Math.Abs((elapsed - expectedInterval).TotalSeconds) > 5)
                 {
-                    _logger.LogWarning("⚠️ TIMER ACCURACY: Timer fired {TimingDiff:F1}s {Direction} expected time", 
+                    _logger.LogWarning("⚠️ TIMER ACCURACY: Timer fired {TimingDiff:F1}s {Direction} expected time",
                         Math.Abs((elapsed - expectedInterval).TotalSeconds),
                         elapsed < expectedInterval ? "before" : "after");
                 }
-                
+
+                // SMART COALESCE: When the break is about to fire within the eye-rest occupancy window,
+                // skip this eye-rest tick entirely. Running eye rest first would pause the break,
+                // play out the eye-rest popup, then resume the break with ~0s remaining, causing
+                // back-to-back popups. By skipping, we let the break fire naturally; the post-break
+                // SmartSessionResetAsync will re-arm the eye rest timer fresh.
+                //
+                // The coalesce predicate is a side-effect-free check. We re-arm the eye-rest timer
+                // afterwards so it will fire ~20m later (a safety net in case the break is cancelled
+                // before firing — rare but possible if the user immediately pauses or stops timers).
+                // SmartSessionResetAsync will overwrite the start time again on break completion.
+                if (ShouldCoalesceEyeRestIntoBreak())
+                {
+                    _logger.LogInformation("👁️ COALESCE: skipping eye-rest tick to allow imminent break to fire alone");
+                    _eyeRestTimer?.Stop();
+                    _ = RestartEyeRestTimerAfterCompletion();
+                    return;
+                }
+
                 _logger.LogInformation("👁️ TIMER EVENT: Stopping eye rest timer and starting warning timer");
                 _eyeRestTimer?.Stop();
-                
+
                 // Use public method to ensure proper thread safety
                 StartEyeRestWarningTimer();
                 

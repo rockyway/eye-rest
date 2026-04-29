@@ -9,7 +9,79 @@ namespace EyeRest.Services
     public partial class TimerService
     {
         #region Smart Timer Coordination
-        
+
+        /// <summary>
+        /// Buffer added to the eye-rest occupancy window when deciding whether to coalesce
+        /// an eye-rest tick into the upcoming break. A small positive value avoids edge cases
+        /// where the break is just *slightly* outside the occupancy window but would still
+        /// fire visually back-to-back with the eye-rest popup.
+        /// </summary>
+        private const int COALESCE_BUFFER_SECONDS = 5;
+
+        /// <summary>
+        /// Returns true when the current eye-rest tick should be skipped because a break is
+        /// imminent enough that running both back-to-back would interrupt the user twice.
+        ///
+        /// <para>
+        /// Trigger conditions (ALL must hold):
+        /// <list type="bullet">
+        ///   <item>The break timer is currently running (not paused, delayed, or in a notification)</item>
+        ///   <item>TimeUntilNextBreak ≤ eye-rest occupancy + COALESCE_BUFFER_SECONDS</item>
+        /// </list>
+        /// where occupancy = warning seconds (if enabled) + duration seconds.
+        /// </para>
+        ///
+        /// <para>
+        /// Rationale: in a configuration like (eyeRestInterval=20m, breakInterval=60m),
+        /// the third eye-rest tick collides with the break tick. Running eye rest first
+        /// pauses the break timer, the eye-rest popup runs ~20s, then the break resumes
+        /// with ~0s remaining and fires immediately. The user sees both popups back-to-back.
+        /// Skipping the eye rest lets the break fire on its own schedule, and the
+        /// post-break SmartSessionResetAsync re-arms the eye rest fresh.
+        /// </para>
+        ///
+        /// <para>
+        /// Side-effect note: this method is a pure predicate. The caller is responsible
+        /// for stopping/re-arming the eye-rest timer.
+        /// </para>
+        /// </summary>
+        private bool ShouldCoalesceEyeRestIntoBreak()
+        {
+            // Break must be live-ticking. If it's paused or disabled, no collision risk.
+            if (_breakTimer?.IsEnabled != true) return false;
+
+            // Don't coalesce if break is already in some active state — the existing
+            // SmartPause/Resume coordination handles those cases on its own.
+            if (_isBreakNotificationActive) return false;
+            if (_isBreakEventProcessing) return false;
+            if (IsBreakDelayed) return false;
+            if (_breakTimerPausedForEyeRest) return false; // defensive: shouldn't be at this point
+
+            // Don't coalesce if service-level pause states are set (the eye-rest tick handler
+            // already filters these out earlier, but being explicit prevents future drift).
+            if (IsPaused || IsManuallyPaused || IsSmartPaused) return false;
+
+            // Compute the eye-rest occupancy window.
+            var warningSec = (_configuration?.EyeRest?.WarningEnabled == true)
+                ? (_configuration.EyeRest.WarningSeconds)
+                : 0;
+            var durationSec = _configuration?.EyeRest?.DurationSeconds ?? 20;
+            var threshold = TimeSpan.FromSeconds(warningSec + durationSec + COALESCE_BUFFER_SECONDS);
+
+            var breakRemaining = TimeUntilNextBreak;
+
+            // Negative or zero means break is already due — definitely coalesce.
+            // Positive but within threshold means break is imminent — coalesce.
+            // Beyond threshold → no coalesce, normal eye-rest flow.
+            if (breakRemaining > threshold) return false;
+
+            _logger.LogInformation(
+                "🔀 COALESCE: break is {BreakRemainingSec:F1}s away (≤ threshold {ThresholdSec:F0}s = warning {Warning}s + duration {Duration}s + buffer {Buffer}s) — skipping eye-rest tick",
+                breakRemaining.TotalSeconds, threshold.TotalSeconds, warningSec, durationSec, COALESCE_BUFFER_SECONDS);
+
+            return true;
+        }
+
         /// <summary>
         /// CRITICAL: Smart coordination to prevent conflicts between eye rest and break notifications
         /// Automatically pauses eye rest timer when break notification is active
