@@ -242,10 +242,10 @@ namespace EyeRest.Services
             });
         }
 
-        public async Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress)
+        public async Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress, int consecutiveDelayCount = 0, int maxDelays = 0)
         {
             _isTestMode = false;
-            return await ShowBreakReminderInternalAsync(duration, progress);
+            return await ShowBreakReminderInternalAsync(duration, progress, consecutiveDelayCount, maxDelays);
         }
 
         public async Task<BreakAction> ShowBreakReminderTestAsync(TimeSpan duration, IProgress<double> progress)
@@ -308,7 +308,7 @@ namespace EyeRest.Services
             }
         }
 
-        private async Task<BreakAction> ShowBreakReminderInternalAsync(TimeSpan duration, IProgress<double> progress)
+        private async Task<BreakAction> ShowBreakReminderInternalAsync(TimeSpan duration, IProgress<double> progress, int consecutiveDelayCount = 0, int maxDelays = 0)
         {
             // Load config off the UI thread first
             var config = await _configurationService.LoadConfigurationAsync();
@@ -357,6 +357,8 @@ namespace EyeRest.Services
                         breakPopup.SetConfiguration(
                             config.Break.RequireConfirmationAfterBreak,
                             config.Break.ResetTimersOnBreakConfirmation);
+
+                        breakPopup.SetDelayChipState(consecutiveDelayCount, maxDelays);
 
                         breakPopup.ActionSelected += (s, action) => tcs.TrySetResult(action);
                         breakPopup.StartCountdown(duration, progress);
