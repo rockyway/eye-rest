@@ -154,7 +154,8 @@
                         <Button Name="DelayOneMinuteButton"
                                 Classes="GradientPause"
                                 Padding="15,8"
-                                Cursor="Hand">
+                                Cursor="Hand"
+                                ToolTip.ShowOnDisabled="True">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="{DynamicResource TimerAddIcon}"
                                           Width="14" Height="14" />
@@ -178,7 +179,8 @@
                         <Button Name="DelayFiveMinutesButton"
                                 Classes="GradientPause"
                                 Padding="15,8"
-                                Cursor="Hand">
+                                Cursor="Hand"
+                                ToolTip.ShowOnDisabled="True">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="{DynamicResource TimerAddIcon}"
                                           Width="14" Height="14" />
