@@ -141,7 +141,11 @@ namespace EyeRest.Services
                 {
                     _logger.LogInformation("👁️ COALESCE: skipping eye-rest tick to allow imminent break to fire alone");
                     _eyeRestTimer?.Stop();
-                    _ = RestartEyeRestTimerAfterCompletion();
+                    // Restarting a DispatcherTimer synchronously from inside its own Tick handler
+                    // can wedge Avalonia's entire timer queue (observed in production: a single
+                    // coalesce tick stopped every DispatcherTimer in the app). Defer the re-arm
+                    // so this tick fully unwinds before _eyeRestTimer.Start() runs again.
+                    _dispatcherService.BeginInvoke(() => _ = RestartEyeRestTimerAfterCompletion());
                     return;
                 }
 
