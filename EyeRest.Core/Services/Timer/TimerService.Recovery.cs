@@ -60,7 +60,23 @@ namespace EyeRest.Services
                     UpdateHeartbeat(); // Update heartbeat to prevent false hang detection
                     return;
                 }
-                
+
+                // A paused service is intentional (user idle → SmartPauseAsync, manual pause, etc.)
+                // and must not be interpreted as a hang. Without this short-circuit the heartbeat
+                // freezes for the entire idle period; after the dynamic threshold (~30min) the
+                // monitor fires RecoverTimersFromHang() which disposes/recreates DispatcherTimers
+                // and wedges the Avalonia dispatcher — the system was working fine, "recovery"
+                // breaks it. Refresh the heartbeat so the moment the user returns we have a
+                // clean baseline, and skip every downstream check (overdue/disabled checks all
+                // assume an actively-running service).
+                if (IsPaused || IsSmartPaused || IsManuallyPaused)
+                {
+                    UpdateHeartbeat();
+                    _logger.LogDebug("❤️ HEARTBEAT REFRESHED: Service is paused (Paused={Paused}, SmartPaused={SmartPaused}, ManuallyPaused={ManuallyPaused}) — paused is not a hang",
+                        IsPaused, IsSmartPaused, IsManuallyPaused);
+                    return;
+                }
+
                 // CRITICAL FIX: Update heartbeat when service is running normally with active timers
                 // This prevents false "extended away" detection when user is actively using the computer
                 // Heartbeat should only become stale when timers are actually hung/disabled
