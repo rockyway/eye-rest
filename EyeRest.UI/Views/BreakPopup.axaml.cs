@@ -56,29 +56,43 @@ namespace EyeRest.UI.Views
         }
 
         /// <summary>
-        /// Configures the "LAST" chip + tooltip on the delay buttons. When the next delay click would
-        /// be the final allowed one before the limit forces a session reset, both delay buttons
-        /// surface a red "LAST" chip and a descriptive tooltip. Pass maxDelays = 0 to disable
-        /// (e.g. test mode or unlimited-delay configuration).
+        /// Configures the "LAST" chip + tooltip on the delay buttons.
+        ///
+        /// <para>
+        /// Three states based on (consecutiveDelayCount, maxDelays):
+        /// <list type="bullet">
+        ///   <item><c>count &lt; maxDelays - 1</c> → buttons enabled, no chip, "X delays remaining" tooltip</item>
+        ///   <item><c>count == maxDelays - 1</c> → buttons enabled, LAST chip, "final allowed delay" tooltip
+        ///       (clicking takes count to maxDelays — the last one DelayBreak permits without forcing reset)</item>
+        ///   <item><c>count &gt;= maxDelays</c> → buttons DISABLED, no chip, "limit reached" tooltip
+        ///       (clicking would silently force a session reset, which is surprising from a "Delay" button)</item>
+        /// </list>
+        /// Pass <c>maxDelays = 0</c> for unlimited-delay configuration (no chip, no caps).
+        /// </para>
         /// </summary>
         public void SetDelayChipState(int consecutiveDelayCount, int maxDelays)
         {
-            // maxDelays == 0 means "unlimited" — no chip, default tooltip
-            // We show "LAST" when this delay click would be the final one before the limit kicks in.
-            // The limit fires when count *exceeds* maxDelays, so the click that takes count from
-            // (maxDelays - 1) → maxDelays is the last allowed one.
-            bool isLast = maxDelays > 0 && consecutiveDelayCount >= maxDelays - 1;
+            bool unlimited = maxDelays <= 0;
+            bool isLast = !unlimited && consecutiveDelayCount == maxDelays - 1;
+            bool limitReached = !unlimited && consecutiveDelayCount >= maxDelays;
 
             DelayOneMinuteLastChip.IsVisible = isLast;
             DelayFiveMinutesLastChip.IsVisible = isLast;
+            DelayOneMinuteButton.IsEnabled = !limitReached;
+            DelayFiveMinutesButton.IsEnabled = !limitReached;
 
             string oneMinTip, fiveMinTip;
-            if (isLast)
+            if (limitReached)
             {
-                oneMinTip = $"LAST CHANCE — this is your final allowed delay ({consecutiveDelayCount + 1}/{maxDelays}). After this, the next delay attempt will force a fresh session reset.";
+                oneMinTip = $"All {maxDelays} delays for this break have been used. Complete or skip the break to start a fresh session.";
                 fiveMinTip = oneMinTip;
             }
-            else if (maxDelays > 0)
+            else if (isLast)
+            {
+                oneMinTip = $"LAST CHANCE — clicking will use your final allowed delay ({consecutiveDelayCount + 1}/{maxDelays}). No more delays will be permitted for this break.";
+                fiveMinTip = oneMinTip;
+            }
+            else if (!unlimited)
             {
                 int remaining = maxDelays - consecutiveDelayCount;
                 oneMinTip = $"Delay this break by 1 minute. ({remaining} delays remaining out of {maxDelays} max)";
