@@ -243,6 +243,14 @@
         <Setter Property="Background" Value="{DynamicResource PauseButtonGradient}" />
         <Setter Property="Foreground" Value="White" />
     </Style>
+    <Style Selector="Button.GradientPause:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+    <Style Selector="Button.GradientPause:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PauseButtonGradient}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
 
     <!-- ============================================================ -->
     <!-- Meeting Button Style                                          -->
