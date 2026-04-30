@@ -30,6 +30,7 @@ namespace EyeRest.Services
         private readonly IPauseReminderService _pauseReminderService;
         private readonly IDonationService _donationService;
         private readonly ITimerFactory _timerFactory;
+        private readonly IAppLifecycleService _appLifecycleService;
         private readonly ILogger<ApplicationOrchestrator> _logger;
 
         // State tracking
@@ -60,6 +61,7 @@ namespace EyeRest.Services
             IPauseReminderService pauseReminderService,
             IDonationService donationService,
             ITimerFactory timerFactory,
+            IAppLifecycleService appLifecycleService,
             ILogger<ApplicationOrchestrator> logger)
         {
             _timerService = timerService;
@@ -74,6 +76,7 @@ namespace EyeRest.Services
             _pauseReminderService = pauseReminderService;
             _donationService = donationService;
             _timerFactory = timerFactory;
+            _appLifecycleService = appLifecycleService;
             _logger = logger;
         }
 
@@ -146,6 +149,13 @@ namespace EyeRest.Services
                 
                 await _pauseReminderService.InitializeAsync();
                 await _pauseReminderService.StartMonitoringAsync();
+
+                // App lifecycle: opt out of macOS App Nap and listen for system
+                // wake/sleep so we can reset to a clean cycle on resume rather
+                // than relying on a stale eye-rest tick to fire post-suspension.
+                _appLifecycleService.SystemAwoke += OnSystemAwoke;
+                _appLifecycleService.SystemWillSleep += OnSystemWillSleep;
+                await _appLifecycleService.StartAsync();
                 _logger.LogInformation("✅ Advanced monitoring services started");
 
                 // Update system tray with initial state
@@ -228,6 +238,11 @@ namespace EyeRest.Services
                 // DISABLED: Meeting detection not working reliably - needs improvement and testing in future
                 // await _meetingDetectionManager.ShutdownAsync();
                 await _pauseReminderService.StopMonitoringAsync();
+
+                // Release the App Nap activity token and unhook NSWorkspace observers
+                _appLifecycleService.SystemAwoke -= OnSystemAwoke;
+                _appLifecycleService.SystemWillSleep -= OnSystemWillSleep;
+                await _appLifecycleService.StopAsync();
 
                 // Hide all notifications
                 await _notificationService.HideAllNotifications();
@@ -769,6 +784,36 @@ namespace EyeRest.Services
             {
                 _logger.LogError(ex, "Error handling user presence change");
             }
+        }
+
+        /// <summary>
+        /// Fires when the OS reports the system has resumed from sleep
+        /// (NSWorkspaceDidWakeNotification on macOS, PowerModes.Resume on Windows).
+        /// Clock-jump detection inside the eye-rest/break ticks only runs when those
+        /// timers actually fire — relying on it post-resume is racy. Pre-empting
+        /// with an explicit session reset gives the user a clean cycle right away.
+        /// </summary>
+        private async void OnSystemAwoke()
+        {
+            try
+            {
+                _logger.LogWarning("🌅 SYSTEM AWOKE: OS reported resume — initiating smart session reset for a clean cycle");
+                await _timerService.SmartSessionResetAsync("System wake notification (NSWorkspaceDidWake / PowerModes.Resume)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle system wake notification");
+            }
+        }
+
+        /// <summary>
+        /// Fires before the OS suspends the system. Diagnostic-only today —
+        /// the timer service already preserves remaining time on smart-pause,
+        /// so we just record the event for hang-vs-sleep correlation in logs.
+        /// </summary>
+        private void OnSystemWillSleep()
+        {
+            _logger.LogInformation("🌙 SYSTEM WILL SLEEP: OS reported pending suspend — timer state will be preserved through standard pause path");
         }
 
         private async void OnExtendedAwaySessionDetected(object? sender, ExtendedAwayEventArgs e)
