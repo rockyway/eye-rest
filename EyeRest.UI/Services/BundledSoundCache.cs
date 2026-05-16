@@ -44,15 +44,41 @@ namespace EyeRest.UI.Services
             };
             var destPath = Path.Combine(CacheDir, fileName);
 
-            if (File.Exists(destPath) && new FileInfo(destPath).Length > 0)
+            // Atomic rename makes destPath only-ever-fully-written. Existence is a
+            // sufficient cache-hit check — no need for the weak Length > 0 gate.
+            if (File.Exists(destPath))
                 return destPath;
 
-            // The assembly name is "EyeRest" (set in EyeRest.UI.csproj <AssemblyName>),
-            // NOT "EyeRest.UI". The avares:// URI must use the assembly name.
+            // M3 Architect review found two concurrent-race hazards on the previous
+            // direct File.Create(destPath) write:
+            //   1. Intra-process: ConcurrentDictionary.GetOrAdd can invoke this factory
+            //      concurrently for the same channel; loser threw IOException out to
+            //      the popup-show path.
+            //   2. Cross-process: documented dual-binary scenario (CLAUDE.md Mar 2026
+            //      LaunchAgent stale-binary + dev binary) — two processes truncate +
+            //      write the same path, racing readers see partial data.
+            // Both fixes are the same atomic-rename pattern below: each writer uses a
+            // unique tmp path so File.Create never collides; File.Move(overwrite:true)
+            // is atomic on the same volume; deterministic WAV content makes concurrent
+            // renames idempotent (whichever wins, the bytes are identical).
+            //
+            // Assembly name is "EyeRest" (EyeRest.UI.csproj <AssemblyName>), not "EyeRest.UI".
             var uri = new Uri($"avares://EyeRest/Assets/Sounds/{fileName}");
-            using var src = AssetLoader.Open(uri);
-            using var dst = File.Create(destPath);
-            src.CopyTo(dst);
+            var tmpPath = $"{destPath}.tmp.{Guid.NewGuid():N}";
+            try
+            {
+                using (var src = AssetLoader.Open(uri))
+                using (var dst = File.Create(tmpPath))
+                {
+                    src.CopyTo(dst);
+                }
+                File.Move(tmpPath, destPath, overwrite: true);
+            }
+            catch
+            {
+                try { File.Delete(tmpPath); } catch { /* best-effort tmp cleanup */ }
+                throw;
+            }
             return destPath;
         }
     }
