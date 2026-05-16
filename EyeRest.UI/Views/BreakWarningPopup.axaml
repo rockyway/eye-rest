@@ -35,6 +35,7 @@
 
                             <!-- Countdown -->
                             <TextBlock Name="CountdownText"
+                                       Classes="MonoDigits"
                                        Text="30 seconds"
                                        FontSize="28"
                                        FontWeight="Bold"
@@ -124,6 +125,7 @@
                                     Margin="0,6,0,0"
                                     Spacing="10">
                             <TextBlock Name="CompactCountdownText"
+                                       Classes="MonoDigits"
                                        Text="25 seconds"
                                        FontSize="13"
                                        FontWeight="SemiBold"

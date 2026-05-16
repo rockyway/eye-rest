@@ -64,6 +64,7 @@
 
                         <!-- Time Remaining -->
                         <TextBlock Name="TimeRemainingText"
+                                   Classes="MonoDigits"
                                    Text="20 seconds remaining"
                                    FontSize="14"
                                    Foreground="{DynamicResource ContentSubtitleText}"
