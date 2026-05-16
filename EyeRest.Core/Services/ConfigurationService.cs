@@ -58,15 +58,25 @@ namespace EyeRest.Services
                     return defaultConfig;
                 }
 
-                using (var stream = File.OpenRead(_configFilePath))
-                {
-                    var configuration = await JsonSerializer.DeserializeAsync<AppConfiguration>(stream, s_jsonOptions);
+                // BL-002 schema v2: read raw JSON text first so ConfigurationMigrator can
+                // inspect Meta.SchemaVersion before strongly-typed deserialization. The migrator
+                // upgrades v1 (legacy bool toggles + global CustomSoundPath) into v2 per-channel
+                // shape, and refuses-to-load configs with a newer SchemaVersion than this binary
+                // supports (stale-binary corruption guard).
+                var json = await File.ReadAllTextAsync(_configFilePath);
+                var configuration = ConfigurationMigrator.MigrateFromJson(json);
 
-                    if (configuration == null)
-                    {
-                        _logger.LogWarning("Failed to deserialize configuration, using defaults");
-                        return await GetDefaultConfiguration();
-                    }
+                // If the JSON on disk lacked Meta.SchemaVersion (true for legacy v1 configs),
+                // persist the migrated form immediately so subsequent loads short-circuit and
+                // any other process reading this file sees the v2 shape.
+                bool jsonNeedsRewrite = !json.Contains("\"SchemaVersion\"");
+                if (jsonNeedsRewrite)
+                {
+                    _logger.LogInformation("BL-002: migrated legacy config v1 → v2, persisting new shape");
+                    await SaveConfigurationAsync(configuration);
+                }
+
+                {
 
                     // Detect external config overwrite (SaveCount regression)
                     if (_currentConfiguration?.Meta != null && configuration.Meta != null
