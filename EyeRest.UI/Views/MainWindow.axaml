@@ -1158,31 +1158,9 @@
                                                 </Border>
                                             </Grid>
 
-                                            <!-- Custom Sound -->
-                                            <StackPanel Spacing="8">
-                                                <TextBlock Text="Custom Sound" FontSize="15" FontWeight="Medium" />
-                                                <Grid ColumnDefinitions="*,Auto,Auto">
-                                                    <TextBox Grid.Column="0"
-                                                             Text="{Binding CustomSoundPath}"
-                                                             IsReadOnly="True"
-                                                             ToolTip.Tip="Path to custom audio file" />
-                                                    <Button Grid.Column="1" Classes="ActionBtnPrimary"
-                                                            Command="{Binding BrowseCustomAudioCommand}"
-                                                            Margin="8,0,0,0"
-                                                            ToolTip.Tip="Browse for audio file">
-                                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <PathIcon Data="{StaticResource BrowseIcon}" Width="14" Height="14" />
-                                                            <TextBlock Text="Browse" />
-                                                        </StackPanel>
-                                                    </Button>
-                                                    <Button Grid.Column="2" Classes="ActionBtn"
-                                                            Command="{Binding TestCustomAudioCommand}"
-                                                            Margin="8,0,0,0"
-                                                            ToolTip.Tip="Test audio">
-                                                        <TextBlock Text="Test" />
-                                                    </Button>
-                                                </Grid>
-                                            </StackPanel>
+                                            <!-- BL-002: legacy Custom Sound section removed — replaced by the
+                                                 per-channel Source picker + Browse + 🕒 Recent buttons in the
+                                                 'Popup Audio' card below. -->
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -1223,6 +1201,22 @@
                                             <Setter Property="Background" Value="#26FFFFFF" />
                                             <Setter Property="BorderBrush" Value="#3380BFFF" />
                                         </Style>
+                                        <!-- BL-002 recent-items: flyout panel theme. FluentTheme's default
+                                             FlyoutPresenter renders on a near-black surface that clashes with
+                                             the dark glass card. Override its painted surface to a dark blue-grey
+                                             that reads as part of the same UI surface and add a subtle border. -->
+                                        <Style Selector="FlyoutPresenter">
+                                            <Setter Property="Background" Value="#1F2A44" />
+                                            <Setter Property="BorderBrush" Value="#40FFFFFF" />
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="CornerRadius" Value="8" />
+                                            <Setter Property="Padding" Value="8" />
+                                            <Setter Property="MinWidth" Value="320" />
+                                            <Setter Property="MaxWidth" Value="520" />
+                                        </Style>
+                                        <Style Selector="FlyoutPresenter /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="Transparent" />
+                                        </Style>
                                     </Border.Styles>
                                     <StackPanel Spacing="14">
                                         <TextBlock Text="Popup Audio" FontSize="16" FontWeight="SemiBold" />
@@ -1246,7 +1240,11 @@
                                                 <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent files yet — pick one with Browse."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
+                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1260,6 +1258,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
@@ -1269,7 +1268,11 @@
                                                 <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioUrls}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
+                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1283,6 +1286,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
@@ -1306,7 +1310,11 @@
                                                 <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent files yet — pick one with Browse."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
+                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1320,6 +1328,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
@@ -1329,7 +1338,11 @@
                                                 <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioUrls}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
+                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1343,6 +1356,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
@@ -1366,7 +1380,11 @@
                                                 <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent files yet — pick one with Browse."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
+                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1380,6 +1398,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
@@ -1389,7 +1408,11 @@
                                                 <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioUrls}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
+                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1403,6 +1426,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
@@ -1426,7 +1450,11 @@
                                                 <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent files yet — pick one with Browse."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
+                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1440,6 +1468,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
@@ -1449,7 +1478,11 @@
                                                 <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
-                                                            <ItemsControl ItemsSource="{Binding RecentAudioUrls}" MinWidth="320">
+                                                            <StackPanel MinWidth="320">
+                                                                <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
+                                                                           Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
+                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1463,6 +1496,7 @@
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </Button.Flyout>
                                                 </Button>
