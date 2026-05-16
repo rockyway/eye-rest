@@ -42,10 +42,7 @@ public static class ConfigurationMigrator
 
         if (version > CurrentSchemaVersion)
         {
-            throw new InvalidOperationException(
-                $"Config SchemaVersion={version} is newer than supported version "
-                + $"{CurrentSchemaVersion}. A newer EyeRest binary may have written this file. "
-                + "Refusing to overwrite to prevent stale-binary corruption.");
+            throw new SchemaVersionTooNewException(version, CurrentSchemaVersion);
         }
 
         var cfg = JsonSerializer.Deserialize<AppConfiguration>(json,

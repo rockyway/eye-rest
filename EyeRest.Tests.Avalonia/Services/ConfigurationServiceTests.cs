@@ -145,6 +145,32 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.Equal(30, eventArgs.NewConfiguration.EyeRest.IntervalMinutes);
         }
 
+        [Fact]
+        public async Task LoadConfigurationAsync_NewerSchemaVersion_Throws_DoesNotOverwriteFile()
+        {
+            // BL-002 stale-binary refuse-to-load guard. If a future binary writes a
+            // SchemaVersion=99 config and an older binary tries to load it, the older
+            // binary MUST refuse and MUST NOT overwrite (per CLAUDE.md Mar 2026 lessons).
+            var futureJson = """
+                {
+                  "Meta": { "SchemaVersion": 99, "SaveCount": 7, "AppVersion": "future" }
+                }
+                """;
+            Directory.CreateDirectory(Path.GetDirectoryName(_configFilePath)!);
+            await File.WriteAllTextAsync(_configFilePath, futureJson);
+            var originalBytes = await File.ReadAllBytesAsync(_configFilePath);
+
+            var service = new ConfigurationService(_mockLogger.Object);
+            await Assert.ThrowsAsync<SchemaVersionTooNewException>(
+                () => service.LoadConfigurationAsync());
+
+            // Critical assertion: the file on disk must be byte-identical after the
+            // failed load. If LoadConfigurationAsync had silently fallen back to
+            // defaults and any caller subsequently saved, the file would be replaced.
+            var afterBytes = await File.ReadAllBytesAsync(_configFilePath);
+            Assert.Equal(originalBytes, afterBytes);
+        }
+
         public void Dispose()
         {
             // Restore the production config from backup to prevent test pollution

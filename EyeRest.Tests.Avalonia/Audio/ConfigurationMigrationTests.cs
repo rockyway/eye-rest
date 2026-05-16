@@ -54,11 +54,14 @@ public class ConfigurationMigrationTests
     }
 
     [Fact]
-    public void Migrate_NewerSchemaVersion_Throws()
+    public void Migrate_NewerSchemaVersion_ThrowsTypedException()
     {
         var futureJson = """{ "Meta": { "SchemaVersion": 99 } }""";
         var act = () => ConfigurationMigrator.MigrateFromJson(futureJson);
-        act.Should().Throw<InvalidOperationException>().WithMessage("*SchemaVersion*99*");
+        var ex = act.Should().Throw<SchemaVersionTooNewException>()
+                    .WithMessage("*SchemaVersion=99*").Which;
+        ex.FileSchemaVersion.Should().Be(99);
+        ex.SupportedSchemaVersion.Should().Be(ConfigurationMigrator.CurrentSchemaVersion);
     }
 
     [Fact]
