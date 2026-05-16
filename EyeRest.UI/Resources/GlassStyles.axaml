@@ -166,6 +166,34 @@
         <Setter Property="Opacity" Value="0.8" />
     </Style>
 
+    <Style Selector="Button.GradientBreakNow">
+        <Setter Property="Background" Value="{DynamicResource BreakNowButtonGradient}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Margin" Value="8,3" />
+    </Style>
+    <Style Selector="Button.GradientBreakNow /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BreakNowButtonGradient}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.GradientBreakNow:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BreakNowButtonGradient}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Opacity" Value="0.9" />
+    </Style>
+    <Style Selector="Button.GradientBreakNow:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BreakNowButtonGradient}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Opacity" Value="0.8" />
+    </Style>
+
     <Style Selector="Button.GradientStop">
         <Setter Property="Background" Value="{DynamicResource StopButtonGradient}" />
         <Setter Property="Foreground" Value="White" />
@@ -212,6 +240,14 @@
         <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="Button.GradientPause:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PauseButtonGradient}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.GradientPause:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+    <Style Selector="Button.GradientPause:disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource PauseButtonGradient}" />
         <Setter Property="Foreground" Value="White" />
     </Style>

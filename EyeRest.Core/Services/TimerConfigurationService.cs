@@ -119,8 +119,6 @@ namespace EyeRest.Services
                 {
                     IntervalMinutes = 20,
                     DurationSeconds = 20,
-                    StartSoundEnabled = true,
-                    EndSoundEnabled = true,
                     WarningEnabled = true,
                     WarningSeconds = 15
                 },

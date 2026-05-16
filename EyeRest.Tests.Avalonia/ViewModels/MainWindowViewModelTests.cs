@@ -42,8 +42,8 @@ namespace EyeRest.Tests.Avalonia.ViewModels
                 {
                     IntervalMinutes = 20,
                     DurationSeconds = 20,
-                    StartSoundEnabled = true,
-                    EndSoundEnabled = true,
+                    StartAudio = new AudioChannelConfig { Source = AudioChannelSource.Default },
+                    EndAudio   = new AudioChannelConfig { Source = AudioChannelSource.Default },
                     WarningEnabled = true,
                     WarningSeconds = 30
                 },
@@ -278,6 +278,45 @@ namespace EyeRest.Tests.Avalonia.ViewModels
 
             // Assert
             _mockTimerService.Verify(x => x.StopAsync(), Times.Once);
+        }
+
+        [Fact]
+        public void TriggerImmediateBreakCommand_WhenTimerStopped_CannotExecute()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(false);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(false);
+            Assert.False(_viewModel.TriggerImmediateBreakCommand.CanExecute(null));
+            Assert.False(_viewModel.CanTriggerImmediateBreak);
+        }
+
+        [Fact]
+        public void TriggerImmediateBreakCommand_WhenRunningAndNoPopup_CanExecute()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(true);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(false);
+            Assert.True(_viewModel.TriggerImmediateBreakCommand.CanExecute(null));
+            Assert.True(_viewModel.CanTriggerImmediateBreak);
+        }
+
+        [Fact]
+        public void TriggerImmediateBreakCommand_WhenNotificationActive_CannotExecute()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(true);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(true);
+            Assert.False(_viewModel.TriggerImmediateBreakCommand.CanExecute(null));
+            Assert.False(_viewModel.CanTriggerImmediateBreak);
+        }
+
+        [Fact]
+        public async Task TriggerImmediateBreakCommand_CallsTimerServiceTriggerImmediateBreak()
+        {
+            _mockTimerService.Setup(x => x.IsRunning).Returns(true);
+            _mockTimerService.Setup(x => x.IsAnyNotificationActive).Returns(false);
+            _mockTimerService.Setup(x => x.TriggerImmediateBreakAsync()).Returns(Task.CompletedTask);
+
+            await Task.Run(() => _viewModel.TriggerImmediateBreakCommand.Execute(null));
+
+            _mockTimerService.Verify(x => x.TriggerImmediateBreakAsync(), Times.Once);
         }
 
         [Fact]

@@ -154,24 +154,50 @@
                         <Button Name="DelayOneMinuteButton"
                                 Classes="GradientPause"
                                 Padding="15,8"
-                                Cursor="Hand">
+                                Cursor="Hand"
+                                ToolTip.ShowOnDisabled="True">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="{DynamicResource TimerAddIcon}"
                                           Width="14" Height="14" />
                                 <TextBlock Text="Delay 1 Min"
                                            VerticalAlignment="Center" />
+                                <Border Name="DelayOneMinuteLastChip"
+                                        IsVisible="False"
+                                        Background="#FFD32F2F"
+                                        CornerRadius="6"
+                                        Padding="6,1"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="LAST"
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               VerticalAlignment="Center" />
+                                </Border>
                             </StackPanel>
                         </Button>
 
                         <Button Name="DelayFiveMinutesButton"
                                 Classes="GradientPause"
                                 Padding="15,8"
-                                Cursor="Hand">
+                                Cursor="Hand"
+                                ToolTip.ShowOnDisabled="True">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="{DynamicResource TimerAddIcon}"
                                           Width="14" Height="14" />
                                 <TextBlock Text="Delay 5 Min"
                                            VerticalAlignment="Center" />
+                                <Border Name="DelayFiveMinutesLastChip"
+                                        IsVisible="False"
+                                        Background="#FFD32F2F"
+                                        CornerRadius="6"
+                                        Padding="6,1"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="LAST"
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               VerticalAlignment="Center" />
+                                </Border>
                             </StackPanel>
                         </Button>
 

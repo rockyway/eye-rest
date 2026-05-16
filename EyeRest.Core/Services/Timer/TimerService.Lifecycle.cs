@@ -50,9 +50,9 @@ namespace EyeRest.Services
                     _eyeRestInterval.TotalMinutes, _breakInterval.TotalMinutes);
                 
                 // CRITICAL FIX: Set start times BEFORE starting timers to prevent immediate triggers
-                _eyeRestStartTime = DateTime.Now;
-                _breakStartTime = DateTime.Now;
-                _breakTimerStartTime = DateTime.Now;
+                _eyeRestStartTime = _clock.Now;
+                _breakStartTime = _clock.Now;
+                _breakTimerStartTime = _clock.Now;
                 
                 // CRITICAL FIX: Clear any lingering pause states during startup for proper coordination
                 // This ensures UI and internal state are consistent when restarting during recovery
@@ -172,7 +172,7 @@ namespace EyeRest.Services
                     if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
                     {
                         _eyeRestTimer.Start();
-                        _eyeRestStartTime = DateTime.Now;
+                        _eyeRestStartTime = _clock.Now;
                     }
                     else
                     {
@@ -227,8 +227,8 @@ namespace EyeRest.Services
                     if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
                     {
                         _breakTimer.Start();
-                        _breakStartTime = DateTime.Now;
-                        _breakTimerStartTime = DateTime.Now;
+                        _breakStartTime = _clock.Now;
+                        _breakTimerStartTime = _clock.Now;
                     }
                     else
                     {
@@ -277,7 +277,7 @@ namespace EyeRest.Services
                     if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && !_eyeRestTimerPausedForBreak)
                     {
                         _eyeRestTimer.Start();
-                        _eyeRestStartTime = DateTime.Now;
+                        _eyeRestStartTime = _clock.Now;
 
                         if (isReduced)
                         {
@@ -309,7 +309,8 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation("♻️ Restarting break timer after completion");
-                
+                _consecutiveBreakDelayCount = 0;
+
                 // Clear notification state
                 _isBreakNotificationActive = false;
                 
@@ -325,8 +326,8 @@ namespace EyeRest.Services
                     if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && !_breakTimerPausedForEyeRest)
                     {
                         _breakTimer.Start();
-                        _breakStartTime = DateTime.Now;
-                        _breakTimerStartTime = DateTime.Now;
+                        _breakStartTime = _clock.Now;
+                        _breakTimerStartTime = _clock.Now;
 
                         if (isReduced)
                         {
@@ -356,10 +357,23 @@ namespace EyeRest.Services
         {
             try
             {
-                _logger.LogInformation("⏳ Delaying break for {Minutes} minutes", delay.TotalMinutes);
+                _consecutiveBreakDelayCount++;
+                var maxDelays = _configuration?.Break?.MaxBreakDelayCount ?? 3;
+
+                if (maxDelays > 0 && _consecutiveBreakDelayCount > maxDelays)
+                {
+                    _logger.LogWarning("🚫 BREAK DELAY LIMIT REACHED: {Count}/{Max} consecutive delays — forcing session reset instead of further delay",
+                        _consecutiveBreakDelayCount, maxDelays);
+                    _consecutiveBreakDelayCount = 0;
+                    await SmartSessionResetAsync($"Break delay limit reached ({maxDelays} consecutive delays) — forcing fresh session");
+                    return;
+                }
+
+                _logger.LogInformation("⏳ Delaying break for {Minutes} minutes (delay {Count}/{Max})",
+                    delay.TotalMinutes, _consecutiveBreakDelayCount, maxDelays);
 
                 IsBreakDelayed = true;
-                _delayStartTime = DateTime.Now;
+                _delayStartTime = _clock.Now;
                 _delayDuration = delay;
 
                 // Stop the break timer during delay
@@ -375,7 +389,7 @@ namespace EyeRest.Services
                     var wasEnabled = _eyeRestTimer.IsEnabled;
                     if (wasEnabled)
                     {
-                        var elapsed = DateTime.Now - _eyeRestStartTime;
+                        var elapsed = _clock.Now - _eyeRestStartTime;
                         _eyeRestRemainingTime = _eyeRestInterval - elapsed;
                     }
                     _eyeRestTimer.Stop();

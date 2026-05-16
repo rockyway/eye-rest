@@ -8,7 +8,7 @@ namespace EyeRest.Services
         Task ShowEyeRestWarningAsync(TimeSpan timeUntilBreak);
         Task ShowEyeRestReminderAsync(TimeSpan duration);
         Task ShowBreakWarningAsync(TimeSpan timeUntilBreak);
-        Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress);
+        Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress, int consecutiveDelayCount = 0, int maxDelays = 0);
         Task HideAllNotifications();
         
         // Test mode methods - these don't record analytics

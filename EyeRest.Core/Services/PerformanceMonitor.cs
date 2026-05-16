@@ -14,24 +14,26 @@ namespace EyeRest.Services
         private Timer? _monitoringTimer;
         private bool _disposed;
 
+        // CPU% computation needs deltas of TotalProcessorTime against wall-clock,
+        // normalized by ProcessorCount. We sample once at construction and again
+        // on each tick — the difference is the CPU time consumed in the interval.
+        private TimeSpan _lastCpuTime;
+        private DateTime _lastCpuSampleAt;
+
+        // Periodic process-stats log cadence. Short enough to surface drift quickly
+        // during dev / triage, long enough to keep the log file size reasonable.
+        private static readonly TimeSpan StatsInterval = TimeSpan.FromSeconds(15);
+
         public PerformanceMonitor(ILogger<PerformanceMonitor> logger)
         {
             _logger = logger;
             _currentProcess = Process.GetCurrentProcess();
             _startTime = DateTime.Now;
+            _lastCpuTime = _currentProcess.TotalProcessorTime;
+            _lastCpuSampleAt = DateTime.UtcNow;
 
-            // Disable CPU counter for now to avoid permission issues
-            // try
-            // {
-            //     _cpuCounter = new PerformanceCounter("Process", "% Processor Time", _currentProcess.ProcessName);
-            // }
-            // catch (Exception ex)
-            // {
-            //     _logger.LogWarning(ex, "Could not initialize CPU performance counter");
-            // }
-
-            // Start periodic monitoring (every 5 minutes)
-            _monitoringTimer = new Timer(MonitorPerformance, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
+            // First sample at +15s so the CPU delta has a real interval to measure.
+            _monitoringTimer = new Timer(MonitorPerformance, null, StatsInterval, StatsInterval);
         }
 
         public long GetMemoryUsageMB()
@@ -51,9 +53,23 @@ namespace EyeRest.Services
         {
             try
             {
-                // CPU monitoring not implemented — returns 0 to avoid
-                // PerformanceCounter permission issues on macOS/Linux.
-                return 0;
+                _currentProcess.Refresh();
+                var nowCpu = _currentProcess.TotalProcessorTime;
+                var nowAt = DateTime.UtcNow;
+
+                var cpuDelta = nowCpu - _lastCpuTime;
+                var wallDelta = nowAt - _lastCpuSampleAt;
+
+                _lastCpuTime = nowCpu;
+                _lastCpuSampleAt = nowAt;
+
+                if (wallDelta.TotalMilliseconds <= 0) return 0;
+
+                // Normalize by core count so a single fully-used core on an 8-core
+                // box reads ~12.5%, not 100%.
+                var cores = Math.Max(1, Environment.ProcessorCount);
+                var pct = (cpuDelta.TotalMilliseconds / wallDelta.TotalMilliseconds) / cores * 100.0;
+                return Math.Max(0, pct);
             }
             catch (Exception ex)
             {
@@ -69,22 +85,23 @@ namespace EyeRest.Services
 
         public void LogPerformanceMetrics()
         {
-            var memoryMB = GetMemoryUsageMB();
-            var cpuPercent = GetCpuUsagePercent();
-            var uptime = GetUptime();
-
-            _logger.LogInformation($"Performance Metrics - Memory: {memoryMB}MB, CPU: {cpuPercent:F1}%, Uptime: {uptime:hh\\:mm\\:ss}");
-
-            // Log warning if memory usage exceeds 50MB requirement
-            if (memoryMB > 50)
+            try
             {
-                _logger.LogWarning($"Memory usage ({memoryMB}MB) exceeds 50MB requirement");
+                _currentProcess.Refresh();
+                var workingSetMb = _currentProcess.WorkingSet64 / (1024.0 * 1024.0);
+                var gcHeapMb = GC.GetTotalMemory(forceFullCollection: false) / (1024.0 * 1024.0);
+                var cpuPercent = GetCpuUsagePercent();
+                var g0 = GC.CollectionCount(0);
+                var g1 = GC.CollectionCount(1);
+                var g2 = GC.CollectionCount(2);
+
+                _logger.LogDebug(
+                    "Process stats: CPU={Cpu:F1}% | Mem={Mem:F1}MB | GCHeap={GcHeap:F1}MB | GC: g0={G0} g1={G1} g2={G2}",
+                    cpuPercent, workingSetMb, gcHeapMb, g0, g1, g2);
             }
-
-            // Log warning if CPU usage is consistently high
-            if (cpuPercent > 5)
+            catch (Exception ex)
             {
-                _logger.LogWarning($"CPU usage ({cpuPercent:F1}%) is higher than expected for idle state");
+                _logger.LogError(ex, "Error logging performance metrics");
             }
         }
 
@@ -93,16 +110,6 @@ namespace EyeRest.Services
             try
             {
                 LogPerformanceMetrics();
-                
-                // Request non-blocking GC if memory usage is high
-                var memoryMB = GetMemoryUsageMB();
-                if (memoryMB > 40) // Trigger GC before hitting the 50MB limit
-                {
-                    GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
-
-                    var newMemoryMB = GetMemoryUsageMB();
-                    _logger.LogInformation($"Garbage collection requested - Memory: {memoryMB}MB -> {newMemoryMB}MB");
-                }
             }
             catch (Exception ex)
             {

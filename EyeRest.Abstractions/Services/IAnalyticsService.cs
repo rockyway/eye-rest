@@ -21,7 +21,8 @@ namespace EyeRest.Services
         SessionActivityValidationResult ValidateSessionTracking();
         
         Task RecordEyeRestEventAsync(RestEventType type, UserAction action, TimeSpan duration);
-        Task RecordBreakEventAsync(RestEventType type, UserAction action, TimeSpan duration);
+        Task RecordBreakEventAsync(RestEventType type, UserAction action, TimeSpan duration, BreakTriggerSource source = BreakTriggerSource.Automatic);
+        Task<(int Automatic, int Manual)> GetBreakCountsBySourceAsync(int days);
         Task RecordPresenceChangeAsync(UserPresenceState oldState, UserPresenceState newState, TimeSpan idleDuration);
         Task RecordMeetingEventAsync(MeetingApplication meeting, bool timersPaused);
         Task RecordPauseEventAsync(PauseReason reason);

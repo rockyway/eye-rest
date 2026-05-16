@@ -55,6 +55,59 @@ namespace EyeRest.UI.Views
             }
         }
 
+        /// <summary>
+        /// Configures the "LAST" chip + tooltip on the delay buttons.
+        ///
+        /// <para>
+        /// Three states based on (consecutiveDelayCount, maxDelays):
+        /// <list type="bullet">
+        ///   <item><c>count &lt; maxDelays - 1</c> → buttons enabled, no chip, "X delays remaining" tooltip</item>
+        ///   <item><c>count == maxDelays - 1</c> → buttons enabled, LAST chip, "final allowed delay" tooltip
+        ///       (clicking takes count to maxDelays — the last one DelayBreak permits without forcing reset)</item>
+        ///   <item><c>count &gt;= maxDelays</c> → buttons DISABLED, no chip, "limit reached" tooltip
+        ///       (clicking would silently force a session reset, which is surprising from a "Delay" button)</item>
+        /// </list>
+        /// Pass <c>maxDelays = 0</c> for unlimited-delay configuration (no chip, no caps).
+        /// </para>
+        /// </summary>
+        public void SetDelayChipState(int consecutiveDelayCount, int maxDelays)
+        {
+            bool unlimited = maxDelays <= 0;
+            bool isLast = !unlimited && consecutiveDelayCount == maxDelays - 1;
+            bool limitReached = !unlimited && consecutiveDelayCount >= maxDelays;
+
+            DelayOneMinuteLastChip.IsVisible = isLast;
+            DelayFiveMinutesLastChip.IsVisible = isLast;
+            DelayOneMinuteButton.IsEnabled = !limitReached;
+            DelayFiveMinutesButton.IsEnabled = !limitReached;
+
+            string oneMinTip, fiveMinTip;
+            if (limitReached)
+            {
+                oneMinTip = $"All {maxDelays} delays for this break have been used. Complete or skip the break to start a fresh session.";
+                fiveMinTip = oneMinTip;
+            }
+            else if (isLast)
+            {
+                oneMinTip = $"LAST CHANCE — clicking will use your final allowed delay ({consecutiveDelayCount + 1}/{maxDelays}). No more delays will be permitted for this break.";
+                fiveMinTip = oneMinTip;
+            }
+            else if (!unlimited)
+            {
+                int remaining = maxDelays - consecutiveDelayCount;
+                oneMinTip = $"Delay this break by 1 minute. ({remaining} delays remaining out of {maxDelays} max)";
+                fiveMinTip = $"Delay this break by 5 minutes. ({remaining} delays remaining out of {maxDelays} max)";
+            }
+            else
+            {
+                oneMinTip = "Delay this break by 1 minute.";
+                fiveMinTip = "Delay this break by 5 minutes.";
+            }
+
+            ToolTip.SetTip(DelayOneMinuteButton, oneMinTip);
+            ToolTip.SetTip(DelayFiveMinutesButton, fiveMinTip);
+        }
+
         public void StartCountdown(TimeSpan duration, IProgress<double>? progress = null)
         {
             // Clean up existing timer before creating new one

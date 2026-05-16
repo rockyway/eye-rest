@@ -17,6 +17,7 @@ namespace EyeRest.Services
         private readonly IAnalyticsService _analyticsService;
         private readonly ITimerFactory _timerFactory;
         private readonly IPauseReminderService _pauseReminderService;
+        private readonly IClock _clock;
         
         // Notification service injected later to avoid circular dependency
         private INotificationService? _notificationService;
@@ -43,7 +44,8 @@ namespace EyeRest.Services
             IAnalyticsService analyticsService,
             ITimerFactory timerFactory,
             IPauseReminderService pauseReminderService,
-            IDispatcherService dispatcherService)
+            IDispatcherService dispatcherService,
+            IClock clock)
         {
             _logger = logger;
             _configurationService = configurationService;
@@ -51,7 +53,13 @@ namespace EyeRest.Services
             _timerFactory = timerFactory;
             _pauseReminderService = pauseReminderService;
             _dispatcherService = dispatcherService;
+            _clock = clock;
             _configuration = new AppConfiguration(); // Will be loaded in StartAsync
+
+            // Clock-bound fields whose default would otherwise read as "very stale"
+            // and trigger false-positive recovery on first health check.
+            _lastHeartbeat = _clock.Now;
+            _lastSystemCheck = _clock.Now;
 
             _logger.LogInformation("TimerService initialized with testable timer factory");
         }
@@ -112,7 +120,7 @@ namespace EyeRest.Services
                 if (newEyeRestInterval != oldEyeRestInterval && _eyeRestTimer != null && !_eyeRestTimerPausedForBreak && !_isEyeRestNotificationActive)
                 {
                     _eyeRestInterval = newEyeRestInterval;
-                    var elapsed = DateTime.Now - _eyeRestStartTime;
+                    var elapsed = _clock.Now - _eyeRestStartTime;
                     var remaining = newEyeRestInterval - elapsed;
 
                     if (remaining <= TimeSpan.Zero)
@@ -124,7 +132,7 @@ namespace EyeRest.Services
                     _eyeRestTimer.Stop();
                     _eyeRestTimer.Interval = remaining;
                     _eyeRestTimer.Start();
-                    _eyeRestStartTime = DateTime.Now - elapsed; // preserve original start for heartbeat checks
+                    _eyeRestStartTime = _clock.Now - elapsed; // preserve original start for heartbeat checks
 
                     _logger.LogInformation("⚙️ Eye rest timer live-updated: {Old:F1}m → {New:F1}m (remaining: {Remaining:F1}m)",
                         oldEyeRestInterval.TotalMinutes, newEyeRestInterval.TotalMinutes, remaining.TotalMinutes);
@@ -133,7 +141,7 @@ namespace EyeRest.Services
                 if (newBreakInterval != oldBreakInterval && _breakTimer != null && !_breakTimerPausedForEyeRest && !_isBreakNotificationActive)
                 {
                     _breakInterval = newBreakInterval;
-                    var elapsed = DateTime.Now - _breakStartTime;
+                    var elapsed = _clock.Now - _breakStartTime;
                     var remaining = newBreakInterval - elapsed;
 
                     if (remaining <= TimeSpan.Zero)
@@ -144,7 +152,7 @@ namespace EyeRest.Services
                     _breakTimer.Stop();
                     _breakTimer.Interval = remaining;
                     _breakTimer.Start();
-                    _breakStartTime = DateTime.Now - elapsed;
+                    _breakStartTime = _clock.Now - elapsed;
 
                     _logger.LogInformation("⚙️ Break timer live-updated: {Old:F1}m → {New:F1}m (remaining: {Remaining:F1}m)",
                         oldBreakInterval.TotalMinutes, newBreakInterval.TotalMinutes, remaining.TotalMinutes);
@@ -241,7 +249,7 @@ namespace EyeRest.Services
             // Get the current calculated interval
             var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateEyeRestTimerInterval();
 
-            var timeSinceLastTrigger = DateTime.Now - _lastEyeRestTriggeredTime;
+            var timeSinceLastTrigger = _clock.Now - _lastEyeRestTriggeredTime;
             var minimumInterval = interval; // Use the actual timer interval (4.8 min for 5min/15s config)
 
             var shouldAllow = timeSinceLastTrigger >= minimumInterval;
@@ -271,7 +279,7 @@ namespace EyeRest.Services
             // Get the current calculated interval
             var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
 
-            var timeSinceLastTrigger = DateTime.Now - _lastBreakTriggeredTime;
+            var timeSinceLastTrigger = _clock.Now - _lastBreakTriggeredTime;
             var minimumInterval = interval; // Use the actual timer interval (14.5 min for 15min/30s config)
 
             var shouldAllow = timeSinceLastTrigger >= minimumInterval;

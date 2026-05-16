@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace EyeRest.Platform.macOS.Interop;
@@ -41,6 +43,11 @@ internal static class AppKit
     // NSSound selectors
     private static readonly IntPtr Sel_SoundNamed = ObjCRuntime.sel_registerName("soundNamed:");
     private static readonly IntPtr Sel_Play = ObjCRuntime.sel_registerName("play");
+    // BL-002 crash fix: NSSound's file init has a byReference: argument. The bare
+    // single-arg initWithContentsOfFile: is on NSImage, not NSSound — sending it
+    // to an NSSound alloc throws NSInvalidArgumentException at runtime.
+    private static readonly IntPtr Sel_SoundInitWithContentsOfFileByRef =
+        ObjCRuntime.sel_registerName("initWithContentsOfFile:byReference:");
 
     #endregion
 
@@ -203,6 +210,58 @@ internal static class AppKit
 
         ObjCRuntime.objc_msgSend_Bool(sound, Sel_Play);
         return true;
+    }
+
+    // BL-002 M2: bounded retention for in-flight NSSounds. [[NSSound alloc] init…]
+    // returns a +1 retain that the caller owns; releasing the NSSound while play()
+    // is still in flight stops playback (NSSound does not self-retain). We have no
+    // completion callback yet — M3 will wire NSSoundDelegate sound:didFinishPlaying:
+    // and release deterministically. Until then, hold a bounded list of recently
+    // played NSSounds and release the oldest once the buffer fills. This caps the
+    // leak at MaxRetainedSounds * average_sound_size (~16 × ~1MB worst case).
+    private static readonly List<IntPtr> _retainedSounds = new();
+    private static readonly object _retainedSoundsLock = new();
+    private const int MaxRetainedSounds = 16;
+
+    /// <summary>
+    /// Plays a sound from a local file via [[[NSSound alloc] initWithContentsOfFile:path] play].
+    /// Used by BL-002 for bundled WAV defaults and user-selected custom files.
+    /// NSSound is retained in a bounded list; the oldest entry is released on overflow.
+    /// </summary>
+    /// <returns>True if the file was loaded and play was initiated.</returns>
+    internal static bool PlaySoundFromFile(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath)) return false;
+
+        var nsPath = Foundation.CreateNSString(filePath);
+        if (nsPath == IntPtr.Zero) return false;
+
+        var alloc = ObjCRuntime.objc_msgSend_IntPtr(Class_NSSound, ObjCRuntime.Sel_Alloc);
+        if (alloc == IntPtr.Zero) return false;
+
+        // -[NSSound initWithContentsOfFile:byReference:]  (byReference:false loads the
+        // audio data into memory immediately — fine for short popup sounds; YES would
+        // keep a file handle open, which is brittle if the user moves the file).
+        var sound = ObjCRuntime.objc_msgSend_IntPtr_IntPtr_Bool(
+            alloc, Sel_SoundInitWithContentsOfFileByRef, nsPath, false);
+        if (sound == IntPtr.Zero) return false;
+
+        var played = ObjCRuntime.objc_msgSend_Bool(sound, Sel_Play);
+
+        lock (_retainedSoundsLock)
+        {
+            _retainedSounds.Add(sound);
+            while (_retainedSounds.Count > MaxRetainedSounds)
+            {
+                // Release the oldest in-flight NSSound. By the time MaxRetainedSounds
+                // newer sounds have started, this one has almost certainly finished
+                // playing — and even if it hasn't, the audio cuts off cleanly.
+                ObjCRuntime.objc_msgSend_Void(_retainedSounds[0], ObjCRuntime.Sel_Release);
+                _retainedSounds.RemoveAt(0);
+            }
+        }
+
+        return played;
     }
 
     /// <summary>

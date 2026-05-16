@@ -29,7 +29,7 @@ namespace EyeRest.Services
                 _logger.LogInformation("⏸️ Manually pausing timer service");
                 
                 IsPaused = true;
-                _pauseStartTime = DateTime.Now; // Track when pause started for extended away detection
+                _pauseStartTime = _clock.Now; // Track when pause started for extended away detection
                 
                 _eyeRestTimer?.Stop();
                 _breakTimer?.Stop();
@@ -88,9 +88,9 @@ namespace EyeRest.Services
                 if (!IsSmartPaused)
                 {
                     // Reset start times so TimeUntilNext* doesn't include the paused period
-                    _eyeRestStartTime = DateTime.Now;
-                    _breakStartTime = DateTime.Now;
-                    _breakTimerStartTime = DateTime.Now;
+                    _eyeRestStartTime = _clock.Now;
+                    _breakStartTime = _clock.Now;
+                    _breakTimerStartTime = _clock.Now;
 
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
@@ -119,10 +119,24 @@ namespace EyeRest.Services
                 _logger.LogWarning("Cannot smart pause - timer service is not running");
                 return;
             }
-            
+
             if (IsSmartPaused)
             {
                 _logger.LogWarning("Timer service is already smart paused");
+                return;
+            }
+
+            // CRITICAL FIX (2026-04-28): If a popup is on screen, the user is presumed to
+            // already be resting/taking a break — pausing the timer service here just
+            // creates state-management churn for the corresponding SmartResume. (See the
+            // 09:51:35 incident where the resume path then started timers prematurely.)
+            // Let the popup run to completion; the popup-completion handler will leave
+            // timers in a clean state.
+            if (_isEyeRestNotificationActive || _isBreakNotificationActive)
+            {
+                _logger.LogInformation("🧠 Skipping smart pause — popup active (EyeRestActive={EyeRest}, BreakActive={Break}). Reason was: {Reason}",
+                    _isEyeRestNotificationActive, _isBreakNotificationActive, reason);
+                await Task.CompletedTask;
                 return;
             }
 
@@ -136,7 +150,7 @@ namespace EyeRest.Services
                 // calculating from elapsed time. By preserving first, we capture accurate values.
                 if (_eyeRestTimer?.IsEnabled == true && _eyeRestStartTime != DateTime.MinValue)
                 {
-                    var elapsed = DateTime.Now - _eyeRestStartTime;
+                    var elapsed = _clock.Now - _eyeRestStartTime;
                     var remaining = _eyeRestInterval - elapsed;
                     _eyeRestRemainingTime = remaining > TimeSpan.Zero ? remaining : _eyeRestInterval;
                     _logger.LogInformation($"🔧 SMART PAUSE: Preserved eye rest remaining time: {_eyeRestRemainingTime.TotalMinutes:F1} minutes");
@@ -144,7 +158,7 @@ namespace EyeRest.Services
 
                 if (_breakTimer?.IsEnabled == true && _breakStartTime != DateTime.MinValue)
                 {
-                    var elapsed = DateTime.Now - _breakStartTime;
+                    var elapsed = _clock.Now - _breakStartTime;
                     var remaining = _breakInterval - elapsed;
                     _breakRemainingTime = remaining > TimeSpan.Zero ? remaining : _breakInterval;
                     _logger.LogInformation($"🔧 SMART PAUSE: Preserved break remaining time: {_breakRemainingTime.TotalMinutes:F1} minutes");
@@ -152,7 +166,7 @@ namespace EyeRest.Services
 
                 IsSmartPaused = true;
                 _pauseReason = reason;
-                _pauseStartTime = DateTime.Now; // Track when pause started for extended away detection
+                _pauseStartTime = _clock.Now; // Track when pause started for extended away detection
                 _logger.LogInformation($"🔄 PAUSE LIFECYCLE: Smart pause activated - Reason: '{reason}', PauseStartTime: {_pauseStartTime:HH:mm:ss}");
                 
                 _eyeRestTimer?.Stop();
@@ -192,15 +206,22 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation($"🧠 Smart resuming timer service - reason: {reason}");
-                
-                // CRITICAL FIX: Check if any notifications are active and handle them properly
-                if (_isEyeRestNotificationActive || _isBreakNotificationActive)
+
+                // CRITICAL FIX (2026-04-28): When a notification popup is still showing while the user
+                // returns from idle, we must NOT clear the notification flags or restart timers. Doing
+                // either bypasses the BREAK POPUP PROTECTION in TriggerBreakWarning and causes a
+                // duplicate break-warning popup to spawn over the active break Complete dialog —
+                // NotificationService.ShowBreakWarningInternalAsync calls CloseCurrentPopup(), which
+                // then closes the still-open Complete dialog. Instead, defer the timer-start: clear
+                // IsSmartPaused so the popup-completion handler (RestartBreakTimerAfterCompletion /
+                // SmartResumeEyeRestTimerAfterBreak) can take over once the user dismisses the popup.
+                bool deferTimerStart = _isEyeRestNotificationActive || _isBreakNotificationActive;
+                if (deferTimerStart)
                 {
-                    _logger.LogWarning("🧠 Cannot smart resume - notification is active. Clearing notification states.");
-                    _isEyeRestNotificationActive = false;
-                    _isBreakNotificationActive = false;
+                    _logger.LogWarning("🧠 Smart resume during active notification — deferring timer start (EyeRestActive={EyeRest}, BreakActive={Break}). Popup completion will restart timers.",
+                        _isEyeRestNotificationActive, _isBreakNotificationActive);
                 }
-                
+
                 IsSmartPaused = false;
 
                 // CRITICAL FIX: Save pause start time BEFORE clearing it — the idle duration
@@ -230,7 +251,7 @@ namespace EyeRest.Services
 
                     // Calculate how long the user was idle/away
                     var idleDuration = savedPauseStartTime != DateTime.MinValue
-                        ? DateTime.Now - savedPauseStartTime
+                        ? _clock.Now - savedPauseStartTime
                         : TimeSpan.Zero;
                     var eyeRestDurationSeconds = _configuration?.EyeRest?.DurationSeconds ?? 20;
                     var eyeRestIntervalMinutes = _configuration?.EyeRest?.IntervalMinutes ?? 20;
@@ -248,7 +269,7 @@ namespace EyeRest.Services
                         var (erInterval, _, _, _, _) = CalculateEyeRestTimerInterval();
                         _eyeRestInterval = erInterval;
                         _eyeRestTimer!.Interval = _eyeRestInterval;
-                        _eyeRestStartTime = DateTime.Now;
+                        _eyeRestStartTime = _clock.Now;
                         _eyeRestRemainingTime = TimeSpan.Zero;
                         _logger.LogInformation($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {eyeRestDurationSeconds}s eye rest) — reset eye rest to full {_eyeRestInterval.TotalMinutes:F1}min");
                     }
@@ -256,8 +277,18 @@ namespace EyeRest.Services
                     {
                         _eyeRestInterval = _eyeRestRemainingTime;
                         _eyeRestTimer!.Interval = _eyeRestRemainingTime;
-                        _eyeRestStartTime = DateTime.Now;
+                        _eyeRestStartTime = _clock.Now;
                         _logger.LogInformation($"🔧 SMART RESUME: Restored eye rest remaining {_eyeRestRemainingTime.TotalMinutes:F1}min");
+                    }
+                    else
+                    {
+                        // Without this, a tiny stale Interval seeded by SmartResumeBreakTimerAfterEyeRest
+                        // would survive into the next active period and fire prematurely.
+                        var (erIntervalFresh, _, _, _, _) = CalculateEyeRestTimerInterval();
+                        _eyeRestInterval = erIntervalFresh;
+                        _eyeRestTimer!.Interval = _eyeRestInterval;
+                        _eyeRestStartTime = _clock.Now;
+                        _logger.LogInformation($"🔧 SMART RESUME: No preserved remaining — reset eye rest to full {_eyeRestInterval.TotalMinutes:F1}min");
                     }
 
                     if (idleDuration.TotalMinutes >= breakDurationMinutes)
@@ -266,8 +297,8 @@ namespace EyeRest.Services
                         var (brInterval, _, _, _, _) = CalculateBreakTimerInterval();
                         _breakInterval = brInterval;
                         _breakTimer!.Interval = _breakInterval;
-                        _breakStartTime = DateTime.Now;
-                        _breakTimerStartTime = DateTime.Now;
+                        _breakStartTime = _clock.Now;
+                        _breakTimerStartTime = _clock.Now;
                         _breakRemainingTime = TimeSpan.Zero;
                         _logger.LogInformation($"🧠 SMART RESUME: User was idle {idleDuration.TotalMinutes:F1}min (>= {breakDurationMinutes}min break) — reset break to full {_breakInterval.TotalMinutes:F1}min");
                     }
@@ -275,26 +306,41 @@ namespace EyeRest.Services
                     {
                         _breakInterval = _breakRemainingTime;
                         _breakTimer!.Interval = _breakRemainingTime;
-                        _breakStartTime = DateTime.Now;
-                        _breakTimerStartTime = DateTime.Now;
+                        _breakStartTime = _clock.Now;
+                        _breakTimerStartTime = _clock.Now;
                         _logger.LogInformation($"🔧 SMART RESUME: Restored break remaining {_breakRemainingTime.TotalMinutes:F1}min");
                     }
                     else
                     {
-                        // No preserved remaining time — just reset start times to now
-                        _breakStartTime = DateTime.Now;
-                        _breakTimerStartTime = DateTime.Now;
+                        // Same defence as the eye-rest branch above: a stale tiny Interval
+                        // (e.g., 0.2 min from SmartResumeBreakTimerAfterEyeRest) would otherwise
+                        // survive and fire prematurely — caused the 2026-04-28 09:51:50 incident.
+                        var (brIntervalFresh, _, _, _, _) = CalculateBreakTimerInterval();
+                        _breakInterval = brIntervalFresh;
+                        _breakTimer!.Interval = _breakInterval;
+                        _breakStartTime = _clock.Now;
+                        _breakTimerStartTime = _clock.Now;
+                        _logger.LogInformation($"🔧 SMART RESUME: No preserved remaining — reset break to full {_breakInterval.TotalMinutes:F1}min");
                     }
 
                     // Always reset start times if they weren't set above (fallback safety)
                     if (_eyeRestStartTime == DateTime.MinValue)
-                        _eyeRestStartTime = DateTime.Now;
+                        _eyeRestStartTime = _clock.Now;
 
-                    _eyeRestTimer?.Start();
-                    _breakTimer?.Start();
-                    UpdateHeartbeatFromOperation("SmartResume");
+                    if (!deferTimerStart)
+                    {
+                        _eyeRestTimer?.Start();
+                        _breakTimer?.Start();
+                        UpdateHeartbeatFromOperation("SmartResume");
 
-                    _logger.LogInformation($"🧠 Smart resume conditions - Timers started: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
+                        _logger.LogInformation($"🧠 Smart resume conditions - Timers started: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
+                    }
+                    else
+                    {
+                        UpdateHeartbeatFromOperation("SmartResumeDeferred");
+                        _logger.LogInformation("🧠 Smart resume completed but timer start deferred until popup closes (EyeRestActive={EyeRest}, BreakActive={Break})",
+                            _isEyeRestNotificationActive, _isBreakNotificationActive);
+                    }
 
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.SmartDetection);
 
@@ -321,6 +367,7 @@ namespace EyeRest.Services
 
                 _logger.LogInformation($"🔥 SMART SESSION RESET INITIATED - Reason: {reason}");
                 _logger.LogInformation($"🔥 Starting fresh {_configuration.EyeRest.IntervalMinutes}min/{_configuration.Break.IntervalMinutes}min cycle");
+                _consecutiveBreakDelayCount = 0;
                 
                 // Calculate current remaining times for logging
                 var eyeRestRemainingBefore = TimeUntilNextEyeRest;
@@ -558,9 +605,9 @@ namespace EyeRest.Services
                 }
 
                 // Reset timer start times for fresh session
-                _eyeRestStartTime = DateTime.Now;
-                _breakStartTime = DateTime.Now;
-                _breakTimerStartTime = DateTime.Now;
+                _eyeRestStartTime = _clock.Now;
+                _breakStartTime = _clock.Now;
+                _breakTimerStartTime = _clock.Now;
                 
                 // Clear any remaining time tracking
                 _eyeRestRemainingTime = TimeSpan.Zero;
@@ -572,7 +619,7 @@ namespace EyeRest.Services
                 // CRITICAL: Clear clock jump detection timestamps for fresh session
                 _lastEyeRestTick = DateTime.MinValue;
                 _lastBreakTick = DateTime.MinValue;
-                _lastSystemCheck = DateTime.Now;
+                _lastSystemCheck = _clock.Now;
                 _logger.LogInformation("🔥 CLOCK JUMP DETECTION: Timestamps cleared for fresh session");
                 
                 // Set timers to full intervals using shared calculation (respects WarningEnabled)
@@ -657,20 +704,20 @@ namespace EyeRest.Services
                 // (TimeUntilNext* getters short-circuit when paused)
                 if (_eyeRestTimer?.IsEnabled == true && _eyeRestStartTime != DateTime.MinValue)
                 {
-                    var eyeElapsed = DateTime.Now - _eyeRestStartTime;
+                    var eyeElapsed = _clock.Now - _eyeRestStartTime;
                     var eyeRemaining = _eyeRestInterval - eyeElapsed;
                     _eyeRestRemainingTime = eyeRemaining > TimeSpan.Zero ? eyeRemaining : _eyeRestInterval;
                 }
                 if (_breakTimer?.IsEnabled == true && _breakStartTime != DateTime.MinValue)
                 {
-                    var brElapsed = DateTime.Now - _breakStartTime;
+                    var brElapsed = _clock.Now - _breakStartTime;
                     var brRemaining = _breakInterval - brElapsed;
                     _breakRemainingTime = brRemaining > TimeSpan.Zero ? brRemaining : _breakInterval;
                 }
 
                 // Set manual pause state
                 IsManuallyPaused = true;
-                _manualPauseStartTime = DateTime.Now;
+                _manualPauseStartTime = _clock.Now;
                 _manualPauseDuration = duration;
                 _pauseReason = reason;
 
@@ -769,9 +816,9 @@ namespace EyeRest.Services
                     }
 
                     // Reset start times and start timers
-                    _eyeRestStartTime = DateTime.Now;
-                    _breakStartTime = DateTime.Now;
-                    _breakTimerStartTime = DateTime.Now;
+                    _eyeRestStartTime = _clock.Now;
+                    _breakStartTime = _clock.Now;
+                    _breakTimerStartTime = _clock.Now;
                     _eyeRestTimer?.Start();
                     _breakTimer?.Start();
                     UpdateHeartbeatFromOperation("ManualPauseAutoResume");

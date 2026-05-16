@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -55,6 +56,28 @@ namespace EyeRest.UI.ViewModels
         private int _audioVolume = 50;
         private string? _customSoundPath;
 
+        // BL-002 recent-items: shared lists across all 4 channels keyed by field type.
+        // Bound to the Recent flyout next to each File / URL field. ObservableCollection
+        // so the flyout ItemsControl auto-refreshes on add/remove.
+        public ObservableCollection<string> RecentAudioFilePaths { get; } = new();
+        public ObservableCollection<string> RecentAudioUrls { get; } = new();
+        private const int MaxRecentItems = 10;
+
+        // BL-002 Popup Audio (per-channel). Each channel has Source (Off/Default/File/Url),
+        // a retained file path, and a retained URL. Two-way bound to the Popup Audio card.
+        private AudioChannelSource _eyeRestStartSource = AudioChannelSource.Default;
+        private string? _eyeRestStartFilePath;
+        private string? _eyeRestStartUrl;
+        private AudioChannelSource _eyeRestEndSource = AudioChannelSource.Default;
+        private string? _eyeRestEndFilePath;
+        private string? _eyeRestEndUrl;
+        private AudioChannelSource _breakStartSource = AudioChannelSource.Default;
+        private string? _breakStartFilePath;
+        private string? _breakStartUrl;
+        private AudioChannelSource _breakEndSource = AudioChannelSource.Default;
+        private string? _breakEndFilePath;
+        private string? _breakEndUrl;
+
         // Application Settings
         private bool _startWithWindows = false;
         private bool _minimizeToTray = true;
@@ -64,6 +87,7 @@ namespace EyeRest.UI.ViewModels
         private bool _autoOpenDashboard = false;
 
         // Analytics KPI Summary
+        private string _breaksAutoManualSummary = "Auto: 0 · Manual: 0";
         private string _analyticsComplianceRateText = "--";
         private double _analyticsComplianceRateValue = 0;
         private string _analyticsTotalBreaksCompleted = "--";
@@ -168,11 +192,51 @@ namespace EyeRest.UI.ViewModels
             ResumeTimersCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await ResumeTimers(), () => CanResumeTimers);
             PauseForMeetingCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await PauseForMeeting(), () => CanPauseMeeting);
             PauseForMeeting1hCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await PauseForMeeting1h(), () => CanPauseMeeting);
+            TriggerImmediateBreakCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TriggerImmediateBreakAsync(), () => CanTriggerImmediateBreak);
 
             ExitApplicationCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(ExitApplication);
             ShowAnalyticsCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(ShowAnalyticsWindow);
             BrowseCustomAudioCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(BrowseCustomAudio);
             TestCustomAudioCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TestAudio());
+
+            // BL-002 Popup Audio: one Test command per channel — invokes PlayChannelAsync
+            // with the channel's current Source/FilePath/Url, so the user can preview each
+            // configuration without waiting for the timer to fire.
+            TestEyeRestStartChannelCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await TestChannelAsync(AudioChannel.EyeRestStart, EyeRestStartSource, EyeRestStartFilePath, EyeRestStartUrl));
+            TestEyeRestEndChannelCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await TestChannelAsync(AudioChannel.EyeRestEnd, EyeRestEndSource, EyeRestEndFilePath, EyeRestEndUrl));
+            TestBreakStartChannelCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await TestChannelAsync(AudioChannel.BreakStart, BreakStartSource, BreakStartFilePath, BreakStartUrl));
+            TestBreakEndChannelCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await TestChannelAsync(AudioChannel.BreakEnd, BreakEndSource, BreakEndFilePath, BreakEndUrl));
+
+            // BL-002 Popup Audio: one Browse command per channel — opens the native file
+            // picker (Finder on macOS, Explorer on Windows) so the user can locate a file
+            // without typing the full path. The Browse button is always visible beside
+            // each file-path TextBox.
+            BrowseEyeRestStartFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => EyeRestStartFilePath = p));
+            BrowseEyeRestEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => EyeRestEndFilePath = p));
+            BrowseBreakStartFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => BreakStartFilePath = p));
+            BrowseBreakEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => BreakEndFilePath = p));
+
+            // BL-002 recent-items: one Pick command per (channel, field-type) — takes a
+            // string CommandParameter (the recent item) and writes it to the channel's
+            // property. Two shared Remove commands strip an item from the recents list.
+            PickRecentEyeRestStartFilePathCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestStartFilePath = s; });
+            PickRecentEyeRestEndFilePathCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestEndFilePath = s; });
+            PickRecentBreakStartFilePathCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakStartFilePath = s; });
+            PickRecentBreakEndFilePathCommand     = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakEndFilePath = s; });
+            PickRecentEyeRestStartUrlCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestStartUrl = s; });
+            PickRecentEyeRestEndUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestEndUrl = s; });
+            PickRecentBreakStartUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakStartUrl = s; });
+            PickRecentBreakEndUrlCommand     = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakEndUrl = s; });
+            RemoveRecentFilePathCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecentFilePath(s); });
+            RemoveRecentUrlCommand      = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecentUrl(s); });
 
             // Test commands
             TestWarningCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TestWarningPopup());
@@ -443,6 +507,71 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
+        // BL-002 Popup Audio properties — 12 (Source/FilePath/Url × 4 channels). Each
+        // change registers in _pendingTimerChanges and triggers the debounced save,
+        // matching the Mar 2026 dirty-tracking pattern that prevents Slider-midpoint
+        // write-back from corrupting unrelated fields.
+        public AudioChannelSource EyeRestStartSource
+        {
+            get => _eyeRestStartSource;
+            set { if (SetProperty(ref _eyeRestStartSource, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(EyeRestStartSource)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? EyeRestStartFilePath
+        {
+            get => _eyeRestStartFilePath;
+            set { if (SetProperty(ref _eyeRestStartFilePath, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(EyeRestStartFilePath)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? EyeRestStartUrl
+        {
+            get => _eyeRestStartUrl;
+            set { if (SetProperty(ref _eyeRestStartUrl, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(EyeRestStartUrl)); DebouncedSaveTimerSetting(); } }
+        }
+        public AudioChannelSource EyeRestEndSource
+        {
+            get => _eyeRestEndSource;
+            set { if (SetProperty(ref _eyeRestEndSource, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(EyeRestEndSource)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? EyeRestEndFilePath
+        {
+            get => _eyeRestEndFilePath;
+            set { if (SetProperty(ref _eyeRestEndFilePath, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(EyeRestEndFilePath)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? EyeRestEndUrl
+        {
+            get => _eyeRestEndUrl;
+            set { if (SetProperty(ref _eyeRestEndUrl, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(EyeRestEndUrl)); DebouncedSaveTimerSetting(); } }
+        }
+        public AudioChannelSource BreakStartSource
+        {
+            get => _breakStartSource;
+            set { if (SetProperty(ref _breakStartSource, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(BreakStartSource)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? BreakStartFilePath
+        {
+            get => _breakStartFilePath;
+            set { if (SetProperty(ref _breakStartFilePath, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(BreakStartFilePath)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? BreakStartUrl
+        {
+            get => _breakStartUrl;
+            set { if (SetProperty(ref _breakStartUrl, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(BreakStartUrl)); DebouncedSaveTimerSetting(); } }
+        }
+        public AudioChannelSource BreakEndSource
+        {
+            get => _breakEndSource;
+            set { if (SetProperty(ref _breakEndSource, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(BreakEndSource)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? BreakEndFilePath
+        {
+            get => _breakEndFilePath;
+            set { if (SetProperty(ref _breakEndFilePath, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(BreakEndFilePath)); DebouncedSaveTimerSetting(); } }
+        }
+        public string? BreakEndUrl
+        {
+            get => _breakEndUrl;
+            set { if (SetProperty(ref _breakEndUrl, value) && !_isLoadingConfiguration) { _pendingTimerChanges.Add(nameof(BreakEndUrl)); DebouncedSaveTimerSetting(); } }
+        }
+
         // Application Properties
         public bool StartWithWindows
         {
@@ -586,6 +715,12 @@ namespace EyeRest.UI.ViewModels
         {
             get => _analyticsComplianceRateValue;
             private set => SetProperty(ref _analyticsComplianceRateValue, value);
+        }
+
+        public string BreaksAutoManualSummary
+        {
+            get => _breaksAutoManualSummary;
+            set => SetProperty(ref _breaksAutoManualSummary, value);
         }
 
         public string AnalyticsTotalBreaksCompleted
@@ -1050,11 +1185,39 @@ namespace EyeRest.UI.ViewModels
         public ICommand ResumeTimersCommand { get; }
         public ICommand PauseForMeetingCommand { get; }
         public ICommand PauseForMeeting1hCommand { get; }
+        public ICommand TriggerImmediateBreakCommand { get; }
+
+        public bool CanTriggerImmediateBreak => _timerService.IsRunning && !_timerService.IsAnyNotificationActive;
 
         public ICommand ExitApplicationCommand { get; }
         public ICommand ShowAnalyticsCommand { get; }
         public ICommand BrowseCustomAudioCommand { get; }
         public ICommand TestCustomAudioCommand { get; }
+
+        // BL-002 Popup Audio per-channel Test commands.
+        public ICommand TestEyeRestStartChannelCommand { get; }
+        public ICommand TestEyeRestEndChannelCommand { get; }
+        public ICommand TestBreakStartChannelCommand { get; }
+        public ICommand TestBreakEndChannelCommand { get; }
+
+        // BL-002 Popup Audio per-channel Browse commands (opens native file picker).
+        public ICommand BrowseEyeRestStartFileCommand { get; }
+        public ICommand BrowseEyeRestEndFileCommand { get; }
+        public ICommand BrowseBreakStartFileCommand { get; }
+        public ICommand BrowseBreakEndFileCommand { get; }
+
+        // BL-002 recent-items: Pick commands take a string CommandParameter (the picked
+        // recent entry) and assign it to the channel's FilePath / Url property.
+        public ICommand PickRecentEyeRestStartFilePathCommand { get; }
+        public ICommand PickRecentEyeRestEndFilePathCommand { get; }
+        public ICommand PickRecentBreakStartFilePathCommand { get; }
+        public ICommand PickRecentBreakEndFilePathCommand { get; }
+        public ICommand PickRecentEyeRestStartUrlCommand { get; }
+        public ICommand PickRecentEyeRestEndUrlCommand { get; }
+        public ICommand PickRecentBreakStartUrlCommand { get; }
+        public ICommand PickRecentBreakEndUrlCommand { get; }
+        public ICommand RemoveRecentFilePathCommand { get; }
+        public ICommand RemoveRecentUrlCommand { get; }
 
         // Test commands
         public ICommand TestWarningCommand { get; }
@@ -1176,8 +1339,9 @@ namespace EyeRest.UI.ViewModels
             // Eye Rest
             EyeRestIntervalMinutes = _configuration.EyeRest.IntervalMinutes;
             EyeRestDurationSeconds = _configuration.EyeRest.DurationSeconds;
-            EyeRestStartSoundEnabled = _configuration.EyeRest.StartSoundEnabled;
-            EyeRestEndSoundEnabled = _configuration.EyeRest.EndSoundEnabled;
+            // BL-002: bool toggles map to Source != Off; M4 replaces these with the source picker.
+            EyeRestStartSoundEnabled = _configuration.EyeRest.StartAudio.Source != AudioChannelSource.Off;
+            EyeRestEndSoundEnabled   = _configuration.EyeRest.EndAudio.Source   != AudioChannelSource.Off;
             EyeRestWarningEnabled = _configuration.EyeRest.WarningEnabled;
             EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
 
@@ -1193,7 +1357,34 @@ namespace EyeRest.UI.ViewModels
             // Audio
             AudioEnabled = _configuration.Audio.Enabled;
             AudioVolume = _configuration.Audio.Volume;
-            CustomSoundPath = _configuration.Audio.CustomSoundPath;
+            // BL-002 schema v2: global CustomSoundPath removed. The VM property is kept for
+            // the existing test-button UI; M4 replaces it with per-channel file pickers.
+            CustomSoundPath = _configuration.EyeRest.StartAudio.CustomFilePath
+                              ?? _configuration.EyeRest.EndAudio.CustomFilePath
+                              ?? _configuration.Break.StartAudio.CustomFilePath
+                              ?? _configuration.Break.EndAudio.CustomFilePath;
+
+            // BL-002 recent-items: hydrate the ObservableCollections from config. Clear
+            // first then re-add so order matches the persisted state and any existing
+            // bindings keep observing the same instance.
+            RecentAudioFilePaths.Clear();
+            foreach (var p in _configuration.Audio.RecentFilePaths) RecentAudioFilePaths.Add(p);
+            RecentAudioUrls.Clear();
+            foreach (var u in _configuration.Audio.RecentUrls) RecentAudioUrls.Add(u);
+
+            // BL-002 Popup Audio (M4): load 12 per-channel properties.
+            EyeRestStartSource   = _configuration.EyeRest.StartAudio.Source;
+            EyeRestStartFilePath = _configuration.EyeRest.StartAudio.CustomFilePath;
+            EyeRestStartUrl      = _configuration.EyeRest.StartAudio.Url;
+            EyeRestEndSource     = _configuration.EyeRest.EndAudio.Source;
+            EyeRestEndFilePath   = _configuration.EyeRest.EndAudio.CustomFilePath;
+            EyeRestEndUrl        = _configuration.EyeRest.EndAudio.Url;
+            BreakStartSource     = _configuration.Break.StartAudio.Source;
+            BreakStartFilePath   = _configuration.Break.StartAudio.CustomFilePath;
+            BreakStartUrl        = _configuration.Break.StartAudio.Url;
+            BreakEndSource       = _configuration.Break.EndAudio.Source;
+            BreakEndFilePath     = _configuration.Break.EndAudio.CustomFilePath;
+            BreakEndUrl          = _configuration.Break.EndAudio.Url;
 
             // Application
             StartWithWindows = _configuration.Application.StartWithWindows;
@@ -1540,6 +1731,7 @@ namespace EyeRest.UI.ViewModels
             OnPropertyChanged(nameof(CanPauseTimers));
             OnPropertyChanged(nameof(CanResumeTimers));
             OnPropertyChanged(nameof(CanPauseMeeting));
+            OnPropertyChanged(nameof(CanTriggerImmediateBreak));
 
             OnPropertyChanged(nameof(StartButtonTooltip));
             OnPropertyChanged(nameof(StopButtonTooltip));
@@ -1555,6 +1747,7 @@ namespace EyeRest.UI.ViewModels
             (ResumeTimersCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
             (PauseForMeetingCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
             (PauseForMeeting1hCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
+            (TriggerImmediateBreakCommand as EyeRest.ViewModels.CrossPlatformRelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private void OnTimerServicePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1823,8 +2016,8 @@ namespace EyeRest.UI.ViewModels
                 {
                     IntervalMinutes = config.EyeRest.IntervalMinutes,
                     DurationSeconds = config.EyeRest.DurationSeconds,
-                    StartSoundEnabled = config.EyeRest.StartSoundEnabled,
-                    EndSoundEnabled = config.EyeRest.EndSoundEnabled,
+                    StartAudio = CloneChannel(config.EyeRest.StartAudio),
+                    EndAudio   = CloneChannel(config.EyeRest.EndAudio),
                     WarningEnabled = config.EyeRest.WarningEnabled,
                     WarningSeconds = config.EyeRest.WarningSeconds
                 } : new EyeRestSettings(),
@@ -1832,6 +2025,8 @@ namespace EyeRest.UI.ViewModels
                 {
                     IntervalMinutes = config.Break.IntervalMinutes,
                     DurationMinutes = config.Break.DurationMinutes,
+                    StartAudio = CloneChannel(config.Break.StartAudio),
+                    EndAudio   = CloneChannel(config.Break.EndAudio),
                     WarningEnabled = config.Break.WarningEnabled,
                     WarningSeconds = config.Break.WarningSeconds,
                     OverlayOpacityPercent = config.Break.OverlayOpacityPercent,
@@ -1841,8 +2036,7 @@ namespace EyeRest.UI.ViewModels
                 Audio = config.Audio != null ? new AudioSettings
                 {
                     Enabled = config.Audio.Enabled,
-                    Volume = config.Audio.Volume,
-                    CustomSoundPath = config.Audio.CustomSoundPath
+                    Volume = config.Audio.Volume
                 } : new AudioSettings(),
                 Application = config.Application != null ? new ApplicationSettings
                 {
@@ -1872,6 +2066,17 @@ namespace EyeRest.UI.ViewModels
                 TimerControls = config.TimerControls ?? new TimerControlSettings()
             };
         }
+
+        // BL-002: deep-clone an AudioChannelConfig for snapshot/clone use.
+        private static AudioChannelConfig CloneChannel(AudioChannelConfig? source) =>
+            source is null
+                ? new AudioChannelConfig()
+                : new AudioChannelConfig
+                {
+                    Source = source.Source,
+                    CustomFilePath = source.CustomFilePath,
+                    Url = source.Url,
+                };
 
         #endregion
 
@@ -1917,6 +2122,19 @@ namespace EyeRest.UI.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "TestBreakWarningPopup failed");
+            }
+        }
+
+        private async Task TriggerImmediateBreakAsync()
+        {
+            try
+            {
+                _logger.LogInformation("User clicked Break Now");
+                await _timerService.TriggerImmediateBreakAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to trigger immediate break");
             }
         }
 
@@ -2052,6 +2270,8 @@ namespace EyeRest.UI.ViewModels
                 AnalyticsComplianceRateText = $"{healthMetrics.ComplianceRate:P1}";
                 AnalyticsComplianceRateValue = healthMetrics.ComplianceRate * 100;
                 AnalyticsTotalBreaksCompleted = healthMetrics.BreaksCompleted.ToString();
+                var (autoCount, manualCount) = await _analyticsService.GetBreakCountsBySourceAsync(periodDays == 0 ? 365 * 10 : periodDays);
+                BreaksAutoManualSummary = $"Auto: {autoCount} · Manual: {manualCount}";
                 AnalyticsCompletedPercentageText = totalBreaks > 0
                     ? $"{(double)healthMetrics.BreaksCompleted / totalBreaks:P0} of total"
                     : "No data";
@@ -2308,6 +2528,129 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
+        // BL-002 Popup Audio: opens the OS file picker and feeds the selected path to the
+        // given setter (one of the EyeRestStart/End or BreakStart/End FilePath properties).
+        // The setter itself drives the dirty-tracking save via the property's setter pattern.
+        // After a successful pick, the path is added to RecentAudioFilePaths.
+        private async Task BrowseAudioFileAsync(Action<string?> setPath)
+        {
+            try
+            {
+                var topLevel = GetTopLevel();
+                if (topLevel is null)
+                {
+                    _logger.LogWarning("Cannot open per-channel file picker — no top-level window");
+                    return;
+                }
+                var files = await topLevel.StorageProvider.OpenFilePickerAsync(
+                    new Avalonia.Platform.Storage.FilePickerOpenOptions
+                    {
+                        Title = "Select Audio File for Popup Channel",
+                        AllowMultiple = false,
+                        FileTypeFilter = new[]
+                        {
+                            new Avalonia.Platform.Storage.FilePickerFileType("Audio Files")
+                            { Patterns = new[] { "*.wav", "*.mp3", "*.ogg", "*.flac", "*.m4a" } },
+                            new Avalonia.Platform.Storage.FilePickerFileType("All Files")
+                            { Patterns = new[] { "*.*" } },
+                        },
+                    });
+                if (files.Count > 0)
+                {
+                    var path = files[0].Path.LocalPath;
+                    setPath(path);
+                    AddRecentFilePath(path);
+                    _logger.LogInformation("Per-channel audio file selected: {Path}", path);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to open per-channel file picker");
+            }
+        }
+
+        // BL-002 recent-items helpers. Dedupe-by-move-to-top: if the value is already
+        // present, remove it first so the newly-added entry is at index 0. Cap at 10.
+        // Saves to config in the background after every change.
+        private void AddRecentFilePath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return;
+            RecentAudioFilePaths.Remove(path);
+            RecentAudioFilePaths.Insert(0, path);
+            while (RecentAudioFilePaths.Count > MaxRecentItems)
+                RecentAudioFilePaths.RemoveAt(RecentAudioFilePaths.Count - 1);
+            _ = SaveRecentsAsync();
+        }
+
+        private void AddRecentUrl(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            RecentAudioUrls.Remove(url);
+            RecentAudioUrls.Insert(0, url);
+            while (RecentAudioUrls.Count > MaxRecentItems)
+                RecentAudioUrls.RemoveAt(RecentAudioUrls.Count - 1);
+            _ = SaveRecentsAsync();
+        }
+
+        private void RemoveRecentFilePath(string path)
+        {
+            if (RecentAudioFilePaths.Remove(path)) _ = SaveRecentsAsync();
+        }
+
+        private void RemoveRecentUrl(string url)
+        {
+            if (RecentAudioUrls.Remove(url)) _ = SaveRecentsAsync();
+        }
+
+        private async Task SaveRecentsAsync()
+        {
+            try
+            {
+                await _configurationService.UpdateConfigurationAsync(c =>
+                {
+                    c.Audio.RecentFilePaths = RecentAudioFilePaths.ToList();
+                    c.Audio.RecentUrls      = RecentAudioUrls.ToList();
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist Popup Audio recents");
+            }
+        }
+
+        // BL-002 Popup Audio: invokes PlayChannelAsync with the channel's current Source/path/url.
+        // Allows the user to preview each channel's configuration from the settings UI without
+        // waiting for the timer. Runs on a background thread to mirror TestAudio's UI-thread guard.
+        private async Task TestChannelAsync(AudioChannel channel, AudioChannelSource source,
+                                            string? filePath, string? url)
+        {
+            try
+            {
+                var audioService = App.Services?.GetService<IAudioService>();
+                if (audioService is null)
+                {
+                    _logger.LogWarning("IAudioService not available for channel test ({Channel})", channel);
+                    return;
+                }
+                var config = new AudioChannelConfig
+                {
+                    Source = source,
+                    CustomFilePath = filePath,
+                    Url = url,
+                };
+                // BL-002 recent-items: clicking Test on URL mode is the user's explicit
+                // confirmation that the URL is the one they want — promote it to recents.
+                // (File mode already adds on Browse; typing a path manually doesn't add,
+                // matching the spec's "user-confirms-this-value" gating.)
+                if (source == AudioChannelSource.Url) AddRecentUrl(url);
+                await Task.Run(() => audioService.PlayChannelAsync(channel, config));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Channel test failed for {Channel}", channel);
+            }
+        }
+
         #endregion
 
         #region Auto-Save Methods
@@ -2460,12 +2803,24 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveCustomSoundPathAsync called with value: {customSoundPath}");
 
+                // BL-002 schema v2: write the path into every channel's CustomFilePath but
+                // leave each channel's Source unchanged (user explicitly switches to File
+                // via the M4 per-channel UI). M4 replaces this single-input UX entirely.
                 await _configurationService.UpdateConfigurationAsync(config =>
                 {
-                    config.Audio.CustomSoundPath = customSoundPath;
-                    _configuration.Audio.CustomSoundPath = customSoundPath;
+                    config.EyeRest.StartAudio.CustomFilePath = customSoundPath;
+                    config.EyeRest.EndAudio.CustomFilePath   = customSoundPath;
+                    config.Break.StartAudio.CustomFilePath   = customSoundPath;
+                    config.Break.EndAudio.CustomFilePath     = customSoundPath;
+                    _configuration.EyeRest.StartAudio.CustomFilePath = customSoundPath;
+                    _configuration.EyeRest.EndAudio.CustomFilePath   = customSoundPath;
+                    _configuration.Break.StartAudio.CustomFilePath   = customSoundPath;
+                    _configuration.Break.EndAudio.CustomFilePath     = customSoundPath;
                 });
-                _originalConfiguration.Audio.CustomSoundPath = customSoundPath;
+                _originalConfiguration.EyeRest.StartAudio.CustomFilePath = customSoundPath;
+                _originalConfiguration.EyeRest.EndAudio.CustomFilePath   = customSoundPath;
+                _originalConfiguration.Break.StartAudio.CustomFilePath   = customSoundPath;
+                _originalConfiguration.Break.EndAudio.CustomFilePath     = customSoundPath;
 
                 _logger.LogInformation($"Auto-saved custom sound path: {customSoundPath}");
             }
@@ -2534,9 +2889,11 @@ namespace EyeRest.UI.ViewModels
                     if (changed.Contains(nameof(EyeRestDurationSeconds)))
                         config.EyeRest.DurationSeconds = EyeRestDurationSeconds;
                     if (changed.Contains(nameof(EyeRestStartSoundEnabled)))
-                        config.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
+                        config.EyeRest.StartAudio.Source = EyeRestStartSoundEnabled
+                            ? AudioChannelSource.Default : AudioChannelSource.Off;
                     if (changed.Contains(nameof(EyeRestEndSoundEnabled)))
-                        config.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
+                        config.EyeRest.EndAudio.Source = EyeRestEndSoundEnabled
+                            ? AudioChannelSource.Default : AudioChannelSource.Off;
                     if (changed.Contains(nameof(EyeRestWarningEnabled)))
                         config.EyeRest.WarningEnabled = EyeRestWarningEnabled;
                     if (changed.Contains(nameof(EyeRestWarningSeconds)))
@@ -2553,6 +2910,21 @@ namespace EyeRest.UI.ViewModels
                         config.Break.RequireConfirmationAfterBreak = RequireConfirmationAfterBreak;
                     if (changed.Contains(nameof(ResetTimersOnBreakConfirmation)))
                         config.Break.ResetTimersOnBreakConfirmation = ResetTimersOnBreakConfirmation;
+
+                    // BL-002 Popup Audio per-channel writes.
+                    if (changed.Contains(nameof(EyeRestStartSource)))   config.EyeRest.StartAudio.Source         = EyeRestStartSource;
+                    if (changed.Contains(nameof(EyeRestStartFilePath))) config.EyeRest.StartAudio.CustomFilePath = EyeRestStartFilePath;
+                    if (changed.Contains(nameof(EyeRestStartUrl)))      config.EyeRest.StartAudio.Url            = EyeRestStartUrl;
+                    if (changed.Contains(nameof(EyeRestEndSource)))     config.EyeRest.EndAudio.Source           = EyeRestEndSource;
+                    if (changed.Contains(nameof(EyeRestEndFilePath)))   config.EyeRest.EndAudio.CustomFilePath   = EyeRestEndFilePath;
+                    if (changed.Contains(nameof(EyeRestEndUrl)))        config.EyeRest.EndAudio.Url              = EyeRestEndUrl;
+                    if (changed.Contains(nameof(BreakStartSource)))     config.Break.StartAudio.Source           = BreakStartSource;
+                    if (changed.Contains(nameof(BreakStartFilePath)))   config.Break.StartAudio.CustomFilePath   = BreakStartFilePath;
+                    if (changed.Contains(nameof(BreakStartUrl)))        config.Break.StartAudio.Url              = BreakStartUrl;
+                    if (changed.Contains(nameof(BreakEndSource)))       config.Break.EndAudio.Source             = BreakEndSource;
+                    if (changed.Contains(nameof(BreakEndFilePath)))     config.Break.EndAudio.CustomFilePath     = BreakEndFilePath;
+                    if (changed.Contains(nameof(BreakEndUrl)))          config.Break.EndAudio.Url                = BreakEndUrl;
+
                     _configuration = config;
                 });
                 _originalConfiguration = CloneConfiguration(_configuration);

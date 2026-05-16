@@ -22,9 +22,11 @@ namespace EyeRest.Services
         TimeSpan? ManualPauseRemaining { get; } // NEW: Remaining manual pause time
         string? PauseReason { get; } // NEW: Reason for current pause
         bool IsAnyNotificationActive { get; } // NEW: Check if either notification is active
+        int ConsecutiveBreakDelayCount { get; } // Track consecutive break delays for max-delay enforcement
         
         Task StartAsync();
         Task StopAsync();
+        Task TriggerImmediateBreakAsync(); // NEW: manual user-triggered break
         Task PauseAsync();
         Task ResumeAsync();
         Task SmartPauseAsync(string reason);
@@ -72,6 +74,7 @@ namespace EyeRest.Services
         public DateTime TriggeredAt { get; set; }
         public TimeSpan NextInterval { get; set; }
         public TimerType Type { get; set; }
+        public EyeRest.Models.BreakTriggerSource Source { get; set; } = EyeRest.Models.BreakTriggerSource.Automatic;
     }
 
     public enum TimerType

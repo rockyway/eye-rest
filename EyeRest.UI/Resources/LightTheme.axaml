@@ -89,6 +89,10 @@
             <GradientStop Color="#D4883A" Offset="0" />
             <GradientStop Color="#C47930" Offset="1" />
         </LinearGradientBrush>
+        <LinearGradientBrush x:Key="BreakNowButtonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Color="#0E7490" Offset="0" />
+            <GradientStop Color="#0C5F7A" Offset="1" />
+        </LinearGradientBrush>
         <SolidColorBrush x:Key="MeetingButtonBackground" Color="#4DDBEAFE" />
         <SolidColorBrush x:Key="MeetingButtonText" Color="#1D4ED8" />
         <SolidColorBrush x:Key="SliderBadgeBackground" Color="#66FFFFFF" />

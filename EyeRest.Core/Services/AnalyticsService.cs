@@ -129,9 +129,31 @@ namespace EyeRest.Services
                     Duration INTEGER,
                     ConfiguredDuration INTEGER,
                     SessionId INTEGER,
+                    TriggerSource TEXT NOT NULL DEFAULT 'Automatic',
                     FOREIGN KEY (SessionId) REFERENCES UserSessions (Id)
                 )";
             command.ExecuteNonQuery();
+
+            // Idempotent migration: add TriggerSource column to legacy databases
+            command.CommandText = "PRAGMA table_info(RestEvents)";
+            bool hasTriggerSource = false;
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (string.Equals(reader.GetString(1), "TriggerSource", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasTriggerSource = true;
+                        break;
+                    }
+                }
+            }
+            if (!hasTriggerSource)
+            {
+                command.CommandText = "ALTER TABLE RestEvents ADD COLUMN TriggerSource TEXT NOT NULL DEFAULT 'Automatic'";
+                command.ExecuteNonQuery();
+                _logger.LogInformation("📊 Migrated RestEvents: added TriggerSource column");
+            }
             
             // Create PresenceEvents table
             command.CommandText = @"
@@ -331,9 +353,76 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task RecordBreakEventAsync(RestEventType type, UserAction action, TimeSpan duration)
+        public async Task RecordBreakEventAsync(RestEventType type, UserAction action, TimeSpan duration, BreakTriggerSource source = BreakTriggerSource.Automatic)
         {
-            await RecordEyeRestEventAsync(type, action, duration);
+            try
+            {
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+
+                    using var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        INSERT INTO RestEvents (EventType, TriggeredAt, UserAction, Duration, ConfiguredDuration, TriggerSource)
+                        VALUES (@eventType, @triggeredAt, @userAction, @duration, @configuredDuration, @triggerSource)";
+
+                    command.Parameters.AddWithValue("@eventType", type.ToString());
+                    command.Parameters.AddWithValue("@triggeredAt", DateTime.Now);
+                    command.Parameters.AddWithValue("@userAction", action.ToString());
+                    command.Parameters.AddWithValue("@duration", (int)duration.TotalMilliseconds);
+                    command.Parameters.AddWithValue("@configuredDuration", type == RestEventType.EyeRest ? 20000 : 5000);
+                    command.Parameters.AddWithValue("@triggerSource", source.ToString());
+
+                    command.ExecuteNonQuery();
+                }
+
+                _logger.LogDebug($"📊 Recorded {type} event: {action} ({source}), Duration: {duration.TotalSeconds}s");
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error recording break event");
+            }
+        }
+
+        public async Task<(int Automatic, int Manual)> GetBreakCountsBySourceAsync(int days)
+        {
+            try
+            {
+                var cutoff = DateTime.Now.AddDays(-Math.Max(days, 0));
+                int autoCount = 0, manualCount = 0;
+
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(_connectionString);
+                    connection.Open();
+
+                    using var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        SELECT TriggerSource, COUNT(*) FROM RestEvents
+                        WHERE EventType = 'Break' AND TriggeredAt >= @cutoff
+                        GROUP BY TriggerSource";
+                    command.Parameters.AddWithValue("@cutoff", cutoff);
+
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var src = reader.GetString(0);
+                        var count = reader.GetInt32(1);
+                        if (string.Equals(src, "Manual", StringComparison.OrdinalIgnoreCase)) manualCount = count;
+                        else autoCount += count;
+                    }
+                }
+
+                await Task.CompletedTask;
+                return (autoCount, manualCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error querying break counts by source");
+                return (0, 0);
+            }
         }
 
         /// <summary>

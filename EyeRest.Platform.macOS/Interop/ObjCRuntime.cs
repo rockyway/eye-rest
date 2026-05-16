@@ -223,6 +223,15 @@ internal static class ObjCRuntime
     internal static extern IntPtr objc_msgSend_IntPtr_Double_Bool(IntPtr receiver, IntPtr selector, double arg1, [MarshalAs(UnmanagedType.I1)] bool arg2);
 
     /// <summary>
+    /// Sends a message with an IntPtr and a bool argument returning IntPtr.
+    /// Used by NSSound -initWithContentsOfFile:byReference: (BL-002 crash fix —
+    /// the single-arg initWithContentsOfFile: form is on NSImage, NOT NSSound).
+    /// Uses proper BOOL marshaling (1-byte) for ARM64 ABI compatibility.
+    /// </summary>
+    [DllImport(ObjCLib, CallingConvention = CallingConvention.Cdecl, EntryPoint = "objc_msgSend")]
+    internal static extern IntPtr objc_msgSend_IntPtr_IntPtr_Bool(IntPtr receiver, IntPtr selector, IntPtr arg1, [MarshalAs(UnmanagedType.I1)] bool arg2);
+
+    /// <summary>
     /// Allocates a new Objective-C class pair for dynamic class registration.
     /// </summary>
     [DllImport(ObjCLib, CallingConvention = CallingConvention.Cdecl)]

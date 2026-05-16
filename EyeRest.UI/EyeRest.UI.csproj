@@ -91,6 +91,13 @@
     <AvaloniaResource Include="Assets\TrayIcons\*.png" />
   </ItemGroup>
 
+  <!-- BL-002: bundled default popup audio (4 WAVs, ~250KB total). Resolved via
+       avares:// in BundledSoundCache and extracted to a deterministic temp path
+       on first play. -->
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\Sounds\*.wav" />
+  </ItemGroup>
+
   <!-- Windows app.ico for system tray (needed in publish output) -->
   <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win')) OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')))">
     <Content Include="..\Resources\app.ico" Link="Resources\app.ico">

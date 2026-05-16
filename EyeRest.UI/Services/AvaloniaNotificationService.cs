@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using EyeRest.Models;
 using EyeRest.UI.Views;
 using Microsoft.Extensions.Logging;
 
@@ -47,6 +48,30 @@ namespace EyeRest.Services
 
         public void SetTimerService(ITimerService timerService) => _timerService = timerService;
 
+        /// <summary>
+        /// BL-002 M5: fire-and-forget play of a per-channel audio config. Runs on the
+        /// thread-pool so the popup show/close path doesn't block on audio I/O. The
+        /// inner exception is swallowed and logged — audio is non-critical for the
+        /// popup pipeline; a missing custom file or unreachable URL must NOT prevent
+        /// the timer from working.
+        /// </summary>
+        private void FireChannelAudio(AudioChannel channel, Func<AppConfiguration, AudioChannelConfig> selector)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var config = await _configurationService.LoadConfigurationAsync().ConfigureAwait(false);
+                    var channelConfig = selector(config);
+                    await _audioService.PlayChannelAsync(channel, channelConfig).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Channel audio fire-and-forget failed for {Channel}", channel);
+                }
+            });
+        }
+
         public async Task ShowEyeRestWarningAsync(TimeSpan timeUntilBreak)
         {
             _isTestMode = false;
@@ -74,6 +99,14 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestWarningPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
+
+                    // Deferred via Dispatcher.Post — see ShowBreakReminderInternalAsync
+                    // for the full race-condition explanation.
+                    myPopup.Closed += (_, _) =>
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(false),
+                            DispatcherPriority.Background);
+
                     myPopup.Show();
 
                     if (myPopup.PopupContent is EyeRestWarningPopup warningPopup)
@@ -133,7 +166,22 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
+
+                    // Deferred via Dispatcher.Post — see ShowBreakReminderInternalAsync
+                    // for the full race-condition explanation.
+                    // BL-002 M5: also fire the EyeRest END channel audio on any close path.
+                    myPopup.Closed += (_, _) =>
+                    {
+                        FireChannelAudio(AudioChannel.EyeRestEnd, c => c.EyeRest.EndAudio);
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(false),
+                            DispatcherPriority.Background);
+                    };
+
                     myPopup.Show();
+
+                    // BL-002 M5: fire the EyeRest START channel audio after the popup is shown.
+                    FireChannelAudio(AudioChannel.EyeRestStart, c => c.EyeRest.StartAudio);
 
                     if (myPopup.PopupContent is EyeRestPopup eyeRestPopup)
                     {
@@ -185,6 +233,16 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakWarningPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
+
+                    // Symmetric defence; deferred via Dispatcher.Post for the same reason
+                    // documented in ShowBreakReminderInternalAsync — the factory's
+                    // Completed → popup.Close() handler fires myPopup.Closed synchronously
+                    // before the inner Completed handler can resolve with `true`.
+                    myPopup.Closed += (_, _) =>
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(false),
+                            DispatcherPriority.Background);
+
                     myPopup.Show();
 
                     if (myPopup.PopupContent is BreakWarningPopup breakWarningPopup)
@@ -216,10 +274,10 @@ namespace EyeRest.Services
             });
         }
 
-        public async Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress)
+        public async Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress, int consecutiveDelayCount = 0, int maxDelays = 0)
         {
             _isTestMode = false;
-            return await ShowBreakReminderInternalAsync(duration, progress);
+            return await ShowBreakReminderInternalAsync(duration, progress, consecutiveDelayCount, maxDelays);
         }
 
         public async Task<BreakAction> ShowBreakReminderTestAsync(TimeSpan duration, IProgress<double> progress)
@@ -282,7 +340,7 @@ namespace EyeRest.Services
             }
         }
 
-        private async Task<BreakAction> ShowBreakReminderInternalAsync(TimeSpan duration, IProgress<double> progress)
+        private async Task<BreakAction> ShowBreakReminderInternalAsync(TimeSpan duration, IProgress<double> progress, int consecutiveDelayCount = 0, int maxDelays = 0)
         {
             // Load config off the UI thread first
             var config = await _configurationService.LoadConfigurationAsync();
@@ -303,13 +361,43 @@ namespace EyeRest.Services
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.Center);
+
+                    // Safety net: any close path that does NOT go through ActionSelected
+                    // (X-button, app shutdown, etc.) must resolve the awaiting task as Skipped
+                    // so the orchestrator can run SmartSessionResetAsync and clear
+                    // _isBreakNotificationActive.
+                    //
+                    // CRITICAL (2026-04-28 regression): the resolution must be DEFERRED via
+                    // Dispatcher.Post. The factory's ActionSelected handler (registered first)
+                    // calls popup.Close() synchronously, which fires myPopup.Closed inside the
+                    // multicast-delegate chain BEFORE the inner ActionSelected handler that
+                    // resolves with the user's actual action runs. Direct resolution here
+                    // races and wins, converting "Delay 5 Minutes" into "Skipped".
+                    // Background priority defers until the synchronous ActionSelected chain
+                    // completes — by then tcs is already resolved with the user's action and
+                    // this Skipped TrySetResult is a no-op. For pure X-close paths (no
+                    // ActionSelected fires), the deferred Skipped wins as intended.
+                    // BL-002 M5: fire the Break END channel audio on any close path.
+                    myPopup.Closed += (_, _) =>
+                    {
+                        FireChannelAudio(AudioChannel.BreakEnd, c => c.Break.EndAudio);
+                        Dispatcher.UIThread.Post(
+                            () => tcs.TrySetResult(BreakAction.Skipped),
+                            DispatcherPriority.Background);
+                    };
+
                     myPopup.Show();
+
+                    // BL-002 M5: fire the Break START channel audio after the popup is shown.
+                    FireChannelAudio(AudioChannel.BreakStart, c => c.Break.StartAudio);
 
                     if (myPopup.PopupContent is BreakPopup breakPopup)
                     {
                         breakPopup.SetConfiguration(
                             config.Break.RequireConfirmationAfterBreak,
                             config.Break.ResetTimersOnBreakConfirmation);
+
+                        breakPopup.SetDelayChipState(consecutiveDelayCount, maxDelays);
 
                         breakPopup.ActionSelected += (s, action) => tcs.TrySetResult(action);
                         breakPopup.StartCountdown(duration, progress);
