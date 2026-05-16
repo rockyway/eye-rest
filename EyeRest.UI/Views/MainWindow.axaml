@@ -1189,6 +1189,20 @@
 
                                 <!-- BL-002: Popup Audio Card (per-channel source picker + retained alternates) -->
                                 <Border Classes="GlassCard">
+                                    <Border.Styles>
+                                        <!-- Theme the TextBoxes inside this card to match the GlassCard surface:
+                                             white text (matches all other glass-card content per GlassStyles.axaml),
+                                             vertically centered glyphs, and a min-height so the input box matches
+                                             the height of the adjacent RadioButton row visually. Scoped to this
+                                             Border so the rest of the app's TextBoxes are unaffected. -->
+                                        <Style Selector="TextBox">
+                                            <Setter Property="Foreground" Value="White" />
+                                            <Setter Property="CaretBrush" Value="White" />
+                                            <Setter Property="VerticalContentAlignment" Value="Center" />
+                                            <Setter Property="MinHeight" Value="34" />
+                                            <Setter Property="Padding" Value="10,0" />
+                                        </Style>
+                                    </Border.Styles>
                                     <StackPanel Spacing="14">
                                         <TextBlock Text="Popup Audio" FontSize="16" FontWeight="SemiBold" />
                                         <TextBlock Text="Per-popup audio source. Bundled defaults ship with the app; pick a file or URL to override."
