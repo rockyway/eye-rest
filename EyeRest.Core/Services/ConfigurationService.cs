@@ -71,7 +71,13 @@ namespace EyeRest.Services
                 // any other process reading this file sees the v2 shape. Acquire _configLock
                 // around the rewrite so an in-flight UpdateConfigurationAsync caller can't
                 // interleave its read-modify-write between the migrate and the save.
-                bool jsonNeedsRewrite = !json.Contains("\"SchemaVersion\"");
+                //
+                // BUG FIX: the on-disk JSON uses camelCase ('schemaVersion') because the
+                // serializer uses JsonNamingPolicy.CamelCase. The original PascalCase
+                // Contains check never matched on v2 configs, so every load looked like a
+                // legacy v1 config and triggered an unnecessary save → ConfigurationChanged
+                // event cascade → timer-start race that prevented the timer from starting.
+                bool jsonNeedsRewrite = !json.Contains("\"SchemaVersion\"", StringComparison.OrdinalIgnoreCase);
                 if (jsonNeedsRewrite)
                 {
                     _logger.LogInformation("BL-002: migrated legacy config v1 → v2, persisting new shape");

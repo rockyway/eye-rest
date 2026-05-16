@@ -85,6 +85,30 @@ public class ConfigurationMigrationTests
     }
 
     [Fact]
+    public void Migrate_CamelCaseV2Json_NotReMigrated()
+    {
+        // Regression: ConfigurationService persists with JsonNamingPolicy.CamelCase,
+        // so on-disk property names are 'meta', 'schemaVersion'. Earlier the migrator's
+        // case-sensitive TryGetProperty('SchemaVersion') always returned default v=1
+        // on this real-world JSON shape, causing every load to fire a redundant
+        // migration save → ConfigurationChanged cascade → timer-start race.
+        var camelCaseV2 = """
+        {
+          "meta": { "schemaVersion": 2, "saveCount": 12 },
+          "eyeRest": { "startAudio": { "source": "File", "customFilePath": "/x.wav" }, "endAudio": { "source": "Default" } },
+          "break":   { "startAudio": { "source": "Default" }, "endAudio": { "source": "Default" } },
+          "audio":   { "enabled": true, "volume": 50 }
+        }
+        """;
+        var cfg = ConfigurationMigrator.MigrateFromJson(camelCaseV2);
+        cfg.Meta!.SchemaVersion.Should().Be(2);
+        cfg.EyeRest.StartAudio.Source.Should().Be(AudioChannelSource.File);
+        cfg.EyeRest.StartAudio.CustomFilePath.Should().Be("/x.wav");
+        // SaveCount must be preserved — proves no spurious migration overwrote it.
+        cfg.Meta.SaveCount.Should().Be(12);
+    }
+
+    [Fact]
     public void Migrate_LegacyAllSoundsDisabled_NoCustomPathLeaks()
     {
         var legacyJson = """
