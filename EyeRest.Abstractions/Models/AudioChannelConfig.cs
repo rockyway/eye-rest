@@ -1,4 +1,4 @@
-namespace EyeRest.Abstractions.Models;
+namespace EyeRest.Models;
 
 public enum AudioChannelSource
 {

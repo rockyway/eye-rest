@@ -42,8 +42,8 @@ namespace EyeRest.Tests.Avalonia.ViewModels
                 {
                     IntervalMinutes = 20,
                     DurationSeconds = 20,
-                    StartSoundEnabled = true,
-                    EndSoundEnabled = true,
+                    StartAudio = new AudioChannelConfig { Source = AudioChannelSource.Default },
+                    EndAudio   = new AudioChannelConfig { Source = AudioChannelSource.Default },
                     WarningEnabled = true,
                     WarningSeconds = 30
                 },

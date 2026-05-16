@@ -44,8 +44,8 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.NotNull(config);
             Assert.Equal(20, config.EyeRest.IntervalMinutes);
             Assert.Equal(20, config.EyeRest.DurationSeconds);
-            Assert.True(config.EyeRest.StartSoundEnabled);
-            Assert.True(config.EyeRest.EndSoundEnabled);
+            Assert.NotEqual(AudioChannelSource.Off, config.EyeRest.StartAudio.Source);
+            Assert.NotEqual(AudioChannelSource.Off, config.EyeRest.EndAudio.Source);
 
             Assert.Equal(55, config.Break.IntervalMinutes);
             Assert.Equal(5, config.Break.DurationMinutes);
@@ -53,7 +53,11 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.Equal(30, config.Break.WarningSeconds);
 
             Assert.True(config.Audio.Enabled);
-            Assert.Null(config.Audio.CustomSoundPath);
+            // BL-002 schema v2: legacy global Audio.CustomSoundPath removed; defaults assert per-channel.
+            Assert.Null(config.EyeRest.StartAudio.CustomFilePath);
+            Assert.Null(config.EyeRest.EndAudio.CustomFilePath);
+            Assert.Null(config.Break.StartAudio.CustomFilePath);
+            Assert.Null(config.Break.EndAudio.CustomFilePath);
             Assert.Equal(50, config.Audio.Volume);
 
             Assert.False(config.Application.StartWithWindows);

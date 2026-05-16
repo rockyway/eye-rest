@@ -30,8 +30,8 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.NotNull(config);
             Assert.Equal(20, config.EyeRest.IntervalMinutes);
             Assert.Equal(20, config.EyeRest.DurationSeconds);
-            Assert.True(config.EyeRest.StartSoundEnabled);
-            Assert.True(config.EyeRest.EndSoundEnabled);
+            Assert.NotEqual(AudioChannelSource.Off, config.EyeRest.StartAudio.Source);
+            Assert.NotEqual(AudioChannelSource.Off, config.EyeRest.EndAudio.Source);
             Assert.True(config.EyeRest.WarningEnabled);
             Assert.Equal(15, config.EyeRest.WarningSeconds);
 
