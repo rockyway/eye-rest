@@ -67,13 +67,18 @@ namespace EyeRest.Services
 
                 case AudioChannelSource.Default:
                     if (!IsAudioEnabled) return;
-                    // BL-002 M3: when a bundled-sound cache is wired, play the bundled
-                    // WAV via the same file-playback primitive used for Source=File. The
-                    // legacy PlayDefaultAsync (platform named sounds) remains as the
-                    // fallback for setups where no cache is registered (tests, embedded).
-                    if (_bundledSoundCache is not null)
+                    // BL-002 M3: when a bundled-sound cache is wired AND registers an asset
+                    // for this channel, play the bundled WAV via the same file-playback
+                    // primitive used for Source=File. The legacy PlayDefaultAsync (platform
+                    // named sounds — NSSound "Glass"/"Tink" on macOS, SystemSounds.Beep on
+                    // Windows) is the fallback when:
+                    //   (a) no cache is registered (tests, embedded), OR
+                    //   (b) the cache returns null for this channel (channel opts out of
+                    //       bundled audio — e.g. eye-rest channels per user feedback that
+                    //       the curated platform sounds are preferable to synthesized).
+                    var bundledPath = _bundledSoundCache?.GetPath(channel);
+                    if (bundledPath is not null)
                     {
-                        var bundledPath = _bundledSoundCache.GetPath(channel);
                         await GatedAsync(
                             () => PlayFileAsync(bundledPath, cancellationToken),
                             cancellationToken).ConfigureAwait(false);

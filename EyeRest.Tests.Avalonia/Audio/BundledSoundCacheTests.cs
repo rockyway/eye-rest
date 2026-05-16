@@ -39,22 +39,34 @@ public class BundledSoundCacheTests
     [Fact]
     public void GetPath_DistinctChannels_ReturnDistinctFileNames()
     {
-        // Even without successful extraction, the path SHAPE differs per channel
-        // because the filename mapping is channel-specific. We probe the mapping
-        // by catching the extraction failure and inspecting the failure path —
-        // or by short-circuiting if the cache is already populated.
+        // Per the channel opt-out, eye-rest channels return null (legacy named-sound
+        // fallback in AudioServiceBase). Break channels return distinct bundled paths.
         var cache = new BundledSoundCache();
         var paths = new HashSet<string>();
         foreach (var ch in new[]
         {
-            AudioChannel.EyeRestStart, AudioChannel.EyeRestEnd,
             AudioChannel.BreakStart, AudioChannel.BreakEnd,
         })
         {
-            try { paths.Add(cache.GetPath(ch)); } catch { /* see above */ }
+            try
+            {
+                var p = cache.GetPath(ch);
+                if (p is not null) paths.Add(p);
+            }
+            catch { /* no Avalonia app context in headless tests; see other tests */ }
         }
-        // Either all 4 succeeded (test environment has Avalonia) or all failed (no app).
-        // If any succeeded, they must be distinct.
         if (paths.Count > 0) paths.Count.Should().Be(paths.Count, "succeeded paths are distinct per channel");
+    }
+
+    [Fact]
+    public void GetPath_EyeRestChannels_ReturnNull_OptOutOfBundled()
+    {
+        // Eye-rest channels intentionally opt out of bundled WAVs so AudioServiceBase
+        // falls back to the legacy named-sound path (NSSound "Glass"/"Tink" on macOS,
+        // SystemSounds.Beep on Windows). User feedback was that the synthesized chimes
+        // sounded less polished than the curated platform sounds for short eye-rest cues.
+        var cache = new BundledSoundCache();
+        cache.GetPath(AudioChannel.EyeRestStart).Should().BeNull();
+        cache.GetPath(AudioChannel.EyeRestEnd).Should().BeNull();
     }
 }

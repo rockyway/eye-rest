@@ -59,17 +59,13 @@ def concat(*parts: list[float]) -> list[float]:
 def main() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
 
-    # Eye-rest start: ascending two-note chime (A5 → C#6) — gentle look-away nudge
-    write_wav(
-        os.path.join(OUT_DIR, "eye-rest-start.wav"),
-        concat(tone(880.0, 0.20), tone(1108.73, 0.30)),
-    )
-
-    # Eye-rest end: descending two-note chime (C#6 → A5) — soft release
-    write_wav(
-        os.path.join(OUT_DIR, "eye-rest-end.wav"),
-        concat(tone(1108.73, 0.18), tone(880.0, 0.28)),
-    )
+    # Eye-rest channels intentionally use the platform-native named sounds
+    # (NSSound "Glass" / "Tink" on macOS, SystemSounds.Beep on Windows) rather
+    # than bundled WAVs — see BundledSoundCache.GetPath for the opt-out logic.
+    # The synthesized chimes here sounded less polished than the curated platform
+    # sounds for the short eye-rest cue duration. Re-enable by adding the two
+    # write_wav calls back AND removing the EyeRestStart/EyeRestEnd null-return
+    # in BundledSoundCache.GetPath.
 
     # Break start: warm single bell (E5) — firmer "stop working" cue
     write_wav(
