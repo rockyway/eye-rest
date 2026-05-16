@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using EyeRest.Models;
 using EyeRest.UI.Views;
 using Microsoft.Extensions.Logging;
 
@@ -46,6 +47,30 @@ namespace EyeRest.Services
         }
 
         public void SetTimerService(ITimerService timerService) => _timerService = timerService;
+
+        /// <summary>
+        /// BL-002 M5: fire-and-forget play of a per-channel audio config. Runs on the
+        /// thread-pool so the popup show/close path doesn't block on audio I/O. The
+        /// inner exception is swallowed and logged — audio is non-critical for the
+        /// popup pipeline; a missing custom file or unreachable URL must NOT prevent
+        /// the timer from working.
+        /// </summary>
+        private void FireChannelAudio(AudioChannel channel, Func<AppConfiguration, AudioChannelConfig> selector)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var config = await _configurationService.LoadConfigurationAsync().ConfigureAwait(false);
+                    var channelConfig = selector(config);
+                    await _audioService.PlayChannelAsync(channel, channelConfig).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Channel audio fire-and-forget failed for {Channel}", channel);
+                }
+            });
+        }
 
         public async Task ShowEyeRestWarningAsync(TimeSpan timeUntilBreak)
         {
@@ -144,12 +169,19 @@ namespace EyeRest.Services
 
                     // Deferred via Dispatcher.Post — see ShowBreakReminderInternalAsync
                     // for the full race-condition explanation.
+                    // BL-002 M5: also fire the EyeRest END channel audio on any close path.
                     myPopup.Closed += (_, _) =>
+                    {
+                        FireChannelAudio(AudioChannel.EyeRestEnd, c => c.EyeRest.EndAudio);
                         Dispatcher.UIThread.Post(
                             () => tcs.TrySetResult(false),
                             DispatcherPriority.Background);
+                    };
 
                     myPopup.Show();
+
+                    // BL-002 M5: fire the EyeRest START channel audio after the popup is shown.
+                    FireChannelAudio(AudioChannel.EyeRestStart, c => c.EyeRest.StartAudio);
 
                     if (myPopup.PopupContent is EyeRestPopup eyeRestPopup)
                     {
@@ -345,12 +377,19 @@ namespace EyeRest.Services
                     // completes — by then tcs is already resolved with the user's action and
                     // this Skipped TrySetResult is a no-op. For pure X-close paths (no
                     // ActionSelected fires), the deferred Skipped wins as intended.
+                    // BL-002 M5: fire the Break END channel audio on any close path.
                     myPopup.Closed += (_, _) =>
+                    {
+                        FireChannelAudio(AudioChannel.BreakEnd, c => c.Break.EndAudio);
                         Dispatcher.UIThread.Post(
                             () => tcs.TrySetResult(BreakAction.Skipped),
                             DispatcherPriority.Background);
+                    };
 
                     myPopup.Show();
+
+                    // BL-002 M5: fire the Break START channel audio after the popup is shown.
+                    FireChannelAudio(AudioChannel.BreakStart, c => c.Break.StartAudio);
 
                     if (myPopup.PopupContent is BreakPopup breakPopup)
                     {
