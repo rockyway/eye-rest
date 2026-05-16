@@ -200,5 +200,10 @@ namespace EyeRest.Models
         public int SaveCount { get; set; }
         public int ProcessId { get; set; }
         public string? ExecutablePath { get; set; }
+
+        // BL-002: config schema version. 1 = pre-BL002 (legacy bool toggles + global
+        // CustomSoundPath). 2 = BL002 per-channel AudioChannelConfig. Defaults to 1 so
+        // pre-existing configs without this field migrate on next load.
+        public int SchemaVersion { get; set; } = 1;
     }
 }
