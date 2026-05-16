@@ -203,6 +203,19 @@ namespace EyeRest.UI.ViewModels
             TestBreakEndChannelCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
                 async () => await TestChannelAsync(AudioChannel.BreakEnd, BreakEndSource, BreakEndFilePath, BreakEndUrl));
 
+            // BL-002 Popup Audio: one Browse command per channel — opens the native file
+            // picker (Finder on macOS, Explorer on Windows) so the user can locate a file
+            // without typing the full path. The Browse button is shown only when the
+            // channel's Source = File, per the conditional-visibility binding in AXAML.
+            BrowseEyeRestStartFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => EyeRestStartFilePath = p));
+            BrowseEyeRestEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => EyeRestEndFilePath = p));
+            BrowseBreakStartFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => BreakStartFilePath = p));
+            BrowseBreakEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
+                async () => await BrowseAudioFileAsync(p => BreakEndFilePath = p));
+
             // Test commands
             TestWarningCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TestWarningPopup());
             TestPopupCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TestEyeRestPopup());
@@ -1164,6 +1177,12 @@ namespace EyeRest.UI.ViewModels
         public ICommand TestEyeRestEndChannelCommand { get; }
         public ICommand TestBreakStartChannelCommand { get; }
         public ICommand TestBreakEndChannelCommand { get; }
+
+        // BL-002 Popup Audio per-channel Browse commands (opens native file picker).
+        public ICommand BrowseEyeRestStartFileCommand { get; }
+        public ICommand BrowseEyeRestEndFileCommand { get; }
+        public ICommand BrowseBreakStartFileCommand { get; }
+        public ICommand BrowseBreakEndFileCommand { get; }
 
         // Test commands
         public ICommand TestWarningCommand { get; }
@@ -2463,6 +2482,45 @@ namespace EyeRest.UI.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Audio test failed");
+            }
+        }
+
+        // BL-002 Popup Audio: opens the OS file picker and feeds the selected path to the
+        // given setter (one of the EyeRestStart/End or BreakStart/End FilePath properties).
+        // The setter itself drives the dirty-tracking save via the property's setter pattern.
+        private async Task BrowseAudioFileAsync(Action<string?> setPath)
+        {
+            try
+            {
+                var topLevel = GetTopLevel();
+                if (topLevel is null)
+                {
+                    _logger.LogWarning("Cannot open per-channel file picker — no top-level window");
+                    return;
+                }
+                var files = await topLevel.StorageProvider.OpenFilePickerAsync(
+                    new Avalonia.Platform.Storage.FilePickerOpenOptions
+                    {
+                        Title = "Select Audio File for Popup Channel",
+                        AllowMultiple = false,
+                        FileTypeFilter = new[]
+                        {
+                            new Avalonia.Platform.Storage.FilePickerFileType("Audio Files")
+                            { Patterns = new[] { "*.wav", "*.mp3", "*.ogg", "*.flac", "*.m4a" } },
+                            new Avalonia.Platform.Storage.FilePickerFileType("All Files")
+                            { Patterns = new[] { "*.*" } },
+                        },
+                    });
+                if (files.Count > 0)
+                {
+                    var path = files[0].Path.LocalPath;
+                    setPath(path);
+                    _logger.LogInformation("Per-channel audio file selected: {Path}", path);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to open per-channel file picker");
             }
         }
 
