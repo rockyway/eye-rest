@@ -27,20 +27,28 @@ namespace EyeRest.UI.Services
             Directory.CreateDirectory(CacheDir);
         }
 
-        public string GetPath(AudioChannel channel)
-            => _extracted.GetOrAdd(channel, Extract);
+        public string? GetPath(AudioChannel channel)
+        {
+            // Eye-rest channels opt out of bundled WAVs — user feedback was that the
+            // synthesized chimes sound less polished than the platform-native named
+            // sounds (NSSound "Glass" / "Tink" on macOS). Returning null routes
+            // AudioServiceBase to the legacy PlayDefaultAsync path for these channels.
+            if (channel == AudioChannel.EyeRestStart || channel == AudioChannel.EyeRestEnd)
+                return null;
+            return _extracted.GetOrAdd(channel, Extract);
+        }
 
         private static string Extract(AudioChannel channel)
         {
             var fileName = channel switch
             {
-                AudioChannel.EyeRestStart => "eye-rest-start.wav",
-                AudioChannel.EyeRestEnd   => "eye-rest-end.wav",
                 AudioChannel.BreakStart   => "break-start.wav",
                 AudioChannel.BreakEnd     => "break-end.wav",
                 // BreakWarning shares the break-start cue; no separate asset yet.
                 AudioChannel.BreakWarning => "break-start.wav",
-                _ => throw new ArgumentOutOfRangeException(nameof(channel)),
+                _ => throw new ArgumentOutOfRangeException(nameof(channel),
+                    $"No bundled asset registered for channel {channel}. "
+                    + "GetPath should have returned null upstream."),
             };
             var destPath = Path.Combine(CacheDir, fileName);
 

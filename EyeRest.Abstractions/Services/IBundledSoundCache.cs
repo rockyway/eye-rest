@@ -10,9 +10,13 @@ namespace EyeRest.Services
     public interface IBundledSoundCache
     {
         /// <summary>
-        /// Returns a filesystem path to the bundled WAV for the given channel.
-        /// Idempotent — repeated calls return the same path without re-extraction.
+        /// Returns a filesystem path to the bundled WAV for the given channel,
+        /// or <c>null</c> if no bundled asset is registered for that channel —
+        /// in which case <see cref="AudioServiceBase"/> falls back to the legacy
+        /// platform-native named-sound path (e.g. NSSound "Glass" on macOS,
+        /// SystemSounds.Beep on Windows). Idempotent — repeated calls return
+        /// the same path without re-extraction.
         /// </summary>
-        string GetPath(AudioChannel channel);
+        string? GetPath(AudioChannel channel);
     }
 }
