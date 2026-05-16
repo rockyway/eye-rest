@@ -26,6 +26,7 @@ namespace EyeRest.Tests.Avalonia.Services
     {
         private readonly FakeTimerFactory _fakeTimerFactory;
         private readonly FakeDispatcherService _fakeDispatcher;
+        private readonly FakeClock _fakeClock;
         private readonly Mock<IConfigurationService> _mockConfigService;
         private readonly Mock<IAnalyticsService> _mockAnalyticsService;
         private readonly Mock<IPauseReminderService> _mockPauseReminderService;
@@ -44,6 +45,7 @@ namespace EyeRest.Tests.Avalonia.Services
         {
             _fakeTimerFactory = new FakeTimerFactory();
             _fakeDispatcher = new FakeDispatcherService();
+            _fakeClock = new FakeClock();
             _logger = NullLogger<TimerService>.Instance;
 
             _mockConfigService = new Mock<IConfigurationService>();
@@ -105,7 +107,8 @@ namespace EyeRest.Tests.Avalonia.Services
                 _mockAnalyticsService.Object,
                 _fakeTimerFactory,
                 _mockPauseReminderService.Object,
-                _fakeDispatcher);
+                _fakeDispatcher,
+                _fakeClock);
 
             _timerService.SetNotificationService(_mockNotificationService.Object);
         }
@@ -367,6 +370,375 @@ namespace EyeRest.Tests.Avalonia.Services
             var heartbeatAge = DateTime.Now - lastHeartbeat;
             Assert.True(heartbeatAge.TotalSeconds < 5,
                 $"Heartbeat should be fresh after resume, but was {heartbeatAge.TotalSeconds:F1}s old");
+        }
+
+        #endregion
+
+        #region End-to-End Bug Report Scenario (2026-04-28 09:43:30 → 09:51:50 incident)
+
+        [Fact]
+        public async Task EndToEnd_EyeRestCoordinationThenBreakPopupThenIdleResume_NoPrematureBreakTick()
+        {
+            // Reproduces the exact user-reported sequence from the 2026-04-28 09:43:30 → 09:51:50 log:
+            //   1. Eye-rest warning fires while break has only ~0.2 min remaining
+            //   2. SmartResumeBreakTimerAfterEyeRest seeds _breakTimer.Interval = 0.2 min (the legitimate tail)
+            //   3. Break tick fires; break popup opens (TriggerBreak stops the timer)
+            //   4. User goes idle while the Complete dialog is still on screen
+            //   5. User returns
+            //   PRE-FIX: SmartResumeAsync cleared _isBreakNotificationActive and started the
+            //   break timer with the stale 0.2 min interval → break-warning popup spawned ~12s
+            //   later → CloseCurrentPopup() killed the original Complete dialog.
+            //   POST-FIX: break timer stays stopped throughout; popup-completion handler
+            //   (orchestrator → SmartSessionResetAsync) is the sole path that restarts it.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var breakTimer = timers[BreakTimerIndex];
+            var eyeRestTimer = timers[EyeRestTimerIndex];
+
+            // Step 1+2: simulate the eye-rest coordination cycle that seeded the tiny break interval.
+            // SmartPauseBreakTimerForEyeRest computes remainder = _breakInterval - (now - _breakStartTime).
+            // Force a 0.2 min remainder by faking elapsed = (_breakInterval - 0.2 min). Read the
+            // real _breakInterval (54.5 min after WarningSeconds reduction, not the raw 55 min)
+            // so this test stays correct if the reduction factor changes.
+            var initialBreakInterval = GetPrivateField<TimeSpan>("_breakInterval");
+            var fakeElapsed = initialBreakInterval - TimeSpan.FromMinutes(0.2);
+            SetPrivateField("_breakStartTime", _fakeClock.Now.Subtract(fakeElapsed));
+            _timerService.SmartPauseBreakTimerForEyeRest();
+            var preservedRemainder = GetPrivateField<TimeSpan>("_breakRemainingTime");
+            Assert.True(preservedRemainder.TotalMinutes < 0.5,
+                $"Step 1: eye-rest coordination must have preserved a tiny break remainder, got {preservedRemainder.TotalMinutes:F2}min");
+
+            _timerService.SmartResumeBreakTimerAfterEyeRest();
+            Assert.True(breakTimer.Interval.TotalMinutes < 0.5,
+                $"Step 2: SmartResumeBreakTimerAfterEyeRest seeded the stale tiny interval, got {breakTimer.Interval.TotalMinutes:F2}min");
+
+            // Step 3: break tick fired and TriggerBreak ran — timer stopped, popup active.
+            breakTimer.Stop();
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            // Step 4: user goes idle while popup is on screen (Fix C: this is now a no-op)
+            await _timerService.SmartPauseAsync("User idle");
+
+            // Step 5: user returns 1 minute later
+            _fakeClock.Advance(TimeSpan.FromMinutes(1));
+            await _timerService.SmartResumeAsync("User returned");
+
+            // Bug verification: break timer must NOT have started, regardless of stale interval.
+            // Pre-fix: this would be true (timer enabled with 0.2 min interval, ticking ~12s later).
+            // Post-fix: break timer stays stopped — the popup-completion handler will restart it.
+            Assert.False(breakTimer.IsEnabled,
+                "REGRESSION (2026-04-28): break timer running while a break popup is on screen would " +
+                "tick prematurely with the stale 0.2 min interval and re-spawn a warning popup that " +
+                "closes the Complete dialog.");
+            Assert.True(GetPrivateField<bool>("_isBreakNotificationActive"),
+                "Notification flag must persist so the popup-completion handler can clear it");
+            Assert.False(_timerService.IsSmartPaused,
+                "Smart-pause state should be clean so the popup-completion handler's restart path works");
+        }
+
+        [Fact]
+        public async Task EndToEnd_AfterDeferredResume_PopupCompletionViaSessionResetRestartsTimersWithFullInterval()
+        {
+            // Continuation of the previous test: after the user finally clicks Complete (or any
+            // BreakAction that funnels into SmartSessionResetAsync), the timer service must
+            // restart cleanly with full intervals. This is the "happy path after deferred resume".
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var breakTimer = timers[BreakTimerIndex];
+            var eyeRestTimer = timers[EyeRestTimerIndex];
+
+            // Set up the post-bug-scenario state: stale interval, popup active, both timers stopped.
+            breakTimer.Interval = TimeSpan.FromMinutes(0.2);
+            eyeRestTimer.Interval = TimeSpan.FromSeconds(5);
+            breakTimer.Stop();
+            eyeRestTimer.Stop();
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            // User finally clicks Complete (or Skipped/ConfirmedAfterCompletion/etc.)
+            // Orchestrator calls SmartSessionResetAsync.
+            await _timerService.SmartSessionResetAsync("Break completed - starting fresh session");
+
+            Assert.True(breakTimer.IsEnabled, "Break timer must restart after session reset");
+            Assert.True(eyeRestTimer.IsEnabled, "Eye-rest timer must restart after session reset");
+            Assert.True(breakTimer.Interval.TotalMinutes > 54.0,
+                $"Break interval must be reset to full, got {breakTimer.Interval.TotalMinutes:F1}min");
+            Assert.True(eyeRestTimer.Interval.TotalMinutes > 19.0,
+                $"Eye-rest interval must be reset to full, got {eyeRestTimer.Interval.TotalMinutes:F1}min");
+            Assert.False(GetPrivateField<bool>("_isBreakNotificationActive"),
+                "Notification flag must be cleared by session reset");
+        }
+
+        [Fact]
+        public async Task EndToEnd_LongIdleDuringActiveBreakPopup_StillDefersTimerStart()
+        {
+            // Variant: user goes idle for >5 minutes (past break duration) during the popup.
+            // Fix C makes SmartPause a no-op, so even a long idle doesn't change timer state.
+            // The "natural break" reset path inside SmartResume must NOT run because no
+            // SmartPause happened in the first place.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var breakTimer = timers[BreakTimerIndex];
+
+            breakTimer.Interval = TimeSpan.FromMinutes(0.2);
+            breakTimer.Stop();
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            // User goes idle for 10 minutes (well past the 5min break duration)
+            await _timerService.SmartPauseAsync("User idle");
+            _fakeClock.Advance(TimeSpan.FromMinutes(10));
+            await _timerService.SmartResumeAsync("User returned");
+
+            Assert.False(breakTimer.IsEnabled,
+                "Even after 10min idle, break timer must not start while popup is on screen");
+            Assert.True(GetPrivateField<bool>("_isBreakNotificationActive"));
+        }
+
+        [Fact]
+        public async Task EndToEnd_RaceConditionNotificationActivatesAfterPauseCompleted_SmartResumeStillDefers()
+        {
+            // Race scenario: SmartPause completes successfully (no popup yet), THEN a popup
+            // notification activates while paused (delayed event from a prior cycle), THEN
+            // SmartResume runs. This exercises Fix B (SmartResume defers when notification active)
+            // — the path Fix C alone wouldn't catch.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var breakTimer = timers[BreakTimerIndex];
+
+            // Step A: pause normally (no popup yet)
+            await _timerService.SmartPauseAsync("User idle");
+            Assert.True(_timerService.IsSmartPaused);
+            Assert.False(breakTimer.IsEnabled);
+
+            // Step B: notification becomes active during the pause window
+            SetPrivateField("_isBreakNotificationActive", true);
+            breakTimer.Interval = TimeSpan.FromMinutes(0.2); // stale interval also present
+
+            // Step C: user returns
+            _fakeClock.Advance(TimeSpan.FromMinutes(1));
+            await _timerService.SmartResumeAsync("User returned");
+
+            Assert.False(breakTimer.IsEnabled,
+                "Race-fix (Fix B): SmartResume must defer timer start when notification is active, " +
+                "even if the notification activated AFTER SmartPause already ran");
+            Assert.True(GetPrivateField<bool>("_isBreakNotificationActive"));
+            Assert.False(_timerService.IsSmartPaused);
+        }
+
+        [Fact]
+        public async Task EndToEnd_SmartResumeBreakTimerAfterEyeRest_WithEmptyRemainder_ResetsToFullInterval()
+        {
+            // Path coverage for the fallback in SmartResumeBreakTimerAfterEyeRest:
+            // when _breakRemainingTime is zero (user took a long natural rest during the
+            // eye-rest popup, or initial state), the resume should fall back to a fresh
+            // full break interval (Coordination.cs:125-144) rather than starting with zero.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var breakTimer = timers[BreakTimerIndex];
+
+            // Force the post-pause state: timer stopped, paused-flag set, remainder zero
+            breakTimer.Stop();
+            SetPrivateField("_breakTimerPausedForEyeRest", true);
+            SetPrivateField("_breakRemainingTime", TimeSpan.Zero);
+
+            _timerService.SmartResumeBreakTimerAfterEyeRest();
+
+            Assert.True(breakTimer.IsEnabled, "Break timer must restart after eye-rest");
+            Assert.True(breakTimer.Interval.TotalMinutes > 54.0,
+                $"Empty-remainder fallback should yield full break interval, got {breakTimer.Interval.TotalMinutes:F1}min");
+        }
+
+        #endregion
+
+        #region Notification-Active Resume Tests (regression for 2026-04-28 bug)
+
+        [Fact]
+        public async Task SmartResume_DuringActiveBreakNotification_DoesNotRestartTimers()
+        {
+            // Reproduces the 2026-04-28 09:51:35 bug:
+            // User went idle while the break Complete dialog was open, returned, and
+            // SmartResume cleared _isBreakNotificationActive and called _breakTimer.Start()
+            // with a stale tiny interval (set during prior eye-rest coordination).
+            // Result: a duplicate break-warning popup spawned over the active break dialog
+            // and closed it via NotificationService.CloseCurrentPopup().
+            //
+            // Expected: while a break popup is still showing, SmartResume must keep the
+            // notification flag, leave the timers stopped, and clear IsSmartPaused so the
+            // popup-completion handler (RestartBreakTimerAfterCompletion) can later start
+            // the timers cleanly with a fresh full interval.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var breakTimer = timers[BreakTimerIndex];
+            var eyeRestTimer = timers[EyeRestTimerIndex];
+
+            // Pause first (no popup yet — would be no-op now if popup were active).
+            await _timerService.SmartPauseAsync("User idle");
+            Assert.True(_timerService.IsSmartPaused);
+
+            // Simulate that the break popup *became* active during the pause window
+            // (e.g., a delayed event that landed after SmartPause completed) and that
+            // a stale 0.2-min interval was seeded by prior SmartResumeBreakTimerAfterEyeRest.
+            SetPrivateField("_isBreakNotificationActive", true);
+            breakTimer.Interval = TimeSpan.FromMinutes(0.2);
+            SetPrivateField("_pauseStartTime", DateTime.Now.AddMinutes(-1));
+
+            await _timerService.SmartResumeAsync("User returned");
+
+            Assert.False(breakTimer.IsEnabled,
+                "Break timer must not be started while a break popup is still active");
+            Assert.False(eyeRestTimer.IsEnabled,
+                "Eye-rest timer must not be started while a break popup is still active");
+            Assert.True(GetPrivateField<bool>("_isBreakNotificationActive"),
+                "_isBreakNotificationActive must not be cleared by SmartResume during an active popup");
+            Assert.False(_timerService.IsSmartPaused,
+                "IsSmartPaused must be cleared so RestartBreakTimerAfterCompletion can start timers later");
+        }
+
+        [Fact]
+        public async Task SmartResume_DuringActiveEyeRestNotification_DoesNotRestartTimers()
+        {
+            // Symmetric guard for the eye-rest popup case.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var eyeRestTimer = timers[EyeRestTimerIndex];
+            var breakTimer = timers[BreakTimerIndex];
+
+            // Pause first (no popup yet), then simulate notification becoming active.
+            await _timerService.SmartPauseAsync("User idle");
+            Assert.True(_timerService.IsSmartPaused);
+
+            SetPrivateField("_isEyeRestNotificationActive", true);
+            SetPrivateField("_pauseStartTime", DateTime.Now.AddSeconds(-30));
+
+            await _timerService.SmartResumeAsync("User returned");
+
+            Assert.False(eyeRestTimer.IsEnabled,
+                "Eye-rest timer must not be started while an eye-rest popup is still active");
+            Assert.False(breakTimer.IsEnabled,
+                "Break timer must not be started while an eye-rest popup is still active");
+            Assert.True(GetPrivateField<bool>("_isEyeRestNotificationActive"),
+                "_isEyeRestNotificationActive must not be cleared by SmartResume during an active popup");
+            Assert.False(_timerService.IsSmartPaused);
+        }
+
+        #endregion
+
+        #region SmartPause-Skipped-During-Active-Popup Tests (regression for 2026-04-28 bug)
+
+        [Fact]
+        public async Task SmartPause_DuringActiveBreakNotification_DoesNothing()
+        {
+            // The user is already taking the break — the popup is on screen and the
+            // user just stepped away from input. Smart-pausing the timer service here
+            // creates the state-management mess that gave us the 09:51:35 bug:
+            // SmartResume must then re-enter and either start timers prematurely or
+            // defer them. Easier: don't pause in the first place.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            await _timerService.SmartPauseAsync("User idle");
+
+            Assert.False(_timerService.IsSmartPaused,
+                "SmartPause must be a no-op while a break popup is still active");
+            // Timer states should not have been changed by the no-op pause.
+            // (We don't assert specific values — just that the pause didn't run.)
+        }
+
+        [Fact]
+        public async Task SmartPause_DuringActiveEyeRestNotification_DoesNothing()
+        {
+            await StartServiceAsync();
+
+            SetPrivateField("_isEyeRestNotificationActive", true);
+
+            await _timerService.SmartPauseAsync("User idle");
+
+            Assert.False(_timerService.IsSmartPaused,
+                "SmartPause must be a no-op while an eye-rest popup is still active");
+        }
+
+        [Fact]
+        public async Task SmartPauseResume_RoundTripUsingFakeClock_ComputesIdleDurationFromClock()
+        {
+            // Demonstrates the new IClock abstraction: time can be advanced
+            // deterministically without SetPrivateField hacks.
+            await StartServiceAsync();
+            var baseTime = new DateTime(2026, 4, 28, 9, 50, 0, DateTimeKind.Local);
+            _fakeClock.Now = baseTime;
+
+            await _timerService.SmartPauseAsync("User idle");
+
+            // Advance the clock by 6 minutes — long enough to qualify as a natural
+            // break (>= 5min break duration) so both timers reset to full intervals.
+            _fakeClock.Advance(TimeSpan.FromMinutes(6));
+
+            await _timerService.SmartResumeAsync("User returned");
+
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            Assert.True(timers[BreakTimerIndex].Interval.TotalMinutes > 54.0,
+                $"Break should reset to full interval after 6min idle, was {timers[BreakTimerIndex].Interval.TotalMinutes:F1}min");
+            Assert.True(timers[EyeRestTimerIndex].Interval.TotalMinutes > 19.0,
+                $"Eye rest should reset to full interval after 6min idle, was {timers[EyeRestTimerIndex].Interval.TotalMinutes:F1}min");
+        }
+
+        #endregion
+
+        #region Stale Interval Resume Tests (Fix A regression)
+
+        [Fact]
+        public async Task SmartResume_WithStaleBreakInterval_AndNoPreservedRemaining_ResetsToFullInterval()
+        {
+            // Reproduces Fix A: if _breakTimer.Interval was left at a tiny stale value by
+            // a prior coordination (e.g., 12s from SmartResumeBreakTimerAfterEyeRest) and
+            // SmartResume falls into the "no preserved remaining" path with a short idle,
+            // the timer used to start with that stale interval and fire prematurely.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var breakTimer = timers[BreakTimerIndex];
+
+            // Seed the stale interval that would be set by SmartResumeBreakTimerAfterEyeRest
+            // when the break had only 0.2 minutes remaining.
+            breakTimer.Interval = TimeSpan.FromMinutes(0.2);
+
+            await _timerService.SmartPauseAsync("User idle");
+
+            // Force the "no preserved remaining" branch: zero out _breakRemainingTime and
+            // keep idle short enough to avoid the natural-break reset (< 5min).
+            SetPrivateField("_breakRemainingTime", TimeSpan.Zero);
+            SetPrivateField("_pauseStartTime", DateTime.Now.AddSeconds(-30));
+
+            await _timerService.SmartResumeAsync("User returned");
+
+            Assert.True(breakTimer.IsEnabled);
+            Assert.True(breakTimer.Interval.TotalMinutes > 1.0,
+                $"Break timer interval should be reset to a fresh full interval, " +
+                $"not the stale 0.2min value. Was {breakTimer.Interval.TotalMinutes:F2}min");
+        }
+
+        [Fact]
+        public async Task SmartResume_WithStaleEyeRestInterval_AndNoPreservedRemaining_ResetsToFullInterval()
+        {
+            // Same bug pattern for the eye-rest timer's else-branch.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var eyeRestTimer = timers[EyeRestTimerIndex];
+
+            eyeRestTimer.Interval = TimeSpan.FromSeconds(5);
+
+            await _timerService.SmartPauseAsync("User idle");
+
+            SetPrivateField("_eyeRestRemainingTime", TimeSpan.Zero);
+            // Idle = 5s < 20s eye-rest duration, so neither the natural-rest reset
+            // nor the preserved-remaining path will trigger.
+            SetPrivateField("_pauseStartTime", DateTime.Now.AddSeconds(-5));
+
+            await _timerService.SmartResumeAsync("User returned");
+
+            Assert.True(eyeRestTimer.IsEnabled);
+            Assert.True(eyeRestTimer.Interval.TotalMinutes > 1.0,
+                $"Eye-rest timer interval should be reset to a fresh full interval, " +
+                $"not the stale 5s value. Was {eyeRestTimer.Interval.TotalMinutes:F2}min");
         }
 
         #endregion

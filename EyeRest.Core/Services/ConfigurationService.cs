@@ -58,15 +58,41 @@ namespace EyeRest.Services
                     return defaultConfig;
                 }
 
-                using (var stream = File.OpenRead(_configFilePath))
-                {
-                    var configuration = await JsonSerializer.DeserializeAsync<AppConfiguration>(stream, s_jsonOptions);
+                // BL-002 schema v2: read raw JSON text first so ConfigurationMigrator can
+                // inspect Meta.SchemaVersion before strongly-typed deserialization. The migrator
+                // upgrades v1 (legacy bool toggles + global CustomSoundPath) into v2 per-channel
+                // shape, and refuses-to-load configs with a newer SchemaVersion than this binary
+                // supports (stale-binary corruption guard).
+                var json = await File.ReadAllTextAsync(_configFilePath);
+                var configuration = ConfigurationMigrator.MigrateFromJson(json);
 
-                    if (configuration == null)
+                // If the JSON on disk lacked Meta.SchemaVersion (true for legacy v1 configs),
+                // persist the migrated form immediately so subsequent loads short-circuit and
+                // any other process reading this file sees the v2 shape. Acquire _configLock
+                // around the rewrite so an in-flight UpdateConfigurationAsync caller can't
+                // interleave its read-modify-write between the migrate and the save.
+                //
+                // BUG FIX: the on-disk JSON uses camelCase ('schemaVersion') because the
+                // serializer uses JsonNamingPolicy.CamelCase. The original PascalCase
+                // Contains check never matched on v2 configs, so every load looked like a
+                // legacy v1 config and triggered an unnecessary save → ConfigurationChanged
+                // event cascade → timer-start race that prevented the timer from starting.
+                bool jsonNeedsRewrite = !json.Contains("\"SchemaVersion\"", StringComparison.OrdinalIgnoreCase);
+                if (jsonNeedsRewrite)
+                {
+                    _logger.LogInformation("BL-002: migrated legacy config v1 → v2, persisting new shape");
+                    await _configLock.WaitAsync();
+                    try
                     {
-                        _logger.LogWarning("Failed to deserialize configuration, using defaults");
-                        return await GetDefaultConfiguration();
+                        await SaveConfigurationAsync(configuration);
                     }
+                    finally
+                    {
+                        _configLock.Release();
+                    }
+                }
+
+                {
 
                     // Detect external config overwrite (SaveCount regression)
                     if (_currentConfiguration?.Meta != null && configuration.Meta != null
@@ -97,6 +123,18 @@ namespace EyeRest.Services
                     _logger.LogInformation("Configuration loaded successfully");
                     return validatedConfig;
                 }
+            }
+            catch (SchemaVersionTooNewException ex)
+            {
+                // BL-002 refuse-to-load guard. Surface this as a fatal startup error.
+                // Do NOT call GetDefaultConfiguration() and do NOT SaveConfigurationAsync()
+                // — silently overwriting a newer-binary config with defaults is exactly the
+                // stale-binary corruption pattern this throw was added to prevent
+                // (see CLAUDE.md Mar 2026 lessons-learned).
+                _logger.LogCritical(ex,
+                    "BL-002 stale-binary guard tripped: refusing to load config (file v{File} > supported v{Supported})",
+                    ex.FileSchemaVersion, ex.SupportedSchemaVersion);
+                throw;
             }
             catch (Exception ex)
             {
@@ -287,8 +325,6 @@ namespace EyeRest.Services
                 {
                     IntervalMinutes = 20,
                     DurationSeconds = 20,
-                    StartSoundEnabled = true,
-                    EndSoundEnabled = true,
                     WarningEnabled = true,
                     WarningSeconds = 15  // FIXED: Use 15s warning for eye rest (short)
                 },
@@ -303,7 +339,6 @@ namespace EyeRest.Services
                 Audio = new AudioSettings
                 {
                     Enabled = true,
-                    CustomSoundPath = null,
                     Volume = 50
                 },
                 Application = new ApplicationSettings
@@ -391,12 +426,9 @@ namespace EyeRest.Services
                 config.Audio.Volume = 50;
             }
 
-            // Validate custom sound path if provided
-            if (!string.IsNullOrEmpty(config.Audio.CustomSoundPath) && !File.Exists(config.Audio.CustomSoundPath))
-            {
-                _logger.LogWarning($"Custom sound file not found: {config.Audio.CustomSoundPath}, clearing path");
-                config.Audio.CustomSoundPath = null;
-            }
+            // BL-002: per-channel CustomFilePath validation now happens at playback time
+            // (PlayChannelAsync falls back to Default on missing file). The legacy global
+            // AudioSettings.CustomSoundPath was removed in schema v2.
 
             return config;
         }

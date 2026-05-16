@@ -71,19 +71,31 @@ public partial class App : Application
             var logPath = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "EyeRest", "logs", "eyerest-.log");
-            config.WriteTo.Console()
-                  .WriteTo.File(
-                      logPath,
-                      rollingInterval: Serilog.RollingInterval.Hour,
-                      retainedFileCountLimit: 24,
-                      rollOnFileSizeLimit: true,
-                      fileSizeLimitBytes: 5 * 1024 * 1024);
+            config
+                // Allow Debug-level events from PerformanceMonitor so the 15-second
+                // process-stats line (`Process stats: CPU=… | Mem=… | GCHeap=… | GC: g0=… g1=… g2=…`)
+                // is written. Default minimum stays at Information for everything else.
+                .MinimumLevel.Override("EyeRest.Services.PerformanceMonitor", Serilog.Events.LogEventLevel.Debug)
+                .WriteTo.Console()
+                .WriteTo.File(
+                    logPath,
+                    rollingInterval: Serilog.RollingInterval.Hour,
+                    retainedFileCountLimit: 24,
+                    rollOnFileSizeLimit: true,
+                    fileSizeLimitBytes: 5 * 1024 * 1024);
         });
 
         builder.ConfigureServices(services =>
         {
             // Cross-platform dispatcher service (must be registered before platform services)
             services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
+            services.AddSingleton<IClock, SystemClock>();
+
+            // BL-002 M3: bundled-sound cache (Avalonia-only). Must be registered before
+            // the platform AudioService so DI can inject it via the optional constructor
+            // parameter. When this is wired, Source=Default plays the bundled WAV via
+            // the same file-playback primitive used for Source=File.
+            services.AddSingleton<IBundledSoundCache, EyeRest.UI.Services.BundledSoundCache>();
 
             // Platform services — guarded by compile constants so the
             // unused platform assembly is never referenced at compile time,

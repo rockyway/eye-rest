@@ -16,7 +16,7 @@ namespace EyeRest.Services
         {
             try
             {
-                var now = DateTime.Now;
+                var now = _clock.Now;
                 _logger.LogInformation($"👁️ TIMER EVENT: Eye rest timer tick fired at {now:HH:mm:ss.fff}");
                 
                 // ENHANCED CLOCK JUMP DETECTION: Check time since last tick AND system resume
@@ -122,14 +122,36 @@ namespace EyeRest.Services
                 // Log if timer fired significantly early or late
                 if (Math.Abs((elapsed - expectedInterval).TotalSeconds) > 5)
                 {
-                    _logger.LogWarning("⚠️ TIMER ACCURACY: Timer fired {TimingDiff:F1}s {Direction} expected time", 
+                    _logger.LogWarning("⚠️ TIMER ACCURACY: Timer fired {TimingDiff:F1}s {Direction} expected time",
                         Math.Abs((elapsed - expectedInterval).TotalSeconds),
                         elapsed < expectedInterval ? "before" : "after");
                 }
-                
+
+                // SMART COALESCE: When the break is about to fire within the eye-rest occupancy window,
+                // skip this eye-rest tick entirely. Running eye rest first would pause the break,
+                // play out the eye-rest popup, then resume the break with ~0s remaining, causing
+                // back-to-back popups. By skipping, we let the break fire naturally; the post-break
+                // SmartSessionResetAsync will re-arm the eye rest timer fresh.
+                //
+                // The coalesce predicate is a side-effect-free check. We re-arm the eye-rest timer
+                // afterwards so it will fire ~20m later (a safety net in case the break is cancelled
+                // before firing — rare but possible if the user immediately pauses or stops timers).
+                // SmartSessionResetAsync will overwrite the start time again on break completion.
+                if (ShouldCoalesceEyeRestIntoBreak())
+                {
+                    _logger.LogInformation("👁️ COALESCE: skipping eye-rest tick to allow imminent break to fire alone");
+                    _eyeRestTimer?.Stop();
+                    // Restarting a DispatcherTimer synchronously from inside its own Tick handler
+                    // can wedge Avalonia's entire timer queue (observed in production: a single
+                    // coalesce tick stopped every DispatcherTimer in the app). Defer the re-arm
+                    // so this tick fully unwinds before _eyeRestTimer.Start() runs again.
+                    _dispatcherService.BeginInvoke(() => _ = RestartEyeRestTimerAfterCompletion());
+                    return;
+                }
+
                 _logger.LogInformation("👁️ TIMER EVENT: Stopping eye rest timer and starting warning timer");
                 _eyeRestTimer?.Stop();
-                
+
                 // Use public method to ensure proper thread safety
                 StartEyeRestWarningTimer();
                 
@@ -157,7 +179,7 @@ namespace EyeRest.Services
         {
             try
             {
-                var now = DateTime.Now;
+                var now = _clock.Now;
                 _logger.LogInformation($"☕ TIMER EVENT: Break timer tick fired at {now:HH:mm:ss.fff}");
                 
                 // ENHANCED CLOCK JUMP DETECTION: Check time since last tick AND system resume
@@ -322,7 +344,7 @@ namespace EyeRest.Services
 
                 var eventArgs = new TimerEventArgs
                 {
-                    TriggeredAt = DateTime.Now,
+                    TriggeredAt = _clock.Now,
                     NextInterval = warningDuration,
                     Type = TimerType.EyeRestWarning
                 };
@@ -388,9 +410,9 @@ namespace EyeRest.Services
                 _isEyeRestEventProcessing = true;
 
                 // TIMELINE FIX: Record when main timer actually triggered
-                _lastEyeRestTriggeredTime = DateTime.Now;
+                _lastEyeRestTriggeredTime = _clock.Now;
 
-                _logger.LogInformation("👁️ TRIGGER EYE REST: Starting popup at {Time}", DateTime.Now.ToString("HH:mm:ss.fff"));
+                _logger.LogInformation("👁️ TRIGGER EYE REST: Starting popup at {Time}", _clock.Now.ToString("HH:mm:ss.fff"));
 
                 // CRITICAL FIX: Verify notification service is available
                 if (_notificationService == null)
@@ -409,7 +431,7 @@ namespace EyeRest.Services
                 var duration = TimeSpan.FromSeconds(_configuration.EyeRest.DurationSeconds);
                 var eventArgs = new TimerEventArgs
                 {
-                    TriggeredAt = DateTime.Now,
+                    TriggeredAt = _clock.Now,
                     NextInterval = duration,
                     Type = TimerType.EyeRest
                 };
@@ -476,7 +498,7 @@ namespace EyeRest.Services
 
                 var eventArgs = new TimerEventArgs
                 {
-                    TriggeredAt = DateTime.Now,
+                    TriggeredAt = _clock.Now,
                     NextInterval = warningDuration,
                     Type = TimerType.BreakWarning
                 };
@@ -502,12 +524,31 @@ namespace EyeRest.Services
             }
         }
 
-        private void TriggerBreak()
+        public Task TriggerImmediateBreakAsync()
+        {
+            _logger.LogInformation("☕ Manual break requested by user");
+            if (!IsRunning)
+            {
+                _logger.LogInformation("☕ Manual break ignored — timer service is not running");
+                return Task.CompletedTask;
+            }
+            if (IsAnyNotificationActive)
+            {
+                _logger.LogInformation("☕ Manual break ignored — popup already active");
+                return Task.CompletedTask;
+            }
+            _dispatcherService.BeginInvoke(() => TriggerBreak(BreakTriggerSource.Manual));
+            return Task.CompletedTask;
+        }
+
+        private void TriggerBreak(BreakTriggerSource source = BreakTriggerSource.Automatic)
         {
             try
             {
-                // Guard: Don't show break popup if timers were paused during the warning countdown
-                if (IsPaused || IsManuallyPaused || IsSmartPaused)
+                // Guard: Don't show break popup if timers were paused during the warning countdown.
+                // Manual triggers explicitly bypass this guard since the user has requested the break.
+                bool ignorePauseGuard = source == BreakTriggerSource.Manual;
+                if (!ignorePauseGuard && (IsPaused || IsManuallyPaused || IsSmartPaused))
                 {
                     _logger.LogInformation("☕ TriggerBreak blocked — service is paused (Manual={Manual}, Smart={Smart}, Paused={Paused})",
                         IsManuallyPaused, IsSmartPaused, IsPaused);
@@ -531,7 +572,7 @@ namespace EyeRest.Services
                 _isBreakEventProcessing = true;
 
                 // TIMELINE FIX: Record when main break timer actually triggered
-                _lastBreakTriggeredTime = DateTime.Now;
+                _lastBreakTriggeredTime = _clock.Now;
 
                 _logger.LogInformation("☕ Triggering break");
 
@@ -562,11 +603,12 @@ namespace EyeRest.Services
                 var duration = TimeSpan.FromMinutes(_configuration.Break.DurationMinutes);
                 var eventArgs = new TimerEventArgs
                 {
-                    TriggeredAt = DateTime.Now,
+                    TriggeredAt = _clock.Now,
                     NextInterval = duration,
-                    Type = TimerType.Break
+                    Type = TimerType.Break,
+                    Source = source
                 };
-                
+
                 BreakDue?.Invoke(this, eventArgs);
 
                 // CRITICAL FIX: Don't record analytics here - triggering an event is not completing it
@@ -708,7 +750,7 @@ namespace EyeRest.Services
             {
 
                 var warningDuration = TimeSpan.FromSeconds(_configuration.EyeRest.WarningSeconds);
-                var startTime = DateTime.Now;
+                var startTime = _clock.Now;
                 var hasTriggered = false; // Prevent multiple triggers
 
                 // NOTE: Interval is set AFTER timer recreation below (line ~810)
@@ -720,7 +762,7 @@ namespace EyeRest.Services
                     {
                         if (hasTriggered) return; // Prevent multiple executions
 
-                        var elapsed = DateTime.Now - startTime;
+                        var elapsed = _clock.Now - startTime;
                         var remaining = warningDuration - elapsed;
 
                         // CRITICAL FIX: Detect orphaned warning handler (stale state after session reset)
@@ -729,7 +771,7 @@ namespace EyeRest.Services
                         if (remaining.TotalSeconds < -1)
                         {
                             _logger.LogWarning($"🚨 ORPHANED HANDLER DETECTED: Eye rest warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
-                            _logger.LogWarning($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
+                            _logger.LogWarning($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {_clock.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
                             _logger.LogWarning($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
                             hasTriggered = true; // Mark as triggered to prevent further execution
                             return;
@@ -917,7 +959,7 @@ namespace EyeRest.Services
             if (_breakWarningTimer != null && _notificationService != null)
             {
                 var warningDuration = TimeSpan.FromSeconds(_configuration.Break.WarningSeconds);
-                var startTime = DateTime.Now;
+                var startTime = _clock.Now;
                 var hasTriggered = false; // Prevent multiple triggers
 
                 // Create a new event handler to avoid accumulating handlers
@@ -927,7 +969,7 @@ namespace EyeRest.Services
                     {
                         if (hasTriggered) return; // Prevent multiple executions
 
-                        var elapsed = DateTime.Now - startTime;
+                        var elapsed = _clock.Now - startTime;
                         var remaining = warningDuration - elapsed;
 
                         // CRITICAL FIX: Detect orphaned warning handler (stale state after session reset)
@@ -936,7 +978,7 @@ namespace EyeRest.Services
                         if (remaining.TotalSeconds < -1)
                         {
                             _logger.LogWarning($"🚨 ORPHANED HANDLER DETECTED: Break warning shows {remaining.TotalSeconds:F1}s remaining (negative). Session likely reset!");
-                            _logger.LogWarning($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {DateTime.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
+                            _logger.LogWarning($"🚨 Handler startTime: {startTime:HH:mm:ss.fff}, Now: {_clock.Now:HH:mm:ss.fff}, Elapsed: {elapsed.TotalSeconds:F1}s");
                             _logger.LogWarning($"🚨 Aborting orphaned handler execution - session has been reset and this handler is stale");
                             hasTriggered = true; // Mark as triggered to prevent further execution
                             return;

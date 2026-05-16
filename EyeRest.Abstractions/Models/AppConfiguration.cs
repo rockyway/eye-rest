@@ -28,8 +28,8 @@ namespace EyeRest.Models
     {
         public int IntervalMinutes { get; set; } = 20;
         public int DurationSeconds { get; set; } = 20;
-        public bool StartSoundEnabled { get; set; } = true;
-        public bool EndSoundEnabled { get; set; } = true;
+        public AudioChannelConfig StartAudio { get; set; } = new();
+        public AudioChannelConfig EndAudio { get; set; } = new();
         public bool WarningEnabled { get; set; } = true;
         public int WarningSeconds { get; set; } = 15;
     }
@@ -38,20 +38,26 @@ namespace EyeRest.Models
     {
         public int IntervalMinutes { get; set; } = 55;  // FIXED: Correct PRD default (55 minutes)
         public int DurationMinutes { get; set; } = 5;   // FIXED: Correct PRD default (5 minutes)
-        public bool StartSoundEnabled { get; set; } = true; // Play sound when break popup starts
-        public bool EndSoundEnabled { get; set; } = true;   // Play sound when break popup ends
+        public AudioChannelConfig StartAudio { get; set; } = new();
+        public AudioChannelConfig EndAudio { get; set; } = new();
         public bool WarningEnabled { get; set; } = true;
         public int WarningSeconds { get; set; } = 30;
         public int OverlayOpacityPercent { get; set; } = 50; // Screen overlay opacity (0-100%)
         public bool RequireConfirmationAfterBreak { get; set; } = true; // Keep popup open until user confirms completion
         public bool ResetTimersOnBreakConfirmation { get; set; } = true; // Start fresh session after break confirmation
+        public int MaxBreakDelayCount { get; set; } = 3; // Maximum consecutive delays before break is forced (0 = unlimited)
     }
 
     public class AudioSettings
     {
         public bool Enabled { get; set; } = true;
-        public string? CustomSoundPath { get; set; }
         public int Volume { get; set; } = 50;
+
+        // BL-002 recent-items: shared across all 4 channels by field type. Capped at
+        // 10 entries each, most-recent first, deduped. The recent-button flyout
+        // beside each File/URL field reads from these lists.
+        public List<string> RecentFilePaths { get; set; } = new();
+        public List<string> RecentUrls { get; set; } = new();
     }
 
     public enum ThemeMode
@@ -199,5 +205,10 @@ namespace EyeRest.Models
         public int SaveCount { get; set; }
         public int ProcessId { get; set; }
         public string? ExecutablePath { get; set; }
+
+        // BL-002: config schema version. 1 = pre-BL002 (legacy bool toggles + global
+        // CustomSoundPath). 2 = BL002 per-channel AudioChannelConfig. Defaults to 1 so
+        // pre-existing configs without this field migrate on next load.
+        public int SchemaVersion { get; set; } = 1;
     }
 }
