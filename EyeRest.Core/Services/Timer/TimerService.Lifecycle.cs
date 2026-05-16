@@ -480,9 +480,9 @@ namespace EyeRest.Services
                 _breakDelayTimer.Start();
                 _logger.LogInformation("🔧 Break delay timer started for {Minutes} minute(s)", delay.TotalMinutes);
 
-                // Record the delay as a break event with appropriate action
-                var delayAction = delay.TotalMinutes >= 5 ? UserAction.Delayed5Min : UserAction.Delayed1Min;
-                await _analyticsService.RecordBreakEventAsync(RestEventType.Break, delayAction, delay);
+                // Delay event recording lives in ApplicationOrchestrator.OnBreakDue
+                // (case DelayOneMinute / DelayFiveMinutes); recording it here too
+                // double-counted delays and suppressed compliance.
             }
             catch (Exception ex)
             {
