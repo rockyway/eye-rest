@@ -1749,7 +1749,7 @@
                                             <TextBlock Text="{Binding AnalyticsHealthStatusText}"
                                                        FontSize="10"
                                                        FontWeight="SemiBold"
-                                                       Foreground="#FFFFFF"
+                                                       Foreground="{DynamicResource OnAccentBrush}"
                                                        HorizontalAlignment="Center" />
                                         </Border>
                                     </StackPanel>
