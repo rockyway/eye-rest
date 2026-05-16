@@ -72,10 +72,13 @@ public partial class App : Application
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "EyeRest", "logs", "eyerest-.log");
             config
-                // Allow Debug-level events from PerformanceMonitor so the 15-second
-                // process-stats line (`Process stats: CPU=… | Mem=… | GCHeap=… | GC: g0=… g1=… g2=…`)
-                // is written. Default minimum stays at Information for everything else.
+#if DEBUG
+                // Debug builds only: allow Debug-level events from PerformanceMonitor so the
+                // 15-second process-stats line (`Process stats: CPU=… | Mem=… | GCHeap=… | GC: g0=… g1=… g2=…`)
+                // is written. Release builds inherit the default Information minimum, which
+                // suppresses the Debug line entirely (timer still ticks; LogDebug becomes a no-op).
                 .MinimumLevel.Override("EyeRest.Services.PerformanceMonitor", Serilog.Events.LogEventLevel.Debug)
+#endif
                 .WriteTo.Console()
                 .WriteTo.File(
                     logPath,
