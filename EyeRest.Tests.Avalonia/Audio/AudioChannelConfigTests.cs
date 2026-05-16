@@ -1,4 +1,4 @@
-using EyeRest.Abstractions.Models;
+using EyeRest.Models;
 using FluentAssertions;
 using System.Text.Json;
 using Xunit;
@@ -30,5 +30,25 @@ public class AudioChannelConfigTests
         back.Source.Should().Be(AudioChannelSource.File);
         back.CustomFilePath.Should().Be("/tmp/x.wav");
         back.Url.Should().Be("https://example.com");
+    }
+
+    [Fact]
+    public void EyeRestSettings_NewInstance_HasDefaultStartAudio_AndDefaultEndAudio()
+    {
+        var s = new EyeRestSettings();
+        s.StartAudio.Should().NotBeNull();
+        s.StartAudio.Source.Should().Be(AudioChannelSource.Default);
+        s.EndAudio.Should().NotBeNull();
+        s.EndAudio.Source.Should().Be(AudioChannelSource.Default);
+    }
+
+    [Fact]
+    public void BreakSettings_NewInstance_HasDefaultStartAudio_AndDefaultEndAudio()
+    {
+        var s = new BreakSettings();
+        s.StartAudio.Should().NotBeNull();
+        s.StartAudio.Source.Should().Be(AudioChannelSource.Default);
+        s.EndAudio.Should().NotBeNull();
+        s.EndAudio.Source.Should().Be(AudioChannelSource.Default);
     }
 }

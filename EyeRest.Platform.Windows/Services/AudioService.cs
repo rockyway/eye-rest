@@ -64,22 +64,13 @@ namespace EyeRest.Services
                 _configuration = await _configurationService.LoadConfigurationAsync();
 
                 // ENHANCED: Log current audio configuration for debugging
-                _logger.LogInformation($"🔊 Audio configuration loaded - Enabled: {_configuration.Audio.Enabled}, Volume: {_configuration.Audio.Volume}%, Custom Path: {(_configuration.Audio.CustomSoundPath ?? "None")}");
+                _logger.LogInformation($"🔊 Audio configuration loaded - Enabled: {_configuration.Audio.Enabled}, Volume: {_configuration.Audio.Volume}%");
 
                 // Audio diagnostics disabled — was playing audible test sounds on every startup
 
-                // Validate custom sound file if configured
-                if (!string.IsNullOrEmpty(_configuration.Audio.CustomSoundPath))
-                {
-                    if (File.Exists(_configuration.Audio.CustomSoundPath))
-                    {
-                        _logger.LogInformation($"🔊 ✅ Custom sound file validated: {_configuration.Audio.CustomSoundPath}");
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"🔊 ⚠️ Custom sound file not found: {_configuration.Audio.CustomSoundPath}");
-                    }
-                }
+                // BL-002 schema v2: legacy global Audio.CustomSoundPath removed; per-channel
+                // CustomFilePath fields live on EyeRest/Break StartAudio/EndAudio. Validation
+                // happens at playback time in M2's PlayChannelAsync (fallback to Default on miss).
             }
             catch (Exception ex)
             {
@@ -209,23 +200,24 @@ namespace EyeRest.Services
             _logger.LogInformation($"🔊 🔍 PlayEyeRestStartSound called - CYCLE #{_startSoundCycleCount}");
             _logger.LogInformation($"🔊 🔍 IsAudioEnabled: {IsAudioEnabled}");
             _logger.LogInformation($"🔊 🔍 _configuration.Audio.Enabled: {_configuration.Audio.Enabled}");
-            _logger.LogInformation($"🔊 🔍 _configuration.EyeRest.StartSoundEnabled: {_configuration.EyeRest.StartSoundEnabled}");
+            var startEnabled = _configuration.EyeRest.StartAudio.Source != AudioChannelSource.Off;
+            _logger.LogInformation($"🔊 🔍 EyeRest.StartAudio.Source: {_configuration.EyeRest.StartAudio.Source}");
             _logger.LogInformation($"🔊 🔍 Audio Volume: {_configuration.Audio.Volume}");
-            _logger.LogInformation($"🔊 🔍 Custom Sound Path: {_configuration.Audio.CustomSoundPath ?? "None"}");
 
-            if (!IsAudioEnabled || !_configuration.EyeRest.StartSoundEnabled)
+            if (!IsAudioEnabled || !startEnabled)
             {
-                _logger.LogWarning($"🔊 ❌ CYCLE #{_startSoundCycleCount}: Eye rest start sound SKIPPED - IsAudioEnabled: {IsAudioEnabled}, StartSoundEnabled: {_configuration.EyeRest.StartSoundEnabled}");
+                _logger.LogWarning($"🔊 ❌ CYCLE #{_startSoundCycleCount}: Eye rest start sound SKIPPED - IsAudioEnabled: {IsAudioEnabled}, StartAudio: {_configuration.EyeRest.StartAudio.Source}");
                 return;
             }
 
             // 🔧 ULTRATHINK FIX: Reload configuration to ensure fresh state
             var currentConfig = await _configurationService.LoadConfigurationAsync();
-            _logger.LogInformation($"🔊 🔍 CYCLE #{_startSoundCycleCount}: Config reloaded - StartSoundEnabled: {currentConfig.EyeRest.StartSoundEnabled}");
+            var currentStartEnabled = currentConfig.EyeRest.StartAudio.Source != AudioChannelSource.Off;
+            _logger.LogInformation($"🔊 🔍 CYCLE #{_startSoundCycleCount}: Config reloaded - StartAudio: {currentConfig.EyeRest.StartAudio.Source}");
 
-            if (!currentConfig.Audio.Enabled || !currentConfig.EyeRest.StartSoundEnabled)
+            if (!currentConfig.Audio.Enabled || !currentStartEnabled)
             {
-                _logger.LogWarning($"🔊 ❌ CYCLE #{_startSoundCycleCount}: Config check failed after reload - Audio: {currentConfig.Audio.Enabled}, StartSound: {currentConfig.EyeRest.StartSoundEnabled}");
+                _logger.LogWarning($"🔊 ❌ CYCLE #{_startSoundCycleCount}: Config check failed after reload - Audio: {currentConfig.Audio.Enabled}, StartAudio: {currentConfig.EyeRest.StartAudio.Source}");
                 return;
             }
 
@@ -320,11 +312,12 @@ namespace EyeRest.Services
             // 🔍 ULTRATHINK DIAGNOSTICS: Track end sound cycles for comparison
             _endSoundCycleCount++;
             _logger.LogInformation($"🔊 🔍 PlayEyeRestEndSound called - CYCLE #{_endSoundCycleCount}");
-            _logger.LogInformation($"🔊 🔍 IsAudioEnabled: {IsAudioEnabled}, EndSoundEnabled: {_configuration.EyeRest.EndSoundEnabled}");
+            var endEnabled = _configuration.EyeRest.EndAudio.Source != AudioChannelSource.Off;
+            _logger.LogInformation($"🔊 🔍 IsAudioEnabled: {IsAudioEnabled}, EndAudio: {_configuration.EyeRest.EndAudio.Source}");
 
-            if (!IsAudioEnabled || !_configuration.EyeRest.EndSoundEnabled)
+            if (!IsAudioEnabled || !endEnabled)
             {
-                _logger.LogWarning($"🔊 ❌ CYCLE #{_endSoundCycleCount}: Eye rest end sound SKIPPED - IsAudioEnabled: {IsAudioEnabled}, EndSoundEnabled: {_configuration.EyeRest.EndSoundEnabled}");
+                _logger.LogWarning($"🔊 ❌ CYCLE #{_endSoundCycleCount}: Eye rest end sound SKIPPED - IsAudioEnabled: {IsAudioEnabled}, EndAudio: {_configuration.EyeRest.EndAudio.Source}");
                 return;
             }
 
@@ -371,9 +364,9 @@ namespace EyeRest.Services
 
         public async Task PlayBreakStartSound()
         {
-            if (!IsAudioEnabled || !_configuration.Break.StartSoundEnabled)
+            if (!IsAudioEnabled || _configuration.Break.StartAudio.Source == AudioChannelSource.Off)
             {
-                _logger.LogDebug("🔊 Break start sound skipped - audio disabled or start sound disabled");
+                _logger.LogDebug("🔊 Break start sound skipped - audio disabled or StartAudio.Source == Off");
                 return;
             }
 
@@ -396,9 +389,9 @@ namespace EyeRest.Services
 
         public async Task PlayBreakEndSound()
         {
-            if (!IsAudioEnabled || !_configuration.Break.EndSoundEnabled)
+            if (!IsAudioEnabled || _configuration.Break.EndAudio.Source == AudioChannelSource.Off)
             {
-                _logger.LogDebug("🔊 Break end sound skipped - audio disabled or end sound disabled");
+                _logger.LogDebug("🔊 Break end sound skipped - audio disabled or EndAudio.Source == Off");
                 return;
             }
 
@@ -450,20 +443,10 @@ namespace EyeRest.Services
 
             try
             {
-                // IMPROVED: Always prefer custom sound when configured
-                if (!string.IsNullOrEmpty(_configuration.Audio.CustomSoundPath))
-                {
-                    if (File.Exists(_configuration.Audio.CustomSoundPath))
-                    {
-                        _logger.LogInformation($"🔊 Playing custom sound: {_configuration.Audio.CustomSoundPath}");
-                        PlayCustomSound(_configuration.Audio.CustomSoundPath);
-                        return;
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"🔊 Custom sound file not found: {_configuration.Audio.CustomSoundPath}, falling back to system sound");
-                    }
-                }
+                // BL-002 schema v2: legacy global Audio.CustomSoundPath was removed.
+                // Per-channel custom sound playback is implemented via PlayChannelAsync
+                // (M2). This legacy code path was the only place that played a custom
+                // sound; it now always falls through to the system-sound fallback below.
 
                 // Determine sound type for fallback selection
                 string soundType = GetSoundTypeName(sound);
@@ -718,20 +701,9 @@ namespace EyeRest.Services
             _configuration = e.NewConfiguration;
             
             // ENHANCED: Log detailed configuration changes for debugging
-            _logger.LogInformation($"🔊 Audio configuration updated - Enabled: {_configuration.Audio.Enabled}, Volume: {_configuration.Audio.Volume}%, Custom Path: {(_configuration.Audio.CustomSoundPath ?? "None")}");
-            
-            // Validate new custom sound file if configured
-            if (!string.IsNullOrEmpty(_configuration.Audio.CustomSoundPath))
-            {
-                if (File.Exists(_configuration.Audio.CustomSoundPath))
-                {
-                    _logger.LogInformation($"🔊 ✅ New custom sound file validated: {_configuration.Audio.CustomSoundPath}");
-                }
-                else
-                {
-                    _logger.LogWarning($"🔊 ⚠️ New custom sound file not found: {_configuration.Audio.CustomSoundPath}");
-                }
-            }
+            _logger.LogInformation($"🔊 Audio configuration updated - Enabled: {_configuration.Audio.Enabled}, Volume: {_configuration.Audio.Volume}%");
+            // BL-002 schema v2: global CustomSoundPath removed; custom paths now per-channel
+            // on EyeRest/Break StartAudio/EndAudio. Per-channel validation happens in M4.
         }
 
         /// <summary>
@@ -745,28 +717,34 @@ namespace EyeRest.Services
                 throw new InvalidOperationException("Audio is disabled. Please enable audio in settings first.");
             }
 
+            // BL-002 schema v2: global Audio.CustomSoundPath was removed; custom paths
+            // are now per-channel. Pick the first channel with a CustomFilePath set
+            // as a best-effort "test sound" for the legacy Test button. M4 replaces
+            // this UI entirely with per-channel Test buttons.
+            var candidate =
+                _configuration.EyeRest.StartAudio.CustomFilePath
+                ?? _configuration.EyeRest.EndAudio.CustomFilePath
+                ?? _configuration.Break.StartAudio.CustomFilePath
+                ?? _configuration.Break.EndAudio.CustomFilePath;
+
+            if (string.IsNullOrEmpty(candidate))
+            {
+                _logger.LogWarning("🔊 No per-channel custom sound path configured");
+                throw new InvalidOperationException(
+                    "No custom sound file selected on any channel. Pick one in the Popup Audio settings first.");
+            }
+
+            if (!File.Exists(candidate))
+            {
+                _logger.LogError($"🔊 Custom sound file not found: {candidate}");
+                throw new FileNotFoundException($"The selected custom sound file was not found: {candidate}");
+            }
+
             try
             {
-                _logger.LogInformation("🔊 Testing custom sound file...");
-                
-                if (string.IsNullOrEmpty(_configuration.Audio.CustomSoundPath))
-                {
-                    _logger.LogWarning("🔊 No custom sound path configured");
-                    throw new InvalidOperationException("No custom sound file selected. Please select a custom sound file first.");
-                }
-                
-                if (!File.Exists(_configuration.Audio.CustomSoundPath))
-                {
-                    _logger.LogError($"🔊 Custom sound file not found: {_configuration.Audio.CustomSoundPath}");
-                    throw new FileNotFoundException($"The selected custom sound file was not found: {_configuration.Audio.CustomSoundPath}");
-                }
-                
-                await Task.Run(() =>
-                {
-                    PlayCustomSound(_configuration.Audio.CustomSoundPath);
-                });
-                
-                _logger.LogInformation($"🔊 ✅ Custom sound test completed successfully: {Path.GetFileName(_configuration.Audio.CustomSoundPath)}");
+                _logger.LogInformation($"🔊 Testing custom sound file: {candidate}");
+                await Task.Run(() => PlayCustomSound(candidate));
+                _logger.LogInformation($"🔊 ✅ Custom sound test completed: {Path.GetFileName(candidate)}");
             }
             catch (Exception ex)
             {

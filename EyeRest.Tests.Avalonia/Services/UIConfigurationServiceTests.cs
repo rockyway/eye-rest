@@ -31,7 +31,10 @@ namespace EyeRest.Tests.Avalonia.Services
 
             // Audio defaults
             Assert.True(config.Audio.Enabled);
-            Assert.Null(config.Audio.CustomSoundPath);
+            // BL-002 schema v2: Audio.CustomSoundPath removed (now per-channel under
+            // EyeRest/Break StartAudio/EndAudio). Default audio has only Enabled+Volume.
+            Assert.True(config.Audio.Enabled);
+            Assert.Equal(50, config.Audio.Volume);
             Assert.Equal(50, config.Audio.Volume);
 
             // Application defaults
@@ -171,20 +174,11 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.Equal(80, eventArgs.NewConfiguration!.Audio.Volume);
         }
 
-        [Fact]
-        public async Task SaveConfigurationAsync_InvalidCustomSoundPath_ClearsPath()
-        {
-            // Arrange
-            var config = await _service.GetDefaultConfiguration();
-            config.Audio.CustomSoundPath = "/nonexistent/path/to/sound.wav";
-
-            // Act
-            await _service.SaveConfigurationAsync(config);
-            var loaded = await _service.LoadConfigurationAsync();
-
-            // Assert - Invalid path should be cleared
-            Assert.Null(loaded.Audio.CustomSoundPath);
-        }
+        // BL-002 schema v2: the legacy global Audio.CustomSoundPath was removed, and so
+        // was the load-time "clear invalid path" validation it gated. Custom file paths
+        // are now per-channel and validated at playback time (PlayChannelAsync falls back
+        // to Default on missing file). Test removed; per-channel equivalents to be added
+        // when M4 introduces the new file pickers.
 
         public void Dispose()
         {

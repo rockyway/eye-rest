@@ -1187,8 +1187,9 @@ namespace EyeRest.UI.ViewModels
             // Eye Rest
             EyeRestIntervalMinutes = _configuration.EyeRest.IntervalMinutes;
             EyeRestDurationSeconds = _configuration.EyeRest.DurationSeconds;
-            EyeRestStartSoundEnabled = _configuration.EyeRest.StartSoundEnabled;
-            EyeRestEndSoundEnabled = _configuration.EyeRest.EndSoundEnabled;
+            // BL-002: bool toggles map to Source != Off; M4 replaces these with the source picker.
+            EyeRestStartSoundEnabled = _configuration.EyeRest.StartAudio.Source != AudioChannelSource.Off;
+            EyeRestEndSoundEnabled   = _configuration.EyeRest.EndAudio.Source   != AudioChannelSource.Off;
             EyeRestWarningEnabled = _configuration.EyeRest.WarningEnabled;
             EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
 
@@ -1204,7 +1205,12 @@ namespace EyeRest.UI.ViewModels
             // Audio
             AudioEnabled = _configuration.Audio.Enabled;
             AudioVolume = _configuration.Audio.Volume;
-            CustomSoundPath = _configuration.Audio.CustomSoundPath;
+            // BL-002 schema v2: global CustomSoundPath removed. The VM property is kept for
+            // the existing test-button UI; M4 replaces it with per-channel file pickers.
+            CustomSoundPath = _configuration.EyeRest.StartAudio.CustomFilePath
+                              ?? _configuration.EyeRest.EndAudio.CustomFilePath
+                              ?? _configuration.Break.StartAudio.CustomFilePath
+                              ?? _configuration.Break.EndAudio.CustomFilePath;
 
             // Application
             StartWithWindows = _configuration.Application.StartWithWindows;
@@ -1836,8 +1842,8 @@ namespace EyeRest.UI.ViewModels
                 {
                     IntervalMinutes = config.EyeRest.IntervalMinutes,
                     DurationSeconds = config.EyeRest.DurationSeconds,
-                    StartSoundEnabled = config.EyeRest.StartSoundEnabled,
-                    EndSoundEnabled = config.EyeRest.EndSoundEnabled,
+                    StartAudio = CloneChannel(config.EyeRest.StartAudio),
+                    EndAudio   = CloneChannel(config.EyeRest.EndAudio),
                     WarningEnabled = config.EyeRest.WarningEnabled,
                     WarningSeconds = config.EyeRest.WarningSeconds
                 } : new EyeRestSettings(),
@@ -1845,6 +1851,8 @@ namespace EyeRest.UI.ViewModels
                 {
                     IntervalMinutes = config.Break.IntervalMinutes,
                     DurationMinutes = config.Break.DurationMinutes,
+                    StartAudio = CloneChannel(config.Break.StartAudio),
+                    EndAudio   = CloneChannel(config.Break.EndAudio),
                     WarningEnabled = config.Break.WarningEnabled,
                     WarningSeconds = config.Break.WarningSeconds,
                     OverlayOpacityPercent = config.Break.OverlayOpacityPercent,
@@ -1854,8 +1862,7 @@ namespace EyeRest.UI.ViewModels
                 Audio = config.Audio != null ? new AudioSettings
                 {
                     Enabled = config.Audio.Enabled,
-                    Volume = config.Audio.Volume,
-                    CustomSoundPath = config.Audio.CustomSoundPath
+                    Volume = config.Audio.Volume
                 } : new AudioSettings(),
                 Application = config.Application != null ? new ApplicationSettings
                 {
@@ -1885,6 +1892,17 @@ namespace EyeRest.UI.ViewModels
                 TimerControls = config.TimerControls ?? new TimerControlSettings()
             };
         }
+
+        // BL-002: deep-clone an AudioChannelConfig for snapshot/clone use.
+        private static AudioChannelConfig CloneChannel(AudioChannelConfig? source) =>
+            source is null
+                ? new AudioChannelConfig()
+                : new AudioChannelConfig
+                {
+                    Source = source.Source,
+                    CustomFilePath = source.CustomFilePath,
+                    Url = source.Url,
+                };
 
         #endregion
 
@@ -2488,12 +2506,24 @@ namespace EyeRest.UI.ViewModels
             {
                 _logger.LogInformation($"SaveCustomSoundPathAsync called with value: {customSoundPath}");
 
+                // BL-002 schema v2: write the path into every channel's CustomFilePath but
+                // leave each channel's Source unchanged (user explicitly switches to File
+                // via the M4 per-channel UI). M4 replaces this single-input UX entirely.
                 await _configurationService.UpdateConfigurationAsync(config =>
                 {
-                    config.Audio.CustomSoundPath = customSoundPath;
-                    _configuration.Audio.CustomSoundPath = customSoundPath;
+                    config.EyeRest.StartAudio.CustomFilePath = customSoundPath;
+                    config.EyeRest.EndAudio.CustomFilePath   = customSoundPath;
+                    config.Break.StartAudio.CustomFilePath   = customSoundPath;
+                    config.Break.EndAudio.CustomFilePath     = customSoundPath;
+                    _configuration.EyeRest.StartAudio.CustomFilePath = customSoundPath;
+                    _configuration.EyeRest.EndAudio.CustomFilePath   = customSoundPath;
+                    _configuration.Break.StartAudio.CustomFilePath   = customSoundPath;
+                    _configuration.Break.EndAudio.CustomFilePath     = customSoundPath;
                 });
-                _originalConfiguration.Audio.CustomSoundPath = customSoundPath;
+                _originalConfiguration.EyeRest.StartAudio.CustomFilePath = customSoundPath;
+                _originalConfiguration.EyeRest.EndAudio.CustomFilePath   = customSoundPath;
+                _originalConfiguration.Break.StartAudio.CustomFilePath   = customSoundPath;
+                _originalConfiguration.Break.EndAudio.CustomFilePath     = customSoundPath;
 
                 _logger.LogInformation($"Auto-saved custom sound path: {customSoundPath}");
             }
@@ -2562,9 +2592,11 @@ namespace EyeRest.UI.ViewModels
                     if (changed.Contains(nameof(EyeRestDurationSeconds)))
                         config.EyeRest.DurationSeconds = EyeRestDurationSeconds;
                     if (changed.Contains(nameof(EyeRestStartSoundEnabled)))
-                        config.EyeRest.StartSoundEnabled = EyeRestStartSoundEnabled;
+                        config.EyeRest.StartAudio.Source = EyeRestStartSoundEnabled
+                            ? AudioChannelSource.Default : AudioChannelSource.Off;
                     if (changed.Contains(nameof(EyeRestEndSoundEnabled)))
-                        config.EyeRest.EndSoundEnabled = EyeRestEndSoundEnabled;
+                        config.EyeRest.EndAudio.Source = EyeRestEndSoundEnabled
+                            ? AudioChannelSource.Default : AudioChannelSource.Off;
                     if (changed.Contains(nameof(EyeRestWarningEnabled)))
                         config.EyeRest.WarningEnabled = EyeRestWarningEnabled;
                     if (changed.Contains(nameof(EyeRestWarningSeconds)))

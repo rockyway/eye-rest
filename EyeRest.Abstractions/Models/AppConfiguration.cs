@@ -28,8 +28,8 @@ namespace EyeRest.Models
     {
         public int IntervalMinutes { get; set; } = 20;
         public int DurationSeconds { get; set; } = 20;
-        public bool StartSoundEnabled { get; set; } = true;
-        public bool EndSoundEnabled { get; set; } = true;
+        public AudioChannelConfig StartAudio { get; set; } = new();
+        public AudioChannelConfig EndAudio { get; set; } = new();
         public bool WarningEnabled { get; set; } = true;
         public int WarningSeconds { get; set; } = 15;
     }
@@ -38,8 +38,8 @@ namespace EyeRest.Models
     {
         public int IntervalMinutes { get; set; } = 55;  // FIXED: Correct PRD default (55 minutes)
         public int DurationMinutes { get; set; } = 5;   // FIXED: Correct PRD default (5 minutes)
-        public bool StartSoundEnabled { get; set; } = true; // Play sound when break popup starts
-        public bool EndSoundEnabled { get; set; } = true;   // Play sound when break popup ends
+        public AudioChannelConfig StartAudio { get; set; } = new();
+        public AudioChannelConfig EndAudio { get; set; } = new();
         public bool WarningEnabled { get; set; } = true;
         public int WarningSeconds { get; set; } = 30;
         public int OverlayOpacityPercent { get; set; } = 50; // Screen overlay opacity (0-100%)
@@ -51,7 +51,6 @@ namespace EyeRest.Models
     public class AudioSettings
     {
         public bool Enabled { get; set; } = true;
-        public string? CustomSoundPath { get; set; }
         public int Volume { get; set; } = 50;
     }
 

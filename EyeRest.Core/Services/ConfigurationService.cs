@@ -287,8 +287,6 @@ namespace EyeRest.Services
                 {
                     IntervalMinutes = 20,
                     DurationSeconds = 20,
-                    StartSoundEnabled = true,
-                    EndSoundEnabled = true,
                     WarningEnabled = true,
                     WarningSeconds = 15  // FIXED: Use 15s warning for eye rest (short)
                 },
@@ -303,7 +301,6 @@ namespace EyeRest.Services
                 Audio = new AudioSettings
                 {
                     Enabled = true,
-                    CustomSoundPath = null,
                     Volume = 50
                 },
                 Application = new ApplicationSettings
@@ -391,12 +388,9 @@ namespace EyeRest.Services
                 config.Audio.Volume = 50;
             }
 
-            // Validate custom sound path if provided
-            if (!string.IsNullOrEmpty(config.Audio.CustomSoundPath) && !File.Exists(config.Audio.CustomSoundPath))
-            {
-                _logger.LogWarning($"Custom sound file not found: {config.Audio.CustomSoundPath}, clearing path");
-                config.Audio.CustomSoundPath = null;
-            }
+            // BL-002: per-channel CustomFilePath validation now happens at playback time
+            // (PlayChannelAsync falls back to Default on missing file). The legacy global
+            // AudioSettings.CustomSoundPath was removed in schema v2.
 
             return config;
         }
