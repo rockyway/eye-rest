@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -54,6 +55,13 @@ namespace EyeRest.UI.ViewModels
         private bool _audioEnabled = true;
         private int _audioVolume = 50;
         private string? _customSoundPath;
+
+        // BL-002 recent-items: shared lists across all 4 channels keyed by field type.
+        // Bound to the Recent flyout next to each File / URL field. ObservableCollection
+        // so the flyout ItemsControl auto-refreshes on add/remove.
+        public ObservableCollection<string> RecentAudioFilePaths { get; } = new();
+        public ObservableCollection<string> RecentAudioUrls { get; } = new();
+        private const int MaxRecentItems = 10;
 
         // BL-002 Popup Audio (per-channel). Each channel has Source (Off/Default/File/Url),
         // a retained file path, and a retained URL. Two-way bound to the Popup Audio card.
@@ -205,8 +213,8 @@ namespace EyeRest.UI.ViewModels
 
             // BL-002 Popup Audio: one Browse command per channel — opens the native file
             // picker (Finder on macOS, Explorer on Windows) so the user can locate a file
-            // without typing the full path. The Browse button is shown only when the
-            // channel's Source = File, per the conditional-visibility binding in AXAML.
+            // without typing the full path. The Browse button is always visible beside
+            // each file-path TextBox.
             BrowseEyeRestStartFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
                 async () => await BrowseAudioFileAsync(p => EyeRestStartFilePath = p));
             BrowseEyeRestEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
@@ -215,6 +223,20 @@ namespace EyeRest.UI.ViewModels
                 async () => await BrowseAudioFileAsync(p => BreakStartFilePath = p));
             BrowseBreakEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
                 async () => await BrowseAudioFileAsync(p => BreakEndFilePath = p));
+
+            // BL-002 recent-items: one Pick command per (channel, field-type) — takes a
+            // string CommandParameter (the recent item) and writes it to the channel's
+            // property. Two shared Remove commands strip an item from the recents list.
+            PickRecentEyeRestStartFilePathCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestStartFilePath = s; });
+            PickRecentEyeRestEndFilePathCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestEndFilePath = s; });
+            PickRecentBreakStartFilePathCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakStartFilePath = s; });
+            PickRecentBreakEndFilePathCommand     = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakEndFilePath = s; });
+            PickRecentEyeRestStartUrlCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestStartUrl = s; });
+            PickRecentEyeRestEndUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestEndUrl = s; });
+            PickRecentBreakStartUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakStartUrl = s; });
+            PickRecentBreakEndUrlCommand     = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakEndUrl = s; });
+            RemoveRecentFilePathCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecentFilePath(s); });
+            RemoveRecentUrlCommand      = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecentUrl(s); });
 
             // Test commands
             TestWarningCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TestWarningPopup());
@@ -1184,6 +1206,19 @@ namespace EyeRest.UI.ViewModels
         public ICommand BrowseBreakStartFileCommand { get; }
         public ICommand BrowseBreakEndFileCommand { get; }
 
+        // BL-002 recent-items: Pick commands take a string CommandParameter (the picked
+        // recent entry) and assign it to the channel's FilePath / Url property.
+        public ICommand PickRecentEyeRestStartFilePathCommand { get; }
+        public ICommand PickRecentEyeRestEndFilePathCommand { get; }
+        public ICommand PickRecentBreakStartFilePathCommand { get; }
+        public ICommand PickRecentBreakEndFilePathCommand { get; }
+        public ICommand PickRecentEyeRestStartUrlCommand { get; }
+        public ICommand PickRecentEyeRestEndUrlCommand { get; }
+        public ICommand PickRecentBreakStartUrlCommand { get; }
+        public ICommand PickRecentBreakEndUrlCommand { get; }
+        public ICommand RemoveRecentFilePathCommand { get; }
+        public ICommand RemoveRecentUrlCommand { get; }
+
         // Test commands
         public ICommand TestWarningCommand { get; }
         public ICommand TestPopupCommand { get; }
@@ -1328,6 +1363,14 @@ namespace EyeRest.UI.ViewModels
                               ?? _configuration.EyeRest.EndAudio.CustomFilePath
                               ?? _configuration.Break.StartAudio.CustomFilePath
                               ?? _configuration.Break.EndAudio.CustomFilePath;
+
+            // BL-002 recent-items: hydrate the ObservableCollections from config. Clear
+            // first then re-add so order matches the persisted state and any existing
+            // bindings keep observing the same instance.
+            RecentAudioFilePaths.Clear();
+            foreach (var p in _configuration.Audio.RecentFilePaths) RecentAudioFilePaths.Add(p);
+            RecentAudioUrls.Clear();
+            foreach (var u in _configuration.Audio.RecentUrls) RecentAudioUrls.Add(u);
 
             // BL-002 Popup Audio (M4): load 12 per-channel properties.
             EyeRestStartSource   = _configuration.EyeRest.StartAudio.Source;
@@ -2488,6 +2531,7 @@ namespace EyeRest.UI.ViewModels
         // BL-002 Popup Audio: opens the OS file picker and feeds the selected path to the
         // given setter (one of the EyeRestStart/End or BreakStart/End FilePath properties).
         // The setter itself drives the dirty-tracking save via the property's setter pattern.
+        // After a successful pick, the path is added to RecentAudioFilePaths.
         private async Task BrowseAudioFileAsync(Action<string?> setPath)
         {
             try
@@ -2515,12 +2559,62 @@ namespace EyeRest.UI.ViewModels
                 {
                     var path = files[0].Path.LocalPath;
                     setPath(path);
+                    AddRecentFilePath(path);
                     _logger.LogInformation("Per-channel audio file selected: {Path}", path);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to open per-channel file picker");
+            }
+        }
+
+        // BL-002 recent-items helpers. Dedupe-by-move-to-top: if the value is already
+        // present, remove it first so the newly-added entry is at index 0. Cap at 10.
+        // Saves to config in the background after every change.
+        private void AddRecentFilePath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return;
+            RecentAudioFilePaths.Remove(path);
+            RecentAudioFilePaths.Insert(0, path);
+            while (RecentAudioFilePaths.Count > MaxRecentItems)
+                RecentAudioFilePaths.RemoveAt(RecentAudioFilePaths.Count - 1);
+            _ = SaveRecentsAsync();
+        }
+
+        private void AddRecentUrl(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            RecentAudioUrls.Remove(url);
+            RecentAudioUrls.Insert(0, url);
+            while (RecentAudioUrls.Count > MaxRecentItems)
+                RecentAudioUrls.RemoveAt(RecentAudioUrls.Count - 1);
+            _ = SaveRecentsAsync();
+        }
+
+        private void RemoveRecentFilePath(string path)
+        {
+            if (RecentAudioFilePaths.Remove(path)) _ = SaveRecentsAsync();
+        }
+
+        private void RemoveRecentUrl(string url)
+        {
+            if (RecentAudioUrls.Remove(url)) _ = SaveRecentsAsync();
+        }
+
+        private async Task SaveRecentsAsync()
+        {
+            try
+            {
+                await _configurationService.UpdateConfigurationAsync(c =>
+                {
+                    c.Audio.RecentFilePaths = RecentAudioFilePaths.ToList();
+                    c.Audio.RecentUrls      = RecentAudioUrls.ToList();
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist Popup Audio recents");
             }
         }
 
@@ -2544,6 +2638,11 @@ namespace EyeRest.UI.ViewModels
                     CustomFilePath = filePath,
                     Url = url,
                 };
+                // BL-002 recent-items: clicking Test on URL mode is the user's explicit
+                // confirmation that the URL is the one they want — promote it to recents.
+                // (File mode already adds on Browse; typing a path manually doesn't add,
+                // matching the spec's "user-confirms-this-value" gating.)
+                if (source == AudioChannelSource.Url) AddRecentUrl(url);
                 await Task.Run(() => audioService.PlayChannelAsync(channel, config));
             }
             catch (Exception ex)
