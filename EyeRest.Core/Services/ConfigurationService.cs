@@ -68,12 +68,22 @@ namespace EyeRest.Services
 
                 // If the JSON on disk lacked Meta.SchemaVersion (true for legacy v1 configs),
                 // persist the migrated form immediately so subsequent loads short-circuit and
-                // any other process reading this file sees the v2 shape.
+                // any other process reading this file sees the v2 shape. Acquire _configLock
+                // around the rewrite so an in-flight UpdateConfigurationAsync caller can't
+                // interleave its read-modify-write between the migrate and the save.
                 bool jsonNeedsRewrite = !json.Contains("\"SchemaVersion\"");
                 if (jsonNeedsRewrite)
                 {
                     _logger.LogInformation("BL-002: migrated legacy config v1 → v2, persisting new shape");
-                    await SaveConfigurationAsync(configuration);
+                    await _configLock.WaitAsync();
+                    try
+                    {
+                        await SaveConfigurationAsync(configuration);
+                    }
+                    finally
+                    {
+                        _configLock.Release();
+                    }
                 }
 
                 {
@@ -107,6 +117,18 @@ namespace EyeRest.Services
                     _logger.LogInformation("Configuration loaded successfully");
                     return validatedConfig;
                 }
+            }
+            catch (SchemaVersionTooNewException ex)
+            {
+                // BL-002 refuse-to-load guard. Surface this as a fatal startup error.
+                // Do NOT call GetDefaultConfiguration() and do NOT SaveConfigurationAsync()
+                // — silently overwriting a newer-binary config with defaults is exactly the
+                // stale-binary corruption pattern this throw was added to prevent
+                // (see CLAUDE.md Mar 2026 lessons-learned).
+                _logger.LogCritical(ex,
+                    "BL-002 stale-binary guard tripped: refusing to load config (file v{File} > supported v{Supported})",
+                    ex.FileSchemaVersion, ex.SupportedSchemaVersion);
+                throw;
             }
             catch (Exception ex)
             {
