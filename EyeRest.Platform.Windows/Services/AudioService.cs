@@ -45,8 +45,12 @@ namespace EyeRest.Services
 
         public override bool IsAudioEnabled => _configuration.Audio.Enabled;
 
-        public AudioService(ILogger<AudioService> logger, IConfigurationService configurationService, IUrlOpener urlOpener)
-            : base(urlOpener)
+        public AudioService(
+            ILogger<AudioService> logger,
+            IConfigurationService configurationService,
+            IUrlOpener urlOpener,
+            IBundledSoundCache? bundledSoundCache = null)
+            : base(urlOpener, bundledSoundCache)
         {
             _logger = logger;
             _configurationService = configurationService;
