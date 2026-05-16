@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EyeRest.Platform.macOS.Interop;
 using Microsoft.Extensions.Logging;
@@ -8,8 +9,13 @@ namespace EyeRest.Services
     /// <summary>
     /// macOS implementation of <see cref="IAudioService"/> using NSSound and NSBeep.
     /// Uses named system sounds for different notification events.
+    ///
+    /// BL-002 M2: inherits <see cref="AudioServiceBase"/> which provides the channel-aware
+    /// <c>PlayChannelAsync</c> entry point, source-resolution dispatch, and per-instance
+    /// SemaphoreSlim serialization. This class implements only the platform playback
+    /// primitives plus the legacy Play*Sound adapter overloads.
     /// </summary>
-    public class MacOSAudioService : IAudioService
+    public class MacOSAudioService : AudioServiceBase
     {
         private readonly ILogger<MacOSAudioService> _logger;
         private readonly IConfigurationService _configurationService;
@@ -17,7 +23,9 @@ namespace EyeRest.Services
 
         public MacOSAudioService(
             ILogger<MacOSAudioService> logger,
-            IConfigurationService configurationService)
+            IConfigurationService configurationService,
+            IUrlOpener urlOpener)
+            : base(urlOpener)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
@@ -34,7 +42,7 @@ namespace EyeRest.Services
             _cachedAudioEnabled = e.NewConfiguration.Audio.Enabled;
         }
 
-        public bool IsAudioEnabled => _cachedAudioEnabled;
+        public override bool IsAudioEnabled => _cachedAudioEnabled;
 
         private async Task RefreshAudioConfigAsync()
         {
@@ -49,39 +57,54 @@ namespace EyeRest.Services
             }
         }
 
-        public Task PlayEyeRestStartSound()
+        public override Task PlayEyeRestStartSound() => PlaySoundAsync("Glass", "eye rest start");
+        public override Task PlayEyeRestEndSound()   => PlaySoundAsync("Tink", "eye rest end");
+        public override Task PlayBreakWarningSound() => PlaySoundAsync("Blow", "break warning");
+        public override Task PlayBreakStartSound()   => PlaySoundAsync("Submarine", "break start");
+        public override Task PlayBreakEndSound()     => PlaySoundAsync("Tink", "break end");
+        public override Task PlayCustomSoundTestAsync() => PlaySoundAsync("Hero", "custom sound test");
+        public override Task TestEyeRestAudioAsync() => PlaySoundAsync("Glass", "eye rest audio test");
+
+        // BL-002 M2: PlayDefaultAsync routes channel → existing NSSound-named-sound helpers.
+        // M3 will introduce bundled WAVs and route Default through PlayFileAsync via BundledSoundCache.
+        protected override Task PlayDefaultAsync(AudioChannel channel, CancellationToken ct)
         {
-            return PlaySoundAsync("Glass", "eye rest start");
+            ct.ThrowIfCancellationRequested();
+            return channel switch
+            {
+                AudioChannel.EyeRestStart => PlayEyeRestStartSound(),
+                AudioChannel.EyeRestEnd   => PlayEyeRestEndSound(),
+                AudioChannel.BreakStart   => PlayBreakStartSound(),
+                AudioChannel.BreakEnd     => PlayBreakEndSound(),
+                AudioChannel.BreakWarning => PlayBreakWarningSound(),
+                _ => Task.CompletedTask,
+            };
         }
 
-        public Task PlayEyeRestEndSound()
+        // BL-002 M2: WAV file playback on macOS via NSSound file-URL. NSSound.Play is
+        // asynchronous on the native side; for M2 we kick it off and return — M3 will
+        // tighten this with a completion callback / TaskCompletionSource. Disposal is
+        // handled by the autorelease pool (NSSound is reference-counted by the runtime).
+        protected override Task PlayFileAsync(string filePath, CancellationToken ct)
         {
-            return PlaySoundAsync("Tink", "eye rest end");
-        }
-
-        public Task PlayBreakWarningSound()
-        {
-            return PlaySoundAsync("Blow", "break warning");
-        }
-
-        public Task PlayBreakStartSound()
-        {
-            return PlaySoundAsync("Submarine", "break start");
-        }
-
-        public Task PlayBreakEndSound()
-        {
-            return PlaySoundAsync("Tink", "break end");
-        }
-
-        public Task PlayCustomSoundTestAsync()
-        {
-            return PlaySoundAsync("Hero", "custom sound test");
-        }
-
-        public Task TestEyeRestAudioAsync()
-        {
-            return PlaySoundAsync("Glass", "eye rest audio test");
+            return Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                var pool = Foundation.CreateAutoreleasePool();
+                try
+                {
+                    var played = AppKit.PlaySoundFromFile(filePath);
+                    if (!played)
+                    {
+                        _logger.LogDebug("NSSound failed to play file {File}, NSBeep fallback", filePath);
+                        AppKit.NSBeep();
+                    }
+                }
+                finally
+                {
+                    Foundation.DrainAutoreleasePool(pool);
+                }
+            }, ct);
         }
 
         private Task PlaySoundAsync(string soundName, string context)

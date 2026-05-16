@@ -17,6 +17,7 @@ namespace EyeRest.Platform.Windows
                     sp.GetService<ILoggerFactory>()));
 
             // Platform services
+            services.AddSingleton<IUrlOpener, DefaultUrlOpener>(); // BL-002 M2: must precede IAudioService
             services.AddSingleton<IAudioService, AudioService>();
             services.AddSingleton<ISystemTrayService, SystemTrayService>();
             services.AddSingleton<IStartupManager, StartupManager>();
