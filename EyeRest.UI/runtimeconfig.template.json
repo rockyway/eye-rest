@@ -1,6 +1,7 @@
 {
   "configProperties": {
-    "System.GC.HeapHardLimit": 104857600,
+    "System.GC.DynamicAdaptationMode": 1,
+    "System.GC.RetainVM": false,
     "System.GC.HighMemoryPercent": 80
   }
 }
