@@ -43,6 +43,11 @@ internal static class AppKit
     // NSSound selectors
     private static readonly IntPtr Sel_SoundNamed = ObjCRuntime.sel_registerName("soundNamed:");
     private static readonly IntPtr Sel_Play = ObjCRuntime.sel_registerName("play");
+    // BL-002 crash fix: NSSound's file init has a byReference: argument. The bare
+    // single-arg initWithContentsOfFile: is on NSImage, not NSSound — sending it
+    // to an NSSound alloc throws NSInvalidArgumentException at runtime.
+    private static readonly IntPtr Sel_SoundInitWithContentsOfFileByRef =
+        ObjCRuntime.sel_registerName("initWithContentsOfFile:byReference:");
 
     #endregion
 
@@ -234,7 +239,11 @@ internal static class AppKit
         var alloc = ObjCRuntime.objc_msgSend_IntPtr(Class_NSSound, ObjCRuntime.Sel_Alloc);
         if (alloc == IntPtr.Zero) return false;
 
-        var sound = ObjCRuntime.objc_msgSend_IntPtr_IntPtr(alloc, Sel_InitWithContentsOfFile, nsPath);
+        // -[NSSound initWithContentsOfFile:byReference:]  (byReference:false loads the
+        // audio data into memory immediately — fine for short popup sounds; YES would
+        // keep a file handle open, which is brittle if the user moves the file).
+        var sound = ObjCRuntime.objc_msgSend_IntPtr_IntPtr_Bool(
+            alloc, Sel_SoundInitWithContentsOfFileByRef, nsPath, false);
         if (sound == IntPtr.Zero) return false;
 
         var played = ObjCRuntime.objc_msgSend_Bool(sound, Sel_Play);
