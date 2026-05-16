@@ -23,11 +23,11 @@
 - `EyeRest.Core/Services/BundledSoundCache.cs` — temp-file cache for embedded WAVs.
 - `EyeRest.UI/Assets/Sounds/eye-rest-start.wav` (and 3 siblings) — bundled defaults.
 - `scripts/generate-default-sounds.csx` — one-off tone-synthesis script.
-- `EyeRest.Tests/Audio/AudioChannelConfigTests.cs` — POCO + serialization tests.
-- `EyeRest.Tests/Audio/ConfigurationMigrationTests.cs` — migration tests.
-- `EyeRest.Tests/Audio/PlayChannelAsyncTests.cs` — service surface tests.
-- `EyeRest.Tests/Audio/DefaultUrlOpenerTests.cs` — opener tests.
-- `EyeRest.Tests/Audio/BundledSoundCacheTests.cs` — cache tests.
+- `EyeRest.Tests.Avalonia/Audio/AudioChannelConfigTests.cs` — POCO + serialization tests.
+- `EyeRest.Tests.Avalonia/Audio/ConfigurationMigrationTests.cs` — migration tests.
+- `EyeRest.Tests.Avalonia/Audio/PlayChannelAsyncTests.cs` — service surface tests.
+- `EyeRest.Tests.Avalonia/Audio/DefaultUrlOpenerTests.cs` — opener tests.
+- `EyeRest.Tests.Avalonia/Audio/BundledSoundCacheTests.cs` — cache tests.
 
 **Modified:**
 - `EyeRest.Abstractions/Models/AppConfiguration.cs` — modify `EyeRestSettings`, `BreakSettings`, `AudioSettings`, `ConfigMetadata`.
@@ -43,6 +43,61 @@
 
 ---
 
+## Preconditions (Task 1.0)
+
+Environment discovery during plan kickoff revealed:
+- The standalone `EyeRest.Tests/` directory at the repo root contains only `bin/` and `obj/` — there is **no `EyeRest.Tests.csproj`**. All test work must target `EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj` (xUnit + Moq + Microsoft.Extensions.Logging.Abstractions). The empty directory is a leftover scaffold and should be deleted.
+- `FluentAssertions` is **not** referenced anywhere in the solution. The test code in this plan uses `.Should()` syntax; adding the one `<PackageReference>` is simpler than rewriting ~70+ assertions in plain `Assert.X` style.
+
+### Task 1.0a: Delete dead `EyeRest.Tests/` directory
+
+- [ ] **Step 1**
+
+```bash
+rm -rf /Users/tamtran/sources/demo/eye-rest/EyeRest.Tests
+```
+
+- [ ] **Step 2: Verify build still works**
+
+```bash
+dotnet build /Users/tamtran/sources/demo/eye-rest/EyeRest.sln
+```
+Expected: BUILD SUCCESS (the directory was not referenced by anything).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add -A
+git commit -m "chore: remove dead EyeRest.Tests directory (no .csproj inside)"
+```
+
+### Task 1.0b: Add `FluentAssertions` to `EyeRest.Tests.Avalonia`
+
+- [ ] **Step 1: Add the package**
+
+In `EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj`, inside the existing `<ItemGroup>` that holds test packages, add:
+
+```xml
+<PackageReference Include="FluentAssertions" Version="6.12.0" />
+```
+
+- [ ] **Step 2: Verify restore + build**
+
+```bash
+dotnet restore EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj
+dotnet build EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj
+```
+Expected: SUCCESS.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj
+git commit -m "test: add FluentAssertions to EyeRest.Tests.Avalonia"
+```
+
+---
+
 ## Milestone 1 — Config schema + migration
 
 **Spec §3.1, §3.5 (Meta), §4.** Locks in the data model and the safe-migration path. All later work depends on these types.
@@ -51,18 +106,18 @@
 
 **Files:**
 - Create: `EyeRest.Abstractions/Models/AudioChannelConfig.cs`
-- Create: `EyeRest.Tests/Audio/AudioChannelConfigTests.cs`
+- Create: `EyeRest.Tests.Avalonia/Audio/AudioChannelConfigTests.cs`
 
 - [ ] **Step 1: Write the failing test**
 
 ```csharp
-// EyeRest.Tests/Audio/AudioChannelConfigTests.cs
+// EyeRest.Tests.Avalonia/Audio/AudioChannelConfigTests.cs
 using EyeRest.Abstractions.Models;
 using FluentAssertions;
 using System.Text.Json;
 using Xunit;
 
-namespace EyeRest.Tests.Audio;
+namespace EyeRest.Tests.Avalonia.Audio;
 
 public class AudioChannelConfigTests
 {
@@ -96,7 +151,7 @@ public class AudioChannelConfigTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
 ```
 Expected: FAIL — `AudioChannelConfig` / `AudioChannelSource` do not exist.
 
@@ -125,14 +180,14 @@ public class AudioChannelConfig
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
 ```
 Expected: PASS — both tests green.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add EyeRest.Abstractions/Models/AudioChannelConfig.cs EyeRest.Tests/Audio/AudioChannelConfigTests.cs
+git add EyeRest.Abstractions/Models/AudioChannelConfig.cs EyeRest.Tests.Avalonia/Audio/AudioChannelConfigTests.cs
 git commit -m "feat: add AudioChannelConfig and AudioChannelSource"
 ```
 
@@ -183,7 +238,7 @@ git commit -m "feat: add SchemaVersion sentinel to ConfigMetadata"
 
 - [ ] **Step 1: Write the failing test**
 
-Add to `EyeRest.Tests/Audio/AudioChannelConfigTests.cs`:
+Add to `EyeRest.Tests.Avalonia/Audio/AudioChannelConfigTests.cs`:
 
 ```csharp
 [Fact]
@@ -208,7 +263,7 @@ public void BreakSettings_NewInstance_HasDefaultStartAudio_AndDefaultEndAudio()
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
 ```
 Expected: FAIL — `StartAudio`/`EndAudio` do not exist on settings classes.
 
@@ -232,7 +287,7 @@ public AudioChannelConfig EndAudio   { get; set; } = new();
 
 ```bash
 dotnet build EyeRest.sln
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~AudioChannelConfigTests"
 ```
 Expected: BUILD SUCCESS (callers of removed fields will FAIL — that's intentional, addressed in Task 1.6 callers fixup). PASS for the new tests.
 
@@ -241,7 +296,7 @@ Note: do NOT fix caller compile errors here yet — Task 1.6 will rewire them.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add EyeRest.Abstractions/Models/AppConfiguration.cs EyeRest.Tests/Audio/AudioChannelConfigTests.cs
+git add EyeRest.Abstractions/Models/AppConfiguration.cs EyeRest.Tests.Avalonia/Audio/AudioChannelConfigTests.cs
 git commit -m "feat: add StartAudio/EndAudio to settings, remove legacy bool toggles"
 ```
 
@@ -295,17 +350,17 @@ git commit -m "fix: migrate legacy bool/path callers to AudioChannelConfig"
 
 **Files:**
 - Modify: `EyeRest.Core/Services/ConfigurationService.cs`
-- Create: `EyeRest.Tests/Audio/ConfigurationMigrationTests.cs`
+- Create: `EyeRest.Tests.Avalonia/Audio/ConfigurationMigrationTests.cs`
 
 - [ ] **Step 1: Write the failing migration tests**
 
 ```csharp
-// EyeRest.Tests/Audio/ConfigurationMigrationTests.cs
+// EyeRest.Tests.Avalonia/Audio/ConfigurationMigrationTests.cs
 using EyeRest.Abstractions.Models;
 using FluentAssertions;
 using Xunit;
 
-namespace EyeRest.Tests.Audio;
+namespace EyeRest.Tests.Avalonia.Audio;
 
 public class ConfigurationMigrationTests
 {
@@ -376,7 +431,7 @@ public class ConfigurationMigrationTests
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~ConfigurationMigrationTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~ConfigurationMigrationTests"
 ```
 Expected: FAIL — `ConfigurationMigrator` does not exist.
 
@@ -498,7 +553,7 @@ Catch `InvalidOperationException` from the migrator at the call site and log + r
 - [ ] **Step 5: Run tests + integration smoke**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~ConfigurationMigrationTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~ConfigurationMigrationTests"
 dotnet build EyeRest.sln
 ```
 Expected: PASS on all three tests; clean build.
@@ -506,7 +561,7 @@ Expected: PASS on all three tests; clean build.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add EyeRest.Core/Services/ConfigurationMigrator.cs EyeRest.Core/Services/ConfigurationService.cs EyeRest.Tests/Audio/ConfigurationMigrationTests.cs
+git add EyeRest.Core/Services/ConfigurationMigrator.cs EyeRest.Core/Services/ConfigurationService.cs EyeRest.Tests.Avalonia/Audio/ConfigurationMigrationTests.cs
 git commit -m "feat: migrate legacy audio config to schema v2 with SchemaVersion sentinel"
 ```
 
@@ -518,7 +573,7 @@ git commit -m "feat: migrate legacy audio config to schema v2 with SchemaVersion
 
 Use the `Agent` tool with `subagent_type: claude` and the following prompt (do not invoke until M1 tasks 1.1–1.5 are committed):
 
-> You are the **Technical Architect** reviewing **Milestone 1 (Config schema + migration)** of BL-002 in the Eye-rest project. Diff to review: commits since the M0 baseline (use `git log --oneline -10` and `git diff` to identify M1 commits — they touch `EyeRest.Abstractions/Models/AppConfiguration.cs`, `EyeRest.Abstractions/Models/AudioChannelConfig.cs`, `EyeRest.Core/Services/ConfigurationMigrator.cs`, `EyeRest.Core/Services/ConfigurationService.cs`, and `EyeRest.Tests/Audio/*`).
+> You are the **Technical Architect** reviewing **Milestone 1 (Config schema + migration)** of BL-002 in the Eye-rest project. Diff to review: commits since the M0 baseline (use `git log --oneline -10` and `git diff` to identify M1 commits — they touch `EyeRest.Abstractions/Models/AppConfiguration.cs`, `EyeRest.Abstractions/Models/AudioChannelConfig.cs`, `EyeRest.Core/Services/ConfigurationMigrator.cs`, `EyeRest.Core/Services/ConfigurationService.cs`, and `EyeRest.Tests.Avalonia/Audio/*`).
 >
 > Spec reference: `docs/plan/005-bl002-per-popup-audio-design.md`, sections §3.1, §3.5, §4, §7.
 >
@@ -608,14 +663,14 @@ git commit -m "feat: add IAudioService.PlayChannelAsync and AudioChannel enum"
 
 **Files:**
 - Create: `EyeRest.Core/Services/AudioServiceBase.cs`
-- Create: `EyeRest.Tests/Audio/PlayChannelAsyncTests.cs`
+- Create: `EyeRest.Tests.Avalonia/Audio/PlayChannelAsyncTests.cs`
 
 We introduce a small shared base class to keep source-resolution logic DRY across platforms. Platform-specific subclasses implement only the actual playback primitive.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```csharp
-// EyeRest.Tests/Audio/PlayChannelAsyncTests.cs
+// EyeRest.Tests.Avalonia/Audio/PlayChannelAsyncTests.cs
 using EyeRest.Abstractions.Models;
 using EyeRest.Abstractions.Services;
 using EyeRest.Core.Services;
@@ -623,7 +678,7 @@ using FluentAssertions;
 using Moq;
 using Xunit;
 
-namespace EyeRest.Tests.Audio;
+namespace EyeRest.Tests.Avalonia.Audio;
 
 public class PlayChannelAsyncTests
 {
@@ -742,7 +797,7 @@ internal class FakeAudioService : AudioServiceBase
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~PlayChannelAsyncTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~PlayChannelAsyncTests"
 ```
 Expected: FAIL — `AudioServiceBase`, `IUrlOpener` do not exist.
 
@@ -843,14 +898,14 @@ public abstract class AudioServiceBase : IAudioService
 - [ ] **Step 5: Run to verify pass**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~PlayChannelAsyncTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~PlayChannelAsyncTests"
 ```
 Expected: PASS on all six tests.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add EyeRest.Abstractions/Services/IUrlOpener.cs EyeRest.Core/Services/AudioServiceBase.cs EyeRest.Tests/Audio/PlayChannelAsyncTests.cs
+git add EyeRest.Abstractions/Services/IUrlOpener.cs EyeRest.Core/Services/AudioServiceBase.cs EyeRest.Tests.Avalonia/Audio/PlayChannelAsyncTests.cs
 git commit -m "feat: add AudioServiceBase with channel-aware source resolution"
 ```
 
@@ -927,7 +982,7 @@ Locate `WindowsServiceCollectionExtensions.AddWindowsPlatformServices` (or equiv
 
 ```bash
 dotnet build EyeRest.sln
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "Category=Unit"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "Category=Unit"
 ```
 Expected: BUILD SUCCESS; all unit tests PASS.
 
@@ -984,7 +1039,7 @@ This stub will be removed in M3 Task 3.4 Step 4.
 
 ```bash
 dotnet build EyeRest.sln
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "Category=Unit"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "Category=Unit"
 ```
 Expected: BUILD SUCCESS; all unit tests PASS.
 
@@ -1000,19 +1055,19 @@ git commit -m "refactor: macOS AudioService extends AudioServiceBase with PlayCh
 ### Task 2.5: Concurrency + cancellation tests (integration)
 
 **Files:**
-- Create: `EyeRest.Tests/Audio/AudioServiceConcurrencyTests.cs`
+- Create: `EyeRest.Tests.Avalonia/Audio/AudioServiceConcurrencyTests.cs`
 
 - [ ] **Step 1: Write the failing tests**
 
 ```csharp
-// EyeRest.Tests/Audio/AudioServiceConcurrencyTests.cs
+// EyeRest.Tests.Avalonia/Audio/AudioServiceConcurrencyTests.cs
 using System.Diagnostics;
 using EyeRest.Abstractions.Models;
 using EyeRest.Abstractions.Services;
 using FluentAssertions;
 using Xunit;
 
-namespace EyeRest.Tests.Audio;
+namespace EyeRest.Tests.Avalonia.Audio;
 
 public class AudioServiceConcurrencyTests
 {
@@ -1052,7 +1107,7 @@ public class AudioServiceConcurrencyTests
 - [ ] **Step 2: Run to verify failure / pass**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~AudioServiceConcurrencyTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~AudioServiceConcurrencyTests"
 ```
 Expected: PASS (the `SemaphoreSlim` in `AudioServiceBase` already provides this; this task is verification, not new code).
 
@@ -1061,7 +1116,7 @@ If the cancellation test fails because `Task.Run(..., ct)` is the only cancellat
 - [ ] **Step 3: Commit**
 
 ```bash
-git add EyeRest.Tests/Audio/AudioServiceConcurrencyTests.cs
+git add EyeRest.Tests.Avalonia/Audio/AudioServiceConcurrencyTests.cs
 git commit -m "test: verify AudioServiceBase serializes and honors cancellation"
 ```
 
@@ -1073,7 +1128,7 @@ git commit -m "test: verify AudioServiceBase serializes and honors cancellation"
 
 Use the `Agent` tool with the following prompt:
 
-> You are the **Technical Architect** reviewing **Milestone 2 (Audio service surface + WAV playback)** of BL-002 in the Eye-rest project. Diff: M2 commits (`EyeRest.Core/Services/AudioServiceBase.cs`, both platform `AudioService.cs` files, `EyeRest.Abstractions/Services/IAudioService.cs`, `EyeRest.Abstractions/Services/IUrlOpener.cs`, `EyeRest.Tests/Audio/PlayChannelAsyncTests.cs`, `EyeRest.Tests/Audio/AudioServiceConcurrencyTests.cs`).
+> You are the **Technical Architect** reviewing **Milestone 2 (Audio service surface + WAV playback)** of BL-002 in the Eye-rest project. Diff: M2 commits (`EyeRest.Core/Services/AudioServiceBase.cs`, both platform `AudioService.cs` files, `EyeRest.Abstractions/Services/IAudioService.cs`, `EyeRest.Abstractions/Services/IUrlOpener.cs`, `EyeRest.Tests.Avalonia/Audio/PlayChannelAsyncTests.cs`, `EyeRest.Tests.Avalonia/Audio/AudioServiceConcurrencyTests.cs`).
 >
 > Spec reference: `docs/plan/005-bl002-per-popup-audio-design.md` §3.2, §3.3, §3.4, §7.
 >
@@ -1250,18 +1305,18 @@ git commit -m "build: include Assets/Sounds/*.wav as AvaloniaResource"
 
 **Files:**
 - Create: `EyeRest.Core/Services/BundledSoundCache.cs`
-- Create: `EyeRest.Tests/Audio/BundledSoundCacheTests.cs`
+- Create: `EyeRest.Tests.Avalonia/Audio/BundledSoundCacheTests.cs`
 
 - [ ] **Step 1: Write the failing tests**
 
 ```csharp
-// EyeRest.Tests/Audio/BundledSoundCacheTests.cs
+// EyeRest.Tests.Avalonia/Audio/BundledSoundCacheTests.cs
 using EyeRest.Abstractions.Services;
 using EyeRest.Core.Services;
 using FluentAssertions;
 using Xunit;
 
-namespace EyeRest.Tests.Audio;
+namespace EyeRest.Tests.Avalonia.Audio;
 
 public class BundledSoundCacheTests
 {
@@ -1306,7 +1361,7 @@ public class BundledSoundCacheTests
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~BundledSoundCacheTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~BundledSoundCacheTests"
 ```
 Expected: FAIL — `BundledSoundCache` does not exist.
 
@@ -1364,7 +1419,7 @@ public sealed class BundledSoundCache
 - [ ] **Step 4: Run to verify pass**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~BundledSoundCacheTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~BundledSoundCacheTests"
 ```
 Expected: PASS.
 
@@ -1389,7 +1444,7 @@ services.AddSingleton<BundledSoundCache>();
 - [ ] **Step 7: Run all tests + smoke check**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj
 dotnet build EyeRest.sln
 ```
 Expected: all PASS, BUILD SUCCESS.
@@ -1397,7 +1452,7 @@ Expected: all PASS, BUILD SUCCESS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add EyeRest.Core/Services/BundledSoundCache.cs EyeRest.Tests/Audio/BundledSoundCacheTests.cs EyeRest.Platform.Windows EyeRest.Platform.macOS
+git add EyeRest.Core/Services/BundledSoundCache.cs EyeRest.Tests.Avalonia/Audio/BundledSoundCacheTests.cs EyeRest.Platform.Windows EyeRest.Platform.macOS
 git commit -m "feat: BundledSoundCache extracts AvaloniaResource WAVs to temp for native playback"
 ```
 
@@ -1407,17 +1462,17 @@ git commit -m "feat: BundledSoundCache extracts AvaloniaResource WAVs to temp fo
 
 **Files:**
 - Create: `EyeRest.Core/Services/DefaultUrlOpener.cs`
-- Create: `EyeRest.Tests/Audio/DefaultUrlOpenerTests.cs`
+- Create: `EyeRest.Tests.Avalonia/Audio/DefaultUrlOpenerTests.cs`
 
 - [ ] **Step 1: Write the failing test**
 
 ```csharp
-// EyeRest.Tests/Audio/DefaultUrlOpenerTests.cs
+// EyeRest.Tests.Avalonia/Audio/DefaultUrlOpenerTests.cs
 using EyeRest.Core.Services;
 using FluentAssertions;
 using Xunit;
 
-namespace EyeRest.Tests.Audio;
+namespace EyeRest.Tests.Avalonia.Audio;
 
 public class DefaultUrlOpenerTests
 {
@@ -1441,7 +1496,7 @@ public class DefaultUrlOpenerTests
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~DefaultUrlOpenerTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~DefaultUrlOpenerTests"
 ```
 Expected: FAIL — `DefaultUrlOpener` does not exist.
 
@@ -1475,7 +1530,7 @@ public sealed class DefaultUrlOpener : IUrlOpener
 - [ ] **Step 4: Run to verify pass + replace any DI stubs**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "FullyQualifiedName~DefaultUrlOpenerTests"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "FullyQualifiedName~DefaultUrlOpenerTests"
 ```
 Expected: PASS.
 
@@ -1488,7 +1543,7 @@ Delete the stub class.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add EyeRest.Core/Services/DefaultUrlOpener.cs EyeRest.Tests/Audio/DefaultUrlOpenerTests.cs EyeRest.Platform.Windows EyeRest.Platform.macOS
+git add EyeRest.Core/Services/DefaultUrlOpener.cs EyeRest.Tests.Avalonia/Audio/DefaultUrlOpenerTests.cs EyeRest.Platform.Windows EyeRest.Platform.macOS
 git commit -m "feat: DefaultUrlOpener via Process.Start with UseShellExecute"
 ```
 
@@ -1622,7 +1677,7 @@ In the existing per-field save path, ensure these properties are included in the
 
 ```bash
 dotnet build EyeRest.UI/EyeRest.UI.csproj
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj
 ```
 Expected: BUILD SUCCESS, tests PASS.
 
@@ -1851,7 +1906,7 @@ Make sure `_configurationService` and `_appLifecycle` are constructor-injected d
 
 ```bash
 dotnet build EyeRest.sln
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj
 ```
 Expected: BUILD SUCCESS, all tests PASS.
 
@@ -1867,19 +1922,19 @@ git commit -m "feat: NotificationService dispatches all 4 popup audio events via
 ### Task 5.2: 100-cycle handle-leak integration test
 
 **Files:**
-- Create: `EyeRest.Tests/Audio/AudioLifecycleIntegrationTests.cs`
+- Create: `EyeRest.Tests.Avalonia/Audio/AudioLifecycleIntegrationTests.cs`
 
 - [ ] **Step 1: Write the test**
 
 ```csharp
-// EyeRest.Tests/Audio/AudioLifecycleIntegrationTests.cs
+// EyeRest.Tests.Avalonia/Audio/AudioLifecycleIntegrationTests.cs
 using System.Diagnostics;
 using EyeRest.Abstractions.Models;
 using EyeRest.Abstractions.Services;
 using FluentAssertions;
 using Xunit;
 
-namespace EyeRest.Tests.Audio;
+namespace EyeRest.Tests.Avalonia.Audio;
 
 [Trait("Category", "Integration")]
 public class AudioLifecycleIntegrationTests
@@ -1910,14 +1965,14 @@ public class AudioLifecycleIntegrationTests
 - [ ] **Step 2: Run the test**
 
 ```bash
-dotnet test EyeRest.Tests/EyeRest.Tests.csproj --filter "Category=Integration&FullyQualifiedName~AudioLifecycle"
+dotnet test EyeRest.Tests.Avalonia/EyeRest.Tests.Avalonia.csproj --filter "Category=Integration&FullyQualifiedName~AudioLifecycle"
 ```
 Expected: PASS — handle delta below tolerance. If it fails, M2's disposal review missed something; reopen.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add EyeRest.Tests/Audio/AudioLifecycleIntegrationTests.cs
+git add EyeRest.Tests.Avalonia/Audio/AudioLifecycleIntegrationTests.cs
 git commit -m "test: 100-cycle handle-leak guard for PlayChannelAsync"
 ```
 
