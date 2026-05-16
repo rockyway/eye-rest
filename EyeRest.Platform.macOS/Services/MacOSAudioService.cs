@@ -24,8 +24,9 @@ namespace EyeRest.Services
         public MacOSAudioService(
             ILogger<MacOSAudioService> logger,
             IConfigurationService configurationService,
-            IUrlOpener urlOpener)
-            : base(urlOpener)
+            IUrlOpener urlOpener,
+            IBundledSoundCache? bundledSoundCache = null)
+            : base(urlOpener, bundledSoundCache)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));

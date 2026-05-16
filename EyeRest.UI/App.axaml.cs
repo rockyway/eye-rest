@@ -86,6 +86,12 @@ public partial class App : Application
             services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
             services.AddSingleton<IClock, SystemClock>();
 
+            // BL-002 M3: bundled-sound cache (Avalonia-only). Must be registered before
+            // the platform AudioService so DI can inject it via the optional constructor
+            // parameter. When this is wired, Source=Default plays the bundled WAV via
+            // the same file-playback primitive used for Source=File.
+            services.AddSingleton<IBundledSoundCache, EyeRest.UI.Services.BundledSoundCache>();
+
             // Platform services — guarded by compile constants so the
             // unused platform assembly is never referenced at compile time,
             // enabling cross-compilation from any host OS.

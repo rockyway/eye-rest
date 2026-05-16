@@ -23,10 +23,12 @@ namespace EyeRest.Services
     {
         private readonly SemaphoreSlim _gate = new(1, 1);
         private readonly IUrlOpener _urlOpener;
+        private readonly IBundledSoundCache? _bundledSoundCache;
 
-        protected AudioServiceBase(IUrlOpener urlOpener)
+        protected AudioServiceBase(IUrlOpener urlOpener, IBundledSoundCache? bundledSoundCache = null)
         {
             _urlOpener = urlOpener ?? throw new ArgumentNullException(nameof(urlOpener));
+            _bundledSoundCache = bundledSoundCache;
         }
 
         public abstract bool IsAudioEnabled { get; }
@@ -65,9 +67,23 @@ namespace EyeRest.Services
 
                 case AudioChannelSource.Default:
                     if (!IsAudioEnabled) return;
-                    await GatedAsync(
-                        () => PlayDefaultAsync(channel, cancellationToken),
-                        cancellationToken).ConfigureAwait(false);
+                    // BL-002 M3: when a bundled-sound cache is wired, play the bundled
+                    // WAV via the same file-playback primitive used for Source=File. The
+                    // legacy PlayDefaultAsync (platform named sounds) remains as the
+                    // fallback for setups where no cache is registered (tests, embedded).
+                    if (_bundledSoundCache is not null)
+                    {
+                        var bundledPath = _bundledSoundCache.GetPath(channel);
+                        await GatedAsync(
+                            () => PlayFileAsync(bundledPath, cancellationToken),
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await GatedAsync(
+                            () => PlayDefaultAsync(channel, cancellationToken),
+                            cancellationToken).ConfigureAwait(false);
+                    }
                     return;
             }
         }
