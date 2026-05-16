@@ -15,6 +15,7 @@ namespace EyeRest.Platform.macOS
         public static IServiceCollection AddMacOSPlatformServices(this IServiceCollection services)
         {
             services.AddSingleton<IDispatcherService, MacOSDispatcherService>();
+            services.AddSingleton<IUrlOpener, DefaultUrlOpener>(); // BL-002 M2: must precede IAudioService
             services.AddSingleton<IAudioService, MacOSAudioService>();
             services.AddSingleton<ISystemTrayService, MacOSSystemTrayService>();
             services.AddSingleton<IStartupManager, MacOSStartupManager>();

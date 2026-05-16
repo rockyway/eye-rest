@@ -206,6 +206,27 @@ internal static class AppKit
     }
 
     /// <summary>
+    /// Plays a sound from a local file via [[[NSSound alloc] initWithContentsOfFile:path] play].
+    /// Used by BL-002 for bundled WAV defaults and user-selected custom files.
+    /// </summary>
+    /// <returns>True if the file was loaded and play was initiated.</returns>
+    internal static bool PlaySoundFromFile(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath)) return false;
+
+        var nsPath = Foundation.CreateNSString(filePath);
+        if (nsPath == IntPtr.Zero) return false;
+
+        var alloc = ObjCRuntime.objc_msgSend_IntPtr(Class_NSSound, ObjCRuntime.Sel_Alloc);
+        if (alloc == IntPtr.Zero) return false;
+
+        var sound = ObjCRuntime.objc_msgSend_IntPtr_IntPtr(alloc, Sel_InitWithContentsOfFile, nsPath);
+        if (sound == IntPtr.Zero) return false;
+
+        return ObjCRuntime.objc_msgSend_Bool(sound, Sel_Play);
+    }
+
+    /// <summary>
     /// Plays the system beep via NSBeep().
     /// </summary>
     [DllImport("/System/Library/Frameworks/AppKit.framework/AppKit", CallingConvention = CallingConvention.Cdecl)]

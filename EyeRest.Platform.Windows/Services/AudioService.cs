@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Media;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using EyeRest.Models;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,7 @@ using Microsoft.Win32; // For Registry access
 
 namespace EyeRest.Services
 {
-    public class AudioService : IAudioService
+    public class AudioService : AudioServiceBase
     {
         // Windows API for playing system sounds
         [DllImport("user32.dll", SetLastError = true)]
@@ -42,9 +43,10 @@ namespace EyeRest.Services
             { "Beep", @"C:\WINDOWS\media\chord.wav" }
         };
 
-        public bool IsAudioEnabled => _configuration.Audio.Enabled;
+        public override bool IsAudioEnabled => _configuration.Audio.Enabled;
 
-        public AudioService(ILogger<AudioService> logger, IConfigurationService configurationService)
+        public AudioService(ILogger<AudioService> logger, IConfigurationService configurationService, IUrlOpener urlOpener)
+            : base(urlOpener)
         {
             _logger = logger;
             _configurationService = configurationService;
@@ -193,7 +195,7 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task PlayEyeRestStartSound()
+        public override async Task PlayEyeRestStartSound()
         {
             // 🔍 ULTRATHINK DIAGNOSTICS: Increment and log cycle
             _startSoundCycleCount++;
@@ -307,7 +309,7 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task PlayEyeRestEndSound()
+        public override async Task PlayEyeRestEndSound()
         {
             // 🔍 ULTRATHINK DIAGNOSTICS: Track end sound cycles for comparison
             _endSoundCycleCount++;
@@ -338,7 +340,7 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task PlayBreakWarningSound()
+        public override async Task PlayBreakWarningSound()
         {
             if (!IsAudioEnabled)
             {
@@ -362,7 +364,7 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task PlayBreakStartSound()
+        public override async Task PlayBreakStartSound()
         {
             if (!IsAudioEnabled || _configuration.Break.StartAudio.Source == AudioChannelSource.Off)
             {
@@ -387,7 +389,7 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task PlayBreakEndSound()
+        public override async Task PlayBreakEndSound()
         {
             if (!IsAudioEnabled || _configuration.Break.EndAudio.Source == AudioChannelSource.Off)
             {
@@ -614,6 +616,45 @@ namespace EyeRest.Services
             };
         }
 
+        // BL-002 M2: PlayDefaultAsync routes channel → existing platform sound helpers.
+        // Each channel's "default" remains the platform-specific SystemSounds choice for
+        // now; M3 will bundle WAVs and route them through PlayFileAsync via BundledSoundCache.
+        protected override async Task PlayDefaultAsync(AudioChannel channel, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            switch (channel)
+            {
+                case AudioChannel.EyeRestStart:  await PlayEyeRestStartSound().ConfigureAwait(false); break;
+                case AudioChannel.EyeRestEnd:    await PlayEyeRestEndSound().ConfigureAwait(false);   break;
+                case AudioChannel.BreakStart:    await PlayBreakStartSound().ConfigureAwait(false);   break;
+                case AudioChannel.BreakEnd:      await PlayBreakEndSound().ConfigureAwait(false);     break;
+                case AudioChannel.BreakWarning:  await PlayBreakWarningSound().ConfigureAwait(false); break;
+            }
+        }
+
+        // BL-002 M2: WAV file playback via System.Media.SoundPlayer. SoundPlayer is
+        // synchronous, so Task.Run honors the async/cancellable contract. Disposal in
+        // finally guards every code path — success, exception, and OperationCanceledException.
+        protected override Task PlayFileAsync(string filePath, CancellationToken ct)
+        {
+            return Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                System.Media.SoundPlayer? player = null;
+                try
+                {
+                    player = new System.Media.SoundPlayer(filePath);
+                    player.Load();
+                    ct.ThrowIfCancellationRequested();
+                    player.PlaySync();
+                }
+                finally
+                {
+                    player?.Dispose();
+                }
+            }, ct);
+        }
+
         private void PlayCustomSound(string soundPath)
         {
             try
@@ -709,7 +750,7 @@ namespace EyeRest.Services
         /// <summary>
         /// Test play the currently configured custom sound (for UI testing)
         /// </summary>
-        public async Task PlayCustomSoundTestAsync()
+        public override async Task PlayCustomSoundTestAsync()
         {
             if (!IsAudioEnabled)
             {
@@ -753,7 +794,7 @@ namespace EyeRest.Services
             }
         }
 
-        public async Task TestEyeRestAudioAsync()
+        public override async Task TestEyeRestAudioAsync()
         {
             if (!IsAudioEnabled)
             {
