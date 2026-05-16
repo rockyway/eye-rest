@@ -1187,6 +1187,71 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- BL-002: Popup Audio Card (per-channel source picker + retained alternates) -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="Popup Audio" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Per-popup audio source. Bundled defaults ship with the app; pick a file or URL to override."
+                                                   Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
+
+                                        <!-- Eye-rest Start -->
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Eye-rest Start" FontSize="14" FontWeight="Medium" />
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <RadioButton GroupName="EyeRestStartSource" Content="Default" IsChecked="{Binding EyeRestStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Default}" />
+                                                <RadioButton GroupName="EyeRestStartSource" Content="File"    IsChecked="{Binding EyeRestStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=File}" />
+                                                <RadioButton GroupName="EyeRestStartSource" Content="URL"     IsChecked="{Binding EyeRestStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Url}" />
+                                                <RadioButton GroupName="EyeRestStartSource" Content="Off"     IsChecked="{Binding EyeRestStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Off}" />
+                                                <Button Classes="ActionBtn" Content="Test" Command="{Binding TestEyeRestStartChannelCommand}" />
+                                            </StackPanel>
+                                            <TextBox Text="{Binding EyeRestStartFilePath}" Watermark="File path (when Source = File)" />
+                                            <TextBox Text="{Binding EyeRestStartUrl}" Watermark="URL (when Source = URL)" />
+                                        </StackPanel>
+
+                                        <!-- Eye-rest End -->
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Eye-rest End" FontSize="14" FontWeight="Medium" />
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <RadioButton GroupName="EyeRestEndSource" Content="Default" IsChecked="{Binding EyeRestEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Default}" />
+                                                <RadioButton GroupName="EyeRestEndSource" Content="File"    IsChecked="{Binding EyeRestEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=File}" />
+                                                <RadioButton GroupName="EyeRestEndSource" Content="URL"     IsChecked="{Binding EyeRestEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Url}" />
+                                                <RadioButton GroupName="EyeRestEndSource" Content="Off"     IsChecked="{Binding EyeRestEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Off}" />
+                                                <Button Classes="ActionBtn" Content="Test" Command="{Binding TestEyeRestEndChannelCommand}" />
+                                            </StackPanel>
+                                            <TextBox Text="{Binding EyeRestEndFilePath}" Watermark="File path (when Source = File)" />
+                                            <TextBox Text="{Binding EyeRestEndUrl}" Watermark="URL (when Source = URL)" />
+                                        </StackPanel>
+
+                                        <!-- Break Start -->
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Break Start" FontSize="14" FontWeight="Medium" />
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <RadioButton GroupName="BreakStartSource" Content="Default" IsChecked="{Binding BreakStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Default}" />
+                                                <RadioButton GroupName="BreakStartSource" Content="File"    IsChecked="{Binding BreakStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=File}" />
+                                                <RadioButton GroupName="BreakStartSource" Content="URL"     IsChecked="{Binding BreakStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Url}" />
+                                                <RadioButton GroupName="BreakStartSource" Content="Off"     IsChecked="{Binding BreakStartSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Off}" />
+                                                <Button Classes="ActionBtn" Content="Test" Command="{Binding TestBreakStartChannelCommand}" />
+                                            </StackPanel>
+                                            <TextBox Text="{Binding BreakStartFilePath}" Watermark="File path (when Source = File)" />
+                                            <TextBox Text="{Binding BreakStartUrl}" Watermark="URL (when Source = URL) — e.g. YouTube playlist" />
+                                        </StackPanel>
+
+                                        <!-- Break End -->
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Break End" FontSize="14" FontWeight="Medium" />
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <RadioButton GroupName="BreakEndSource" Content="Default" IsChecked="{Binding BreakEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Default}" />
+                                                <RadioButton GroupName="BreakEndSource" Content="File"    IsChecked="{Binding BreakEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=File}" />
+                                                <RadioButton GroupName="BreakEndSource" Content="URL"     IsChecked="{Binding BreakEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Url}" />
+                                                <RadioButton GroupName="BreakEndSource" Content="Off"     IsChecked="{Binding BreakEndSource, Mode=TwoWay, Converter={x:Static converters:EnumToBoolConverter.Instance}, ConverterParameter=Off}" />
+                                                <Button Classes="ActionBtn" Content="Test" Command="{Binding TestBreakEndChannelCommand}" />
+                                            </StackPanel>
+                                            <TextBox Text="{Binding BreakEndFilePath}" Watermark="File path (when Source = File)" />
+                                            <TextBox Text="{Binding BreakEndUrl}" Watermark="URL (when Source = URL)" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Application Card -->
                                 <Border Classes="GlassCard">
                                     <StackPanel Spacing="14">
