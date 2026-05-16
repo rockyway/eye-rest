@@ -31,13 +31,16 @@ public static class ConfigurationMigrator
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
+        // ConfigurationService serializes with JsonNamingPolicy.CamelCase, so on-disk
+        // property names are lowercase ('meta', 'schemaVersion'). JsonDocument's
+        // TryGetProperty is case-sensitive, so we look up both casings.
         int version = 1;
-        if (root.TryGetProperty("Meta", out var meta)
-            && meta.ValueKind == JsonValueKind.Object
-            && meta.TryGetProperty("SchemaVersion", out var v)
-            && v.ValueKind == JsonValueKind.Number)
+        var meta = LookupCaseInsensitive(root, "Meta");
+        if (meta.ValueKind == JsonValueKind.Object)
         {
-            version = v.GetInt32();
+            var v = LookupCaseInsensitive(meta, "SchemaVersion");
+            if (v.ValueKind == JsonValueKind.Number)
+                version = v.GetInt32();
         }
 
         if (version > CurrentSchemaVersion)
@@ -64,9 +67,9 @@ public static class ConfigurationMigrator
 
     private static void ApplyV1ToV2(AppConfiguration cfg, JsonElement root)
     {
-        var eyeRest = TryGet(root, "EyeRest");
-        var brk     = TryGet(root, "Break");
-        var audio   = TryGet(root, "Audio");
+        var eyeRest = LookupCaseInsensitive(root, "EyeRest");
+        var brk     = LookupCaseInsensitive(root, "Break");
+        var audio   = LookupCaseInsensitive(root, "Audio");
 
         bool erStart = ReadBool(eyeRest, "StartSoundEnabled", true);
         bool erEnd   = ReadBool(eyeRest, "EndSoundEnabled",   true);
@@ -96,22 +99,28 @@ public static class ConfigurationMigrator
         return c;
     }
 
-    private static JsonElement TryGet(JsonElement parent, string name) =>
-        parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var v)
-            ? v : default;
+    // Case-insensitive property lookup — needed because the on-disk JSON uses
+    // camelCase per JsonNamingPolicy.CamelCase, but the migrator's tests use
+    // PascalCase literals for readability. We match either casing transparently.
+    private static JsonElement LookupCaseInsensitive(JsonElement parent, string pascalName)
+    {
+        if (parent.ValueKind != JsonValueKind.Object) return default;
+        if (parent.TryGetProperty(pascalName, out var v)) return v;
+        var camelName = char.ToLowerInvariant(pascalName[0]) + pascalName.Substring(1);
+        return parent.TryGetProperty(camelName, out v) ? v : default;
+    }
 
     private static bool ReadBool(JsonElement node, string name, bool fallback)
     {
-        if (node.ValueKind != JsonValueKind.Object) return fallback;
-        if (!node.TryGetProperty(name, out var v)) return fallback;
-        return v.ValueKind == JsonValueKind.True
-            || (v.ValueKind == JsonValueKind.False ? false : fallback);
+        var v = LookupCaseInsensitive(node, name);
+        if (v.ValueKind == JsonValueKind.True) return true;
+        if (v.ValueKind == JsonValueKind.False) return false;
+        return fallback;
     }
 
     private static string? ReadString(JsonElement node, string name)
     {
-        if (node.ValueKind != JsonValueKind.Object) return null;
-        return node.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
-            ? v.GetString() : null;
+        var v = LookupCaseInsensitive(node, name);
+        return v.ValueKind == JsonValueKind.String ? v.GetString() : null;
     }
 }
