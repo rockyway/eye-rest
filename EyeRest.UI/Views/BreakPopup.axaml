@@ -16,9 +16,9 @@
                     BorderThickness="1"
                     CornerRadius="24"
                     ClipToBounds="True"
-                    Padding="30"
-                    Width="720"
-                    Height="720">
+                    Padding="24"
+                    Width="580"
+                    Height="640">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <!-- Enhanced Timer Display with Minutes and Seconds around Eye Icon -->
                     <Grid Margin="0,0,0,24" HorizontalAlignment="Center">
@@ -101,7 +101,7 @@
 
                     <!-- Progress Bar -->
                     <ProgressBar Name="ProgressBar"
-                                 Width="500"
+                                 Width="460"
                                  Height="12"
                                  Minimum="0"
                                  Maximum="100"
@@ -255,7 +255,7 @@
                     <!-- Drag and close instructions -->
                     <StackPanel HorizontalAlignment="Center"
                                 Margin="0,8,0,0">
-                        <TextBlock Text="Drag window to move - Click anywhere to close"
+                        <TextBlock Text="Drag window to move"
                                    FontSize="12"
                                    Foreground="{DynamicResource ContentSubtitleText}"
                                    HorizontalAlignment="Center"
