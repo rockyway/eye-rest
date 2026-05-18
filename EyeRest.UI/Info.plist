@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.eyerest.app</string>
+	<string>com.pmtlabs.eyerest.app</string>
 	<key>CFBundleName</key>
 	<string>Eye-Rest</string>
 	<key>CFBundlePackageType</key>
