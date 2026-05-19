@@ -1133,6 +1133,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _pauseOnScreenLock, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(PauseOnScreenLock));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -1145,6 +1150,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _pauseOnMonitorOff, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(PauseOnMonitorOff));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -1157,6 +1167,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _pauseOnIdle, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(PauseOnIdle));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -1169,6 +1184,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _idleTimeoutMinutes, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(IdleTimeoutMinutes));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -2924,6 +2944,14 @@ namespace EyeRest.UI.ViewModels
                     if (changed.Contains(nameof(BreakEndSource)))       config.Break.EndAudio.Source             = BreakEndSource;
                     if (changed.Contains(nameof(BreakEndFilePath)))     config.Break.EndAudio.CustomFilePath     = BreakEndFilePath;
                     if (changed.Contains(nameof(BreakEndUrl)))          config.Break.EndAudio.Url                = BreakEndUrl;
+
+                    // Smart Pause (Advanced tab) — presence settings. The user presence
+                    // services subscribe to ConfigurationChanged and re-read IdleTimeoutMinutes
+                    // live; no app restart needed.
+                    if (changed.Contains(nameof(PauseOnScreenLock)))    config.UserPresence.PauseOnScreenLock    = PauseOnScreenLock;
+                    if (changed.Contains(nameof(PauseOnMonitorOff)))    config.UserPresence.PauseOnMonitorOff    = PauseOnMonitorOff;
+                    if (changed.Contains(nameof(PauseOnIdle)))          config.UserPresence.PauseOnIdle          = PauseOnIdle;
+                    if (changed.Contains(nameof(IdleTimeoutMinutes)))   config.UserPresence.IdleTimeoutMinutes   = IdleTimeoutMinutes;
 
                     _configuration = config;
                 });
