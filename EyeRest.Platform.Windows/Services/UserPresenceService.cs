@@ -32,7 +32,10 @@ namespace EyeRest.Services
         private WndProcDelegate? _wndProcDelegate;
         private IntPtr _originalWndProc;
         
-        private const int IdleThresholdMinutes = 5; // Consider user idle after 5 minutes
+        // Idle threshold is driven by UserPresence.IdleTimeoutMinutes — the slider in the
+        // Advanced settings tab. Default mirrors the AppConfiguration default until the
+        // first config load completes (see ApplyPresenceSettings).
+        private int _idleThresholdMinutes = 15;
         private const int AwayGracePeriodSeconds = 30; // Grace period before marking user as away
         
         // Windows API constants
@@ -102,6 +105,26 @@ namespace EyeRest.Services
 
             // Initialize window procedure delegate
             _wndProcDelegate = WindowProc;
+
+            // React to live config changes so the idle slider in Advanced settings takes
+            // effect without an app restart.
+            _configurationService.ConfigurationChanged += OnConfigurationChanged;
+        }
+
+        private void OnConfigurationChanged(object? sender, ConfigurationChangedEventArgs e)
+        {
+            ApplyPresenceSettings(e.NewConfiguration?.UserPresence);
+        }
+
+        private void ApplyPresenceSettings(EyeRest.Models.UserPresenceSettings? settings)
+        {
+            if (settings == null) return;
+            var idleMinutes = Math.Max(1, settings.IdleTimeoutMinutes);
+            if (idleMinutes != _idleThresholdMinutes)
+            {
+                _idleThresholdMinutes = idleMinutes;
+                _logger.LogInformation("User presence idle threshold updated to {Idle}min (from config)", _idleThresholdMinutes);
+            }
         }
 
         /// <summary>
@@ -124,7 +147,18 @@ namespace EyeRest.Services
             try
             {
                 _logger.LogInformation("Starting user presence monitoring");
-                
+
+                // Seed idle threshold from persisted configuration before the first poll.
+                try
+                {
+                    var config = await _configurationService.LoadConfigurationAsync();
+                    ApplyPresenceSettings(config?.UserPresence);
+                }
+                catch (Exception cfgEx)
+                {
+                    _logger.LogWarning(cfgEx, "Failed to load presence config; using default idle threshold {Idle}min", _idleThresholdMinutes);
+                }
+
                 // Register for session change notifications
                 if (!RegisterSessionNotification())
                 {
@@ -216,7 +250,7 @@ namespace EyeRest.Services
             }
 
             // Check if user is idle based on input activity
-            if (idleTime.TotalMinutes >= IdleThresholdMinutes)
+            if (idleTime.TotalMinutes >= _idleThresholdMinutes)
             {
                 return UserPresenceState.Idle;
             }
@@ -348,7 +382,9 @@ namespace EyeRest.Services
                 _monitoringTimer.Stop();
                 _monitoringTimer.Dispose();
                 UnregisterSessionNotification();
-                
+
+                _configurationService.ConfigurationChanged -= OnConfigurationChanged;
+
                 _logger.LogInformation("UserPresenceService disposed successfully");
             }
             catch (Exception ex)

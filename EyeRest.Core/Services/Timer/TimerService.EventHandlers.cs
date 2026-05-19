@@ -35,22 +35,26 @@ namespace EyeRest.Services
                         likelySystemWake = true;
                         wakeReason = $"Large clock jump: {timeSinceLastTick.TotalHours:F1} hours";
                     }
-                    // 2. NEW: Check for overnight/extended sleep patterns (30 minutes to 2 hours)
+                    // 2. Overnight/extended sleep heuristic: the tick fired more than one
+                    //    full cycle late. The eye rest timer fires once per cycle (~20 min by
+                    //    default), so we compare against the *configured* interval, not a
+                    //    1-second DispatcherTimer cadence. Smart pause/resume + a fresh cycle
+                    //    can legitimately push the inter-tick gap above 30 min without any
+                    //    system sleep (e.g. 5 min elapsed + 10 min idle + 20 min new cycle).
                     else if (timeSinceLastTick > TimeSpan.FromMinutes(30))
                     {
-                        // Additional indicators of system sleep/wake:
-                        // - Timer was due but took much longer than expected to fire
-                        // - System has been idle for extended period
-                        var expectedTickInterval = TimeSpan.FromSeconds(1); // DispatcherTimer interval
+                        var expectedTickInterval = _eyeRestInterval > TimeSpan.Zero
+                            ? _eyeRestInterval
+                            : TimeSpan.FromMinutes(20);
                         var actualDelay = timeSinceLastTick - expectedTickInterval;
-                        
+
                         if (actualDelay > TimeSpan.FromMinutes(30))
                         {
                             likelySystemWake = true;
-                            wakeReason = $"Extended tick delay: {timeSinceLastTick.TotalMinutes:F1}min (expected ~1s)";
+                            wakeReason = $"Extended tick delay: {timeSinceLastTick.TotalMinutes:F1}min (interval={expectedTickInterval.TotalMinutes:F1}min, overrun={actualDelay.TotalMinutes:F1}min)";
                         }
                     }
-                    
+
                     if (likelySystemWake)
                     {
                         _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
@@ -61,7 +65,7 @@ namespace EyeRest.Services
                         {
                             await SmartSessionResetAsync($"System wake detected - {wakeReason}");
                         });
-                        
+
                         // Update last tick and return
                         _lastEyeRestTick = now;
                         return;
@@ -198,22 +202,24 @@ namespace EyeRest.Services
                         likelySystemWake = true;
                         wakeReason = $"Large clock jump: {timeSinceLastTick.TotalHours:F1} hours";
                     }
-                    // 2. NEW: Check for overnight/extended sleep patterns (30 minutes to 2 hours)
+                    // 2. Overnight/extended sleep heuristic. Same correction as the eye rest
+                    //    handler: the break timer fires once per cycle (~60 min by default),
+                    //    so we compare the inter-tick gap against the configured break
+                    //    interval rather than a 1-second cadence.
                     else if (timeSinceLastTick > TimeSpan.FromMinutes(30))
                     {
-                        // Additional indicators of system sleep/wake:
-                        // - Timer was due but took much longer than expected to fire
-                        // - System has been idle for extended period
-                        var expectedTickInterval = TimeSpan.FromSeconds(1); // DispatcherTimer interval
+                        var expectedTickInterval = _breakInterval > TimeSpan.Zero
+                            ? _breakInterval
+                            : TimeSpan.FromMinutes(60);
                         var actualDelay = timeSinceLastTick - expectedTickInterval;
-                        
+
                         if (actualDelay > TimeSpan.FromMinutes(30))
                         {
                             likelySystemWake = true;
-                            wakeReason = $"Extended tick delay: {timeSinceLastTick.TotalMinutes:F1}min (expected ~1s)";
+                            wakeReason = $"Extended tick delay: {timeSinceLastTick.TotalMinutes:F1}min (interval={expectedTickInterval.TotalMinutes:F1}min, overrun={actualDelay.TotalMinutes:F1}min)";
                         }
                     }
-                    
+
                     if (likelySystemWake)
                     {
                         _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
@@ -224,7 +230,7 @@ namespace EyeRest.Services
                         {
                             await SmartSessionResetAsync($"System wake detected - {wakeReason}");
                         });
-                        
+
                         // Update last tick and return
                         _lastBreakTick = now;
                         return;
