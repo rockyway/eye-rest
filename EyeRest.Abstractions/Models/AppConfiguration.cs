@@ -52,12 +52,7 @@ namespace EyeRest.Models
     {
         public bool Enabled { get; set; } = true;
         public int Volume { get; set; } = 50;
-
-        // BL-002 recent-items: shared across all 4 channels by field type. Capped at
-        // 10 entries each, most-recent first, deduped. The recent-button flyout
-        // beside each File/URL field reads from these lists.
-        public List<string> RecentFilePaths { get; set; } = new();
-        public List<string> RecentUrls { get; set; } = new();
+        // Recent file/URL lists moved to audio-recents.json via IAudioRecentsService.
     }
 
     public enum ThemeMode

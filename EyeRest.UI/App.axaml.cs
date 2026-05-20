@@ -15,6 +15,7 @@ using EyeRest.UI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog.Events;
 using Serilog;
 
 namespace EyeRest.UI;
@@ -68,24 +69,40 @@ public partial class App : Application
         var builder = Host.CreateDefaultBuilder();
         builder.UseSerilog((context, config) =>
         {
-            var logPath = System.IO.Path.Combine(
+            var logsDirectory = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "EyeRest", "logs", "eyerest-.log");
+                "EyeRest", "logs");
+            var logPath = System.IO.Path.Combine(logsDirectory, "eyerest-.log");
+            var statsLogPath = System.IO.Path.Combine(logsDirectory, "eyerest-stats-.log");
+
+            static bool IsPerformanceStats(LogEvent logEvent)
+            {
+                return logEvent.Properties.TryGetValue("SourceContext", out var sourceContext)
+                    && sourceContext.ToString().Trim('"') == "EyeRest.Services.PerformanceMonitor";
+            }
+
             config
-#if DEBUG
-                // Debug builds only: allow Debug-level events from PerformanceMonitor so the
-                // 15-second process-stats line (`Process stats: CPU=… | Mem=… | GCHeap=… | GC: g0=… g1=… g2=…`)
-                // is written. Release builds inherit the default Information minimum, which
-                // suppresses the Debug line entirely (timer still ticks; LogDebug becomes a no-op).
-                .MinimumLevel.Override("EyeRest.Services.PerformanceMonitor", Serilog.Events.LogEventLevel.Debug)
-#endif
+                // Always allow Debug-level events from PerformanceMonitor so the
+                // process-stats line is visible on console in every build. File sinks
+                // split stats into their own file so the main app log stays clean.
+                .MinimumLevel.Override("EyeRest.Services.PerformanceMonitor", LogEventLevel.Debug)
                 .WriteTo.Console()
-                .WriteTo.File(
-                    logPath,
-                    rollingInterval: Serilog.RollingInterval.Hour,
-                    retainedFileCountLimit: 24,
-                    rollOnFileSizeLimit: true,
-                    fileSizeLimitBytes: 5 * 1024 * 1024);
+                .WriteTo.Logger(statsLogger => statsLogger
+                    .Filter.ByIncludingOnly(IsPerformanceStats)
+                    .WriteTo.File(
+                        statsLogPath,
+                        rollingInterval: Serilog.RollingInterval.Hour,
+                        retainedFileCountLimit: 24,
+                        rollOnFileSizeLimit: true,
+                        fileSizeLimitBytes: 5 * 1024 * 1024))
+                .WriteTo.Logger(mainLogger => mainLogger
+                    .Filter.ByExcluding(IsPerformanceStats)
+                    .WriteTo.File(
+                        logPath,
+                        rollingInterval: Serilog.RollingInterval.Hour,
+                        retainedFileCountLimit: 24,
+                        rollOnFileSizeLimit: true,
+                        fileSizeLimitBytes: 5 * 1024 * 1024));
         });
 
         builder.ConfigureServices(services =>
@@ -113,6 +130,7 @@ public partial class App : Application
             services.AddSingleton<IConfigurationService, ConfigurationService>();
             services.AddSingleton<ITimerConfigurationService, TimerConfigurationService>();
             services.AddSingleton<IUIConfigurationService, UIConfigurationService>();
+            services.AddSingleton<IAudioRecentsService, AudioRecentsService>();
             services.AddSingleton<ITimerService, TimerService>();
             services.AddSingleton<IAnalyticsService, AnalyticsService>();
             services.AddSingleton<ILoggingService, LoggingService>();
