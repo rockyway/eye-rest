@@ -22,7 +22,7 @@ namespace EyeRest.Services
 
         // Periodic process-stats log cadence. Short enough to surface drift quickly
         // during dev / triage, long enough to keep the log file size reasonable.
-        private static readonly TimeSpan StatsInterval = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan StatsInterval = TimeSpan.FromSeconds(1800);
 
         public PerformanceMonitor(ILogger<PerformanceMonitor> logger)
         {

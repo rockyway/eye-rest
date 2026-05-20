@@ -245,6 +245,10 @@ namespace EyeRest.Services
 
                     myPopup.Show();
 
+                    // Fire the BreakWarning audio after the popup is shown.
+                    // Shares Break.StartAudio config (same sound registered in BundledSoundCache).
+                    FireChannelAudio(AudioChannel.BreakWarning, c => c.Break.StartAudio);
+
                     if (myPopup.PopupContent is BreakWarningPopup breakWarningPopup)
                     {
                         breakWarningPopup.StartCountdown(timeUntilBreak);
