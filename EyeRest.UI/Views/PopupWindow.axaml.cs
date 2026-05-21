@@ -119,7 +119,7 @@ namespace EyeRest.UI.Views
             Position = ComputePosition(placement, screen.WorkingArea, scaling, actualWidth, actualHeight);
         }
 
-        private static PixelPoint ComputePosition(
+        public static PixelPoint ComputePosition(
             PopupPlacement placement,
             PixelRect workArea,
             double scaling,
