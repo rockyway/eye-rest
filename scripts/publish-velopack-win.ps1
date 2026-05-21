@@ -74,6 +74,10 @@ dotnet publish "$SolutionRoot\EyeRest.UI\EyeRest.UI.csproj" `
     --self-contained `
     -p:PublishSingleFile=false `
     -p:PublishTrimmed=false `
+    "-p:Version=$Version" `
+    "-p:AssemblyVersion=$Version.0" `
+    "-p:FileVersion=$Version.0" `
+    "-p:InformationalVersion=$Version" `
     -o $PublishDir
 if ($LASTEXITCODE -ne 0) {
     Write-Error "dotnet publish failed"

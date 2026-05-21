@@ -18,11 +18,7 @@ public partial class AboutWindow : Window
     {
         InitializeComponent();
 
-        var version = Assembly.GetExecutingAssembly().GetName().Version;
-        if (version != null)
-        {
-            VersionText.Text = $"Version {version.Major}.{version.Minor}.{version.Build}";
-        }
+        VersionText.Text = $"Version {ResolveDisplayVersion()}";
 
         var assemblyPath = Assembly.GetExecutingAssembly().Location;
         if (!string.IsNullOrEmpty(assemblyPath) && File.Exists(assemblyPath))
@@ -34,6 +30,28 @@ public partial class AboutWindow : Window
         _donationService = App.Services?.GetService<IDonationService>();
         _updateService = App.Services?.GetService<IUpdateService>();
         UpdateDonationSections();
+    }
+
+    /// <summary>
+    /// Prefer AssemblyInformationalVersion (the GitHub-release tag, set by publish-release.sh
+    /// via -p:InformationalVersion). Fall back to AssemblyVersion only when that attribute is
+    /// missing or carries an obvious build-default value.
+    /// </summary>
+    private static string ResolveDisplayVersion()
+    {
+        var asm = Assembly.GetExecutingAssembly();
+
+        var informational = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            // Velopack/CI sometimes appends "+<git-sha>" or "+<build-meta>" — strip it for display.
+            var plus = informational.IndexOf('+');
+            if (plus >= 0) informational = informational[..plus];
+            return informational;
+        }
+
+        var v = asm.GetName().Version;
+        return v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "unknown";
     }
 
     private void UpdateDonationSections()
