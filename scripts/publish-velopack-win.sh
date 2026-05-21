@@ -57,6 +57,10 @@ dotnet publish "$SOLUTION_ROOT/EyeRest.UI/EyeRest.UI.csproj" \
   --self-contained true \
   -p:PublishSingleFile=false \
   -p:PublishTrimmed=false \
+  -p:Version="$VERSION" \
+  -p:AssemblyVersion="${VERSION}.0" \
+  -p:FileVersion="${VERSION}.0" \
+  -p:InformationalVersion="$VERSION" \
   -o "$PUBLISH_DIR"
 
 # ─── Stage 2: vpk pack ───────────────────────────────────────────────────────

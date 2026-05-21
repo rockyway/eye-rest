@@ -43,6 +43,12 @@ namespace EyeRest.Tests.Avalonia.Services
 
         public TimerServiceSmartResumeTests()
         {
+            // Reset the cross-instance static lock flags TimerService uses for concurrency.
+            // Without this, a prior test class (e.g., a TimerService-touching test that
+            // didn't fully clean up) can leave these set, blocking the recovery path's
+            // CompareExchange take and silently no-op'ing the health-monitor recovery.
+            ResetGlobalProcessingFlags();
+
             _fakeTimerFactory = new FakeTimerFactory();
             _fakeDispatcher = new FakeDispatcherService();
             _fakeClock = new FakeClock();
@@ -116,6 +122,31 @@ namespace EyeRest.Tests.Avalonia.Services
         public void Dispose()
         {
             (_timerService as IDisposable)?.Dispose();
+            // Defensive: also clean up on tear-down so subsequent test classes
+            // don't inherit our locks if a test failed mid-recovery.
+            ResetGlobalProcessingFlags();
+        }
+
+        private static void ResetGlobalProcessingFlags()
+        {
+            var t = typeof(TimerService);
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+            foreach (var name in new[]
+            {
+                "_isAnyEyeRestEventProcessing", "_isAnyBreakEventProcessing",
+                "_isAnyEyeRestWarningProcessing", "_isAnyBreakWarningProcessing",
+            })
+            {
+                t.GetField(name, flags)?.SetValue(null, false);
+            }
+            foreach (var name in new[]
+            {
+                "_atomicEyeRestProcessing", "_atomicBreakProcessing",
+                "_atomicEyeRestWarningProcessing", "_atomicBreakWarningProcessing",
+            })
+            {
+                t.GetField(name, flags)?.SetValue(null, 0);
+            }
         }
 
         private async Task StartServiceAsync()
@@ -280,13 +311,15 @@ namespace EyeRest.Tests.Avalonia.Services
         [Fact]
         public async Task HealthMonitor_WhenTimersRestarted_ResetsStartTimes()
         {
-            // This tests that the TIMER STATE FIX recovery path resets start times
+            // This tests that the TIMER STATE FIX recovery path resets start times.
+            // Seeding times via _fakeClock.Now (not DateTime.Now) so production reads
+            // and test setup share one time source — see 2026-04-28 lessons learned.
             await StartServiceAsync();
             var timers = _fakeTimerFactory.GetCreatedTimers();
             var healthMonitor = timers[HealthMonitorTimerIndex];
 
             // Simulate: Set stale start time (25 min ago, past the 20min interval)
-            SetPrivateField("_eyeRestStartTime", DateTime.Now.AddMinutes(-25));
+            SetPrivateField("_eyeRestStartTime", _fakeClock.Now.AddMinutes(-25));
 
             // Before health check, eye rest should appear overdue
             var beforeRemaining = _timerService.TimeUntilNextEyeRest;
@@ -297,7 +330,7 @@ namespace EyeRest.Tests.Avalonia.Services
             timers[BreakTimerIndex].Stop();
 
             // Set heartbeat stale enough to trigger detection (>= 2 min)
-            SetPrivateField("_lastHeartbeat", DateTime.Now.AddMinutes(-3));
+            SetPrivateField("_lastHeartbeat", _fakeClock.Now.AddMinutes(-3));
 
             // Act: Fire health monitor tick
             healthMonitor.FireTick();
@@ -318,16 +351,18 @@ namespace EyeRest.Tests.Avalonia.Services
         [Fact]
         public async Task HealthMonitor_WhenTimerOverdue_DoesNotRefreshHeartbeat()
         {
-            // Tests Fix #3: heartbeat should NOT be refreshed when timers are overdue
+            // Tests Fix #3: heartbeat should NOT be refreshed when timers are overdue.
+            // Seeding times via _fakeClock.Now (not DateTime.Now) so production reads
+            // and test setup share one time source — see 2026-04-28 lessons learned.
             await StartServiceAsync();
             var timers = _fakeTimerFactory.GetCreatedTimers();
             var healthMonitor = timers[HealthMonitorTimerIndex];
 
             // Set eye rest start time to 25 min ago (overdue)
-            SetPrivateField("_eyeRestStartTime", DateTime.Now.AddMinutes(-25));
+            SetPrivateField("_eyeRestStartTime", _fakeClock.Now.AddMinutes(-25));
 
             // Set heartbeat to 5 minutes ago
-            var staleHeartbeat = DateTime.Now.AddMinutes(-5);
+            var staleHeartbeat = _fakeClock.Now.AddMinutes(-5);
             SetPrivateField("_lastHeartbeat", staleHeartbeat);
 
             // Act: Fire health monitor
