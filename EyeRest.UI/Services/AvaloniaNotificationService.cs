@@ -166,6 +166,10 @@ namespace EyeRest.Services
                 {
                     _logger.LogInformation("Showing eye rest reminder popup for {Duration}", duration);
                     CloseCurrentPopup(); // Close any existing popup (e.g., warning) first
+                    // Defensive: a prior popup's overlays could outlive its popup
+                    // if cleanup raced with this show path. Tear them down before we
+                    // potentially show our own — HideDimOverlays is idempotent (no-op on empty).
+                    HideDimOverlays();
 
                     if (config.EyeRest.OverlayEnabled)
                         ShowDimOverlays(config.EyeRest.OverlayOpacityPercent);
@@ -212,13 +216,15 @@ namespace EyeRest.Services
 
             Dispatcher.UIThread.Post(() =>
             {
-                if (config.EyeRest.OverlayEnabled)
-                    HideDimOverlays();
+                // Unconditional cleanup: HideDimOverlays is idempotent, and gating
+                // on the captured config value would leak overlay windows if the user
+                // toggled OverlayEnabled off during the popup's lifetime.
+                HideDimOverlays();
                 CloseSpecificPopup(myPopup);
             });
         }
 
-        private static PopupPlacement MapPlacement(PopupPosition position) => position switch
+        private PopupPlacement MapPlacement(PopupPosition position) => position switch
         {
             PopupPosition.Center        => PopupPlacement.Center,
             PopupPosition.TopLeft       => PopupPlacement.TopLeft,
@@ -229,8 +235,14 @@ namespace EyeRest.Services
             PopupPosition.BottomLeft    => PopupPlacement.BottomLeft,
             PopupPosition.BottomCenter  => PopupPlacement.BottomCenter,
             PopupPosition.BottomRight   => PopupPlacement.BottomRight,
-            _                           => PopupPlacement.TopRight,
+            _ => LogUnknownPositionAndFallback(position),
         };
+
+        private PopupPlacement LogUnknownPositionAndFallback(PopupPosition position)
+        {
+            _logger.LogWarning("Unknown PopupPosition value {Value} — defaulting to TopRight. Possible config corruption or forward-compat from newer build.", position);
+            return PopupPlacement.TopRight;
+        }
 
         public async Task ShowBreakWarningAsync(TimeSpan timeUntilBreak)
         {
