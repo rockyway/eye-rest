@@ -32,6 +32,14 @@ namespace EyeRest.Models
         public AudioChannelConfig EndAudio { get; set; } = new();
         public bool WarningEnabled { get; set; } = true;
         public int WarningSeconds { get; set; } = 15;
+
+        // Overlay (parity with Break popup) — opt-in via OverlayEnabled.
+        public bool OverlayEnabled { get; set; } = true;
+        public int OverlayOpacityPercent { get; set; } = 50; // 0..100
+
+        // Where the eye rest reminder popup appears on the cursor's screen.
+        // Default TopRight preserves the previously hardcoded placement.
+        public PopupPosition PopupPosition { get; set; } = PopupPosition.TopRight;
     }
 
     public class BreakSettings
