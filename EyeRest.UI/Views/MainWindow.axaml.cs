@@ -7,7 +7,6 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using EyeRest.UI.Helpers;
 using EyeRest.UI.ViewModels;
 
@@ -63,46 +62,13 @@ public partial class MainWindow : Window
 
     }
 
-    private void OnWindowPointerWheel(object? sender, PointerWheelEventArgs e)
-    {
-        // Walk up from the event source. If any ancestor is a Slider or ComboBox,
-        // (a) mark the event Handled so the control's own wheel handler doesn't
-        //     run (RangeBase's wheel handler would otherwise mutate the slider
-        //     value — corrupting settings on macOS trackpad), and
-        // (b) forward the scroll to the nearest ancestor ScrollViewer manually,
-        //     so the user can still scroll the page when the cursor hovers a
-        //     slider/combo.
-        Avalonia.Visual? source = e.Source as Avalonia.Visual;
-        while (source != null && source != this)
-        {
-            if (source is Slider or ComboBox)
-            {
-                e.Handled = true;
-
-                var scrollViewer = source.FindAncestorOfType<ScrollViewer>();
-                if (scrollViewer is not null)
-                {
-                    const double WheelStep = 50.0;
-                    var newY = scrollViewer.Offset.Y - e.Delta.Y * WheelStep;
-                    var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
-                    scrollViewer.Offset = scrollViewer.Offset.WithY(Math.Clamp(newY, 0, maxY));
-                }
-                return;
-            }
-            source = source.GetVisualParent();
-        }
-    }
-
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         DisableMaximizeButton();
 
-        // Prevent ALL Sliders and ComboBoxes from responding to trackpad/mouse-wheel.
-        // On macOS, trackpad scrolling over a Slider silently changes its value, corrupting settings.
-        // Window-level tunnel handler catches wheel events before they reach any Slider/ComboBox,
-        // even those created later when switching from simple to config mode.
-        this.AddHandler(PointerWheelChangedEvent, OnWindowPointerWheel, RoutingStrategies.Tunnel);
+        // Slider/ComboBox wheel-mutation is suppressed app-wide via a class
+        // handler in App.Initialize (works on both macOS and Windows).
 
         // On macOS, ensure the window comes to front on startup.
         // dotnet run launches from Terminal which keeps focus, so we

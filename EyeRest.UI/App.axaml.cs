@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+using Avalonia.VisualTree;
 using EyeRest.Services;
 using EyeRest.Services.Abstractions;
 using EyeRest.UI.Helpers;
@@ -62,6 +65,35 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+        // Prevent mouse-wheel from mutating Slider/ComboBox values app-wide.
+        // RangeBase's bubble class handler skips when e.Handled is true, so a
+        // Tunnel-phase class handler on the control itself preempts it on every
+        // platform. A window-level Tunnel handler is not enough on Windows —
+        // the Win32 wheel-event route doesn't reliably visit our instance
+        // handler before the slider's class handler fires.
+        InputElement.PointerWheelChangedEvent.AddClassHandler<Slider>(
+            (control, args) => SuppressWheelOnInteractiveControl(control, args),
+            RoutingStrategies.Tunnel);
+        InputElement.PointerWheelChangedEvent.AddClassHandler<ComboBox>(
+            (control, args) => SuppressWheelOnInteractiveControl(control, args),
+            RoutingStrategies.Tunnel);
+    }
+
+    private static void SuppressWheelOnInteractiveControl(Control control, PointerWheelEventArgs e)
+    {
+        if (e.Handled) return;
+        e.Handled = true;
+
+        // Forward the scroll to the nearest ancestor ScrollViewer so the page
+        // still scrolls when the cursor happens to hover a slider/combo.
+        var scrollViewer = control.FindAncestorOfType<ScrollViewer>();
+        if (scrollViewer is null) return;
+
+        const double WheelStep = 50.0;
+        var newY = scrollViewer.Offset.Y - e.Delta.Y * WheelStep;
+        var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+        scrollViewer.Offset = scrollViewer.Offset.WithY(Math.Clamp(newY, 0, maxY));
     }
 
     public override async void OnFrameworkInitializationCompleted()
