@@ -33,7 +33,23 @@ fi
 
 TAG="v${VERSION}"
 DIST_DIR="$PROJECT_ROOT/dist"
-SIGNING_IDENTITY="${SIGNING_IDENTITY:--}"
+# Notarization is REQUIRED by default — unsigned/unnotarized .app bundles will
+# show "App is damaged" or "unidentified developer" warnings to end users.
+# To bypass for a local-only build, set ALLOW_UNNOTARIZED=1.
+NOTARIZE="${NOTARIZE:-1}"
+ALLOW_UNNOTARIZED="${ALLOW_UNNOTARIZED:-0}"
+# Default signing identity to the documented PMT Labs LLC Developer ID cert when
+# one is installed and the user hasn't overridden it. Empty value lets
+# bundle-macos.sh auto-detect by TEAM_ID. We deliberately do NOT default to "-"
+# (ad-hoc) — that yielded an Invalid notarization in v1.4.1.
+SIGNING_IDENTITY="${SIGNING_IDENTITY:-}"
+
+if [ "$NOTARIZE" = "1" ] && [ "$ALLOW_UNNOTARIZED" != "1" ]; then
+    : "${NOTARY_KEY_ID:?Error: NOTARY_KEY_ID is required for notarization. Set NOTARIZE=0 + ALLOW_UNNOTARIZED=1 to bypass (NOT for GitHub releases — users will see Gatekeeper warnings). See docs/guides/002-macos-production-build.md.}"
+    : "${NOTARY_ISSUER_ID:?Error: NOTARY_ISSUER_ID is required for notarization. See docs/guides/002-macos-production-build.md.}"
+    : "${NOTARY_KEY_PATH:?Error: NOTARY_KEY_PATH is required for notarization. See docs/guides/002-macos-production-build.md.}"
+    [ -f "$NOTARY_KEY_PATH" ] || { echo "Error: NOTARY_KEY_PATH file not found: $NOTARY_KEY_PATH" >&2; exit 1; }
+fi
 
 echo "╔══════════════════════════════════════╗"
 echo "║  Eye-Rest Release v${VERSION}          "
@@ -58,7 +74,12 @@ echo "  ✓ macOS ARM64 published"
 
 # ── Step 3: Bundle macOS .app ────────────────
 echo "[3/7] Bundling macOS .app..."
-SIGNING_IDENTITY="$SIGNING_IDENTITY" SKIP_PUBLISH=1 bash "$SCRIPT_DIR/bundle-macos.sh" 2>&1 | tail -3
+SIGNING_IDENTITY="$SIGNING_IDENTITY" \
+NOTARIZE="$NOTARIZE" \
+NOTARY_KEY_ID="${NOTARY_KEY_ID:-}" \
+NOTARY_ISSUER_ID="${NOTARY_ISSUER_ID:-}" \
+NOTARY_KEY_PATH="${NOTARY_KEY_PATH:-}" \
+SKIP_PUBLISH=1 bash "$SCRIPT_DIR/bundle-macos.sh"
 echo "  ✓ macOS .app bundled"
 
 # ── Step 4: Publish Windows x64 ─────────────
