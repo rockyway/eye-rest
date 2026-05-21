@@ -517,7 +517,7 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 | Run | `dotnet run --project EyeRest.UI` |
 | Test | `dotnet test` |
 | Publish | `dotnet publish` |
-| macOS .app bundle | `scripts/bundle-macos.sh` — self-contained publish, .app structure, code signing with hardened runtime |
+| macOS .app bundle | `scripts/bundle-macos.sh` — self-contained publish, .app structure, code signing with hardened runtime. See [`docs/guides/002-macos-production-build.md`](docs/guides/002-macos-production-build.md) for the full sign + notarize + staple workflow (PMT Labs LLC, team `68M75D67LJ`, bundle ID `com.pmtlabs.eyerest.app`) and `notarytool` hang recovery. |
 | Windows MSIX (Store) | `scripts/build-msix.ps1 -ForStore` — unsigned MSIX for Microsoft Store upload |
 | Windows MSIX (sideload) | `scripts/build-msix.ps1` — self-signed MSIX for local testing |
 | Icon generation | `scripts/generate-icons.py` (requires Python + Pillow) |

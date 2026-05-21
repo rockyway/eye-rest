@@ -25,6 +25,7 @@ namespace EyeRest.UI.ViewModels
         private readonly IScreenOverlayService _screenOverlayService;
         private readonly IDonationService _donationService;
         private readonly IAnalyticsService? _analyticsService;
+        private readonly IAudioRecentsService? _audioRecentsService;
         private readonly ILogger<MainWindowViewModel> _logger;
 
         private AppConfiguration _configuration;
@@ -56,11 +57,17 @@ namespace EyeRest.UI.ViewModels
         private int _audioVolume = 50;
         private string? _customSoundPath;
 
-        // BL-002 recent-items: shared lists across all 4 channels keyed by field type.
-        // Bound to the Recent flyout next to each File / URL field. ObservableCollection
-        // so the flyout ItemsControl auto-refreshes on add/remove.
-        public ObservableCollection<string> RecentAudioFilePaths { get; } = new();
-        public ObservableCollection<string> RecentAudioUrls { get; } = new();
+        // Per-channel recent items. Each channel's File and URL flyout binds to its
+        // own ObservableCollection so picks are scoped — browsing for a Break Start file
+        // doesn't pollute the Eye-rest Start history.
+        public ObservableCollection<string> RecentEyeRestStartFilePaths { get; } = new();
+        public ObservableCollection<string> RecentEyeRestStartUrls      { get; } = new();
+        public ObservableCollection<string> RecentEyeRestEndFilePaths   { get; } = new();
+        public ObservableCollection<string> RecentEyeRestEndUrls        { get; } = new();
+        public ObservableCollection<string> RecentBreakStartFilePaths   { get; } = new();
+        public ObservableCollection<string> RecentBreakStartUrls        { get; } = new();
+        public ObservableCollection<string> RecentBreakEndFilePaths     { get; } = new();
+        public ObservableCollection<string> RecentBreakEndUrls          { get; } = new();
         private const int MaxRecentItems = 10;
 
         // BL-002 Popup Audio (per-channel). Each channel has Source (Off/Default/File/Url),
@@ -167,7 +174,8 @@ namespace EyeRest.UI.ViewModels
             IScreenOverlayService screenOverlayService,
             IDonationService donationService,
             ILogger<MainWindowViewModel> logger,
-            IAnalyticsService? analyticsService = null)
+            IAnalyticsService? analyticsService = null,
+            IAudioRecentsService? audioRecentsService = null)
         {
             _configurationService = configurationService;
             _timerConfigurationService = timerConfigurationService;
@@ -179,6 +187,7 @@ namespace EyeRest.UI.ViewModels
             _donationService = donationService;
             _logger = logger;
             _analyticsService = analyticsService;
+            _audioRecentsService = audioRecentsService;
 
             _configuration = new AppConfiguration();
             _originalConfiguration = new AppConfiguration();
@@ -216,13 +225,13 @@ namespace EyeRest.UI.ViewModels
             // without typing the full path. The Browse button is always visible beside
             // each file-path TextBox.
             BrowseEyeRestStartFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
-                async () => await BrowseAudioFileAsync(p => EyeRestStartFilePath = p));
+                async () => await BrowseAudioFileAsync(p => EyeRestStartFilePath = p, RecentEyeRestStartFilePaths));
             BrowseEyeRestEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
-                async () => await BrowseAudioFileAsync(p => EyeRestEndFilePath = p));
+                async () => await BrowseAudioFileAsync(p => EyeRestEndFilePath = p, RecentEyeRestEndFilePaths));
             BrowseBreakStartFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
-                async () => await BrowseAudioFileAsync(p => BreakStartFilePath = p));
+                async () => await BrowseAudioFileAsync(p => BreakStartFilePath = p, RecentBreakStartFilePaths));
             BrowseBreakEndFileCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(
-                async () => await BrowseAudioFileAsync(p => BreakEndFilePath = p));
+                async () => await BrowseAudioFileAsync(p => BreakEndFilePath = p, RecentBreakEndFilePaths));
 
             // BL-002 recent-items: one Pick command per (channel, field-type) — takes a
             // string CommandParameter (the recent item) and writes it to the channel's
@@ -235,8 +244,14 @@ namespace EyeRest.UI.ViewModels
             PickRecentEyeRestEndUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) EyeRestEndUrl = s; });
             PickRecentBreakStartUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakStartUrl = s; });
             PickRecentBreakEndUrlCommand     = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) BreakEndUrl = s; });
-            RemoveRecentFilePathCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecentFilePath(s); });
-            RemoveRecentUrlCommand      = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecentUrl(s); });
+            RemoveRecentEyeRestStartFilePathCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentEyeRestStartFilePaths, s); });
+            RemoveRecentEyeRestEndFilePathCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentEyeRestEndFilePaths,   s); });
+            RemoveRecentBreakStartFilePathCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentBreakStartFilePaths,   s); });
+            RemoveRecentBreakEndFilePathCommand     = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentBreakEndFilePaths,     s); });
+            RemoveRecentEyeRestStartUrlCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentEyeRestStartUrls, s); });
+            RemoveRecentEyeRestEndUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentEyeRestEndUrls,   s); });
+            RemoveRecentBreakStartUrlCommand   = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentBreakStartUrls,   s); });
+            RemoveRecentBreakEndUrlCommand     = new EyeRest.ViewModels.CrossPlatformRelayCommand(p => { if (p is string s) RemoveRecent(RecentBreakEndUrls,     s); });
 
             // Test commands
             TestWarningCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(async () => await TestWarningPopup());
@@ -283,11 +298,12 @@ namespace EyeRest.UI.ViewModels
             // Initialize debounce timer for graceful timer restarts
             InitializeDebounceTimer();
 
-            // Load configuration asynchronously
+            // Load configuration asynchronously — fire-and-forget. The method
+            // catches its own exceptions, so we discard the Task.
             try
             {
                 _logger.LogInformation("Starting async configuration loading");
-                LoadConfigurationAsync();
+                _ = LoadConfigurationImmediatelyAsync();
                 _logger.LogInformation("Configuration loading started - UI will update when loaded");
             }
             catch (Exception ex)
@@ -1133,6 +1149,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _pauseOnScreenLock, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(PauseOnScreenLock));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -1145,6 +1166,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _pauseOnMonitorOff, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(PauseOnMonitorOff));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -1157,6 +1183,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _pauseOnIdle, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(PauseOnIdle));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -1169,6 +1200,11 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _idleTimeoutMinutes, value))
                 {
                     CheckForChanges();
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(IdleTimeoutMinutes));
+                        DebouncedSaveTimerSetting();
+                    }
                 }
             }
         }
@@ -1216,8 +1252,14 @@ namespace EyeRest.UI.ViewModels
         public ICommand PickRecentEyeRestEndUrlCommand { get; }
         public ICommand PickRecentBreakStartUrlCommand { get; }
         public ICommand PickRecentBreakEndUrlCommand { get; }
-        public ICommand RemoveRecentFilePathCommand { get; }
-        public ICommand RemoveRecentUrlCommand { get; }
+        public ICommand RemoveRecentEyeRestStartFilePathCommand { get; }
+        public ICommand RemoveRecentEyeRestEndFilePathCommand   { get; }
+        public ICommand RemoveRecentBreakStartFilePathCommand   { get; }
+        public ICommand RemoveRecentBreakEndFilePathCommand     { get; }
+        public ICommand RemoveRecentEyeRestStartUrlCommand { get; }
+        public ICommand RemoveRecentEyeRestEndUrlCommand   { get; }
+        public ICommand RemoveRecentBreakStartUrlCommand   { get; }
+        public ICommand RemoveRecentBreakEndUrlCommand     { get; }
 
         // Test commands
         public ICommand TestWarningCommand { get; }
@@ -1270,6 +1312,7 @@ namespace EyeRest.UI.ViewModels
                 // Update UI properties from loaded configuration
                 // Hold loading flag — ReapplyConfigurationValues releases it after UI stabilizes
                 UpdatePropertiesFromConfiguration(holdLoadingFlag: true);
+                await LoadRecentsAsync();
 
                 _logger.LogInformation("Configuration loaded immediately on window load - UI updated");
 
@@ -1278,45 +1321,11 @@ namespace EyeRest.UI.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load configuration immediately");
-
-                _configuration = await _configurationService.GetDefaultConfiguration();
-                _originalConfiguration = CloneConfiguration(_configuration);
-                UpdatePropertiesFromConfiguration();
-
-                _logger.LogWarning("Failed to load configuration. Using default values.");
-            }
-        }
-
-        private async void LoadConfigurationAsync()
-        {
-            try
-            {
-                _configuration = await _configurationService.LoadConfigurationAsync();
-
-                // Sync startup setting with actual startup status
-                _configuration.Application.StartWithWindows = _startupManager.IsStartupEnabled();
-
-                _originalConfiguration = CloneConfiguration(_configuration);
-
-                // Update UI properties from loaded configuration
-                // Hold loading flag — ReapplyConfigurationValues releases it after UI stabilizes
-                UpdatePropertiesFromConfiguration(holdLoadingFlag: true);
-
-                // Update donation banner visibility after config is loaded
-                UpdateDonationState();
-
-                _logger.LogInformation("Configuration loaded successfully");
-            }
-            catch (Exception ex)
-            {
                 _logger.LogError(ex, "Failed to load configuration");
 
                 _configuration = await _configurationService.GetDefaultConfiguration();
                 _originalConfiguration = CloneConfiguration(_configuration);
                 UpdatePropertiesFromConfiguration();
-
-                // Still check donation state even on config load failure
                 UpdateDonationState();
 
                 _logger.LogWarning("Failed to load configuration. Using default values.");
@@ -1363,14 +1372,6 @@ namespace EyeRest.UI.ViewModels
                               ?? _configuration.EyeRest.EndAudio.CustomFilePath
                               ?? _configuration.Break.StartAudio.CustomFilePath
                               ?? _configuration.Break.EndAudio.CustomFilePath;
-
-            // BL-002 recent-items: hydrate the ObservableCollections from config. Clear
-            // first then re-add so order matches the persisted state and any existing
-            // bindings keep observing the same instance.
-            RecentAudioFilePaths.Clear();
-            foreach (var p in _configuration.Audio.RecentFilePaths) RecentAudioFilePaths.Add(p);
-            RecentAudioUrls.Clear();
-            foreach (var u in _configuration.Audio.RecentUrls) RecentAudioUrls.Add(u);
 
             // BL-002 Popup Audio (M4): load 12 per-channel properties.
             EyeRestStartSource   = _configuration.EyeRest.StartAudio.Source;
@@ -2531,8 +2532,8 @@ namespace EyeRest.UI.ViewModels
         // BL-002 Popup Audio: opens the OS file picker and feeds the selected path to the
         // given setter (one of the EyeRestStart/End or BreakStart/End FilePath properties).
         // The setter itself drives the dirty-tracking save via the property's setter pattern.
-        // After a successful pick, the path is added to RecentAudioFilePaths.
-        private async Task BrowseAudioFileAsync(Action<string?> setPath)
+        // After a successful pick, the path is added to the channel's recent collection.
+        private async Task BrowseAudioFileAsync(Action<string?> setPath, ObservableCollection<string> recentCollection)
         {
             try
             {
@@ -2559,7 +2560,7 @@ namespace EyeRest.UI.ViewModels
                 {
                     var path = files[0].Path.LocalPath;
                     setPath(path);
-                    AddRecentFilePath(path);
+                    AddRecent(recentCollection, path);
                     _logger.LogInformation("Per-channel audio file selected: {Path}", path);
                 }
             }
@@ -2569,52 +2570,104 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
-        // BL-002 recent-items helpers. Dedupe-by-move-to-top: if the value is already
-        // present, remove it first so the newly-added entry is at index 0. Cap at 10.
-        // Saves to config in the background after every change.
-        private void AddRecentFilePath(string? path)
+        // Recent-items helpers. Dedupe-by-move-to-top, capped at MaxRecentItems.
+        // Each channel passes its own ObservableCollection so histories stay separate.
+        private void AddRecent(ObservableCollection<string> collection, string? value)
         {
-            if (string.IsNullOrWhiteSpace(path)) return;
-            RecentAudioFilePaths.Remove(path);
-            RecentAudioFilePaths.Insert(0, path);
-            while (RecentAudioFilePaths.Count > MaxRecentItems)
-                RecentAudioFilePaths.RemoveAt(RecentAudioFilePaths.Count - 1);
+            if (string.IsNullOrWhiteSpace(value)) return;
+            collection.Remove(value);
+            collection.Insert(0, value);
+            while (collection.Count > MaxRecentItems)
+                collection.RemoveAt(collection.Count - 1);
             _ = SaveRecentsAsync();
         }
 
-        private void AddRecentUrl(string? url)
+        private void RemoveRecent(ObservableCollection<string> collection, string value)
         {
-            if (string.IsNullOrWhiteSpace(url)) return;
-            RecentAudioUrls.Remove(url);
-            RecentAudioUrls.Insert(0, url);
-            while (RecentAudioUrls.Count > MaxRecentItems)
-                RecentAudioUrls.RemoveAt(RecentAudioUrls.Count - 1);
-            _ = SaveRecentsAsync();
+            if (collection.Remove(value)) _ = SaveRecentsAsync();
         }
 
-        private void RemoveRecentFilePath(string path)
+        private async Task LoadRecentsAsync()
         {
-            if (RecentAudioFilePaths.Remove(path)) _ = SaveRecentsAsync();
+            if (_audioRecentsService is null) return;
+            try
+            {
+                // No ConfigureAwait(false): the continuation resumes on the captured
+                // SynchronizationContext (UI thread in production, test thread in unit
+                // tests), so HydrateRecents updates the ObservableCollections on a
+                // thread the UI bindings (if any) are happy with — and the call is
+                // awaitable end-to-end without a dispatcher post.
+                var recents = await _audioRecentsService.LoadAsync();
+                HydrateRecents(recents);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load audio recents");
+            }
         }
 
-        private void RemoveRecentUrl(string url)
+        private void HydrateRecents(AudioRecents r)
         {
-            if (RecentAudioUrls.Remove(url)) _ = SaveRecentsAsync();
+            Hydrate(RecentEyeRestStartFilePaths, r.EyeRestStartFilePaths);
+            Hydrate(RecentEyeRestStartUrls,      r.EyeRestStartUrls);
+            Hydrate(RecentEyeRestEndFilePaths,   r.EyeRestEndFilePaths);
+            Hydrate(RecentEyeRestEndUrls,        r.EyeRestEndUrls);
+            Hydrate(RecentBreakStartFilePaths,   r.BreakStartFilePaths);
+            Hydrate(RecentBreakStartUrls,        r.BreakStartUrls);
+            Hydrate(RecentBreakEndFilePaths,     r.BreakEndFilePaths);
+            Hydrate(RecentBreakEndUrls,          r.BreakEndUrls);
+
+            // Backfill: if a channel already has a value in config but that value isn't
+            // in the just-loaded recents (e.g. first run after the audio-recents.json split,
+            // or the user typed a value before ever clicking Test/Browse), seed it at the
+            // top so the flyout isn't empty while the field is populated.
+            bool seeded = false;
+            seeded |= SeedIfMissing(RecentEyeRestStartFilePaths, EyeRestStartFilePath);
+            seeded |= SeedIfMissing(RecentEyeRestStartUrls,      EyeRestStartUrl);
+            seeded |= SeedIfMissing(RecentEyeRestEndFilePaths,   EyeRestEndFilePath);
+            seeded |= SeedIfMissing(RecentEyeRestEndUrls,        EyeRestEndUrl);
+            seeded |= SeedIfMissing(RecentBreakStartFilePaths,   BreakStartFilePath);
+            seeded |= SeedIfMissing(RecentBreakStartUrls,        BreakStartUrl);
+            seeded |= SeedIfMissing(RecentBreakEndFilePaths,     BreakEndFilePath);
+            seeded |= SeedIfMissing(RecentBreakEndUrls,          BreakEndUrl);
+            if (seeded) _ = SaveRecentsAsync();
+
+            static void Hydrate(ObservableCollection<string> col, List<string> src)
+            {
+                col.Clear();
+                foreach (var s in src) col.Add(s);
+            }
+        }
+
+        private static bool SeedIfMissing(ObservableCollection<string> collection, string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            if (collection.Contains(value)) return false;
+            collection.Insert(0, value);
+            return true;
         }
 
         private async Task SaveRecentsAsync()
         {
+            if (_audioRecentsService is null) return;
             try
             {
-                await _configurationService.UpdateConfigurationAsync(c =>
+                var recents = new AudioRecents
                 {
-                    c.Audio.RecentFilePaths = RecentAudioFilePaths.ToList();
-                    c.Audio.RecentUrls      = RecentAudioUrls.ToList();
-                });
+                    EyeRestStartFilePaths = RecentEyeRestStartFilePaths.ToList(),
+                    EyeRestStartUrls      = RecentEyeRestStartUrls.ToList(),
+                    EyeRestEndFilePaths   = RecentEyeRestEndFilePaths.ToList(),
+                    EyeRestEndUrls        = RecentEyeRestEndUrls.ToList(),
+                    BreakStartFilePaths   = RecentBreakStartFilePaths.ToList(),
+                    BreakStartUrls        = RecentBreakStartUrls.ToList(),
+                    BreakEndFilePaths     = RecentBreakEndFilePaths.ToList(),
+                    BreakEndUrls          = RecentBreakEndUrls.ToList(),
+                };
+                await _audioRecentsService.SaveAsync(recents).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to persist Popup Audio recents");
+                _logger.LogError(ex, "Failed to persist audio recents");
             }
         }
 
@@ -2638,11 +2691,20 @@ namespace EyeRest.UI.ViewModels
                     CustomFilePath = filePath,
                     Url = url,
                 };
-                // BL-002 recent-items: clicking Test on URL mode is the user's explicit
-                // confirmation that the URL is the one they want — promote it to recents.
-                // (File mode already adds on Browse; typing a path manually doesn't add,
-                // matching the spec's "user-confirms-this-value" gating.)
-                if (source == AudioChannelSource.Url) AddRecentUrl(url);
+                // Clicking Test on URL mode confirms the URL — promote it to that
+                // channel's recents. (File mode adds on Browse; manual typing doesn't.)
+                if (source == AudioChannelSource.Url)
+                {
+                    var urlCollection = channel switch
+                    {
+                        AudioChannel.EyeRestStart => RecentEyeRestStartUrls,
+                        AudioChannel.EyeRestEnd   => RecentEyeRestEndUrls,
+                        AudioChannel.BreakStart   => RecentBreakStartUrls,
+                        AudioChannel.BreakEnd     => RecentBreakEndUrls,
+                        _                         => null,
+                    };
+                    if (urlCollection is not null) AddRecent(urlCollection, url);
+                }
                 await Task.Run(() => audioService.PlayChannelAsync(channel, config));
             }
             catch (Exception ex)
@@ -2888,12 +2950,10 @@ namespace EyeRest.UI.ViewModels
                         config.EyeRest.IntervalMinutes = EyeRestIntervalMinutes;
                     if (changed.Contains(nameof(EyeRestDurationSeconds)))
                         config.EyeRest.DurationSeconds = EyeRestDurationSeconds;
-                    if (changed.Contains(nameof(EyeRestStartSoundEnabled)))
-                        config.EyeRest.StartAudio.Source = EyeRestStartSoundEnabled
-                            ? AudioChannelSource.Default : AudioChannelSource.Off;
-                    if (changed.Contains(nameof(EyeRestEndSoundEnabled)))
-                        config.EyeRest.EndAudio.Source = EyeRestEndSoundEnabled
-                            ? AudioChannelSource.Default : AudioChannelSource.Off;
+                    // EyeRestStartSoundEnabled / EyeRestEndSoundEnabled legacy bool writes
+                    // removed — they were clobbering the per-channel Source (e.g. Url → Default)
+                    // whenever the legacy toggle fired. The per-channel writes below (lines
+                    // EyeRestStartSource / EyeRestEndSource) handle Source correctly.
                     if (changed.Contains(nameof(EyeRestWarningEnabled)))
                         config.EyeRest.WarningEnabled = EyeRestWarningEnabled;
                     if (changed.Contains(nameof(EyeRestWarningSeconds)))
@@ -2925,12 +2985,33 @@ namespace EyeRest.UI.ViewModels
                     if (changed.Contains(nameof(BreakEndFilePath)))     config.Break.EndAudio.CustomFilePath     = BreakEndFilePath;
                     if (changed.Contains(nameof(BreakEndUrl)))          config.Break.EndAudio.Url                = BreakEndUrl;
 
+                    // Smart Pause (Advanced tab) — presence settings. The user presence
+                    // services subscribe to ConfigurationChanged and re-read IdleTimeoutMinutes
+                    // live; no app restart needed.
+                    if (changed.Contains(nameof(PauseOnScreenLock)))    config.UserPresence.PauseOnScreenLock    = PauseOnScreenLock;
+                    if (changed.Contains(nameof(PauseOnMonitorOff)))    config.UserPresence.PauseOnMonitorOff    = PauseOnMonitorOff;
+                    if (changed.Contains(nameof(PauseOnIdle)))          config.UserPresence.PauseOnIdle          = PauseOnIdle;
+                    if (changed.Contains(nameof(IdleTimeoutMinutes)))   config.UserPresence.IdleTimeoutMinutes   = IdleTimeoutMinutes;
+
                     _configuration = config;
                 });
                 _originalConfiguration = CloneConfiguration(_configuration);
 
                 // Push updated intervals into the running timer service immediately
                 _timerService.UpdateConfiguration(_configuration);
+
+                // After the debounced save persists a URL or file path, also promote
+                // that value into the channel's recents list — typing-then-stopping is
+                // the natural "I'm using this value" signal, so the flyout shouldn't
+                // require an explicit Test/Browse click to populate.
+                if (changed.Contains(nameof(EyeRestStartFilePath))) AddRecent(RecentEyeRestStartFilePaths, EyeRestStartFilePath);
+                if (changed.Contains(nameof(EyeRestStartUrl)))      AddRecent(RecentEyeRestStartUrls,      EyeRestStartUrl);
+                if (changed.Contains(nameof(EyeRestEndFilePath)))   AddRecent(RecentEyeRestEndFilePaths,   EyeRestEndFilePath);
+                if (changed.Contains(nameof(EyeRestEndUrl)))        AddRecent(RecentEyeRestEndUrls,        EyeRestEndUrl);
+                if (changed.Contains(nameof(BreakStartFilePath)))   AddRecent(RecentBreakStartFilePaths,   BreakStartFilePath);
+                if (changed.Contains(nameof(BreakStartUrl)))        AddRecent(RecentBreakStartUrls,        BreakStartUrl);
+                if (changed.Contains(nameof(BreakEndFilePath)))     AddRecent(RecentBreakEndFilePaths,     BreakEndFilePath);
+                if (changed.Contains(nameof(BreakEndUrl)))          AddRecent(RecentBreakEndUrls,          BreakEndUrl);
 
                 OnPropertyChanged(nameof(EyeRestTimerTooltip));
                 OnPropertyChanged(nameof(BreakTimerTooltip));

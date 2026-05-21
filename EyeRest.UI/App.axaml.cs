@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+using Avalonia.VisualTree;
 using EyeRest.Services;
 using EyeRest.Services.Abstractions;
 using EyeRest.UI.Helpers;
@@ -15,6 +18,7 @@ using EyeRest.UI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog.Events;
 using Serilog;
 
 namespace EyeRest.UI;
@@ -61,6 +65,35 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+        // Prevent mouse-wheel from mutating Slider/ComboBox values app-wide.
+        // RangeBase's bubble class handler skips when e.Handled is true, so a
+        // Tunnel-phase class handler on the control itself preempts it on every
+        // platform. A window-level Tunnel handler is not enough on Windows —
+        // the Win32 wheel-event route doesn't reliably visit our instance
+        // handler before the slider's class handler fires.
+        InputElement.PointerWheelChangedEvent.AddClassHandler<Slider>(
+            (control, args) => SuppressWheelOnInteractiveControl(control, args),
+            RoutingStrategies.Tunnel);
+        InputElement.PointerWheelChangedEvent.AddClassHandler<ComboBox>(
+            (control, args) => SuppressWheelOnInteractiveControl(control, args),
+            RoutingStrategies.Tunnel);
+    }
+
+    private static void SuppressWheelOnInteractiveControl(Control control, PointerWheelEventArgs e)
+    {
+        if (e.Handled) return;
+        e.Handled = true;
+
+        // Forward the scroll to the nearest ancestor ScrollViewer so the page
+        // still scrolls when the cursor happens to hover a slider/combo.
+        var scrollViewer = control.FindAncestorOfType<ScrollViewer>();
+        if (scrollViewer is null) return;
+
+        const double WheelStep = 50.0;
+        var newY = scrollViewer.Offset.Y - e.Delta.Y * WheelStep;
+        var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+        scrollViewer.Offset = scrollViewer.Offset.WithY(Math.Clamp(newY, 0, maxY));
     }
 
     public override async void OnFrameworkInitializationCompleted()
@@ -68,21 +101,40 @@ public partial class App : Application
         var builder = Host.CreateDefaultBuilder();
         builder.UseSerilog((context, config) =>
         {
-            var logPath = System.IO.Path.Combine(
+            var logsDirectory = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "EyeRest", "logs", "eyerest-.log");
+                "EyeRest", "logs");
+            var logPath = System.IO.Path.Combine(logsDirectory, "eyerest-.log");
+            var statsLogPath = System.IO.Path.Combine(logsDirectory, "eyerest-stats-.log");
+
+            static bool IsPerformanceStats(LogEvent logEvent)
+            {
+                return logEvent.Properties.TryGetValue("SourceContext", out var sourceContext)
+                    && sourceContext.ToString().Trim('"') == "EyeRest.Services.PerformanceMonitor";
+            }
+
             config
-                // Allow Debug-level events from PerformanceMonitor so the 15-second
-                // process-stats line (`Process stats: CPU=… | Mem=… | GCHeap=… | GC: g0=… g1=… g2=…`)
-                // is written. Default minimum stays at Information for everything else.
-                .MinimumLevel.Override("EyeRest.Services.PerformanceMonitor", Serilog.Events.LogEventLevel.Debug)
+                // Always allow Debug-level events from PerformanceMonitor so the
+                // process-stats line is visible on console in every build. File sinks
+                // split stats into their own file so the main app log stays clean.
+                .MinimumLevel.Override("EyeRest.Services.PerformanceMonitor", LogEventLevel.Debug)
                 .WriteTo.Console()
-                .WriteTo.File(
-                    logPath,
-                    rollingInterval: Serilog.RollingInterval.Hour,
-                    retainedFileCountLimit: 24,
-                    rollOnFileSizeLimit: true,
-                    fileSizeLimitBytes: 5 * 1024 * 1024);
+                .WriteTo.Logger(statsLogger => statsLogger
+                    .Filter.ByIncludingOnly(IsPerformanceStats)
+                    .WriteTo.File(
+                        statsLogPath,
+                        rollingInterval: Serilog.RollingInterval.Hour,
+                        retainedFileCountLimit: 24,
+                        rollOnFileSizeLimit: true,
+                        fileSizeLimitBytes: 5 * 1024 * 1024))
+                .WriteTo.Logger(mainLogger => mainLogger
+                    .Filter.ByExcluding(IsPerformanceStats)
+                    .WriteTo.File(
+                        logPath,
+                        rollingInterval: Serilog.RollingInterval.Hour,
+                        retainedFileCountLimit: 24,
+                        rollOnFileSizeLimit: true,
+                        fileSizeLimitBytes: 5 * 1024 * 1024));
         });
 
         builder.ConfigureServices(services =>
@@ -110,6 +162,7 @@ public partial class App : Application
             services.AddSingleton<IConfigurationService, ConfigurationService>();
             services.AddSingleton<ITimerConfigurationService, TimerConfigurationService>();
             services.AddSingleton<IUIConfigurationService, UIConfigurationService>();
+            services.AddSingleton<IAudioRecentsService, AudioRecentsService>();
             services.AddSingleton<ITimerService, TimerService>();
             services.AddSingleton<IAnalyticsService, AnalyticsService>();
             services.AddSingleton<ILoggingService, LoggingService>();

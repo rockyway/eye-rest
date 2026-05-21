@@ -402,6 +402,15 @@
     </Style>
 
     <!-- ============================================================ -->
+    <!-- Monospace digits for ticking time displays (BL-004)           -->
+    <!-- Apply to any TextBlock whose text updates every second so     -->
+    <!-- digit width stays constant and the line doesn't visibly jiggle.-->
+    <!-- ============================================================ -->
+    <Style Selector="TextBlock.MonoDigits">
+        <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+    </Style>
+
+    <!-- ============================================================ -->
     <!-- Caption Button Styles (Windows title bar)                     -->
     <!-- ============================================================ -->
     <Style Selector="Button.CaptionBtn">

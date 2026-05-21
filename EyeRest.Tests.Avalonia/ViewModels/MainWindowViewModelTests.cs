@@ -21,6 +21,7 @@ namespace EyeRest.Tests.Avalonia.ViewModels
         private readonly Mock<INotificationService> _mockNotificationService;
         private readonly Mock<IScreenOverlayService> _mockScreenOverlayService;
         private readonly Mock<IDonationService> _mockDonationService;
+        private readonly Mock<IAudioRecentsService> _mockAudioRecentsService;
         private readonly MainWindowViewModel _viewModel;
         private readonly AppConfiguration _testConfig;
 
@@ -35,6 +36,9 @@ namespace EyeRest.Tests.Avalonia.ViewModels
             _mockNotificationService = new Mock<INotificationService>();
             _mockScreenOverlayService = new Mock<IScreenOverlayService>();
             _mockDonationService = new Mock<IDonationService>();
+            _mockAudioRecentsService = new Mock<IAudioRecentsService>();
+            _mockAudioRecentsService.Setup(x => x.LoadAsync()).ReturnsAsync(new AudioRecents());
+            _mockAudioRecentsService.Setup(x => x.SaveAsync(It.IsAny<AudioRecents>())).Returns(Task.CompletedTask);
 
             _testConfig = new AppConfiguration
             {
@@ -93,7 +97,9 @@ namespace EyeRest.Tests.Avalonia.ViewModels
                 _mockNotificationService.Object,
                 _mockScreenOverlayService.Object,
                 _mockDonationService.Object,
-                _mockLogger.Object);
+                _mockLogger.Object,
+                analyticsService: null,
+                audioRecentsService: _mockAudioRecentsService.Object);
         }
 
         [Fact]
@@ -463,6 +469,41 @@ namespace EyeRest.Tests.Avalonia.ViewModels
                 _viewModel.Dispose();
             });
             Assert.Null(exception);
+        }
+
+        // Regression for the load-path divergence bug: the constructor's load path
+        // (LoadConfigurationImmediatelyAsync, after consolidation) MUST load recents.
+        // Verifies IAudioRecentsService.LoadAsync is hit on configuration load.
+        [Fact]
+        public async Task LoadConfigurationImmediatelyAsync_LoadsRecentsFromService()
+        {
+            // Act
+            await _viewModel.LoadConfigurationImmediatelyAsync();
+
+            // Assert — the service was queried for recents during load.
+            _mockAudioRecentsService.Verify(x => x.LoadAsync(), Times.AtLeastOnce);
+        }
+
+        // Regression for the "URL stored in config but flyout empty" bug: when a channel's
+        // URL is set in config but absent from the recents file, the loader seeds it.
+        [Fact]
+        public async Task LoadConfigurationImmediatelyAsync_SeedsRecentsFromConfigUrl()
+        {
+            // Arrange — config has a URL on the Eye-rest Start channel; recents file is empty.
+            const string url = "https://example.test/youtube";
+            _testConfig.EyeRest.StartAudio.Url = url;
+            AudioRecents? savedRecents = null;
+            _mockAudioRecentsService.Setup(x => x.SaveAsync(It.IsAny<AudioRecents>()))
+                .Callback<AudioRecents>(r => savedRecents = r)
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _viewModel.LoadConfigurationImmediatelyAsync();
+
+            // Assert — the URL appears in the channel's recents collection and is persisted.
+            Assert.Contains(url, _viewModel.RecentEyeRestStartUrls);
+            Assert.NotNull(savedRecents);
+            Assert.Contains(url, savedRecents!.EyeRestStartUrls);
         }
 
         public void Dispose()

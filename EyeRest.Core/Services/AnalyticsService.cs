@@ -813,11 +813,16 @@ namespace EyeRest.Services
                     using var reader = command.ExecuteReader();
                     if (reader.Read())
                     {
-                        metrics.TotalBreaksDue = reader.GetInt32(0);        // Total
                         metrics.BreaksCompleted = reader.GetInt32(1);       // Completed
                         metrics.BreaksSkipped = reader.GetInt32(2);         // Skipped
-                        metrics.BreaksDelayed = reader.GetInt32(3);         // Delayed
-                        
+                        metrics.BreaksDelayed = reader.GetInt32(3);         // Delayed (informational)
+
+                        // A break opportunity resolves to exactly one Completed or Skipped event.
+                        // Delayed events are intermediate states that eventually become one of those,
+                        // so they must not be counted as separate opportunities or the compliance
+                        // rate is permanently suppressed for anyone who ever uses "snooze".
+                        metrics.TotalBreaksDue = metrics.BreaksCompleted + metrics.BreaksSkipped;
+
                         if (!reader.IsDBNull(4))
                         {
                             metrics.AverageBreakDuration = TimeSpan.FromMilliseconds(reader.GetDouble(4)); // AvgDuration
@@ -1007,7 +1012,11 @@ namespace EyeRest.Services
                 // Calculate derived fields for all metrics
                 foreach (var metric in dailyMetrics)
                 {
-                    metric.BreaksDue = metric.BreaksCompleted + metric.BreaksSkipped + metric.BreaksDelayed;
+                    // BreaksDue counts opportunities, not events. A "Delayed" row is an
+                    // intermediate state of a single opportunity — the resolving
+                    // Completed/Skipped row is what makes it a counted opportunity.
+                    // Counting delays here would penalise users who ever snooze a break.
+                    metric.BreaksDue = metric.BreaksCompleted + metric.BreaksSkipped;
                     metric.EyeRestsDue = metric.EyeRestsCompleted + metric.EyeRestsSkipped;
 
                     if (metric.BreaksDue > 0)

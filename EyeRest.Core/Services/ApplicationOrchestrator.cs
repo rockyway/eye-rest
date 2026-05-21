@@ -253,9 +253,18 @@ namespace EyeRest.Services
                 // NEW: Stop session validation timer
                 StopSessionValidationTimer();
 
-                // Stop usage tracking timer
+                // Stop usage tracking timer and flush any batched usage minutes to disk so
+                // we don't lose tracking accumulated since the last hourly flush.
                 _usageTrackingTimer?.Stop();
                 _usageTrackingTimer = null;
+                try
+                {
+                    await _donationService.FlushUsageAsync();
+                }
+                catch (Exception flushEx)
+                {
+                    _logger.LogWarning(flushEx, "Failed to flush usage minutes during shutdown");
+                }
 
                 // Stop timer service
                 await _timerService.StopAsync();

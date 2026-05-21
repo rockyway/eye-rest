@@ -7,7 +7,6 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using EyeRest.UI.Helpers;
 using EyeRest.UI.ViewModels;
 
@@ -63,31 +62,13 @@ public partial class MainWindow : Window
 
     }
 
-    private void OnWindowPointerWheel(object? sender, PointerWheelEventArgs e)
-    {
-        // Walk up from event source — if any ancestor is a Slider or ComboBox, block the event
-        var source = e.Source as Avalonia.Visual;
-        while (source != null && source != this)
-        {
-            if (source is Slider or ComboBox)
-            {
-                e.Handled = true;
-                return;
-            }
-            source = source.GetVisualParent();
-        }
-    }
-
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         DisableMaximizeButton();
 
-        // Prevent ALL Sliders and ComboBoxes from responding to trackpad/mouse-wheel.
-        // On macOS, trackpad scrolling over a Slider silently changes its value, corrupting settings.
-        // Window-level tunnel handler catches wheel events before they reach any Slider/ComboBox,
-        // even those created later when switching from simple to config mode.
-        this.AddHandler(PointerWheelChangedEvent, OnWindowPointerWheel, RoutingStrategies.Tunnel);
+        // Slider/ComboBox wheel-mutation is suppressed app-wide via a class
+        // handler in App.Initialize (works on both macOS and Windows).
 
         // On macOS, ensure the window comes to front on startup.
         // dotnet run launches from Terminal which keeps focus, so we

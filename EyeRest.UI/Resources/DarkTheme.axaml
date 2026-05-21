@@ -10,6 +10,9 @@
         <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#42A5F5" />
         <SolidColorBrush x:Key="PrimaryLightBrush" Color="#1E88E5" />
         <SolidColorBrush x:Key="AccentBrush" Color="#66BB6A" />
+        <!-- Foreground designed to sit on AccentBrush. Deep forest green keeps the green
+             family while giving ~7.3:1 contrast on #66BB6A (passes WCAG AAA for small text). -->
+        <SolidColorBrush x:Key="OnAccentBrush" Color="#0A1F0C" />
         <SolidColorBrush x:Key="WarningBrush" Color="#FFA726" />
         <SolidColorBrush x:Key="ErrorBrush" Color="#EF5350" />
         <SolidColorBrush x:Key="InfoBrush" Color="#64B5F6" />

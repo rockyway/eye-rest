@@ -168,9 +168,18 @@ namespace EyeRest.Services
                 _pauseReason = reason;
                 _pauseStartTime = _clock.Now; // Track when pause started for extended away detection
                 _logger.LogInformation($"🔄 PAUSE LIFECYCLE: Smart pause activated - Reason: '{reason}', PauseStartTime: {_pauseStartTime:HH:mm:ss}");
-                
+
                 _eyeRestTimer?.Stop();
                 _breakTimer?.Stop();
+
+                // While paused, the inter-tick gap stops being a meaningful sleep signal —
+                // SmartResume reseeds the cycle, so a fresh tick after resume can legitimately
+                // arrive (elapsed + idle + new cycle) later than the prior tick. Clearing
+                // these timestamps prevents the wake-detection heuristic in OnEyeRestTimerTick
+                // / OnBreakTimerTick from misreading that gap as a hibernation. NSWorkspace /
+                // PowerModes notifications remain the authoritative real-wake signals.
+                _lastEyeRestTick = DateTime.MinValue;
+                _lastBreakTick = DateTime.MinValue;
                 
                 await _analyticsService.RecordPauseEventAsync(EyeRest.Services.PauseReason.SmartDetection);
                 
