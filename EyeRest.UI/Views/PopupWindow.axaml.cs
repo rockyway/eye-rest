@@ -10,8 +10,15 @@ namespace EyeRest.UI.Views
 {
     public enum PopupPlacement
     {
+        Center,
+        TopLeft,
+        TopCenter,
         TopRight,
-        Center
+        LeftCenter,
+        RightCenter,
+        BottomLeft,
+        BottomCenter,
+        BottomRight,
     }
 
     public partial class PopupWindow : Window, EyeRest.Services.IPopupWindow
@@ -105,28 +112,52 @@ namespace EyeRest.UI.Views
             var screen = GetScreenWithCursor();
             if (screen == null || !FrameSize.HasValue) return;
 
-            var workArea = screen.WorkingArea;
             var scaling = screen.Scaling;
             var actualWidth = (int)(FrameSize.Value.Width * scaling);
             var actualHeight = (int)(FrameSize.Value.Height * scaling);
 
-            switch (placement)
-            {
-                case PopupPlacement.TopRight:
-                    var marginPx = (int)(8 * scaling);
-                    Position = new PixelPoint(
-                        workArea.Right - actualWidth - marginPx,
-                        workArea.Y + marginPx
-                    );
-                    break;
+            Position = ComputePosition(placement, screen.WorkingArea, scaling, actualWidth, actualHeight);
+        }
 
-                case PopupPlacement.Center:
-                    Position = new PixelPoint(
-                        workArea.X + (workArea.Width - actualWidth) / 2,
-                        workArea.Y + (workArea.Height - actualHeight) / 2
-                    );
-                    break;
-            }
+        public static PixelPoint ComputePosition(
+            PopupPlacement placement,
+            PixelRect workArea,
+            double scaling,
+            int widthPx,
+            int heightPx)
+        {
+            var marginPx = (int)(8 * scaling);
+            return placement switch
+            {
+                PopupPlacement.Center =>
+                    new PixelPoint(workArea.X + (workArea.Width - widthPx) / 2,
+                                   workArea.Y + (workArea.Height - heightPx) / 2),
+                PopupPlacement.TopLeft =>
+                    new PixelPoint(workArea.X + marginPx, workArea.Y + marginPx),
+                PopupPlacement.TopCenter =>
+                    new PixelPoint(workArea.X + (workArea.Width - widthPx) / 2,
+                                   workArea.Y + marginPx),
+                PopupPlacement.TopRight =>
+                    new PixelPoint(workArea.Right - widthPx - marginPx,
+                                   workArea.Y + marginPx),
+                PopupPlacement.LeftCenter =>
+                    new PixelPoint(workArea.X + marginPx,
+                                   workArea.Y + (workArea.Height - heightPx) / 2),
+                PopupPlacement.RightCenter =>
+                    new PixelPoint(workArea.Right - widthPx - marginPx,
+                                   workArea.Y + (workArea.Height - heightPx) / 2),
+                PopupPlacement.BottomLeft =>
+                    new PixelPoint(workArea.X + marginPx,
+                                   workArea.Bottom - heightPx - marginPx),
+                PopupPlacement.BottomCenter =>
+                    new PixelPoint(workArea.X + (workArea.Width - widthPx) / 2,
+                                   workArea.Bottom - heightPx - marginPx),
+                PopupPlacement.BottomRight =>
+                    new PixelPoint(workArea.Right - widthPx - marginPx,
+                                   workArea.Bottom - heightPx - marginPx),
+                _ => new PixelPoint(workArea.Right - widthPx - marginPx,
+                                    workArea.Y + marginPx),
+            };
         }
 
         protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -176,31 +207,11 @@ namespace EyeRest.UI.Views
             if (screen == null)
                 return;
 
-            var workArea = screen.WorkingArea;
             var scaling = screen.Scaling;
+            var widthPx = (int)(_positionHintWidth * scaling);
+            var heightPx = (int)(_positionHintHeight * scaling);
 
-            // Use hint sizes for positioning (actual size determined by SizeToContent)
-            var windowWidthPx = (int)(_positionHintWidth * scaling);
-            var windowHeightPx = (int)(_positionHintHeight * scaling);
-
-            switch (placement)
-            {
-                case PopupPlacement.TopRight:
-                    // Position at top-right of the working area with some margin
-                    var marginPx = (int)(8 * scaling);
-                    Position = new PixelPoint(
-                        workArea.Right - windowWidthPx - marginPx,
-                        workArea.Y + marginPx
-                    );
-                    break;
-
-                case PopupPlacement.Center:
-                    Position = new PixelPoint(
-                        workArea.X + (workArea.Width - windowWidthPx) / 2,
-                        workArea.Y + (workArea.Height - windowHeightPx) / 2
-                    );
-                    break;
-            }
+            Position = ComputePosition(placement, screen.WorkingArea, scaling, widthPx, heightPx);
         }
 
         /// <summary>

@@ -42,6 +42,9 @@ namespace EyeRest.UI.ViewModels
         private bool _eyeRestEndSoundEnabled = true;
         private bool _eyeRestWarningEnabled = true;
         private int _eyeRestWarningSeconds = 15;
+        private bool _eyeRestOverlayEnabled = true;
+        private int _eyeRestOverlayOpacityPercent = 50;
+        private PopupPosition _eyeRestPopupPosition = PopupPosition.TopRight;
 
         // Break Settings
         private int _breakIntervalMinutes = 55;
@@ -392,6 +395,52 @@ namespace EyeRest.UI.ViewModels
                 }
             }
         }
+
+        public bool EyeRestOverlayEnabled
+        {
+            get => _eyeRestOverlayEnabled;
+            set
+            {
+                if (SetProperty(ref _eyeRestOverlayEnabled, value) && !_isLoadingConfiguration)
+                {
+                    _pendingTimerChanges.Add(nameof(EyeRestOverlayEnabled));
+                    DebouncedSaveTimerSetting();
+                }
+            }
+        }
+
+        public int EyeRestOverlayOpacityPercent
+        {
+            get => _eyeRestOverlayOpacityPercent;
+            set
+            {
+                if (SetProperty(ref _eyeRestOverlayOpacityPercent, value) && !_isLoadingConfiguration)
+                {
+                    _pendingTimerChanges.Add(nameof(EyeRestOverlayOpacityPercent));
+                    DebouncedSaveTimerSetting();
+                }
+            }
+        }
+
+        public PopupPosition EyeRestPopupPosition
+        {
+            get => _eyeRestPopupPosition;
+            set
+            {
+                if (SetProperty(ref _eyeRestPopupPosition, value) && !_isLoadingConfiguration)
+                {
+                    _pendingTimerChanges.Add(nameof(EyeRestPopupPosition));
+                    DebouncedSaveTimerSetting();
+                }
+            }
+        }
+
+        public IReadOnlyList<PopupPosition> PopupPositionOptions { get; } = new[]
+        {
+            PopupPosition.TopLeft,    PopupPosition.TopCenter,    PopupPosition.TopRight,
+            PopupPosition.LeftCenter, PopupPosition.Center,       PopupPosition.RightCenter,
+            PopupPosition.BottomLeft, PopupPosition.BottomCenter, PopupPosition.BottomRight,
+        };
 
         // Break Properties
         public int BreakIntervalMinutes
@@ -1353,6 +1402,9 @@ namespace EyeRest.UI.ViewModels
             EyeRestEndSoundEnabled   = _configuration.EyeRest.EndAudio.Source   != AudioChannelSource.Off;
             EyeRestWarningEnabled = _configuration.EyeRest.WarningEnabled;
             EyeRestWarningSeconds = _configuration.EyeRest.WarningSeconds;
+            EyeRestOverlayEnabled = _configuration.EyeRest.OverlayEnabled;
+            EyeRestOverlayOpacityPercent = _configuration.EyeRest.OverlayOpacityPercent;
+            EyeRestPopupPosition = _configuration.EyeRest.PopupPosition;
 
             // Break
             BreakIntervalMinutes = _configuration.Break.IntervalMinutes;
@@ -1999,6 +2051,9 @@ namespace EyeRest.UI.ViewModels
             if (OverlayOpacityPercent < 0 || OverlayOpacityPercent > 100)
                 errors.Add("Overlay opacity must be between 0 and 100 percent");
 
+            if (EyeRestOverlayOpacityPercent < 0 || EyeRestOverlayOpacityPercent > 100)
+                errors.Add("Eye rest overlay opacity must be between 0 and 100 percent");
+
             if (AudioVolume < 0 || AudioVolume > 100)
                 errors.Add("Audio volume must be between 0 and 100");
 
@@ -2101,6 +2156,10 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
+                // Ensure the test reflects the user's current slider/dropdown values,
+                // not the last-debounced-saved values.
+                await FlushPendingTimerSavesAsync();
+
                 var testDuration = TimeSpan.FromSeconds(EyeRestDurationSeconds);
                 _logger.LogInformation($"TestEyeRestPopup called - testing with {testDuration.TotalSeconds}s duration");
                 await _notificationService.ShowEyeRestReminderTestAsync(testDuration);
@@ -2143,6 +2202,10 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
+                // Ensure the test reflects the user's current slider/toggle values,
+                // not the last-debounced-saved values.
+                await FlushPendingTimerSavesAsync();
+
                 _logger.LogInformation("TestBreakPopup called - manually testing break popup");
                 var progress = new Progress<double>();
                 var breakDuration = TimeSpan.FromMinutes(BreakDurationMinutes);
@@ -2919,6 +2982,23 @@ namespace EyeRest.UI.ViewModels
             _logger.LogInformation("Settings changed - debouncing timer restart...");
         }
 
+        /// <summary>
+        /// Cancels the pending debounced save and immediately writes any dirty fields.
+        /// Call this from "Test ..." commands so the test popup reflects the user's
+        /// current UI values (overlay opacity, popup position, etc.) rather than
+        /// whatever was last persisted to disk.
+        /// </summary>
+        private async Task FlushPendingTimerSavesAsync()
+        {
+            if (_isLoadingConfiguration || _disposed || App.IsExiting) return;
+            _settingsDebounceTimer?.Stop();
+            if (_pendingTimerChanges.Count > 0)
+            {
+                _logger.LogInformation("FlushPendingTimerSavesAsync: flushing {Count} pending changes before test", _pendingTimerChanges.Count);
+                await SaveTimerSettingAsync();
+            }
+        }
+
         private async Task SaveTimerSettingAsync()
         {
             if (App.IsExiting)
@@ -2958,6 +3038,12 @@ namespace EyeRest.UI.ViewModels
                         config.EyeRest.WarningEnabled = EyeRestWarningEnabled;
                     if (changed.Contains(nameof(EyeRestWarningSeconds)))
                         config.EyeRest.WarningSeconds = EyeRestWarningSeconds;
+                    if (changed.Contains(nameof(EyeRestOverlayEnabled)))
+                        config.EyeRest.OverlayEnabled = EyeRestOverlayEnabled;
+                    if (changed.Contains(nameof(EyeRestOverlayOpacityPercent)))
+                        config.EyeRest.OverlayOpacityPercent = EyeRestOverlayOpacityPercent;
+                    if (changed.Contains(nameof(EyeRestPopupPosition)))
+                        config.EyeRest.PopupPosition = EyeRestPopupPosition;
                     if (changed.Contains(nameof(BreakIntervalMinutes)))
                         config.Break.IntervalMinutes = BreakIntervalMinutes;
                     if (changed.Contains(nameof(BreakDurationMinutes)))

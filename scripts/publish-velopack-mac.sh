@@ -47,6 +47,10 @@ dotnet publish "$UI_PROJECT/EyeRest.UI.csproj" \
     --self-contained true \
     -p:PublishSingleFile=false \
     -p:PublishTrimmed=false \
+    -p:Version="$VERSION" \
+    -p:AssemblyVersion="${VERSION}.0" \
+    -p:FileVersion="${VERSION}.0" \
+    -p:InformationalVersion="$VERSION" \
     -o "$PUBLISH_DIR"
 
 # Step 2: Patch Info.plist version if it exists
