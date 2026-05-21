@@ -37,9 +37,7 @@ namespace EyeRest.Services
         public event EventHandler? ShowTimerStatusRequested;
         public event EventHandler? ShowAnalyticsRequested;
         public event EventHandler? BalloonTipClicked;
-#pragma warning disable CS0067 // Windows uses its own icon rendering via IconService
         public event Action<TrayIconState>? TrayIconStateChanged;
-#pragma warning restore CS0067
         public event Action<TimeSpan, TimeSpan, string>? TimerDetailsUpdated;
 
         public SystemTrayService(ILogger<SystemTrayService> logger, IconService iconService)
@@ -89,7 +87,7 @@ namespace EyeRest.Services
         public void UpdateTrayIcon(TrayIconState state)
         {
             if (_notifyIcon == null) return;
-            
+
             // ENHANCED: Update icon visual based on state
             try
             {
@@ -102,13 +100,16 @@ namespace EyeRest.Services
                 _logger.LogError(ex, $"Failed to update icon for state {state}, using default icon");
                 _notifyIcon.Icon = _iconService.GetApplicationIcon();
             }
-            
+
             var displayText = GetDisplayTextForState(state);
             var tooltipText = GetTooltipTextForState(state);
-            
+
             _notifyIcon.Text = tooltipText;
             UpdateContextMenuForState(state);
-            
+
+            // Notify Avalonia TrayIcon to update its visual (cross-platform consistency with macOS)
+            TrayIconStateChanged?.Invoke(state);
+
             _logger.LogInformation($"🎛️ Tray icon updated: {displayText}");
         }
 
