@@ -43,6 +43,7 @@ internal static class AppKit
     // NSSound selectors
     private static readonly IntPtr Sel_SoundNamed = ObjCRuntime.sel_registerName("soundNamed:");
     private static readonly IntPtr Sel_Play = ObjCRuntime.sel_registerName("play");
+    private static readonly IntPtr Sel_Stop = ObjCRuntime.sel_registerName("stop");
     // BL-002 crash fix: NSSound's file init has a byReference: argument. The bare
     // single-arg initWithContentsOfFile: is on NSImage, not NSSound — sending it
     // to an NSSound alloc throws NSInvalidArgumentException at runtime.
@@ -208,8 +209,13 @@ internal static class AppKit
         var sound = ObjCRuntime.objc_msgSend_IntPtr_IntPtr(Class_NSSound, Sel_SoundNamed, nsName);
         if (sound == IntPtr.Zero) return false;
 
-        ObjCRuntime.objc_msgSend_Bool(sound, Sel_Play);
-        return true;
+        // -[NSSound soundNamed:] returns a shared cached instance. Per Apple
+        // docs, calling -play on an NSSound that is already playing OR has
+        // already finished playing returns NO without producing sound — the
+        // caller must -stop it first to rewind. Skipping the stop is why the
+        // Test button in Advanced silently does nothing after the first press.
+        ObjCRuntime.objc_msgSend_Void(sound, Sel_Stop);
+        return ObjCRuntime.objc_msgSend_Bool(sound, Sel_Play);
     }
 
     // BL-002 M2: bounded retention for in-flight NSSounds. [[NSSound alloc] init…]
