@@ -2156,6 +2156,10 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
+                // Ensure the test reflects the user's current slider/dropdown values,
+                // not the last-debounced-saved values.
+                await FlushPendingTimerSavesAsync();
+
                 var testDuration = TimeSpan.FromSeconds(EyeRestDurationSeconds);
                 _logger.LogInformation($"TestEyeRestPopup called - testing with {testDuration.TotalSeconds}s duration");
                 await _notificationService.ShowEyeRestReminderTestAsync(testDuration);
@@ -2198,6 +2202,10 @@ namespace EyeRest.UI.ViewModels
         {
             try
             {
+                // Ensure the test reflects the user's current slider/toggle values,
+                // not the last-debounced-saved values.
+                await FlushPendingTimerSavesAsync();
+
                 _logger.LogInformation("TestBreakPopup called - manually testing break popup");
                 var progress = new Progress<double>();
                 var breakDuration = TimeSpan.FromMinutes(BreakDurationMinutes);
@@ -2972,6 +2980,23 @@ namespace EyeRest.UI.ViewModels
             _settingsDebounceTimer?.Stop();
             _settingsDebounceTimer?.Start();
             _logger.LogInformation("Settings changed - debouncing timer restart...");
+        }
+
+        /// <summary>
+        /// Cancels the pending debounced save and immediately writes any dirty fields.
+        /// Call this from "Test ..." commands so the test popup reflects the user's
+        /// current UI values (overlay opacity, popup position, etc.) rather than
+        /// whatever was last persisted to disk.
+        /// </summary>
+        private async Task FlushPendingTimerSavesAsync()
+        {
+            if (_isLoadingConfiguration || _disposed || App.IsExiting) return;
+            _settingsDebounceTimer?.Stop();
+            if (_pendingTimerChanges.Count > 0)
+            {
+                _logger.LogInformation("FlushPendingTimerSavesAsync: flushing {Count} pending changes before test", _pendingTimerChanges.Count);
+                await SaveTimerSettingAsync();
+            }
         }
 
         private async Task SaveTimerSettingAsync()
