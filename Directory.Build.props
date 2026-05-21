@@ -8,7 +8,9 @@
     <!-- Allow Windows-targeting projects to restore/build on non-Windows (macOS, Linux) -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <!-- Version: set by publish-release.sh via -p:Version=X.Y.Z
-         Dev builds default to 0.0.0-dev; release builds get the real version. -->
+         Dev builds default to 0.0.0-dev; release builds get the real version.
+         Any `dotnet publish` invocation that leaves Version at 0.0.0-dev is
+         rejected by the EnforceExplicitVersionOnPublish target below. -->
     <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
     <Product>Eye Rest</Product>
     <Copyright>Copyright (c) 2026 Tam Tran</Copyright>
@@ -18,4 +20,19 @@
   <PropertyGroup Condition="'$(StoreBuild)' == 'true'">
     <DefineConstants>$(DefineConstants);STORE_BUILD</DefineConstants>
   </PropertyGroup>
+
+  <!--
+    Enforcement: any `dotnet publish` MUST pass -p:Version=X.Y.Z explicitly.
+    Without this, publish scripts can silently produce binaries that report
+    "Version 0.0.0" in the About dialog (the original bug this guards against).
+
+    Opt-out: set AllowUnversionedPublish=true on the command line for
+    one-off local test bundles where you genuinely don't care about the
+    embedded version (e.g., reproducing a UI bug on a throwaway .app).
+  -->
+  <Target Name="EnforceExplicitVersionOnPublish" BeforeTargets="Publish">
+    <Error Condition="'$(Version)' == '0.0.0-dev' AND '$(AllowUnversionedPublish)' != 'true'"
+           Code="ER001"
+           Text="Publishing without an explicit version is not allowed. Pass -p:Version=X.Y.Z to `dotnet publish` (AssemblyVersion / FileVersion / InformationalVersion are derived automatically). Canonical path for a GitHub release: './scripts/publish-release.sh X.Y.Z'. For Velopack: './scripts/publish-velopack-mac.sh X.Y.Z' or '-win.sh / -win.ps1'. To bypass for a local throwaway bundle, also pass -p:AllowUnversionedPublish=true." />
+  </Target>
 </Project>

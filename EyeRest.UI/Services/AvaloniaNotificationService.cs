@@ -154,6 +154,9 @@ namespace EyeRest.Services
 
         private async Task ShowEyeRestReminderInternalAsync(TimeSpan duration)
         {
+            // Load config OFF the UI thread first (mirrors BreakInternal).
+            var config = await _configurationService.LoadConfigurationAsync();
+
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
 
@@ -163,9 +166,17 @@ namespace EyeRest.Services
                 {
                     _logger.LogInformation("Showing eye rest reminder popup for {Duration}", duration);
                     CloseCurrentPopup(); // Close any existing popup (e.g., warning) first
+                    // Defensive: a prior popup's overlays could outlive its popup
+                    // if cleanup raced with this show path. Tear them down before we
+                    // potentially show our own — HideDimOverlays is idempotent (no-op on empty).
+                    HideDimOverlays();
+
+                    if (config.EyeRest.OverlayEnabled)
+                        ShowDimOverlays(config.EyeRest.OverlayOpacityPercent);
+
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
                     _currentPopup = myPopup;
-                    myPopup.PositionOnScreen(PopupPlacement.TopRight);
+                    myPopup.PositionOnScreen(MapPlacement(config.EyeRest.PopupPosition));
 
                     // Deferred via Dispatcher.Post — see ShowBreakReminderInternalAsync
                     // for the full race-condition explanation.
@@ -203,7 +214,34 @@ namespace EyeRest.Services
             // Wait off the UI thread — no deadlock
             await Task.WhenAny(tcs.Task, Task.Delay(duration + TimeSpan.FromSeconds(2)));
 
-            Dispatcher.UIThread.Post(() => CloseSpecificPopup(myPopup));
+            Dispatcher.UIThread.Post(() =>
+            {
+                // Unconditional cleanup: HideDimOverlays is idempotent, and gating
+                // on the captured config value would leak overlay windows if the user
+                // toggled OverlayEnabled off during the popup's lifetime.
+                HideDimOverlays();
+                CloseSpecificPopup(myPopup);
+            });
+        }
+
+        private PopupPlacement MapPlacement(PopupPosition position) => position switch
+        {
+            PopupPosition.Center        => PopupPlacement.Center,
+            PopupPosition.TopLeft       => PopupPlacement.TopLeft,
+            PopupPosition.TopCenter     => PopupPlacement.TopCenter,
+            PopupPosition.TopRight      => PopupPlacement.TopRight,
+            PopupPosition.LeftCenter    => PopupPlacement.LeftCenter,
+            PopupPosition.RightCenter   => PopupPlacement.RightCenter,
+            PopupPosition.BottomLeft    => PopupPlacement.BottomLeft,
+            PopupPosition.BottomCenter  => PopupPlacement.BottomCenter,
+            PopupPosition.BottomRight   => PopupPlacement.BottomRight,
+            _ => LogUnknownPositionAndFallback(position),
+        };
+
+        private PopupPlacement LogUnknownPositionAndFallback(PopupPosition position)
+        {
+            _logger.LogWarning("Unknown PopupPosition value {Value} — defaulting to TopRight. Possible config corruption or forward-compat from newer build.", position);
+            return PopupPlacement.TopRight;
         }
 
         public async Task ShowBreakWarningAsync(TimeSpan timeUntilBreak)
