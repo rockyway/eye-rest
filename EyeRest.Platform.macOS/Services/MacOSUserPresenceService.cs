@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using EyeRest.Models;
 using EyeRest.Platform.macOS.Interop;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +15,7 @@ namespace EyeRest.Services
     public class MacOSUserPresenceService : IUserPresenceService
     {
         private readonly ILogger<MacOSUserPresenceService> _logger;
+        private readonly IConfigurationService _configurationService;
         private Timer? _pollingTimer;
         private ITimerService? _timerService;
         private bool _disposed;
@@ -24,15 +26,35 @@ namespace EyeRest.Services
         private TimeSpan _lastAwayDuration = TimeSpan.Zero;
         private TimeSpan _totalAwayTime = TimeSpan.Zero;
 
-        // Thresholds for presence detection
-        private static readonly TimeSpan IdleThreshold = TimeSpan.FromMinutes(5);
-        private static readonly TimeSpan AwayThreshold = TimeSpan.FromMinutes(15);
+        // IdleThreshold is now driven by UserPresence.IdleTimeoutMinutes (the slider in the
+        // Advanced settings tab). AwayThreshold is held at idle + 10 min so the existing
+        // Idle → Away progression is preserved regardless of user-chosen idle timeout.
+        private TimeSpan _idleThreshold = TimeSpan.FromMinutes(15);
+        private TimeSpan _awayThreshold = TimeSpan.FromMinutes(25);
         private static readonly TimeSpan ExtendedAwayThreshold = TimeSpan.FromMinutes(30);
         private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(30);
 
-        public MacOSUserPresenceService(ILogger<MacOSUserPresenceService> logger)
+        public MacOSUserPresenceService(ILogger<MacOSUserPresenceService> logger, IConfigurationService configurationService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+            _configurationService.ConfigurationChanged += OnConfigurationChanged;
+        }
+
+        private void OnConfigurationChanged(object? sender, ConfigurationChangedEventArgs e)
+        {
+            ApplyPresenceSettings(e.NewConfiguration?.UserPresence);
+        }
+
+        private void ApplyPresenceSettings(UserPresenceSettings? settings)
+        {
+            if (settings == null) return;
+            var idleMinutes = Math.Max(1, settings.IdleTimeoutMinutes);
+            _idleThreshold = TimeSpan.FromMinutes(idleMinutes);
+            _awayThreshold = TimeSpan.FromMinutes(idleMinutes + 10);
+            _logger.LogInformation(
+                "User presence thresholds updated: idle={Idle}min, away={Away}min (from config)",
+                _idleThreshold.TotalMinutes, _awayThreshold.TotalMinutes);
         }
 
         public event EventHandler<UserPresenceEventArgs>? UserPresenceChanged;
@@ -43,17 +65,27 @@ namespace EyeRest.Services
         public UserPresenceState CurrentState => _currentState;
         public TimeSpan TotalAwayTime => _totalAwayTime;
 
-        public Task StartMonitoringAsync()
+        public async Task StartMonitoringAsync()
         {
             if (_pollingTimer != null)
             {
                 _logger.LogDebug("User presence monitoring already started");
-                return Task.CompletedTask;
+                return;
             }
 
-            _logger.LogInformation("Starting macOS user presence monitoring");
+            // Seed thresholds from the current persisted configuration before polling.
+            try
+            {
+                var config = await _configurationService.LoadConfigurationAsync();
+                ApplyPresenceSettings(config?.UserPresence);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load presence settings; falling back to defaults (idle={Idle}min)", _idleThreshold.TotalMinutes);
+            }
+
+            _logger.LogInformation("Starting macOS user presence monitoring (idle threshold: {Idle}min)", _idleThreshold.TotalMinutes);
             _pollingTimer = new Timer(PollUserPresence, null, TimeSpan.Zero, PollingInterval);
-            return Task.CompletedTask;
         }
 
         public Task StopMonitoringAsync()
@@ -82,11 +114,11 @@ namespace EyeRest.Services
                 var previousState = _currentState;
                 UserPresenceState newState;
 
-                if (idleTime >= AwayThreshold)
+                if (idleTime >= _awayThreshold)
                 {
                     newState = UserPresenceState.Away;
                 }
-                else if (idleTime >= IdleThreshold)
+                else if (idleTime >= _idleThreshold)
                 {
                     newState = UserPresenceState.Idle;
                 }
@@ -179,6 +211,8 @@ namespace EyeRest.Services
         {
             if (_disposed) return;
             _disposed = true;
+
+            _configurationService.ConfigurationChanged -= OnConfigurationChanged;
 
             _pollingTimer?.Dispose();
             _pollingTimer = null;

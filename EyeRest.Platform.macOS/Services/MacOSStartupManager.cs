@@ -13,7 +13,7 @@ namespace EyeRest.Services
     public class MacOSStartupManager : IStartupManager
     {
         private readonly ILogger<MacOSStartupManager> _logger;
-        private const string LaunchAgentLabel = "com.eyerest.app";
+        private const string LaunchAgentLabel = "com.pmtlabs.eyerest.app";
         private static readonly string PlistPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             "Library", "LaunchAgents", $"{LaunchAgentLabel}.plist");

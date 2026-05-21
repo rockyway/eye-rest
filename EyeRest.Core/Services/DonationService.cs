@@ -24,6 +24,15 @@ namespace EyeRest.Services
         private bool _initialized;
         private DonationSettings _settings = new();
 
+        // Usage-tracking write throttling: AddUsageMinutes is called every 5 minutes by the
+        // orchestrator's usage-tracking timer. Persisting the full AppConfiguration on every
+        // tick wrote ~12 saves/hour (16k+ saves observed in logs) and amplifies the risk of
+        // multi-writer races on config.json. We now batch in memory and only flush once an
+        // hour, plus on shutdown via FlushUsageAsync(). 59 min of lost tracking on hard crash
+        // is acceptable — the donation prompt thresholds are hour-scale anyway.
+        private long _unsavedUsageMinutes;
+        private const long UsageFlushThresholdMinutes = 60;
+
         public bool IsDonor => _isDonor;
 
         public bool ShouldShowDonationPrompt
@@ -114,7 +123,20 @@ namespace EyeRest.Services
         public void AddUsageMinutes(long minutes)
         {
             _settings.TotalUsageMinutes += minutes;
-            SaveSettingsAsync().ConfigureAwait(false);
+            _unsavedUsageMinutes += minutes;
+
+            if (_unsavedUsageMinutes >= UsageFlushThresholdMinutes)
+            {
+                _unsavedUsageMinutes = 0;
+                SaveSettingsAsync().ConfigureAwait(false);
+            }
+        }
+
+        public Task FlushUsageAsync()
+        {
+            if (_unsavedUsageMinutes <= 0) return Task.CompletedTask;
+            _unsavedUsageMinutes = 0;
+            return SaveSettingsAsync();
         }
 
         public void RecordPromptShown()

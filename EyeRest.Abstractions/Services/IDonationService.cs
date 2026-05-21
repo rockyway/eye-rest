@@ -22,6 +22,7 @@ namespace EyeRest.Services
         Task InitializeAsync();
         void IncrementSessionCount();
         void AddUsageMinutes(long minutes);
+        Task FlushUsageAsync();
         void RecordPromptShown();
         void RecordPromptDismissed();
         Task<DonationCodeValidationResult> ValidateDonationCodeAsync(string licenseKey);

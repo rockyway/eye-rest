@@ -245,6 +245,10 @@ namespace EyeRest.Services
 
                     myPopup.Show();
 
+                    // Fire the BreakWarning audio after the popup is shown.
+                    // Shares Break.StartAudio config (same sound registered in BundledSoundCache).
+                    FireChannelAudio(AudioChannel.BreakWarning, c => c.Break.StartAudio);
+
                     if (myPopup.PopupContent is BreakWarningPopup breakWarningPopup)
                     {
                         breakWarningPopup.StartCountdown(timeUntilBreak);
@@ -377,10 +381,8 @@ namespace EyeRest.Services
                     // completes — by then tcs is already resolved with the user's action and
                     // this Skipped TrySetResult is a no-op. For pure X-close paths (no
                     // ActionSelected fires), the deferred Skipped wins as intended.
-                    // BL-002 M5: fire the Break END channel audio on any close path.
                     myPopup.Closed += (_, _) =>
                     {
-                        FireChannelAudio(AudioChannel.BreakEnd, c => c.Break.EndAudio);
                         Dispatcher.UIThread.Post(
                             () => tcs.TrySetResult(BreakAction.Skipped),
                             DispatcherPriority.Background);
@@ -400,6 +402,13 @@ namespace EyeRest.Services
                         breakPopup.SetDelayChipState(consecutiveDelayCount, maxDelays);
 
                         breakPopup.ActionSelected += (s, action) => tcs.TrySetResult(action);
+
+                        // Fire BreakEnd the moment the countdown elapses, NOT when
+                        // the user dismisses the Complete dialog — the audio should
+                        // accompany the natural end of the rest period.
+                        breakPopup.CountdownCompleted += (_, _) =>
+                            FireChannelAudio(AudioChannel.BreakEnd, c => c.Break.EndAudio);
+
                         breakPopup.StartCountdown(duration, progress);
                     }
                     else

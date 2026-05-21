@@ -25,6 +25,15 @@ namespace EyeRest.UI.Views
 
         public event EventHandler<BreakAction>? ActionSelected;
 
+        /// <summary>
+        /// Fired the instant the break countdown reaches zero — i.e. when the
+        /// popup transitions to the green "Break Complete" state. Distinct from
+        /// the popup-close path and from <see cref="ActionSelected"/> so callers
+        /// can react to the natural-end moment (e.g. play BreakEnd audio) without
+        /// waiting for the user to click Done / Skip / X-close.
+        /// </summary>
+        public event EventHandler? CountdownCompleted;
+
         public BreakPopup()
         {
             InitializeComponent();
@@ -184,6 +193,11 @@ namespace EyeRest.UI.Views
         {
             Debug.WriteLine("BreakPopup.ShowCompletionState: Break completed successfully - showing completion state");
             Debug.WriteLine($"BreakPopup.ShowCompletionState: _requireConfirmationAfterBreak={_requireConfirmationAfterBreak}");
+
+            // Fire BEFORE UI mutation so the audio cue lands with the visual transition,
+            // not after layout/render work. Listeners (NotificationService → IAudioService)
+            // dispatch through their own gates, so this stays cheap on the UI thread.
+            CountdownCompleted?.Invoke(this, EventArgs.Empty);
 
             // Change background to semi-transparent green tint for Done screen (preserves glass-morphism)
             OuterBorder.Background = new SolidColorBrush(Color.FromArgb(30, 34, 197, 94));  // Subtle green glass tint

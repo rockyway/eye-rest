@@ -1099,11 +1099,16 @@
                                                           VerticalAlignment="Center" OnContent="" OffContent="" />
                                         </Grid>
 
-                                        <!-- Idle Timeout Slider -->
+                                        <!-- Idle Timeout Slider — controls how long without keyboard/mouse
+                                             input before the user is treated as idle (Smart Pause kicks in).
+                                             Mirrors UserPresence.IdleTimeoutMinutes in config.json and is
+                                             read live by the platform presence service. -->
                                         <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding PauseOnIdle}" Margin="28,0,0,0">
                                             <StackPanel Grid.Column="0" Spacing="6">
                                                 <TextBlock Text="Idle Timeout" FontSize="15" FontWeight="Medium" />
-                                                <Slider Minimum="1" Maximum="60"
+                                                <TextBlock Text="No keyboard or mouse activity for this long marks you idle."
+                                                           FontSize="11" Opacity="0.7" />
+                                                <Slider Minimum="2" Maximum="60"
                                                         Value="{Binding IdleTimeoutMinutes}"
                                                         TickFrequency="1" IsSnapToTickEnabled="True" />
                                             </StackPanel>
@@ -1237,14 +1242,15 @@
                                                 <TextBox Grid.Column="0" Text="{Binding EyeRestStartFilePath}" Watermark="File path (when Source = File)" />
                                                 <Button Grid.Column="1" Classes="ActionBtnPrimary" Content="Browse" Margin="8,0,0,0"
                                                         Command="{Binding BrowseEyeRestStartFileCommand}" />
-                                                <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
+                                                <Button Grid.Column="2" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent files" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent files yet — pick one with Browse."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
-                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
+                                                                           IsVisible="{Binding RecentEyeRestStartFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentEyeRestStartFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1252,7 +1258,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentEyeRestStartFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentFilePathCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentEyeRestStartFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1265,14 +1271,15 @@
                                             </Grid>
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBox Grid.Column="0" Text="{Binding EyeRestStartUrl}" Watermark="URL (when Source = URL)" />
-                                                <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
+                                                <Button Grid.Column="1" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent URLs" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
-                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
+                                                                           IsVisible="{Binding RecentEyeRestStartUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentEyeRestStartUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1280,7 +1287,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentEyeRestStartUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentUrlCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentEyeRestStartUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1307,14 +1314,15 @@
                                                 <TextBox Grid.Column="0" Text="{Binding EyeRestEndFilePath}" Watermark="File path (when Source = File)" />
                                                 <Button Grid.Column="1" Classes="ActionBtnPrimary" Content="Browse" Margin="8,0,0,0"
                                                         Command="{Binding BrowseEyeRestEndFileCommand}" />
-                                                <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
+                                                <Button Grid.Column="2" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent files" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent files yet — pick one with Browse."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
-                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
+                                                                           IsVisible="{Binding RecentEyeRestEndFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentEyeRestEndFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1322,7 +1330,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentEyeRestEndFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentFilePathCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentEyeRestEndFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1335,14 +1343,15 @@
                                             </Grid>
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBox Grid.Column="0" Text="{Binding EyeRestEndUrl}" Watermark="URL (when Source = URL)" />
-                                                <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
+                                                <Button Grid.Column="1" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent URLs" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
-                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
+                                                                           IsVisible="{Binding RecentEyeRestEndUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentEyeRestEndUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1350,7 +1359,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentEyeRestEndUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentUrlCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentEyeRestEndUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1377,14 +1386,15 @@
                                                 <TextBox Grid.Column="0" Text="{Binding BreakStartFilePath}" Watermark="File path (when Source = File)" />
                                                 <Button Grid.Column="1" Classes="ActionBtnPrimary" Content="Browse" Margin="8,0,0,0"
                                                         Command="{Binding BrowseBreakStartFileCommand}" />
-                                                <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
+                                                <Button Grid.Column="2" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent files" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent files yet — pick one with Browse."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
-                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
+                                                                           IsVisible="{Binding RecentBreakStartFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentBreakStartFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1392,7 +1402,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentBreakStartFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentFilePathCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentBreakStartFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1405,14 +1415,15 @@
                                             </Grid>
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBox Grid.Column="0" Text="{Binding BreakStartUrl}" Watermark="URL (when Source = URL) — e.g. YouTube playlist" />
-                                                <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
+                                                <Button Grid.Column="1" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent URLs" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
-                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
+                                                                           IsVisible="{Binding RecentBreakStartUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentBreakStartUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1420,7 +1431,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentBreakStartUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentUrlCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentBreakStartUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1447,14 +1458,15 @@
                                                 <TextBox Grid.Column="0" Text="{Binding BreakEndFilePath}" Watermark="File path (when Source = File)" />
                                                 <Button Grid.Column="1" Classes="ActionBtnPrimary" Content="Browse" Margin="8,0,0,0"
                                                         Command="{Binding BrowseBreakEndFileCommand}" />
-                                                <Button Grid.Column="2" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent files">
+                                                <Button Grid.Column="2" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent files" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent files yet — pick one with Browse."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8"
-                                                                           IsVisible="{Binding RecentAudioFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioFilePaths}">
+                                                                           IsVisible="{Binding RecentBreakEndFilePaths.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentBreakEndFilePaths}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1462,7 +1474,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentBreakEndFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentFilePathCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentBreakEndFilePathCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1475,14 +1487,15 @@
                                             </Grid>
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBox Grid.Column="0" Text="{Binding BreakEndUrl}" Watermark="URL (when Source = URL)" />
-                                                <Button Grid.Column="1" Classes="ActionBtn" Content="🕒" Margin="6,0,0,0" ToolTip.Tip="Recent URLs">
+                                                <Button Grid.Column="1" Classes="ActionBtn" Margin="6,0,0,0" ToolTip.Tip="Recent URLs" Padding="8,6">
+                                                    <Button.Content><PathIcon Data="{StaticResource ClockIcon}" Width="14" Height="14" /></Button.Content>
                                                     <Button.Flyout>
                                                         <Flyout Placement="Bottom">
                                                             <StackPanel MinWidth="320">
                                                                 <TextBlock Text="No recent URLs yet — click Test while Source = URL to save one."
                                                                            Foreground="#A0FFFFFF" FontSize="12" Margin="4,4,4,8" TextWrapping="Wrap"
-                                                                           IsVisible="{Binding RecentAudioUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
-                                                                <ItemsControl ItemsSource="{Binding RecentAudioUrls}">
+                                                                           IsVisible="{Binding RecentBreakEndUrls.Count, Converter={x:Static converters:CountToIsEmptyConverter.Instance}}" />
+                                                                <ItemsControl ItemsSource="{Binding RecentBreakEndUrls}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto" Margin="0,2">
@@ -1490,7 +1503,7 @@
                                                                                     Command="{Binding $parent[ItemsControl].DataContext.PickRecentBreakEndUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                             <Button Grid.Column="1" Content="✕" Margin="4,0,0,0" ToolTip.Tip="Remove from recents"
-                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentUrlCommand}"
+                                                                                    Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentBreakEndUrlCommand}"
                                                                                     CommandParameter="{Binding}" />
                                                                         </Grid>
                                                                     </DataTemplate>
@@ -1749,7 +1762,7 @@
                                             <TextBlock Text="{Binding AnalyticsHealthStatusText}"
                                                        FontSize="10"
                                                        FontWeight="SemiBold"
-                                                       Foreground="#FFFFFF"
+                                                       Foreground="{DynamicResource OnAccentBrush}"
                                                        HorizontalAlignment="Center" />
                                         </Border>
                                     </StackPanel>
