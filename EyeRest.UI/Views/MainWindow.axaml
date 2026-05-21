@@ -801,6 +801,61 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Overlay + Popup Position Card -->
+                                <Border Classes="GlassCard">
+                                    <StackPanel Spacing="16">
+                                        <!-- Show Overlay Toggle -->
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
+                                                    Background="{DynamicResource ToggleCardIconBackground}">
+                                                <PathIcon Data="{StaticResource VisibilityIcon}" Width="16" Height="16"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="Show Overlay" Margin="12,0,0,0"
+                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding EyeRestOverlayEnabled}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <!-- Overlay Opacity (disabled when toggle is off) -->
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              IsEnabled="{Binding EyeRestOverlayEnabled}">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="Overlay Opacity" FontSize="14" FontWeight="SemiBold" />
+                                                <Slider Minimum="0" Maximum="100"
+                                                        Value="{Binding EyeRestOverlayOpacityPercent}"
+                                                        TickFrequency="5" IsSnapToTickEnabled="True" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="SliderBadge"
+                                                    VerticalAlignment="Top" Margin="16,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="2">
+                                                    <TextBlock Text="{Binding EyeRestOverlayOpacityPercent}"
+                                                               FontWeight="Bold" FontSize="14"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                    <TextBlock Text="%" FontSize="12"
+                                                               Foreground="{DynamicResource SliderBadgeText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Popup Position -->
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="Popup Position" FontSize="14" FontWeight="SemiBold" />
+                                            <ComboBox ItemsSource="{Binding PopupPositionOptions}"
+                                                      SelectedItem="{Binding EyeRestPopupPosition}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={x:Static converters:PopupPositionToLabelConverter.Instance}}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Info Card: Tip -->
                                 <Border Classes="InfoCard">
                                     <StackPanel Orientation="Horizontal" Spacing="14">
