@@ -43,7 +43,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 UI_PROJECT="$PROJECT_ROOT/EyeRest.UI"
 
-APP_NAME="Eye-Rest"
+APP_NAME="Blink Twice EyeRest"
 TEAM_ID="${TEAM_ID:-68M75D67LJ}"
 BUNDLE_ID="${BUNDLE_ID:-com.pmtlabs.eyerest.app}"
 RID="${RID:-osx-arm64}"
@@ -89,7 +89,7 @@ EOF
     fi
 fi
 
-echo "=== Eye-Rest macOS Bundler ==="
+echo "=== Blink Twice EyeRest macOS Bundler ==="
 echo "  Team ID:        $TEAM_ID"
 echo "  Bundle ID:      $BUNDLE_ID"
 echo "  RID:            $RID"
@@ -131,7 +131,7 @@ cp "$UI_PROJECT/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
 cp "$UI_PROJECT/Assets/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/"
 
 # Set executable permission
-chmod +x "$APP_BUNDLE/Contents/MacOS/EyeRest"
+chmod +x "$APP_BUNDLE/Contents/MacOS/BlinkTwiceEyeRest"
 
 # ── Step 3: Sign all binaries (inside-out) ──────────────────────────────────
 echo "[3/6] Signing bundle with: $SIGNING_IDENTITY"
