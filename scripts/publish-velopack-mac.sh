@@ -34,7 +34,7 @@ RELEASES_DIR="$PROJECT_ROOT/releases"
 SIGN_APP="${SIGNING_IDENTITY:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
-echo "=== Eye-Rest Velopack Publish (macOS) ==="
+echo "=== Blink Twice EyeRest Velopack Publish (macOS) ==="
 echo "  Version:  $VERSION"
 echo "  RID:      $RID"
 echo ""

@@ -421,7 +421,7 @@ namespace EyeRest.Services
             }
             catch
             {
-                return ToastNotificationManager.CreateToastNotifier("EyeRest");
+                return ToastNotificationManager.CreateToastNotifier("Blink Twice EyeRest");
             }
         }
 
@@ -499,7 +499,7 @@ namespace EyeRest.Services
                 <toast activationType='foreground' launch='resume-timers'>
                     <visual>
                         <binding template='ToastGeneric'>
-                            <text>EyeRest - Timer Pause Reminder</text>
+                            <text>Blink Twice EyeRest - Timer Pause Reminder</text>
                             <text>Your timers have been paused for {hoursText}</text>
                             <text>Reason: {reason}</text>
                             <text>Consider resuming for your eye health!</text>
@@ -533,7 +533,7 @@ namespace EyeRest.Services
                 <toast activationType='foreground' launch='recovery-notification'>
                     <visual>
                         <binding template='ToastGeneric'>
-                            <text>✅ EyeRest - System Recovery</text>
+                            <text>✅ Blink Twice EyeRest - System Recovery</text>
                             <text>{recoveryType} Successful</text>
                             <text>{details}</text>
                             <text>Your timers are now running normally.</text>
@@ -564,7 +564,7 @@ namespace EyeRest.Services
                     <toast activationType='foreground' launch='auto-resume-warning'>
                         <visual>
                             <binding template='ToastGeneric'>
-                                <text>🚨 EyeRest - Auto-Resume Safety Warning</text>
+                                <text>🚨 Blink Twice EyeRest - Auto-Resume Safety Warning</text>
                                 <text>Timers have been paused for {totalPauseDuration.TotalHours:F1} hours</text>
                                 <text>Auto-resuming now for your health and safety</text>
                                 <text>Remember to take regular breaks!</text>

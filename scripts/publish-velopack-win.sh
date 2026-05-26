@@ -44,7 +44,7 @@ if [[ -z "${AZURE_SIGN_FILE}" && -z "${SIGN_PARAMS}" ]]; then
   fi
 fi
 
-echo "=== Eye-Rest Windows Publish ==="
+echo "=== Blink Twice EyeRest Windows Publish ==="
 echo "    Version : $VERSION"
 echo "    Output  : $RELEASES_DIR/"
 echo ""
