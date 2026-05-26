@@ -519,7 +519,7 @@ public partial class App : Application
         };
         // Use 1x images (22px at 72 DPI = 22pt) so macOS renders at full menu bar size.
         // @2x images (44px) caused Avalonia to downscale, making the icon appear small.
-        return new Uri($"avares://EyeRest/Assets/TrayIcons/{name}.png");
+        return new Uri($"avares://BlinkTwiceEyeRest/Assets/TrayIcons/{name}.png");
     }
 
     /// <summary>
@@ -630,7 +630,7 @@ public partial class App : Application
         try
         {
             using var stream = AssetLoader.Open(
-                new Uri("avares://EyeRest/Assets/app-icon.png"));
+                new Uri("avares://BlinkTwiceEyeRest/Assets/app-icon.png"));
             using var ms = new MemoryStream();
             stream.CopyTo(ms);
             var pngBytes = ms.ToArray();

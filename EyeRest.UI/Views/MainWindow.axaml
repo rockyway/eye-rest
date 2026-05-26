@@ -58,7 +58,7 @@
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                        <Image Source="avares://EyeRest/Assets/TrayIcons/tray_active.png"
+                        <Image Source="avares://BlinkTwiceEyeRest/Assets/TrayIcons/tray_active.png"
                                Width="18" Height="18" />
                         <TextBlock Text="Eye Rest"
                                    FontSize="15"
