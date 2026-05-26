@@ -84,27 +84,27 @@ function collectFiles() {
   const publishDir = join(PROJECT_ROOT, "publish");
 
   // macOS zip (prefer dist/ from bundle script, fall back to publish/)
-  const macZipDist = join(distDir, "EyeRest-macOS-arm64.zip");
-  const macZipPub = join(publishDir, "EyeRest-macOS-arm64.zip");
+  const macZipDist = join(distDir, "BlinkTwiceEyeRest-macOS-arm64.zip");
+  const macZipPub = join(publishDir, "BlinkTwiceEyeRest-macOS-arm64.zip");
   if (existsSync(macZipDist)) {
-    files.push({ path: macZipDist, name: "EyeRest-macOS-arm64.zip", type: "application/zip" });
+    files.push({ path: macZipDist, name: "BlinkTwiceEyeRest-macOS-arm64.zip", type: "application/zip" });
   } else if (existsSync(macZipPub)) {
-    files.push({ path: macZipPub, name: "EyeRest-macOS-arm64.zip", type: "application/zip" });
+    files.push({ path: macZipPub, name: "BlinkTwiceEyeRest-macOS-arm64.zip", type: "application/zip" });
   }
 
   // Windows zip
-  const winZip = join(publishDir, "EyeRest-Windows-x64.zip");
+  const winZip = join(publishDir, "BlinkTwiceEyeRest-Windows-x64.zip");
   if (existsSync(winZip)) {
-    files.push({ path: winZip, name: "EyeRest-Windows-x64.zip", type: "application/zip" });
+    files.push({ path: winZip, name: "BlinkTwiceEyeRest-Windows-x64.zip", type: "application/zip" });
   }
 
   // Windows exe (standalone)
   const winExe = join(
     PROJECT_ROOT, "EyeRest.UI", "bin", "Release",
-    "net8.0-windows10.0.19041.0", "win-x64", "publish", "EyeRest.exe"
+    "net8.0-windows10.0.19041.0", "win-x64", "publish", "BlinkTwiceEyeRest.exe"
   );
   if (existsSync(winExe)) {
-    files.push({ path: winExe, name: "EyeRest.exe", type: "application/octet-stream" });
+    files.push({ path: winExe, name: "BlinkTwiceEyeRest.exe", type: "application/octet-stream" });
   }
 
   return files;

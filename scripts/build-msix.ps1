@@ -31,7 +31,7 @@ $SolutionRoot = Split-Path $PSScriptRoot -Parent
 $PublishDir = "$SolutionRoot\publish\win-x64"
 $DistDir = "$SolutionRoot\dist"
 $PackageDir = "$SolutionRoot\EyeRest.Package"
-$MsixPath = "$DistDir\EyeRest.msix"
+$MsixPath = "$DistDir\BlinkTwiceEyeRest.msix"
 
 # Resolve version: explicit arg > Package.appxmanifest Identity Version (strip 4th segment)
 if (-not $Version) {
@@ -112,7 +112,7 @@ if ($LASTEXITCODE -ne 0) {
 if (-not $ForStore) {
     Write-Host "`n[5/5] Signing MSIX for local testing..." -ForegroundColor Cyan
 
-    $CertPath = "$DistDir\EyeRest-Test.pfx"
+    $CertPath = "$DistDir\BlinkTwiceEyeRest-Test.pfx"
     $CertPassword = $env:EYEREST_CERT_PASSWORD
     if (-not $CertPassword) { Write-Error "Set EYEREST_CERT_PASSWORD env var"; exit 1 }
 
@@ -122,9 +122,9 @@ if (-not $ForStore) {
             Write-Host "  Creating self-signed test certificate..."
             $cert = New-SelfSignedCertificate `
                 -Type Custom `
-                -Subject "CN=EyeRest" `
+                -Subject "CN=BlinkTwiceEyeRest" `
                 -KeyUsage DigitalSignature `
-                -FriendlyName "EyeRest Dev Test" `
+                -FriendlyName "BlinkTwiceEyeRest Dev Test" `
                 -CertStoreLocation "Cert:\CurrentUser\My" `
                 -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
 

@@ -93,7 +93,7 @@ $VpkArgs = @(
     "-u",  "EyeRest"
     "-v",  $Version
     "-p",  $PublishDir
-    "-e",  "EyeRest.exe"
+    "-e",  "BlinkTwiceEyeRest.exe"
     "--icon", $Icon
     "-o",  $ReleasesDir
 )

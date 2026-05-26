@@ -69,7 +69,7 @@ VPK_ARGS=(
     -u EyeRest
     -v "$VERSION"
     -p "$PUBLISH_DIR"
-    -e EyeRest
+    -e BlinkTwiceEyeRest
     -o "$RELEASES_DIR"
 )
 
