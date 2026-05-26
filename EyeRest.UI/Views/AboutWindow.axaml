@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="EyeRest.UI.Views.AboutWindow"
-        Title="About Eye-Rest"
+        Title="About Blink Twice EyeRest"
         Width="360"
         Height="490"
         CanResize="False"
@@ -33,7 +33,7 @@
                            HorizontalAlignment="Center"
                            Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Eye-Rest"
+                    <TextBlock Text="Blink Twice EyeRest"
                                FontSize="22"
                                FontWeight="Bold"
                                HorizontalAlignment="Center"

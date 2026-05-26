@@ -316,7 +316,7 @@ public partial class App : Application
                         var trayService = Services?.GetService<ISystemTrayService>();
                         trayService?.ShowBalloonTip(
                             "Update Available",
-                            $"Eye Rest v{version} is ready to download. Click here to update.");
+                            $"Blink Twice EyeRest v{version} is ready to download. Click here to update.");
 
                         return; // Stop checking — user has been notified
                     }
@@ -361,7 +361,7 @@ public partial class App : Application
 
             trayMenu.Add(new NativeMenuItemSeparator());
 
-            trayMenu.Add(new NativeMenuItem("Show Eye Rest")
+            trayMenu.Add(new NativeMenuItem("Show Blink Twice EyeRest")
             {
                 Command = new RelayCommand(() =>
                 {
@@ -391,13 +391,13 @@ public partial class App : Application
 
             trayMenu.Add(new NativeMenuItemSeparator());
 
-            trayMenu.Add(new NativeMenuItem("About Eye-Rest")
+            trayMenu.Add(new NativeMenuItem("About Blink Twice EyeRest")
             {
                 Command = new RelayCommand(() =>
                     Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow()))
             });
 
-            trayMenu.Add(new NativeMenuItem("Quit Eye Rest")
+            trayMenu.Add(new NativeMenuItem("Quit Blink Twice EyeRest")
             {
                 Command = new RelayCommand(() =>
                 {
@@ -412,7 +412,7 @@ public partial class App : Application
             {
                 Icon = new WindowIcon(AssetLoader.Open(
                     GetTrayIconUri(TrayIconState.Active))),
-                ToolTipText = "Eye Rest",
+                ToolTipText = "Blink Twice EyeRest",
                 Menu = trayMenu,
                 IsVisible = true
             };
