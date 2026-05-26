@@ -65,7 +65,7 @@ namespace EyeRest.Services
             {
                 // ENHANCED: Use active state icon when first showing
                 _notifyIcon.Icon = _iconService.GetIconForState(TrayIconState.Active);
-                _notifyIcon.Text = "EyeRest Application";
+                _notifyIcon.Text = "Blink Twice EyeRest";
                 _notifyIcon.Visible = true;
                 _logger.LogInformation("System tray icon is now visible with Active state.");
             }
@@ -299,7 +299,7 @@ namespace EyeRest.Services
         
         private string GetTooltipTextForState(TrayIconState state)
         {
-            var baseText = "EyeRest";
+            var baseText = "Blink Twice EyeRest";
             var stateText = GetDisplayTextForState(state);
             
             return state switch
@@ -337,7 +337,7 @@ namespace EyeRest.Services
         /// </summary>
         private string BuildDetailedTooltip()
         {
-            var baseText = "EyeRest";
+            var baseText = "Blink Twice EyeRest";
             
             // Handle special states
             if (_isInMeetingMode)

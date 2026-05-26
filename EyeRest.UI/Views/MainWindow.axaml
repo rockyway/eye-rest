@@ -60,7 +60,7 @@
                                 VerticalAlignment="Center">
                         <Image Source="avares://BlinkTwiceEyeRest/Assets/TrayIcons/tray_active.png"
                                Width="18" Height="18" />
-                        <TextBlock Text="Eye Rest"
+                        <TextBlock Text="Blink Twice EyeRest"
                                    FontSize="15"
                                    FontWeight="SemiBold"
                                    Margin="8,0,0,0"

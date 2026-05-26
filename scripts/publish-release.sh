@@ -52,7 +52,7 @@ if [ "$NOTARIZE" = "1" ] && [ "$ALLOW_UNNOTARIZED" != "1" ]; then
 fi
 
 echo "╔══════════════════════════════════════╗"
-echo "║  Eye-Rest Release v${VERSION}          "
+echo "║  Blink Twice EyeRest Release v${VERSION}  "
 echo "╚══════════════════════════════════════╝"
 echo ""
 

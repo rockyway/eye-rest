@@ -36,7 +36,7 @@ echo "  Repo:    $REPO_URL"
 vpk upload github \
     --repoUrl "$REPO_URL" \
     --tag "v$VERSION" \
-    --releaseName "Eye-Rest $VERSION" \
+    --releaseName "Blink Twice EyeRest $VERSION" \
     --publish \
     --token "$GITHUB_TOKEN" \
     --outputDir "$RELEASES_DIR"
