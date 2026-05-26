@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.App"
-             Name="Eye-Rest"
+             Name="Blink Twice EyeRest"
              RequestedThemeVariant="Default">
 
     <!-- macOS application-level menu (bold "Eye-Rest" in menu bar).
@@ -9,7 +9,7 @@
          and Avalonia will inject its default "About Avalonia" item instead. -->
     <NativeMenu.Menu>
         <NativeMenu>
-            <NativeMenuItem Header="About Eye-Rest" Click="AboutEyeRest_OnClick" />
+            <NativeMenuItem Header="About Blink Twice EyeRest" Click="AboutEyeRest_OnClick" />
         </NativeMenu>
     </NativeMenu.Menu>
 

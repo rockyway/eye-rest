@@ -49,7 +49,7 @@
                         <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                                <MenuItem Header="About Eye-Rest" Click="AboutMenuItem_Click" />
+                                <MenuItem Header="About Blink Twice EyeRest" Click="AboutMenuItem_Click" />
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
