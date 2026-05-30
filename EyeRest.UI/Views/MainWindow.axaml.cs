@@ -43,7 +43,7 @@ public partial class MainWindow : Window
             ? "taskbar-icon.png"
             : "app-icon.png";
         Icon = new WindowIcon(AssetLoader.Open(
-            new Uri($"avares://EyeRest/Assets/{iconAsset}")));
+            new Uri($"avares://BlinkTwiceEyeRest/Assets/{iconAsset}")));
 
         // On Windows, hide system chrome since we have custom caption buttons.
         // macOS keeps PreferSystemChrome for native traffic-light buttons.

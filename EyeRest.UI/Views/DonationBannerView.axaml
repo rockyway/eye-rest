@@ -22,7 +22,7 @@
 
             <!-- Message -->
             <TextBlock Grid.Column="1"
-                       Text="If Eye-Rest helps you, consider supporting its development."
+                       Text="If Blink Twice EyeRest helps you, consider supporting its development."
                        FontSize="12"
                        Foreground="{DynamicResource DonationBannerText}"
                        VerticalAlignment="Center"

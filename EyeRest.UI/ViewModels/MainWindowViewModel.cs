@@ -2492,8 +2492,8 @@ namespace EyeRest.UI.ViewModels
 
                     // Add the new theme as a StyleInclude
                     var themeUri = isDarkMode
-                        ? new Uri("avares://EyeRest/Resources/DarkTheme.axaml")
-                        : new Uri("avares://EyeRest/Resources/LightTheme.axaml");
+                        ? new Uri("avares://BlinkTwiceEyeRest/Resources/DarkTheme.axaml")
+                        : new Uri("avares://BlinkTwiceEyeRest/Resources/LightTheme.axaml");
 
                     var newTheme = new Avalonia.Markup.Xaml.Styling.StyleInclude(themeUri)
                     {

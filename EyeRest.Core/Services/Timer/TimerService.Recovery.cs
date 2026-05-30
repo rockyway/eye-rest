@@ -15,6 +15,7 @@ namespace EyeRest.Services
 
         // Health monitoring fields. Initialized in the TimerService ctor (clock-bound).
         private DateTime _lastHeartbeat = DateTime.MinValue;
+        private DateTime _lastHealthMonitorTickTime = DateTime.MinValue;
         // Health monitor timer is declared in TimerService.State.cs
 
         // Recovery debouncing fields (Fix #4: Prevent duplicate recovery attempts)
@@ -29,6 +30,7 @@ namespace EyeRest.Services
                 _healthMonitorTimer.Interval = TimeSpan.FromMinutes(1); // Check every minute
                 
                 _healthMonitorTimer.Tick += OnHealthMonitorTick;
+                _lastHealthMonitorTickTime = _clock.Now;
                 
                 _logger.LogInformation("❤️ Health monitor initialized - checking timer health every minute");
             }
@@ -49,6 +51,32 @@ namespace EyeRest.Services
             try
             {
                 var now = _clock.Now;
+                
+                // CRITICAL FIX: Detect process suspension / system sleep time jumps.
+                // If the time since the last health monitor tick is significantly larger than the 1-minute interval,
+                // the process was likely suspended (e.g. by macOS memory pressure SIGSTOP) or the system slept.
+                if (_lastHealthMonitorTickTime != DateTime.MinValue)
+                {
+                    var timeSinceLastTick = now - _lastHealthMonitorTickTime;
+                    if (timeSinceLastTick > TimeSpan.FromSeconds(150)) // Expected interval is 60s, threshold 150s (2.5x)
+                    {
+                        _logger.LogWarning($"⏳ TIME JUMP DETECTED: Last health check ticked {timeSinceLastTick.TotalMinutes:F1} minutes ago. Resetting heartbeat and baselines.");
+                        
+                        _lastHeartbeat = now;
+                        _lastHealthMonitorTickTime = now;
+                        
+                        if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
+                        {
+                            _eyeRestStartTime = now;
+                            _breakStartTime = now;
+                            _breakTimerStartTime = now;
+                            _logger.LogInformation("⏳ Resumed timers with current time as baseline.");
+                        }
+                        return;
+                    }
+                }
+                _lastHealthMonitorTickTime = now;
+
                 var timeSinceLastHeartbeat = now - _lastHeartbeat;
                 
                 _logger.LogDebug($"❤️ HEALTH CHECK at {now:HH:mm:ss.fff} - Last heartbeat: {timeSinceLastHeartbeat.TotalSeconds:F1}s ago");
@@ -679,10 +707,9 @@ namespace EyeRest.Services
                     _logger.LogInformation("🔧 Break warning timer disposed");
                 }
                 
-                // STEP 2: Force garbage collection to clean up timer resources
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
+                // STEP 2: Force garbage collection to clean up timer resources (Non-blocking GC to prevent UI thread deadlock/hangs)
+                _logger.LogInformation("🔧 Requesting non-blocking garbage collection");
+                GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
                 
                 // STEP 2.5: CRITICAL FIX: Check for due timer events before clearing popups during recovery
                 try
@@ -1498,10 +1525,8 @@ namespace EyeRest.Services
             _eyeRestFallbackTimer = null;
             _breakFallbackTimer = null;
             
-            // Force garbage collection
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
+            // Force non-blocking garbage collection to clean up resources without hanging UI thread
+            GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
             
             await Task.Delay(100); // Brief delay to ensure cleanup
         }

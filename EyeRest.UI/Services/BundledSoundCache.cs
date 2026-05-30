@@ -66,7 +66,7 @@ namespace EyeRest.UI.Services
             // wipe. A length-based version isn't enough: PCM amplitude edits
             // (e.g. -3 dB attenuation) keep the file length identical because
             // sample count and bit depth are unchanged, only sample values shift.
-            var uri = new Uri($"avares://EyeRest/Assets/Sounds/{fileName}");
+            var uri = new Uri($"avares://BlinkTwiceEyeRest/Assets/Sounds/{fileName}");
             using var src = AssetLoader.Open(uri);
             var bundledHash = ComputeShortHash(src);
 

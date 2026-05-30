@@ -23,7 +23,7 @@ SOLUTION_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VERSION="${1:-1.0.0}"
 PUBLISH_DIR="$SOLUTION_ROOT/publish/velopack-win"
 PACK_ID="EyeRest"
-MAIN_EXE="EyeRest.exe"
+MAIN_EXE="BlinkTwiceEyeRest.exe"
 ICON="$SOLUTION_ROOT/Resources/app.ico"
 RELEASES_DIR="$SOLUTION_ROOT/releases"
 SIGNING_DIR="$SOLUTION_ROOT/signing"
@@ -44,7 +44,7 @@ if [[ -z "${AZURE_SIGN_FILE}" && -z "${SIGN_PARAMS}" ]]; then
   fi
 fi
 
-echo "=== Eye-Rest Windows Publish ==="
+echo "=== Blink Twice EyeRest Windows Publish ==="
 echo "    Version : $VERSION"
 echo "    Output  : $RELEASES_DIR/"
 echo ""
