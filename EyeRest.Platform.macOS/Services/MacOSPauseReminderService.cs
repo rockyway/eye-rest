@@ -168,7 +168,7 @@ namespace EyeRest.Services
             try
             {
                 PostNotification(
-                    "Eye Rest - Timers Paused",
+                    "Blink Twice EyeRest - Timers Paused",
                     $"Timers have been paused for {FormatDuration(pauseDuration)}. Reason: {reason}",
                     $"pause-reminder-{_remindersShown}");
             }
@@ -185,7 +185,7 @@ namespace EyeRest.Services
             try
             {
                 PostNotification(
-                    $"Eye Rest - {recoveryType}",
+                    $"Blink Twice EyeRest - {recoveryType}",
                     details,
                     $"recovery-{Guid.NewGuid():N}");
             }

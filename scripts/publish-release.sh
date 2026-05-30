@@ -52,7 +52,7 @@ if [ "$NOTARIZE" = "1" ] && [ "$ALLOW_UNNOTARIZED" != "1" ]; then
 fi
 
 echo "╔══════════════════════════════════════╗"
-echo "║  Eye-Rest Release v${VERSION}          "
+echo "║  Blink Twice EyeRest Release v${VERSION}  "
 echo "╚══════════════════════════════════════╝"
 echo ""
 
@@ -112,15 +112,15 @@ echo "  ✓ Restored for net8.0 (macOS)"
 
 # ── Step 6: Zip artifacts ────────────────────
 echo "[6/7] Creating zip archives..."
-rm -f "$DIST_DIR/EyeRest-v${VERSION}-macOS-arm64.zip"
-rm -f "$DIST_DIR/EyeRest-v${VERSION}-windows-x64-portable.zip"
+rm -f "$DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip"
+rm -f "$DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-windows-x64-portable.zip"
 
-(cd "$DIST_DIR" && zip -r -y -q "EyeRest-v${VERSION}-macOS-arm64.zip" Eye-Rest.app)
-echo "  ✓ EyeRest-v${VERSION}-macOS-arm64.zip"
+(cd "$DIST_DIR" && zip -r -y -q "BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip" "Blink Twice EyeRest.app")
+echo "  ✓ BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip"
 
 if [ -d "$DIST_DIR/win-x64" ]; then
-    (cd "$DIST_DIR" && zip -r -q "EyeRest-v${VERSION}-windows-x64-portable.zip" win-x64/)
-    echo "  ✓ EyeRest-v${VERSION}-windows-x64-portable.zip"
+    (cd "$DIST_DIR" && zip -r -q "BlinkTwiceEyeRest-v${VERSION}-windows-x64-portable.zip" win-x64/)
+    echo "  ✓ BlinkTwiceEyeRest-v${VERSION}-windows-x64-portable.zip"
 fi
 
 # ── Step 7: Git tag + GitHub release ─────────
@@ -136,10 +136,10 @@ fi
 
 # Create or update release
 ASSETS=""
-[ -f "$DIST_DIR/EyeRest-v${VERSION}-macOS-arm64.zip" ] && \
-    ASSETS="$ASSETS $DIST_DIR/EyeRest-v${VERSION}-macOS-arm64.zip"
-[ -f "$DIST_DIR/EyeRest-v${VERSION}-windows-x64-portable.zip" ] && \
-    ASSETS="$ASSETS $DIST_DIR/EyeRest-v${VERSION}-windows-x64-portable.zip"
+[ -f "$DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip" ] && \
+    ASSETS="$ASSETS $DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip"
+[ -f "$DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-windows-x64-portable.zip" ] && \
+    ASSETS="$ASSETS $DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-windows-x64-portable.zip"
 
 if gh release view "$TAG" &>/dev/null; then
     gh release upload "$TAG" $ASSETS --clobber
@@ -156,4 +156,4 @@ echo "╔═══════════════════════�
 echo "║  Release v${VERSION} complete!         "
 echo "╚══════════════════════════════════════╝"
 echo ""
-ls -lh "$DIST_DIR"/EyeRest-v${VERSION}-*.zip
+ls -lh "$DIST_DIR"/BlinkTwiceEyeRest-v${VERSION}-*.zip

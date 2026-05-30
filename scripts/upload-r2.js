@@ -78,33 +78,43 @@ function wranglerUpload(key, filePath, contentType) {
   });
 }
 
-function collectFiles() {
+function collectFiles(version) {
   const files = [];
   const distDir = join(PROJECT_ROOT, "dist");
   const publishDir = join(PROJECT_ROOT, "publish");
 
-  // macOS zip (prefer dist/ from bundle script, fall back to publish/)
-  const macZipDist = join(distDir, "EyeRest-macOS-arm64.zip");
-  const macZipPub = join(publishDir, "EyeRest-macOS-arm64.zip");
-  if (existsSync(macZipDist)) {
-    files.push({ path: macZipDist, name: "EyeRest-macOS-arm64.zip", type: "application/zip" });
-  } else if (existsSync(macZipPub)) {
-    files.push({ path: macZipPub, name: "EyeRest-macOS-arm64.zip", type: "application/zip" });
+  // macOS zip — publish-release.sh emits a versioned name in dist/.
+  // Fall back to legacy unversioned names in dist/ then publish/.
+  // The public R2 object name stays unversioned so download URLs are stable
+  // (files are namespaced under v{version}/ and latest/ when uploaded).
+  const macCandidates = [
+    join(distDir, `BlinkTwiceEyeRest-v${version}-macOS-arm64.zip`),
+    join(distDir, "BlinkTwiceEyeRest-macOS-arm64.zip"),
+    join(publishDir, "BlinkTwiceEyeRest-macOS-arm64.zip"),
+  ];
+  const macZip = macCandidates.find(existsSync);
+  if (macZip) {
+    files.push({ path: macZip, name: "BlinkTwiceEyeRest-macOS-arm64.zip", type: "application/zip" });
   }
 
-  // Windows zip
-  const winZip = join(publishDir, "EyeRest-Windows-x64.zip");
-  if (existsSync(winZip)) {
-    files.push({ path: winZip, name: "EyeRest-Windows-x64.zip", type: "application/zip" });
+  // Windows zip — publish-release.sh emits the versioned portable name in dist/.
+  // Fall back to the legacy publish/ name.
+  const winCandidates = [
+    join(distDir, `BlinkTwiceEyeRest-v${version}-windows-x64-portable.zip`),
+    join(publishDir, "BlinkTwiceEyeRest-Windows-x64.zip"),
+  ];
+  const winZip = winCandidates.find(existsSync);
+  if (winZip) {
+    files.push({ path: winZip, name: "BlinkTwiceEyeRest-Windows-x64.zip", type: "application/zip" });
   }
 
   // Windows exe (standalone)
   const winExe = join(
     PROJECT_ROOT, "EyeRest.UI", "bin", "Release",
-    "net8.0-windows10.0.19041.0", "win-x64", "publish", "EyeRest.exe"
+    "net8.0-windows10.0.19041.0", "win-x64", "publish", "BlinkTwiceEyeRest.exe"
   );
   if (existsSync(winExe)) {
-    files.push({ path: winExe, name: "EyeRest.exe", type: "application/octet-stream" });
+    files.push({ path: winExe, name: "BlinkTwiceEyeRest.exe", type: "application/octet-stream" });
   }
 
   return files;
@@ -131,7 +141,7 @@ if (bucket.source === "cloudflare") {
 console.log(`  Limit:       ${formatSize(MAX_BUCKET_BYTES)}`);
 
 // Collect files
-const files = collectFiles();
+const files = collectFiles(version);
 if (files.length === 0) {
   console.error("ERROR: No release binaries found. Run the build/bundle scripts first.");
   process.exit(1);
