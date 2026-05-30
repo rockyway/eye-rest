@@ -1,9 +1,9 @@
 $ErrorActionPreference = "Stop"
 $distDir = (Resolve-Path "$PSScriptRoot\..\dist").Path
-$certPath = "$distDir\EyeRest-Test.pfx"
+$certPath = "$distDir\BlinkTwiceEyeRest-Test.pfx"
 $certPassword = $env:EYEREST_CERT_PASSWORD
 if (-not $certPassword) { Write-Error "Set EYEREST_CERT_PASSWORD env var"; exit 1 }
-$msixPath = "$distDir\EyeRest.msix"
+$msixPath = "$distDir\BlinkTwiceEyeRest.msix"
 $subject = "CN=2C751A87-0159-47D5-93AD-8967182E99BD"
 
 # --- Step 1: Create self-signed certificate using pure .NET ---
