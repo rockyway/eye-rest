@@ -22,6 +22,7 @@
 #>
 param(
     [string]$Configuration = "Release",
+    [string]$Version = "",
     [switch]$ForStore
 )
 
@@ -30,7 +31,16 @@ $SolutionRoot = Split-Path $PSScriptRoot -Parent
 $PublishDir = "$SolutionRoot\publish\win-x64"
 $DistDir = "$SolutionRoot\dist"
 $PackageDir = "$SolutionRoot\EyeRest.Package"
-$MsixPath = "$DistDir\EyeRest.msix"
+$MsixPath = "$DistDir\BlinkTwiceEyeRest.msix"
+
+# Resolve version: explicit arg > Package.appxmanifest Identity Version (strip 4th segment)
+if (-not $Version) {
+    $manifestPath = "$PackageDir\Package.appxmanifest"
+    $manifestVer  = ([xml](Get-Content $manifestPath)).Package.Identity.Version
+    if (-not $manifestVer) { Write-Error "Could not read Identity Version from $manifestPath"; exit 1 }
+    $Version = ($manifestVer -split '\.')[0..2] -join '.'
+}
+Write-Host "  Version: $Version" -ForegroundColor Cyan
 
 # --- Step 1: Generate MSIX icons ---
 Write-Host "`n[1/5] Generating MSIX icons..." -ForegroundColor Cyan
@@ -49,6 +59,10 @@ dotnet publish "$SolutionRoot\EyeRest.UI\EyeRest.UI.csproj" `
     -p:PublishSingleFile=false `
     -p:PublishTrimmed=false `
     -p:StoreBuild=true `
+    -p:Version=$Version `
+    -p:AssemblyVersion="$Version.0" `
+    -p:FileVersion="$Version.0" `
+    -p:InformationalVersion=$Version `
     -o $PublishDir
 if ($LASTEXITCODE -ne 0) {
     Write-Error "dotnet publish failed"
@@ -98,7 +112,7 @@ if ($LASTEXITCODE -ne 0) {
 if (-not $ForStore) {
     Write-Host "`n[5/5] Signing MSIX for local testing..." -ForegroundColor Cyan
 
-    $CertPath = "$DistDir\EyeRest-Test.pfx"
+    $CertPath = "$DistDir\BlinkTwiceEyeRest-Test.pfx"
     $CertPassword = $env:EYEREST_CERT_PASSWORD
     if (-not $CertPassword) { Write-Error "Set EYEREST_CERT_PASSWORD env var"; exit 1 }
 
@@ -108,9 +122,9 @@ if (-not $ForStore) {
             Write-Host "  Creating self-signed test certificate..."
             $cert = New-SelfSignedCertificate `
                 -Type Custom `
-                -Subject "CN=EyeRest" `
+                -Subject "CN=BlinkTwiceEyeRest" `
                 -KeyUsage DigitalSignature `
-                -FriendlyName "EyeRest Dev Test" `
+                -FriendlyName "BlinkTwiceEyeRest Dev Test" `
                 -CertStoreLocation "Cert:\CurrentUser\My" `
                 -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
 

@@ -344,6 +344,40 @@ namespace EyeRest.Tests.Avalonia.Services
                 $"Eye rest should not be overdue after recovery, but remaining was {afterRemaining}");
         }
 
+        [Fact]
+        public async Task HealthMonitor_WhenTimeJumpDetected_ResetsHeartbeatAndDoesNotRecover()
+        {
+            // This tests that our new macOS memory-pressure / time-jump suspension detection
+            // correctly handles a large clock jump by resetting the heartbeat/baselines
+            // rather than triggering a hang recovery.
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            var healthMonitor = timers[HealthMonitorTimerIndex];
+
+            // Setup: Set _lastHealthMonitorTickTime and heartbeat to 10 minutes ago
+            var tenMinutesAgo = _fakeClock.Now.AddMinutes(-10);
+            SetPrivateField("_lastHealthMonitorTickTime", tenMinutesAgo);
+            SetPrivateField("_lastHeartbeat", tenMinutesAgo);
+
+            // Assert precondition: eye rest start time is initialized
+            var startEyeRestTime = GetPrivateField<DateTime>("_eyeRestStartTime");
+            Assert.True(startEyeRestTime != DateTime.MinValue);
+
+            // Act: Advance fake clock by 10 minutes and fire tick (simulates suspension resume)
+            _fakeClock.Advance(TimeSpan.FromMinutes(10));
+            healthMonitor.FireTick();
+
+            // Assert: Heartbeat and tick time should be reset to current clock time
+            var currentHeartbeat = GetPrivateField<DateTime>("_lastHeartbeat");
+            var currentTickTime = GetPrivateField<DateTime>("_lastHealthMonitorTickTime");
+            Assert.Equal(_fakeClock.Now, currentHeartbeat);
+            Assert.Equal(_fakeClock.Now, currentTickTime);
+
+            // Assert: Start times should be updated to current clock time to prevent immediate popups
+            var updatedEyeRestStartTime = GetPrivateField<DateTime>("_eyeRestStartTime");
+            Assert.Equal(_fakeClock.Now, updatedEyeRestStartTime);
+        }
+
         #endregion
 
         #region Heartbeat Behavior Tests

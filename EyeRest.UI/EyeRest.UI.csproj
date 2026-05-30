@@ -12,8 +12,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>..\Resources\app.ico</ApplicationIcon>
-    <AssemblyName>EyeRest</AssemblyName>
-    <AssemblyTitle>Eye-Rest</AssemblyTitle>
+    <AssemblyName>BlinkTwiceEyeRest</AssemblyName>
+    <AssemblyTitle>Blink Twice EyeRest</AssemblyTitle>
     <AssemblyDescription>Cross-platform eye rest reminder</AssemblyDescription>
   </PropertyGroup>
 

@@ -8,6 +8,10 @@ namespace EyeRest.Services
 {
     public class SystemTrayService : ISystemTrayService, IDisposable
     {
+        // Single source of truth for the app brand shown in tray text/tooltips.
+        // Keep all tray-facing brand strings pointing here so they cannot drift.
+        private const string BrandName = "Blink Twice EyeRest";
+
         private readonly ILogger<SystemTrayService> _logger;
         private readonly IconService _iconService;
         private NotifyIcon? _notifyIcon;
@@ -65,7 +69,7 @@ namespace EyeRest.Services
             {
                 // ENHANCED: Use active state icon when first showing
                 _notifyIcon.Icon = _iconService.GetIconForState(TrayIconState.Active);
-                _notifyIcon.Text = "EyeRest Application";
+                _notifyIcon.Text = BrandName;
                 _notifyIcon.Visible = true;
                 _logger.LogInformation("System tray icon is now visible with Active state.");
             }
@@ -299,7 +303,7 @@ namespace EyeRest.Services
         
         private string GetTooltipTextForState(TrayIconState state)
         {
-            var baseText = "EyeRest";
+            var baseText = BrandName;
             var stateText = GetDisplayTextForState(state);
             
             return state switch
@@ -325,7 +329,7 @@ namespace EyeRest.Services
             if (tooltipText.Length > 120)
             {
                 // Fallback to shorter format if too long
-                tooltipText = $"EyeRest - {_currentTimerStatus}\nNext: {FormatTimeSpan(_eyeRestRemaining)} | {FormatTimeSpan(_breakRemaining)}";
+                tooltipText = $"{BrandName} - {_currentTimerStatus}\nNext: {FormatTimeSpan(_eyeRestRemaining)} | {FormatTimeSpan(_breakRemaining)}";
             }
             
             _notifyIcon.Text = tooltipText;
@@ -337,7 +341,7 @@ namespace EyeRest.Services
         /// </summary>
         private string BuildDetailedTooltip()
         {
-            var baseText = "EyeRest";
+            var baseText = BrandName;
             
             // Handle special states
             if (_isInMeetingMode)

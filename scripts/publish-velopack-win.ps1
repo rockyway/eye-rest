@@ -63,7 +63,7 @@ if ($AzureTrustedSignFile -eq "" -and $SignParams -eq "") {
     }
 }
 
-Write-Host "`n=== Eye-Rest Velopack Publish (Windows) ===" -ForegroundColor Cyan
+Write-Host "`n=== Blink Twice EyeRest Velopack Publish (Windows) ===" -ForegroundColor Cyan
 Write-Host "  Version: $Version"
 
 # Step 1: Publish self-contained
@@ -93,7 +93,7 @@ $VpkArgs = @(
     "-u",  "EyeRest"
     "-v",  $Version
     "-p",  $PublishDir
-    "-e",  "EyeRest.exe"
+    "-e",  "BlinkTwiceEyeRest.exe"
     "--icon", $Icon
     "-o",  $ReleasesDir
 )
