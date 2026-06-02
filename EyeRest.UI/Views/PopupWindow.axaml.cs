@@ -32,6 +32,10 @@ namespace EyeRest.UI.Views
         private PopupPlacement? _pendingPlacement;
         private PopupPlacement _currentPlacement = PopupPlacement.TopRight;
 
+        // True between PositionOnScreen() and ReleaseToPool(): gates the SizeChanged-driven
+        // reposition so a pooled, hidden shell doesn't reposition on stray size events.
+        private bool _positioned;
+
         /// <summary>
         /// Tracks how many popup windows are currently open.
         /// </summary>
@@ -59,6 +63,18 @@ namespace EyeRest.UI.Views
         public PopupWindow()
         {
             InitializeComponent();
+
+            // SizeToContent resizes the window AFTER OnOpened, and on a pooled shell reused for
+            // new content FrameSize is stale until that resize lands. Reposition whenever the
+            // rendered size settles so the popup is placed for its ACTUAL size — fixes the popup
+            // clipping off-screen / leaving a gap when shown across differently-sized monitors.
+            SizeChanged += OnContentSizeSettled;
+        }
+
+        private void OnContentSizeSettled(object? sender, SizeChangedEventArgs e)
+        {
+            if (_positioned)
+                RepositionWithActualSize(_currentPlacement);
         }
 
         public void SetPopupContent(Control content, double width, double height)
@@ -139,6 +155,7 @@ namespace EyeRest.UI.Views
         {
             if (_released || _lease != expectedLease) return;
             _released = true;
+            _positioned = false; // stop SizeChanged-driven repositioning while pooled/hidden
 
             try { base.Hide(); } catch { /* best effort */ }
             _activePopupCount = Math.Max(0, _activePopupCount - 1);
@@ -163,8 +180,8 @@ namespace EyeRest.UI.Views
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-            // OnOpened re-fires on every Show() (including pooled reuse) in Avalonia 11.3, and
-            // FrameSize is already valid here — so this is the single per-show setup path.
+            // OnOpened re-fires on every Show() (including pooled reuse) in Avalonia 11.3 — so
+            // this is the single per-show setup path.
             ApplyShowState();
         }
 
@@ -178,7 +195,7 @@ namespace EyeRest.UI.Views
             // Reposition using actual rendered size (SizeToContent makes the window
             // smaller than the hint, so initial positioning from PositionOnScreen
             // leaves a gap on the right edge).
-            if (_pendingPlacement.HasValue && FrameSize.HasValue)
+            if (_pendingPlacement.HasValue)
             {
                 RepositionWithActualSize(_pendingPlacement.Value);
                 _pendingPlacement = null;
@@ -192,29 +209,39 @@ namespace EyeRest.UI.Views
                 // the main UI while a popup was showing.
                 MacOSNativeWindowHelper.SetWindowLevel(this, 3); // NSFloatingWindowLevel
 
-                // Bring popup to front of its level and give it keyboard focus.
-                // orderFront: does NOT activate the app, so the main window stays
-                // exactly where it was — no jumping in front of other apps.
-                MacOSNativeWindowHelper.OrderFront(this);
-                MacOSNativeWindowHelper.MakeKeyWindow(this);
+                // Surface the popup above other apps WITHOUT stealing focus. We deliberately
+                // do NOT call makeKeyWindow/Focus(): this app runs as an Accessory app, so
+                // making an inactive app's window key forces AppKit to activate us — yanking
+                // the user's keyboard focus out of whatever they were typing in (the reported
+                // bug). orderFrontRegardless raises the floating-level window above other apps
+                // while leaving focus exactly where it was.
+                MacOSNativeWindowHelper.OrderFrontRegardless(this);
             }
-            else
-            {
-                Activate();
-            }
+            // Windows/Linux: Topmost="True" + ShowActivated="False" (PopupWindow.axaml) already
+            // raise the popup above other windows without taking focus. We deliberately do NOT
+            // call Activate()/Focus() here — either would steal the foreground app's focus.
 
-            Focus();
+            // Stay focusable so the user can click the popup to engage keyboard handlers
+            // (e.g. Esc-to-dismiss), but never grab focus programmatically on show.
             Focusable = true;
         }
 
         private void RepositionWithActualSize(PopupPlacement placement)
         {
             var screen = GetScreenWithCursor();
-            if (screen == null || !FrameSize.HasValue) return;
+            if (screen == null) return;
+
+            // Use DesiredSize (the measured content size), NOT FrameSize/ClientSize. On a pooled
+            // shell reused for new content, FrameSize/ClientSize intermittently report the PREVIOUS
+            // popup's size (stale) — confirmed via diagnostics — which mis-positions the popup so it
+            // clips off-screen or leaves a gap. DesiredSize stays correct across pooled reuse and the
+            // full→compact transition.
+            var size = DesiredSize;
+            if (size.Width <= 0 || size.Height <= 0) return;
 
             var scaling = screen.Scaling;
-            var actualWidth = (int)(FrameSize.Value.Width * scaling);
-            var actualHeight = (int)(FrameSize.Value.Height * scaling);
+            var actualWidth = (int)(size.Width * scaling);
+            var actualHeight = (int)(size.Height * scaling);
 
             Position = ComputePosition(placement, screen.WorkingArea, scaling, actualWidth, actualHeight);
         }
@@ -292,17 +319,16 @@ namespace EyeRest.UI.Views
         public void Reposition()
         {
             // Post to ensure SizeToContent has finished resizing the window
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                if (FrameSize.HasValue)
-                    RepositionWithActualSize(_currentPlacement);
-            }, Avalonia.Threading.DispatcherPriority.Render);
+            Avalonia.Threading.Dispatcher.UIThread.Post(
+                () => RepositionWithActualSize(_currentPlacement),
+                Avalonia.Threading.DispatcherPriority.Render);
         }
 
         public void PositionOnScreen(PopupPlacement placement = PopupPlacement.TopRight)
         {
             _pendingPlacement = placement;
             _currentPlacement = placement;
+            _positioned = true;
             var screen = GetScreenWithCursor();
             if (screen == null)
                 return;
