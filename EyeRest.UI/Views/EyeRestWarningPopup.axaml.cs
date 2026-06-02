@@ -48,9 +48,10 @@ namespace EyeRest.UI.Views
             {
                 _parentWindow = window;
                 _parentWindow.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
-                window.Activate();
-                window.Focus();
-                Debug.WriteLine("EyeRestWarningPopup: Window key handler attached and focused");
+                // Do NOT call window.Activate()/Focus() here — they would steal the user's
+                // keyboard focus out of their active app (the reported bug). The Esc handler
+                // engages once the user clicks the popup; the on-screen buttons work regardless.
+                Debug.WriteLine("EyeRestWarningPopup: Window key handler attached (focus-safe, no activation)");
             }
 
             this.Unloaded += OnUnloaded;
