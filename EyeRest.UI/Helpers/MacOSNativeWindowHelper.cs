@@ -8,12 +8,15 @@ namespace EyeRest.UI.Helpers;
 /// <summary>
 /// Native macOS NSWindow interop for operations that Avalonia doesn't safely support.
 /// Specifically: orderOut:/makeKeyAndOrderFront: for truly hiding/showing a window,
-/// and setActivationPolicy: for toggling dock icon visibility.
+/// orderFrontRegardless for focus-safe surfacing of notification popups, and
+/// setActivationPolicy: for toggling dock icon visibility.
 ///
 /// Why this exists:
 ///   - Avalonia's Hide()/Show() cycle has known renderer restart bugs on macOS (#18148, #8281)
 ///   - Native orderOut: removes the window from the window server entirely
 ///   - Native makeKeyAndOrderFront: brings it back without going through Avalonia's broken state machine
+///   - Native orderFrontRegardless raises a window above other apps WITHOUT activating this
+///     app or changing the key window — used to surface popups without stealing keyboard focus
 ///   - SetActivationPolicy toggles dock icon: Regular (0) = visible, Accessory (1) = hidden
 /// </summary>
 internal static class MacOSNativeWindowHelper

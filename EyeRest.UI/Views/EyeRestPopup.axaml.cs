@@ -47,11 +47,13 @@ namespace EyeRest.UI.Views
                 // Subscribe to Unloaded for cleanup
                 this.Unloaded += OnUnloaded;
 
-                // Ensure focus and input capability
+                // Stay focusable so the user can click the popup to engage keyboard handlers
+                // (Esc-to-skip), but do NOT grab focus on load — that would steal the user's
+                // keyboard focus from their active app. Consistent with EyeRestWarningPopup /
+                // BreakPopup, which also no longer call Activate()/Focus().
                 Focusable = true;
-                Focus();
 
-                Debug.WriteLine("EyeRestPopup: Comprehensive input handling initialized");
+                Debug.WriteLine("EyeRestPopup: input handling initialized (focus-safe, no grab)");
             }
             catch (Exception ex)
             {

@@ -426,9 +426,20 @@ namespace EyeRest.UI.Views
                 if (topLevel is Window window)
                 {
                     Debug.WriteLine("BreakPopup: Re-surfacing parent window (focus-safe)");
-                    window.Topmost = true;
                     if (OperatingSystem.IsMacOS())
+                    {
+                        window.Topmost = true;
                         MacOSNativeWindowHelper.OrderFrontRegardless(window);
+                    }
+                    else
+                    {
+                        // Windows/Linux: the shell is already Topmost (PopupWindow.axaml), so a plain
+                        // Topmost=true is a no-op and wouldn't re-raise. Toggle it so Avalonia re-applies
+                        // HWND_TOPMOST (SetWindowPos with SWP_NOACTIVATE) — a real raise above other
+                        // top-level windows WITHOUT activating us or stealing focus.
+                        window.Topmost = false;
+                        window.Topmost = true;
+                    }
                 }
 
                 Debug.WriteLine("BreakPopup: Confirmation visibility ensured");
