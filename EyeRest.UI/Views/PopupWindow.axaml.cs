@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Automation.Peers;
 using Avalonia.Input;
 using Avalonia.Platform;
 using EyeRest.UI.Helpers;
@@ -34,6 +37,25 @@ namespace EyeRest.UI.Views
         /// </summary>
         private static int _activePopupCount;
 
+        /// <summary>
+        /// Pool of reusable shells. Avalonia.Native pins each shown Window forever via its
+        /// accessibility peer (see docs/plan/009); reusing shells makes that peer created once
+        /// per shell instead of leaked per cycle. Bounded — at most a couple of shells are ever
+        /// live. All access is on the UI thread.
+        /// </summary>
+        private static readonly Stack<PopupWindow> s_pool = new();
+        private const int MaxPoolSize = 4;
+        private static long s_leaseCounter;
+
+        // Generation token: a deferred close from a prior cycle must not release a shell that
+        // has since been re-rented for a new popup. Each Rent() assigns a fresh lease; release
+        // only acts when the caller's captured lease still matches.
+        private long _lease;
+        private bool _released = true; // a shell not currently rented is "released"
+
+        /// <summary>The lease of the current rental. Capture this when scheduling a deferred close.</summary>
+        public long Lease => _lease;
+
         public PopupWindow()
         {
             InitializeComponent();
@@ -64,6 +86,28 @@ namespace EyeRest.UI.Views
             base.Show();
         }
 
+        // Suppress the macOS accessibility automation peers for this transient popup's CONTENT.
+        // Avalonia.Native pins every control's automation peer with a strong native (MicroComShadow)
+        // GC handle that is never released on close — a per-cycle leak confirmed by gcroot (the
+        // content UserControl's UserControlAutomationPeer; see docs/plan/009). Returning null is
+        // UNSAFE (AvnWindow dereferences the root peer). Instead we hand the window a childless
+        // peer, so the native side never enumerates/materializes the content controls' peers.
+        // Tradeoff: these transient reminder popups are not exposed to screen readers (the main
+        // settings window keeps its accessibility).
+        protected override AutomationPeer OnCreateAutomationPeer()
+            // Only suppress on macOS, where the AvnAutomationPeer/MicroComShadow strong-handle
+            // leak lives. On Windows the Win32 backend has no such leak, so keep full popup
+            // accessibility there.
+            => OperatingSystem.IsMacOS()
+                ? new ChildlessAutomationPeer(this)
+                : base.OnCreateAutomationPeer();
+
+        private sealed class ChildlessAutomationPeer : NoneAutomationPeer
+        {
+            public ChildlessAutomationPeer(Control owner) : base(owner) { }
+            protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => Array.Empty<AutomationPeer>();
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
@@ -71,10 +115,66 @@ namespace EyeRest.UI.Views
             Closed?.Invoke(this, e);
         }
 
+        /// <summary>
+        /// Rents a shell from the pool (or creates one) with a fresh lease. The returned shell
+        /// has no content and no Closed subscribers. Caller must SetPopupContent + Show.
+        /// UI-thread only.
+        /// </summary>
+        public static PopupWindow Rent()
+        {
+            var w = s_pool.Count > 0 ? s_pool.Pop() : new PopupWindow();
+            w._lease = ++s_leaseCounter;
+            w._released = false;
+            return w;
+        }
+
+        /// <summary>
+        /// "Soft close": hide the shell and return it to the pool for reuse instead of destroying
+        /// it (real Close() leaks the native accessibility peer on macOS — docs/plan/009). No-op
+        /// if already released this cycle, or if <paramref name="expectedLease"/> is stale (the
+        /// shell was re-rented). Raises <see cref="Closed"/> exactly once per lease, then clears subscribers
+        /// + content so the pooled shell retains nothing. UI-thread only.
+        /// </summary>
+        public void ReleaseToPool(long expectedLease)
+        {
+            if (_released || _lease != expectedLease) return;
+            _released = true;
+
+            try { base.Hide(); } catch { /* best effort */ }
+            _activePopupCount = Math.Max(0, _activePopupCount - 1);
+
+            // Snapshot + clear subscribers BEFORE invoking so a re-entrant release sees none,
+            // and clear per-cycle references so the pooled shell retains nothing.
+            var handlers = Closed;
+            Closed = null;
+            ContentArea.Content = null; // release the heavy content visual tree
+            PopupContent = null;
+            _pendingPlacement = null;
+            DataContext = null;
+
+            try { handlers?.Invoke(this, EventArgs.Empty); }
+            finally
+            {
+                if (s_pool.Count < MaxPoolSize)
+                    s_pool.Push(this);
+            }
+        }
+
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
+            // OnOpened re-fires on every Show() (including pooled reuse) in Avalonia 11.3, and
+            // FrameSize is already valid here — so this is the single per-show setup path.
+            ApplyShowState();
+        }
 
+        /// <summary>
+        /// Applies per-show window state: reposition using the actual rendered size, raise to the
+        /// floating window level (macOS) and take focus. Idempotent; safe to call on every show
+        /// (first open and pooled reuse).
+        /// </summary>
+        private void ApplyShowState()
+        {
             // Reposition using actual rendered size (SizeToContent makes the window
             // smaller than the hint, so initial positioning from PositionOnScreen
             // leaves a gap on the right edge).

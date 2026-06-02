@@ -26,6 +26,16 @@ public static class ConfigurationMigrator
 {
     public const int CurrentSchemaVersion = 2;
 
+    // Cached, immutable serializer options. A NEW JsonSerializerOptions per deserialize
+    // builds a fresh reflection-emit member-accessor cache (DynamicMethod / DynamicILGenerator
+    // / DynamicScope ...) that is expensive and accumulates on the heap — the dominant managed
+    // leak behind the memory-pressure freeze (see docs/plan/008). Create once, reuse forever.
+    private static readonly JsonSerializerOptions s_options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
     public static AppConfiguration MigrateFromJson(string json)
     {
         using var doc = JsonDocument.Parse(json);
@@ -48,12 +58,7 @@ public static class ConfigurationMigrator
             throw new SchemaVersionTooNewException(version, CurrentSchemaVersion);
         }
 
-        var cfg = JsonSerializer.Deserialize<AppConfiguration>(json,
-            new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
-            }) ?? new AppConfiguration();
+        var cfg = JsonSerializer.Deserialize<AppConfiguration>(json, s_options) ?? new AppConfiguration();
 
         if (version < 2)
         {
