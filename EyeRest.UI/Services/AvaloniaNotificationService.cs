@@ -88,6 +88,7 @@ namespace EyeRest.Services
         {
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -97,6 +98,7 @@ namespace EyeRest.Services
                     IsEyeRestWarningActive = true;
                     CloseCurrentPopup(); // Close any existing popup first
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestWarningPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
 
@@ -135,7 +137,7 @@ namespace EyeRest.Services
             // Close only OUR popup (not a newer one that replaced it)
             Dispatcher.UIThread.Post(() =>
             {
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
                 IsEyeRestWarningActive = false;
             });
         }
@@ -159,6 +161,7 @@ namespace EyeRest.Services
 
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -175,6 +178,7 @@ namespace EyeRest.Services
                         ShowDimOverlays(config.EyeRest.OverlayOpacityPercent);
 
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(MapPlacement(config.EyeRest.PopupPosition));
 
@@ -220,7 +224,7 @@ namespace EyeRest.Services
                 // on the captured config value would leak overlay windows if the user
                 // toggled OverlayEnabled off during the popup's lifetime.
                 HideDimOverlays();
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
             });
         }
 
@@ -260,6 +264,7 @@ namespace EyeRest.Services
         {
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -269,6 +274,7 @@ namespace EyeRest.Services
                     IsBreakWarningActive = true;
                     CloseCurrentPopup();
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakWarningPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
 
@@ -311,7 +317,7 @@ namespace EyeRest.Services
 
             Dispatcher.UIThread.Post(() =>
             {
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
                 IsBreakWarningActive = false;
             });
         }
@@ -332,6 +338,7 @@ namespace EyeRest.Services
                 var config = await _configurationService.LoadConfigurationAsync();
                 var tcs = new TaskCompletionSource<BreakAction>();
                 PopupWindow? testPopup = null;
+                long testLease = 0;
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -342,6 +349,7 @@ namespace EyeRest.Services
                         ShowDimOverlays(config.Break.OverlayOpacityPercent);
 
                         testPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                        testLease = testPopup.Lease;
                         testPopup.PositionOnScreen(PopupPlacement.Center);
                         testPopup.Show();
 
@@ -371,7 +379,7 @@ namespace EyeRest.Services
                 Dispatcher.UIThread.Post(() =>
                 {
                     HideDimOverlays();
-                    try { testPopup?.Close(); } catch { }
+                    try { testPopup?.ReleaseToPool(testLease); } catch { }
                 });
 
                 return result;
@@ -389,6 +397,7 @@ namespace EyeRest.Services
 
             var tcs = new TaskCompletionSource<BreakAction>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -401,6 +410,7 @@ namespace EyeRest.Services
                     ShowDimOverlays(config.Break.OverlayOpacityPercent);
 
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.Center);
 
@@ -467,7 +477,7 @@ namespace EyeRest.Services
             Dispatcher.UIThread.Post(() =>
             {
                 HideDimOverlays();
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
                 IsBreakActive = false;
             });
 
@@ -660,11 +670,11 @@ namespace EyeRest.Services
                 {
                     try
                     {
-                        _currentPopup.Close();
+                        _currentPopup.ReleaseToPool(_currentPopup.Lease);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Error closing popup");
+                        _logger.LogWarning(ex, "Error releasing popup");
                     }
                     _currentPopup = null;
                 }
@@ -675,18 +685,18 @@ namespace EyeRest.Services
         /// Closes a specific popup only if it's still the current one.
         /// Prevents the race where a warning cleanup closes a newer reminder popup.
         /// </summary>
-        private void CloseSpecificPopup(PopupWindow? popup)
+        private void CloseSpecificPopup(PopupWindow? popup, long lease)
         {
             if (popup == null) return;
             lock (_lockObject)
             {
                 try
                 {
-                    popup.Close();
+                    popup.ReleaseToPool(lease);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error closing specific popup");
+                    _logger.LogWarning(ex, "Error releasing specific popup");
                 }
 
                 // Only clear _currentPopup if it's still pointing to this popup
