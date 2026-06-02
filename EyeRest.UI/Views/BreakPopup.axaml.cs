@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using EyeRest.Services;
+using EyeRest.UI.Helpers;
 
 namespace EyeRest.UI.Views
 {
@@ -415,17 +416,20 @@ namespace EyeRest.UI.Views
                 ConfirmationButton.IsVisible = true;
                 ReturnInstructionText.IsVisible = true;
 
-                // Force parent window to foreground when showing confirmation
+                // Re-surface the popup above other windows WITHOUT stealing focus.
+                // (Previously this called window.Activate() + ConfirmationButton.Focus(),
+                // which yanked the user's keyboard focus out of their active app — the
+                // reported bug.) Topmost re-asserts z-order; on macOS the popup sits at
+                // NSFloatingWindowLevel, so orderFrontRegardless re-raises it above other
+                // apps without activating us.
                 var topLevel = TopLevel.GetTopLevel(this);
                 if (topLevel is Window window)
                 {
-                    Debug.WriteLine("BreakPopup: Activating parent window");
-                    window.Activate();
+                    Debug.WriteLine("BreakPopup: Re-surfacing parent window (focus-safe)");
                     window.Topmost = true;
+                    if (OperatingSystem.IsMacOS())
+                        MacOSNativeWindowHelper.OrderFrontRegardless(window);
                 }
-
-                // Also ensure the confirmation button itself can receive focus
-                ConfirmationButton.Focus();
 
                 Debug.WriteLine("BreakPopup: Confirmation visibility ensured");
             }

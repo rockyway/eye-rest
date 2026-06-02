@@ -44,6 +44,7 @@ internal static class MacOSNativeWindowHelper
     private static readonly IntPtr Sel_OrderOut = sel_registerName("orderOut:");
     private static readonly IntPtr Sel_OrderBack = sel_registerName("orderBack:");
     private static readonly IntPtr Sel_OrderFront = sel_registerName("orderFront:");
+    private static readonly IntPtr Sel_OrderFrontRegardless = sel_registerName("orderFrontRegardless");
     private static readonly IntPtr Sel_MakeKeyWindow = sel_registerName("makeKeyWindow");
     private static readonly IntPtr Sel_MakeKeyAndOrderFront = sel_registerName("makeKeyAndOrderFront:");
     private static readonly IntPtr Sel_SetActivationPolicy = sel_registerName("setActivationPolicy:");
@@ -162,6 +163,38 @@ internal static class MacOSNativeWindowHelper
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "OrderFront: Failed");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Calls [NSWindow orderFrontRegardless] to bring the window to the front of its
+    /// level even while OUR app is inactive — WITHOUT activating the app or changing the
+    /// key/main window. Unlike orderFront:, which AppKit may defer for an inactive app,
+    /// orderFrontRegardless guarantees the popup appears above other apps' windows. This
+    /// is the focus-safe way to surface a notification: the user's keyboard focus stays
+    /// in whatever app they were working in.
+    /// </summary>
+    internal static bool OrderFrontRegardless(Window window, ILogger? logger = null)
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+
+        try
+        {
+            var handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            if (handle == IntPtr.Zero)
+            {
+                logger?.LogDebug("OrderFrontRegardless: No platform handle available");
+                return false;
+            }
+
+            objc_msgSend(handle, Sel_OrderFrontRegardless);
+            logger?.LogDebug("OrderFrontRegardless: NSWindow brought to front without app activation");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "OrderFrontRegardless: Failed");
             return false;
         }
     }
