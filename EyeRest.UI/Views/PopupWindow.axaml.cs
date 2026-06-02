@@ -199,6 +199,12 @@ namespace EyeRest.UI.Views
             {
                 RepositionWithActualSize(_pendingPlacement.Value);
                 _pendingPlacement = null;
+
+                // Belt-and-suspenders: DesiredSize may not be measured yet here (e.g. a pooled
+                // shell whose new content hasn't laid out), making the call above a no-op. Post a
+                // deferred reposition so placement is finalised after layout even in the edge case
+                // where no SizeChanged follows (new content whose size matches the pooled shell's).
+                Reposition();
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
