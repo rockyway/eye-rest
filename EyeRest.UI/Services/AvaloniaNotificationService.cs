@@ -532,58 +532,66 @@ namespace EyeRest.Services
 
         #region Screen Dimming Overlays
 
+        // Pool of reusable dim-overlay windows (one per screen). Windows are created once and
+        // reused across cycles — Show()/Hide() rather than new/Close() — to avoid leaking
+        // Avalonia.Controls.Window + their visual trees (and the backing NSWindow Mach ports)
+        // on every break/eye-rest cycle. Confirmed leak: see docs/plan/008. The pool size
+        // tracks the current screen count and is therefore bounded.
+
         /// <summary>
-        /// Creates semi-transparent dark overlay windows on all screens for break dimming.
+        /// Shows semi-transparent dark overlay windows on all screens for break dimming,
+        /// reusing pooled windows to avoid per-cycle allocation.
         /// </summary>
         private void ShowDimOverlays(int opacityPercent = 50)
         {
             try
             {
-                HideDimOverlays(); // Clean up any existing overlays
-
                 var app = Application.Current;
                 if (app?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
                     return;
 
-                var opacity = opacityPercent / 100.0;
-
                 var screens = desktop.MainWindow?.Screens.All;
                 if (screens == null || screens.Count == 0)
-                    return;
-
-                foreach (var screen in screens)
                 {
-                    var overlay = new Window
-                    {
-                        SystemDecorations = SystemDecorations.None,
-                        Background = new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0)),
-                        Topmost = true,
-                        ShowInTaskbar = false,
-                        CanResize = false,
-                        ShowActivated = false,
-                        Width = screen.Bounds.Width / screen.Scaling,
-                        Height = screen.Bounds.Height / screen.Scaling,
-                        Position = new PixelPoint(screen.Bounds.X, screen.Bounds.Y),
-                        TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent },
-                    };
+                    HideDimOverlays();
+                    return;
+                }
 
-                    // Click on overlay removes dim from that screen (don't block user)
-                    overlay.PointerPressed += (s, e) =>
-                    {
-                        if (s is Window overlayWin)
-                        {
-                            _overlayWindows.Remove(overlayWin);
-                            try { overlayWin.Close(); } catch { }
-                            _logger.LogInformation("User clicked dim overlay - removed from screen");
-                        }
-                    };
+                var opacity = opacityPercent / 100.0;
+                var brush = new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0));
+                int screenCount = screens.Count; // stable snapshot for trim + show
 
+                // Trim the pool if the screen count decreased since last time.
+                while (_overlayWindows.Count > screenCount)
+                {
+                    var extra = _overlayWindows[_overlayWindows.Count - 1];
+                    _overlayWindows.RemoveAt(_overlayWindows.Count - 1);
+                    try { extra.Close(); } catch { /* best effort */ }
+                }
+
+                for (int i = 0; i < screenCount; i++)
+                {
+                    var screen = screens[i];
+                    Window overlay;
+                    if (i < _overlayWindows.Count)
+                    {
+                        overlay = _overlayWindows[i]; // reuse pooled window
+                    }
+                    else
+                    {
+                        overlay = CreateOverlayWindow();
+                        _overlayWindows.Add(overlay);
+                    }
+
+                    overlay.Background = brush;
+                    overlay.Width = screen.Bounds.Width / screen.Scaling;
+                    overlay.Height = screen.Bounds.Height / screen.Scaling;
+                    overlay.Position = new PixelPoint(screen.Bounds.X, screen.Bounds.Y);
                     overlay.Show();
-                    _overlayWindows.Add(overlay);
                 }
 
                 _logger.LogInformation("Showed {Count} dim overlay(s) at {Opacity}% opacity",
-                    _overlayWindows.Count, opacityPercent);
+                    screenCount, opacityPercent);
             }
             catch (Exception ex)
             {
@@ -592,7 +600,37 @@ namespace EyeRest.Services
         }
 
         /// <summary>
-        /// Closes all dim overlay windows.
+        /// Creates a single reusable overlay window. Called once per pool slot; the window is
+        /// then reused (Show/Hide) for the lifetime of the service.
+        /// </summary>
+        private Window CreateOverlayWindow()
+        {
+            var overlay = new Window
+            {
+                SystemDecorations = SystemDecorations.None,
+                Topmost = true,
+                ShowInTaskbar = false,
+                CanResize = false,
+                ShowActivated = false,
+                TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent },
+            };
+
+            // Click on overlay hides the dim on that screen (don't block the user). The window
+            // stays in the pool (Hide, not Close) so it can be reused on the next cycle.
+            overlay.PointerPressed += (s, e) =>
+            {
+                if (s is Window overlayWin)
+                {
+                    try { overlayWin.Hide(); } catch { /* best effort */ }
+                    _logger.LogInformation("User clicked dim overlay - hidden for this screen");
+                }
+            };
+
+            return overlay;
+        }
+
+        /// <summary>
+        /// Hides all dim overlay windows, keeping them pooled for reuse.
         /// </summary>
         private void HideDimOverlays()
         {
@@ -600,14 +638,13 @@ namespace EyeRest.Services
             {
                 try
                 {
-                    overlay.Close();
+                    overlay.Hide();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error closing dim overlay");
+                    _logger.LogWarning(ex, "Error hiding dim overlay");
                 }
             }
-            _overlayWindows.Clear();
         }
 
         #endregion
