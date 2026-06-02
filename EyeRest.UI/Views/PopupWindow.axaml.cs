@@ -95,7 +95,12 @@ namespace EyeRest.UI.Views
         // Tradeoff: these transient reminder popups are not exposed to screen readers (the main
         // settings window keeps its accessibility).
         protected override AutomationPeer OnCreateAutomationPeer()
-            => new ChildlessAutomationPeer(this);
+            // Only suppress on macOS, where the AvnAutomationPeer/MicroComShadow strong-handle
+            // leak lives. On Windows the Win32 backend has no such leak, so keep full popup
+            // accessibility there.
+            => OperatingSystem.IsMacOS()
+                ? new ChildlessAutomationPeer(this)
+                : base.OnCreateAutomationPeer();
 
         private sealed class ChildlessAutomationPeer : NoneAutomationPeer
         {
@@ -127,7 +132,7 @@ namespace EyeRest.UI.Views
         /// "Soft close": hide the shell and return it to the pool for reuse instead of destroying
         /// it (real Close() leaks the native accessibility peer on macOS — docs/plan/009). No-op
         /// if already released this cycle, or if <paramref name="expectedLease"/> is stale (the
-        /// shell was re-rented). Raises <see cref="Closed"/> exactly once, then clears subscribers
+        /// shell was re-rented). Raises <see cref="Closed"/> exactly once per lease, then clears subscribers
         /// + content so the pooled shell retains nothing. UI-thread only.
         /// </summary>
         public void ReleaseToPool(long expectedLease)

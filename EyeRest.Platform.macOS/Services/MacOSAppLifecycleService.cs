@@ -192,12 +192,21 @@ namespace EyeRest.Platform.macOS.Services
 
         private void OnDidWake()
         {
+            // Refresh the heartbeat IMMEDIATELY on wake. The heartbeat timer is frozen during
+            // sleep, so its mtime is stale until the next 30s tick; without this, the external
+            // watchdog can mistake a just-resumed (healthy) app for a frozen one and kill+relaunch
+            // it (docs/plan/009 review B2).
+            MacOSWatchdog.WriteHeartbeat();
             _logger.LogWarning("🌅 SYSTEM WAKE: NSWorkspaceDidWakeNotification received — notifying subscribers");
             SystemAwoke?.Invoke();
         }
 
         private void OnWillSleep()
         {
+            // Drop the heartbeat before sleeping so a stale file can't look like a freeze while
+            // asleep — the watchdog skips when no heartbeat exists, and OnDidWake re-creates it on
+            // resume (docs/plan/009 review B2).
+            MacOSWatchdog.DeleteHeartbeat();
             _logger.LogInformation("🌙 SYSTEM SLEEP: NSWorkspaceWillSleepNotification received — notifying subscribers");
             SystemWillSleep?.Invoke();
         }

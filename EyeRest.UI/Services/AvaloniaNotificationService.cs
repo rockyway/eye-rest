@@ -280,7 +280,7 @@ namespace EyeRest.Services
 
                     // Symmetric defence; deferred via Dispatcher.Post for the same reason
                     // documented in ShowBreakReminderInternalAsync — the factory's
-                    // Completed → popup.Close() handler fires myPopup.Closed synchronously
+                    // Completed → popup.ReleaseToPool(lease) handler fires myPopup.Closed synchronously
                     // before the inner Completed handler can resolve with `true`.
                     myPopup.Closed += (_, _) =>
                         Dispatcher.UIThread.Post(
@@ -421,7 +421,7 @@ namespace EyeRest.Services
                     //
                     // CRITICAL (2026-04-28 regression): the resolution must be DEFERRED via
                     // Dispatcher.Post. The factory's ActionSelected handler (registered first)
-                    // calls popup.Close() synchronously, which fires myPopup.Closed inside the
+                    // calls popup.ReleaseToPool(lease) synchronously, which fires myPopup.Closed inside the
                     // multicast-delegate chain BEFORE the inner ActionSelected handler that
                     // resolves with the user's actual action runs. Direct resolution here
                     // races and wins, converting "Delay 5 Minutes" into "Skipped".
@@ -699,8 +699,12 @@ namespace EyeRest.Services
                     _logger.LogWarning(ex, "Error releasing specific popup");
                 }
 
-                // Only clear _currentPopup if it's still pointing to this popup
-                if (_currentPopup == popup)
+                // Only clear _currentPopup if this is still the SAME rental (object AND lease).
+                // Shells are pooled, so a stale deferred close from a prior cycle can reference a
+                // shell that has since been re-rented as the current popup — releasing it no-ops
+                // on the lease, but the untrack below must NOT fire for that re-rented popup or it
+                // orphans a visible popup (docs/plan/009 review finding B1).
+                if (_currentPopup == popup && popup.Lease == lease)
                     _currentPopup = null;
             }
         }

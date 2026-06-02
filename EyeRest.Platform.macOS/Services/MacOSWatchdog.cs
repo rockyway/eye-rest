@@ -18,6 +18,9 @@ namespace EyeRest.Platform.macOS.Services
     internal static class MacOSWatchdog
     {
         private const string WatchdogLabel = "com.pmtlabs.eyerest.watchdog";
+        // MUST stay in sync with EyeRest.UI.csproj <AssemblyName> (ProcessMatch) and the .app
+        // bundle name in scripts/bundle-macos.sh (AppDisplayName). A rename breaks the watchdog
+        // silently — this repo has renamed once already (commit ce42d68).
         private const string AppDisplayName = "Blink Twice EyeRest";
         private const string ProcessMatch = "BlinkTwiceEyeRest";
         private const int HeartbeatStaleSeconds = 180; // 6 missed 30s beats → frozen
@@ -172,7 +175,13 @@ namespace EyeRest.Platform.macOS.Services
                 using var process = Process.Start(psi);
                 if (process is null) return;
                 process.WaitForExit(5000);
-                // unload of a not-loaded agent returns non-zero — expected, don't log as error.
+                // `unload` of a not-loaded agent returns non-zero (expected). A failed `load`,
+                // however, silently disables the watchdog — surface that one.
+                if (command == "load" && process.ExitCode != 0)
+                {
+                    var stderr = process.StandardError.ReadToEnd();
+                    logger.LogWarning("🐕 launchctl load exited {Code}: {Error}", process.ExitCode, stderr);
+                }
             }
             catch (Exception ex)
             {
