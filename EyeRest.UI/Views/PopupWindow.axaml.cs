@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Automation.Peers;
 using Avalonia.Input;
 using Avalonia.Platform;
 using EyeRest.UI.Helpers;
@@ -82,6 +84,23 @@ namespace EyeRest.UI.Views
         {
             _activePopupCount++;
             base.Show();
+        }
+
+        // Suppress the macOS accessibility automation peers for this transient popup's CONTENT.
+        // Avalonia.Native pins every control's automation peer with a strong native (MicroComShadow)
+        // GC handle that is never released on close — a per-cycle leak confirmed by gcroot (the
+        // content UserControl's UserControlAutomationPeer; see docs/plan/009). Returning null is
+        // UNSAFE (AvnWindow dereferences the root peer). Instead we hand the window a childless
+        // peer, so the native side never enumerates/materializes the content controls' peers.
+        // Tradeoff: these transient reminder popups are not exposed to screen readers (the main
+        // settings window keeps its accessibility).
+        protected override AutomationPeer OnCreateAutomationPeer()
+            => new ChildlessAutomationPeer(this);
+
+        private sealed class ChildlessAutomationPeer : NoneAutomationPeer
+        {
+            public ChildlessAutomationPeer(Control owner) : base(owner) { }
+            protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => Array.Empty<AutomationPeer>();
         }
 
         protected override void OnClosed(EventArgs e)

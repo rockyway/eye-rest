@@ -351,3 +351,26 @@ PASS: `PopupWindow` after ≈ baseline (bounded by MaxPoolSize, NOT +1/cycle); c
 
 - **FrameSize timing:** reviewers confirmed `FrameSize` is valid in `OnOpened`. If empirical sizing issues appear on reuse (Task 6), add a one-shot `Resized` handler that re-runs `RepositionWithActualSize(_currentPlacement)` once — do NOT add an unconditional per-show deferred post (B2).
 - **Event semantics:** steady-state teardown is now a soft release; base `Window.Closed`/`OnClosed` no longer fires during cycles. Verified nothing in-repo subscribes to base `Window.Closed` for these popups (all use the shadowing `PopupWindow.Closed`).
+
+---
+
+## Rev 3 — content automation-peer leak (post-verification)
+
+The gcdump after rev-2 showed `PopupWindow` flat (1→1) but `EyeRestPopup` (content) still 0→6 and heap still growing. `gcroot` confirmed the content is pinned by the **same Avalonia.Native accessibility root** as the windows — `MicroComShadow → AvnAutomationPeer → UserControlAutomationPeer → EyeRestPopup`. Pooling the shell reuses the *window* peer but each content UserControl still gets its own leaking peer per cycle.
+
+External source review (Avalonia 11.3.0) established: `OnCreateAutomationPeer() => null` is UNSAFE (the native window path dereferences the root peer → crash); `NoneAutomationPeer` alone still gets wrapped; there is no global accessibility-disable option. The safe, minimal fix: give the popup window a **childless** peer so the native side never materializes the content controls' peers.
+
+**Fix (PopupWindow.axaml.cs):**
+```csharp
+protected override AutomationPeer OnCreateAutomationPeer() => new ChildlessAutomationPeer(this);
+
+private sealed class ChildlessAutomationPeer : NoneAutomationPeer
+{
+    public ChildlessAutomationPeer(Control owner) : base(owner) { }
+    protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => Array.Empty<AutomationPeer>();
+}
+```
+
+**Tradeoff:** the transient reminder popups are no longer exposed to screen readers (the main settings window keeps its accessibility).
+
+**Verified (gcdump, 5 cycles):** heap +174 KB total (~flat, was ~0.68 MB/cycle); `EyeRestPopup` 1→1; `PopupWindow` 1→1; overlays 5. All leak layers closed.
