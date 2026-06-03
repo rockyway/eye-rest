@@ -28,6 +28,10 @@
     <ProjectReference Include="..\EyeRest.Abstractions\EyeRest.Abstractions.csproj" />
     <ProjectReference Include="..\EyeRest.Core\EyeRest.Core.csproj" />
     <ProjectReference Include="..\EyeRest.UI\EyeRest.UI.csproj" />
+    <!-- macOS platform project is plain net8.0 (no macOS TFM), so it compiles on all hosts.
+         Referenced for MacOSUserPresenceService idle-detection regression tests; the native
+         CGEventSource P/Invoke is never executed in tests (idle source is injected). -->
+    <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
   </ItemGroup>
 
 </Project>

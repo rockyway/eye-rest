@@ -18,7 +18,9 @@ internal static class CoreGraphics
     /// Returns the elapsed time in seconds since the last event of a given type.
     /// Used for idle time detection.
     /// </summary>
-    /// <param name="stateID">The event state ID (use kCGEventSourceStateCombinedSessionState = 0).</param>
+    /// <param name="stateID">The event state ID. Use <see cref="kCGEventSourceStateHIDSystemState"/> (1) for
+    /// hardware-only idle detection. <see cref="kCGEventSourceStateCombinedSessionState"/> (0) also counts
+    /// non-HID session events (e.g. NotificationCenter display-wakes) and must not be used for user-presence.</param>
     /// <param name="eventType">The event type to query (use kCGAnyInputEventType = ~0 for any input).</param>
     [DllImport(CoreGraphicsLib, CallingConvention = CallingConvention.Cdecl)]
     internal static extern double CGEventSourceSecondsSinceLastEventType(int stateID, int eventType);
