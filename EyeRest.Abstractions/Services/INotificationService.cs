@@ -41,6 +41,7 @@ namespace EyeRest.Services
         DelayFiveMinutes,
         Skipped,
         ConfirmedAfterCompletion,  // User confirmed after break completion (when RequireConfirmationAfterBreak is enabled)
-        CompletedWithoutConfirmation  // Break auto-completed due to timeout without user confirmation
+        CompletedWithoutConfirmation,  // Break auto-completed due to timeout without user confirmation
+        AutoDismissed  // Popup closed by the system (force-close on session reset / away / app shutdown) — NOT a user action; must not be recorded as a skip
     }
 }

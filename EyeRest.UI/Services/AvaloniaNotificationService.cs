@@ -415,24 +415,28 @@ namespace EyeRest.Services
                     myPopup.PositionOnScreen(PopupPlacement.Center);
 
                     // Safety net: any close path that does NOT go through ActionSelected
-                    // (X-button, app shutdown, etc.) must resolve the awaiting task as Skipped
-                    // so the orchestrator can run SmartSessionResetAsync and clear
-                    // _isBreakNotificationActive.
+                    // (system force-close on session reset / away, app shutdown, etc.) must still
+                    // resolve the awaiting task so the orchestrator can clean up. It resolves to
+                    // AutoDismissed — NOT Skipped — because a system/programmatic close is not a
+                    // user action and must never be recorded as "Break skipped by user".
+                    // (2026-06-03 fix: force-closing an abandoned overnight popup was fabricating
+                    // BreakSkipped analytics rows. A real Skip click goes through ActionSelected
+                    // → BreakAction.Skipped below and still records correctly.)
                     //
                     // CRITICAL (2026-04-28 regression): the resolution must be DEFERRED via
                     // Dispatcher.Post. The factory's ActionSelected handler (registered first)
                     // calls popup.ReleaseToPool(lease) synchronously, which fires myPopup.Closed inside the
                     // multicast-delegate chain BEFORE the inner ActionSelected handler that
                     // resolves with the user's actual action runs. Direct resolution here
-                    // races and wins, converting "Delay 5 Minutes" into "Skipped".
+                    // races and wins, converting "Delay 5 Minutes" into AutoDismissed.
                     // Background priority defers until the synchronous ActionSelected chain
                     // completes — by then tcs is already resolved with the user's action and
-                    // this Skipped TrySetResult is a no-op. For pure X-close paths (no
-                    // ActionSelected fires), the deferred Skipped wins as intended.
+                    // this AutoDismissed TrySetResult is a no-op. For pure force-close paths (no
+                    // ActionSelected fires), the deferred AutoDismissed wins as intended.
                     myPopup.Closed += (_, _) =>
                     {
                         Dispatcher.UIThread.Post(
-                            () => tcs.TrySetResult(BreakAction.Skipped),
+                            () => tcs.TrySetResult(BreakAction.AutoDismissed),
                             DispatcherPriority.Background);
                     };
 
