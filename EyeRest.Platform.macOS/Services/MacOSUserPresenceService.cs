@@ -26,7 +26,10 @@ namespace EyeRest.Services
         private ITimerService? _timerService;
         private bool _disposed;
 
-        private UserPresenceState _currentState = UserPresenceState.Present;
+        // volatile: written on the polling thread, now read cross-thread via IsUserPresent as a
+        // correctness input to timer gating (Layer C / Fix 1, 2026-06-03), so it needs a memory
+        // barrier — not just torn-read safety. (UserPresenceState is int-backed, so volatile is legal.)
+        private volatile UserPresenceState _currentState = UserPresenceState.Present;
         private DateTime _lastStateChangeTime = DateTime.UtcNow;
         private DateTime _awayStartTime = DateTime.MinValue;
         private TimeSpan _lastAwayDuration = TimeSpan.Zero;

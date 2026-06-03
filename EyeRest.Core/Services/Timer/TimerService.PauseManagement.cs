@@ -112,7 +112,22 @@ namespace EyeRest.Services
             }
         }
         
-        public async Task SmartPauseAsync(string reason)
+        // String overload: infers the genuine-absence flag from the reason text via the centralized
+        // classifier. The authoritative caller (ApplicationOrchestrator.OnUserPresenceChanged) should
+        // prefer the (reason, genuineAbsence) overload so the decision isn't coupled to prose.
+        public Task SmartPauseAsync(string reason)
+            => SmartPauseAsync(reason, ReasonIndicatesGenuineAbsence(reason));
+
+        /// <summary>
+        /// Single source of truth for classifying a free-form pause reason as genuine user absence
+        /// (idle/away/system-sleep) vs. an attended pause. Centralized so it isn't duplicated inline.
+        /// </summary>
+        private static bool ReasonIndicatesGenuineAbsence(string reason) =>
+            reason.Contains("idle", StringComparison.OrdinalIgnoreCase) ||
+            reason.Contains("away", StringComparison.OrdinalIgnoreCase) ||
+            reason.Contains("sleep", StringComparison.OrdinalIgnoreCase);
+
+        public async Task SmartPauseAsync(string reason, bool genuineAbsence)
         {
             if (!IsRunning)
             {
@@ -140,13 +155,9 @@ namespace EyeRest.Services
             // absence we MUST proceed to pause (Stop both timers, disarm the wake heuristic). The
             // popup is left on screen; SmartResumeAsync's deferral (deferTimerStart when a popup is
             // active) keeps the resume path clean, and the popup-completion / extended-away reset
-            // handles the popup on return.
-            bool userGenuinelyAbsent =
-                reason.Contains("idle", StringComparison.OrdinalIgnoreCase) ||
-                reason.Contains("away", StringComparison.OrdinalIgnoreCase) ||
-                reason.Contains("sleep", StringComparison.OrdinalIgnoreCase);
-
-            if ((_isEyeRestNotificationActive || _isBreakNotificationActive) && !userGenuinelyAbsent)
+            // handles the popup on return. `genuineAbsence` is passed explicitly by the presence
+            // handler (robust) or inferred from the reason text by the string overload (fallback).
+            if ((_isEyeRestNotificationActive || _isBreakNotificationActive) && !genuineAbsence)
             {
                 _logger.LogInformation("🧠 Skipping smart pause — popup active & user attended (EyeRestActive={EyeRest}, BreakActive={Break}). Reason was: {Reason}",
                     _isEyeRestNotificationActive, _isBreakNotificationActive, reason);

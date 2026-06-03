@@ -722,20 +722,18 @@ namespace EyeRest.Services
                     case UserPresenceState.Away:
                     case UserPresenceState.SystemSleep:
                     case UserPresenceState.Idle:
-                        // Pause analytics session tracking when user becomes inactive.
-                        // NOTE (load-bearing): this reason format ("User idle"/"User away"/"User systemsleep")
-                        // is parsed by TimerService.SmartPauseAsync's genuine-absence classifier (Layer A,
-                        // 2026-06-03). Changing the wording here without updating that matcher will silently
-                        // re-break overnight pausing.
+                        // Pause analytics session tracking when user becomes inactive. This case IS a
+                        // genuine absence (Idle/Away/SystemSleep), so we pass genuineAbsence:true to
+                        // SmartPauseAsync explicitly rather than relying on the reason-text classifier.
                         var pauseReason = $"User {e.CurrentState.ToString().ToLower()}";
                         await _analyticsService.PauseSessionAsync(e.CurrentState, pauseReason);
                         await _analyticsService.RecordEventAsync(EventHistoryType.UserIdle, $"User became {e.CurrentState.ToString().ToLower()}",
                             new Dictionary<string, object?> { ["state"] = e.CurrentState.ToString(), ["idleSeconds"] = (int)e.IdleDuration.TotalSeconds });
-                        
+
                         // CRITICAL FIX: Coordinate smart pause with timer events
                         if (_timerService.IsRunning && !_timerService.IsSmartPaused)
                         {
-                            await _timerService.SmartPauseAsync(pauseReason);
+                            await _timerService.SmartPauseAsync(pauseReason, genuineAbsence: true);
                             _systemTrayService.UpdateTrayIcon(TrayIconState.UserAway);
                             _systemTrayService.UpdateTimerStatus($"Paused ({pauseReason})");
                             

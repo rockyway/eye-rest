@@ -997,6 +997,34 @@ namespace EyeRest.Tests.Avalonia.Services
                 "pause-for-eye-rest flag preserved so SmartResume/session-reset restores it");
         }
 
+        // Hardening (PR review): the explicit genuineAbsence flag must drive the decision, decoupled
+        // from the free-form reason text — so the authoritative caller isn't at the mercy of wording.
+        [Fact]
+        public async Task SmartPause_ExplicitGenuineAbsence_PausesWithPopupActive_IgnoringReasonText()
+        {
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            // Reason text has NO absence keyword, but the explicit flag wins → must pause.
+            await _timerService.SmartPauseAsync("meeting wrapped up", genuineAbsence: true);
+
+            Assert.True(_timerService.IsSmartPaused);
+            Assert.False(timers[BreakTimerIndex].IsEnabled);
+        }
+
+        [Fact]
+        public async Task SmartPause_ExplicitNotAbsence_NoOpWithPopupActive_IgnoringReasonText()
+        {
+            await StartServiceAsync();
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            // Reason text contains "away", but the explicit flag says NOT absence → must stay a no-op.
+            await _timerService.SmartPauseAsync("stepped away briefly", genuineAbsence: false);
+
+            Assert.False(_timerService.IsSmartPaused);
+        }
+
         #endregion
 
         #region Reflection Helpers

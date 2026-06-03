@@ -115,7 +115,8 @@ namespace EyeRest.Services
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
-                    // 2026-06-03: same presence gate as the wake heuristic above.
+                    // 2026-06-03: same presence gate as the wake heuristic above. (_lastEyeRestTick was
+                    // already updated earlier this tick, so — unlike the wake-heuristic gate — we don't re-set it here.)
                     if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
                     {
                         _logger.LogWarning("⏰ Clock-jump detected but user still away — suppressing eye-rest session reset");
@@ -293,7 +294,8 @@ namespace EyeRest.Services
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
-                    // 2026-06-03: same presence gate as the wake heuristic above.
+                    // 2026-06-03: same presence gate as the wake heuristic above. (_lastBreakTick was
+                    // already updated earlier this tick, so — unlike the wake-heuristic gate — we don't re-set it here.)
                     if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
                     {
                         _logger.LogWarning("⏰ Clock-jump detected but user still away — suppressing break session reset");
