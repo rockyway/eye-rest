@@ -6,7 +6,9 @@ namespace EyeRest.Services
     public interface INotificationService
     {
         Task ShowEyeRestWarningAsync(TimeSpan timeUntilBreak);
-        Task ShowEyeRestReminderAsync(TimeSpan duration);
+        /// <summary>Shows the eye-rest popup. Returns true only if it ran to genuine completion;
+        /// false if it was force-closed/dismissed by the system (so callers don't record a fake completion).</summary>
+        Task<bool> ShowEyeRestReminderAsync(TimeSpan duration);
         Task ShowBreakWarningAsync(TimeSpan timeUntilBreak);
         Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress, int consecutiveDelayCount = 0, int maxDelays = 0);
         Task HideAllNotifications();

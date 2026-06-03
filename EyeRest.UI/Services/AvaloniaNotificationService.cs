@@ -143,10 +143,10 @@ namespace EyeRest.Services
             });
         }
 
-        public async Task ShowEyeRestReminderAsync(TimeSpan duration)
+        public async Task<bool> ShowEyeRestReminderAsync(TimeSpan duration)
         {
             _isTestMode = false;
-            await ShowEyeRestReminderInternalAsync(duration);
+            return await ShowEyeRestReminderInternalAsync(duration);
         }
 
         public async Task ShowEyeRestReminderTestAsync(TimeSpan duration)
@@ -155,7 +155,7 @@ namespace EyeRest.Services
             await ShowEyeRestReminderInternalAsync(duration);
         }
 
-        private async Task ShowEyeRestReminderInternalAsync(TimeSpan duration)
+        private async Task<bool> ShowEyeRestReminderInternalAsync(TimeSpan duration)
         {
             // Load config OFF the UI thread first (mirrors BreakInternal).
             var config = await _configurationService.LoadConfigurationAsync();
@@ -235,6 +235,13 @@ namespace EyeRest.Services
                 HideDimOverlays();
                 CloseSpecificPopup(myPopup, myLease);
             });
+
+            // Genuine completion (EyeRestPopup.Completed → tcs(true)) vs. system force-close
+            // (Closed → tcs(false)) vs. abnormal timeout (tcs not completed → treat as not-completed).
+            // Callers gate "Eye rest completed" analytics on this so a force-closed/abandoned popup
+            // never fabricates a completion (2026-06-03; replaces the presence-gate defeated by the
+            // presence-flip ordering race in MacOSUserPresenceService).
+            return tcs.Task.IsCompletedSuccessfully && tcs.Task.Result;
         }
 
         private PopupPlacement MapPlacement(PopupPosition position) => position switch

@@ -975,6 +975,28 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.False(timers[BreakTimerIndex].IsEnabled);
         }
 
+        // Codex review HIGH: SmartResumeBreakTimerAfterEyeRest must NOT re-arm the break timer while
+        // the service is paused/away — otherwise an eye-rest popup completing during an absence would
+        // restart the break timer for an absent user (mirrors RestartEyeRestTimerAfterCompletion's guard).
+        [Fact]
+        public async Task SmartResumeBreakTimerAfterEyeRest_WhileSmartPaused_DoesNotStartBreakTimer()
+        {
+            await StartServiceAsync();
+            var breakTimer = _fakeTimerFactory.GetCreatedTimers()[BreakTimerIndex];
+
+            // Break timer was paused for an eye rest, then the user went away (smart pause).
+            SetPrivateField("_breakTimerPausedForEyeRest", true);
+            await _timerService.SmartPauseAsync("User away");
+            Assert.True(_timerService.IsSmartPaused);
+            Assert.False(breakTimer.IsEnabled);
+
+            _timerService.SmartResumeBreakTimerAfterEyeRest();
+
+            Assert.False(breakTimer.IsEnabled, "break timer must stay stopped while smart-paused");
+            Assert.True(GetPrivateField<bool>("_breakTimerPausedForEyeRest"),
+                "pause-for-eye-rest flag preserved so SmartResume/session-reset restores it");
+        }
+
         #endregion
 
         #region Reflection Helpers

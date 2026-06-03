@@ -182,6 +182,16 @@ namespace EyeRest.Services
         {
             if (_breakTimerPausedForEyeRest && !_isEyeRestNotificationActive)
             {
+                // 2026-06-03 (codex review): never re-arm the break timer while the service is
+                // paused/away — an eye-rest popup completing during an absence must not restart
+                // timers for an absent user. Mirror RestartEyeRestTimerAfterCompletion's guard and
+                // KEEP _breakTimerPausedForEyeRest set so SmartResumeAsync / session reset restores it.
+                if (IsPaused || IsManuallyPaused || IsSmartPaused)
+                {
+                    _logger.LogInformation("🔄 Smart coordination: deferring break-timer resume after eye rest — service is paused (resume/session-reset will restore it)");
+                    return;
+                }
+
                 _logger.LogInformation("🔄 Smart coordination: Resuming break timer after eye rest completion");
                 _breakTimerPausedForEyeRest = false;
 

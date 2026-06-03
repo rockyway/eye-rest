@@ -334,25 +334,26 @@ namespace EyeRest.Services
                 var startTime = DateTime.Now;
                 
                 await _analyticsService.RecordEventAsync(EventHistoryType.EyeRestShown, "Eye rest popup shown");
-                await _notificationService.ShowEyeRestReminderAsync(duration);
+                var completedNaturally = await _notificationService.ShowEyeRestReminderAsync(duration);
 
                 var actualDuration = DateTime.Now - startTime;
 
                 // Play end sound
                 await _audioService.PlayEyeRestEndSound();
 
-                // Record analytics event (skip if in test mode). 2026-06-03: also skip when the
-                // popup ended while the user was AWAY — a force-closed/abandoned eye-rest popup is
-                // not a real completion and must not fabricate an "Eye rest completed" row (the
-                // eye-rest analog of the break-skip data corruption). A genuine 20s eye rest keeps
-                // the user present (idle ≪ 15min idle threshold), so legitimate completions still record.
+                // Record analytics event (skip if in test mode). 2026-06-03: also skip when the popup
+                // did NOT run to genuine completion — a force-closed/abandoned eye-rest popup is not a
+                // real completion and must not fabricate an "Eye rest completed" row (the eye-rest analog
+                // of the break-skip corruption). Gate on the popup's own completion OUTCOME, not live
+                // presence: presence is unreliable here because it flips to Present *before* the
+                // ExtendedAway force-close unblocks this await (codex/internal review HIGH).
                 if (_notificationService.IsTestMode)
                 {
                     _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for eye rest event");
                 }
-                else if (!_userPresenceService.IsUserPresent)
+                else if (!completedNaturally)
                 {
-                    _logger.LogInformation("⚪ Eye rest popup ended while user away — not recording as completed (no fabricated completion)");
+                    _logger.LogInformation("⚪ Eye rest popup force-closed/dismissed by the system — not recording as completed (no fabricated completion)");
                 }
                 else
                 {
