@@ -57,6 +57,16 @@ namespace EyeRest.Services
 
                     if (likelySystemWake)
                     {
+                        // 2026-06-03: a wake/overdue tick while the user is still away must NOT
+                        // start a fresh session — that re-arms timers and (via the popup force-close)
+                        // fabricates "Break skipped" rows for an absent user. Suppress until return.
+                        if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                        {
+                            _logger.LogWarning("⏰ Wake heuristic fired but user still away — suppressing eye-rest session reset");
+                            _lastEyeRestTick = now;
+                            return;
+                        }
+
                         _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
                         _logger.LogWarning($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
 
@@ -105,6 +115,13 @@ namespace EyeRest.Services
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
+                    // 2026-06-03: same presence gate as the wake heuristic above.
+                    if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                    {
+                        _logger.LogWarning("⏰ Clock-jump detected but user still away — suppressing eye-rest session reset");
+                        return;
+                    }
+
                     _logger.LogWarning($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
                     _logger.LogWarning($"⏰ System likely woke from sleep - initiating smart session reset");
 
@@ -222,6 +239,14 @@ namespace EyeRest.Services
 
                     if (likelySystemWake)
                     {
+                        // 2026-06-03: suppress the fresh-session reset while the user is still away.
+                        if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                        {
+                            _logger.LogWarning("⏰ Wake heuristic fired but user still away — suppressing break session reset");
+                            _lastBreakTick = now;
+                            return;
+                        }
+
                         _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
                         _logger.LogWarning($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
 
@@ -268,6 +293,13 @@ namespace EyeRest.Services
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
+                    // 2026-06-03: same presence gate as the wake heuristic above.
+                    if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                    {
+                        _logger.LogWarning("⏰ Clock-jump detected but user still away — suppressing break session reset");
+                        return;
+                    }
+
                     _logger.LogWarning($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
                     _logger.LogWarning($"⏰ System likely woke from sleep - initiating smart session reset");
 

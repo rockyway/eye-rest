@@ -126,15 +126,29 @@ namespace EyeRest.Services
                 return;
             }
 
-            // CRITICAL FIX (2026-04-28): If a popup is on screen, the user is presumed to
-            // already be resting/taking a break — pausing the timer service here just
-            // creates state-management churn for the corresponding SmartResume. (See the
-            // 09:51:35 incident where the resume path then started timers prematurely.)
-            // Let the popup run to completion; the popup-completion handler will leave
-            // timers in a clean state.
-            if (_isEyeRestNotificationActive || _isBreakNotificationActive)
+            // CRITICAL FIX (2026-04-28): If a popup is on screen AND the user is still attending
+            // it, the user is presumed to already be resting/taking a break — pausing here just
+            // creates state-management churn for the corresponding SmartResume. (See the 09:51:35
+            // incident where the resume path then started timers prematurely.)
+            //
+            // CRITICAL FIX (2026-06-03): BUT when the user goes genuinely Idle/Away/SystemSleep
+            // (the reason carries "User idle"/"User away"/"User systemsleep" from
+            // ApplicationOrchestrator.OnUserPresenceChanged), the popup is ABANDONED, not attended.
+            // Skipping the pause then left both DispatcherTimers running for the entire absence;
+            // the overdue ticks tripped the "system wake" heuristic which force-closed the popup
+            // and recorded a fabricated "Break skipped by user" — repeating all night. For genuine
+            // absence we MUST proceed to pause (Stop both timers, disarm the wake heuristic). The
+            // popup is left on screen; SmartResumeAsync's deferral (deferTimerStart when a popup is
+            // active) keeps the resume path clean, and the popup-completion / extended-away reset
+            // handles the popup on return.
+            bool userGenuinelyAbsent =
+                reason.Contains("idle", StringComparison.OrdinalIgnoreCase) ||
+                reason.Contains("away", StringComparison.OrdinalIgnoreCase) ||
+                reason.Contains("sleep", StringComparison.OrdinalIgnoreCase);
+
+            if ((_isEyeRestNotificationActive || _isBreakNotificationActive) && !userGenuinelyAbsent)
             {
-                _logger.LogInformation("🧠 Skipping smart pause — popup active (EyeRestActive={EyeRest}, BreakActive={Break}). Reason was: {Reason}",
+                _logger.LogInformation("🧠 Skipping smart pause — popup active & user attended (EyeRestActive={EyeRest}, BreakActive={Break}). Reason was: {Reason}",
                     _isEyeRestNotificationActive, _isBreakNotificationActive, reason);
                 await Task.CompletedTask;
                 return;

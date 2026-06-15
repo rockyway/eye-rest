@@ -691,40 +691,47 @@ namespace EyeRest.Tests.Avalonia.Services
 
         #endregion
 
-        #region SmartPause-Skipped-During-Active-Popup Tests (regression for 2026-04-28 bug)
+        #region SmartPause During Active Popup (absence-pause fix, 2026-06-03)
+
+        // SPEC CHANGE (2026-06-03): These tests previously asserted SmartPause was a NO-OP while a
+        // popup was active, on the 2026-04-28 premise that "a popup means the user is resting".
+        // That premise is FALSE for a genuine-absence reason ("User idle"/"User away" = 15+ min with
+        // no input): the user has ABANDONED the popup. Skipping the pause left the DispatcherTimers
+        // running for the entire absence, whose overdue ticks tripped the "system wake" heuristic and
+        // force-closed the popup as a fabricated "Break skipped by user" — repeating all night and
+        // corrupting analytics. The corrected contract: genuine absence MUST pause (stop timers),
+        // even with a popup up. The attended (non-absence) no-op is still covered separately by
+        // SmartPause_PopupActive_AttendedReason_DoesNotPause.
 
         [Fact]
-        public async Task SmartPause_DuringActiveBreakNotification_DoesNothing()
+        public async Task SmartPause_DuringActiveBreakNotification_UserAway_PausesAndStopsTimers()
         {
-            // The user is already taking the break — the popup is on screen and the
-            // user just stepped away from input. Smart-pausing the timer service here
-            // creates the state-management mess that gave us the 09:51:35 bug:
-            // SmartResume must then re-enter and either start timers prematurely or
-            // defer them. Easier: don't pause in the first place.
             await StartServiceAsync();
             var timers = _fakeTimerFactory.GetCreatedTimers();
 
             SetPrivateField("_isBreakNotificationActive", true);
 
-            await _timerService.SmartPauseAsync("User idle");
+            await _timerService.SmartPauseAsync("User away");
 
-            Assert.False(_timerService.IsSmartPaused,
-                "SmartPause must be a no-op while a break popup is still active");
-            // Timer states should not have been changed by the no-op pause.
-            // (We don't assert specific values — just that the pause didn't run.)
+            Assert.True(_timerService.IsSmartPaused,
+                "absence with a break popup up must still pause (else timers run all night)");
+            Assert.False(timers[EyeRestTimerIndex].IsEnabled, "eye-rest timer must be stopped");
+            Assert.False(timers[BreakTimerIndex].IsEnabled, "break timer must be stopped");
         }
 
         [Fact]
-        public async Task SmartPause_DuringActiveEyeRestNotification_DoesNothing()
+        public async Task SmartPause_DuringActiveEyeRestNotification_UserIdle_PausesAndStopsTimers()
         {
             await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
 
             SetPrivateField("_isEyeRestNotificationActive", true);
 
             await _timerService.SmartPauseAsync("User idle");
 
-            Assert.False(_timerService.IsSmartPaused,
-                "SmartPause must be a no-op while an eye-rest popup is still active");
+            Assert.True(_timerService.IsSmartPaused);
+            Assert.False(timers[EyeRestTimerIndex].IsEnabled);
+            Assert.False(timers[BreakTimerIndex].IsEnabled);
         }
 
         [Fact]
@@ -875,6 +882,97 @@ namespace EyeRest.Tests.Avalonia.Services
                 Assert.True(_timerService.TimeUntilNextBreak > TimeSpan.Zero,
                     $"Cycle {i}: Break should not be overdue");
             }
+        }
+
+        #endregion
+
+        #region Away-Pause + Wake-Recovery Regression (overnight fake "Break Skipped" bug, 2026-06-03)
+
+        // Layer A absence-pause behavior is covered in the "SmartPause During Active Popup" region
+        // above. This region keeps the preserved attended no-op + the Layer C wake-recovery gate.
+
+        [Fact]
+        public async Task SmartPause_PopupActive_AttendedReason_DoesNotPause()
+        {
+            // Preserves the 2026-04-28 intent: a NON-absence reason (e.g. a manual "User request")
+            // while a popup is attended must remain a no-op to avoid resume-time churn.
+            await StartServiceAsync();
+
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            await _timerService.SmartPauseAsync("User request");
+
+            Assert.False(_timerService.IsSmartPaused, "attended (non-absence) reason must remain a no-op");
+        }
+
+        // Layer C — even if a timer somehow ticks while the user is still away (e.g. via the
+        // OS-wake path), the overdue-tick "system wake" heuristic must NOT fire a session reset
+        // that re-arms a fresh cycle for an absent user.
+
+        [Fact]
+        public async Task BreakTick_WakeOverdue_UserAway_SuppressesSessionReset()
+        {
+            await StartServiceAsync();
+            var breakTimer = _fakeTimerFactory.GetCreatedTimers()[BreakTimerIndex];
+
+            var presence = new Mock<IUserPresenceService>();
+            presence.SetupGet(p => p.IsUserPresent).Returns(false);
+            _timerService.SetUserPresenceService(presence.Object);
+
+            // Make the next tick look ~90 min overdue (> break interval + 30 min overrun).
+            SetPrivateField("_lastBreakTick", _fakeClock.Now.AddMinutes(-90));
+
+            breakTimer.FireTick();
+            await Task.Delay(200); // allow any (incorrectly) scheduled Task.Run reset to run
+
+            _mockAnalyticsService.Verify(
+                a => a.RecordResumeEventAsync(ResumeReason.NewWorkingSession), Times.Never,
+                "a wake detected while the user is away must not start a fresh session");
+        }
+
+        [Fact]
+        public async Task BreakTick_WakeOverdue_UserPresent_StillResets()
+        {
+            await StartServiceAsync();
+            var breakTimer = _fakeTimerFactory.GetCreatedTimers()[BreakTimerIndex];
+
+            var presence = new Mock<IUserPresenceService>();
+            presence.SetupGet(p => p.IsUserPresent).Returns(true);
+            _timerService.SetUserPresenceService(presence.Object);
+
+            SetPrivateField("_lastBreakTick", _fakeClock.Now.AddMinutes(-90));
+
+            breakTimer.FireTick();
+            await Task.Delay(200);
+
+            _mockAnalyticsService.Verify(
+                a => a.RecordResumeEventAsync(ResumeReason.NewWorkingSession), Times.AtLeastOnce,
+                "a genuine wake while the user is present must still start a fresh session");
+        }
+
+        // Threads the precise overnight→return handshake: Layer A pauses (stops timers) when the user
+        // goes away with a break popup up; on return SmartResume must DEFER (2026-04-28 fix) — clear
+        // smart pause but keep the popup flag and leave timers stopped until the popup completes.
+        [Fact]
+        public async Task AwayPauseThenReturn_WithBreakPopupActive_DefersTimerStart()
+        {
+            await StartServiceAsync();
+            var timers = _fakeTimerFactory.GetCreatedTimers();
+            SetPrivateField("_isBreakNotificationActive", true);
+
+            await _timerService.SmartPauseAsync("User away");
+            Assert.True(_timerService.IsSmartPaused);
+            Assert.False(timers[EyeRestTimerIndex].IsEnabled);
+            Assert.False(timers[BreakTimerIndex].IsEnabled);
+
+            await _timerService.SmartResumeAsync("User returned");
+
+            Assert.False(_timerService.IsSmartPaused, "resume clears smart pause");
+            Assert.True(GetPrivateField<bool>("_isBreakNotificationActive"),
+                "popup flag must stay set so the resume defers timer start");
+            Assert.False(timers[EyeRestTimerIndex].IsEnabled,
+                "timers must stay stopped until the popup completes (deferral, no premature restart)");
+            Assert.False(timers[BreakTimerIndex].IsEnabled);
         }
 
         #endregion

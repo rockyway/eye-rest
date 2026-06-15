@@ -341,16 +341,24 @@ namespace EyeRest.Services
                 // Play end sound
                 await _audioService.PlayEyeRestEndSound();
 
-                // Record analytics event (skip if in test mode)
-                if (!_notificationService.IsTestMode)
+                // Record analytics event (skip if in test mode). 2026-06-03: also skip when the
+                // popup ended while the user was AWAY — a force-closed/abandoned eye-rest popup is
+                // not a real completion and must not fabricate an "Eye rest completed" row (the
+                // eye-rest analog of the break-skip data corruption). A genuine 20s eye rest keeps
+                // the user present (idle ≪ 15min idle threshold), so legitimate completions still record.
+                if (_notificationService.IsTestMode)
+                {
+                    _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for eye rest event");
+                }
+                else if (!_userPresenceService.IsUserPresent)
+                {
+                    _logger.LogInformation("⚪ Eye rest popup ended while user away — not recording as completed (no fabricated completion)");
+                }
+                else
                 {
                     await _analyticsService.RecordEyeRestEventAsync(RestEventType.EyeRest, UserAction.Completed, actualDuration);
                     await _analyticsService.RecordEventAsync(EventHistoryType.EyeRestCompleted, "Eye rest completed",
                         new Dictionary<string, object?> { ["durationSeconds"] = (int)actualDuration.TotalSeconds });
-                }
-                else
-                {
-                    _logger.LogInformation("🧪 TEST MODE: Skipping analytics recording for eye rest event");
                 }
 
                 // Restart the timer after eye rest completes
@@ -561,6 +569,15 @@ namespace EyeRest.Services
                         _logger.LogInformation("🔄 FRESH SESSION: Resetting all timers after break auto-completion");
                         await _timerService.SmartSessionResetAsync("Break auto-completed - starting fresh session");
                         break;
+                    case BreakAction.AutoDismissed:
+                        // 2026-06-03: the popup was force-closed by the system (session reset on
+                        // wake/away, PauseForDuration, or app shutdown) — NOT a user action. Record
+                        // NOTHING (this is the fix for the fabricated "Break skipped by user" rows)
+                        // and do NOT reset timers: the originator of the dismissal (SmartSessionReset
+                        // already ran; or PauseForDuration intentionally paused) owns the timer state,
+                        // and a reset here would undo a deliberate pause.
+                        _logger.LogInformation("⚪ Break popup auto-dismissed by system (not a user skip) — no analytics recorded");
+                        break;
                     default:
                         _logger.LogWarning($"🟠 Unhandled break action: {result}");
                         // FRESH SESSION: Reset all timers for any unhandled action
@@ -704,7 +721,11 @@ namespace EyeRest.Services
                     case UserPresenceState.Away:
                     case UserPresenceState.SystemSleep:
                     case UserPresenceState.Idle:
-                        // Pause analytics session tracking when user becomes inactive
+                        // Pause analytics session tracking when user becomes inactive.
+                        // NOTE (load-bearing): this reason format ("User idle"/"User away"/"User systemsleep")
+                        // is parsed by TimerService.SmartPauseAsync's genuine-absence classifier (Layer A,
+                        // 2026-06-03). Changing the wording here without updating that matcher will silently
+                        // re-break overnight pausing.
                         var pauseReason = $"User {e.CurrentState.ToString().ToLower()}";
                         await _analyticsService.PauseSessionAsync(e.CurrentState, pauseReason);
                         await _analyticsService.RecordEventAsync(EventHistoryType.UserIdle, $"User became {e.CurrentState.ToString().ToLower()}",
@@ -806,6 +827,16 @@ namespace EyeRest.Services
         {
             try
             {
+                // 2026-06-03: do NOT re-arm a fresh session while the user is still away. An overnight
+                // OS wake (~50min cadence) would otherwise clear smart-pause and restart the timers for
+                // an absent user — producing phantom cycles. When the user actually returns,
+                // OnExtendedAwaySessionDetected / OnUserPresenceChanged(Present) handle the clean reset.
+                if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                {
+                    _logger.LogWarning("🌅 SYSTEM AWOKE but user still away — suppressing session reset (will reset on return)");
+                    return;
+                }
+
                 _logger.LogWarning("🌅 SYSTEM AWOKE: OS reported resume — initiating smart session reset for a clean cycle");
                 await _timerService.SmartSessionResetAsync("System wake notification (NSWorkspaceDidWake / PowerModes.Resume)");
             }
@@ -852,7 +883,12 @@ namespace EyeRest.Services
                 }
 
                 // P0 FIX: Unconditionally reset to fresh session when extended away detected
-                // Even if timer events were due before absence, clear them and start fresh per requirements
+                // Even if timer events were due before absence, clear them and start fresh per requirements.
+                // NOTE (2026-06-03): this handler is INTENTIONALLY not presence-gated (unlike OnSystemAwoke
+                // and the tick-based wake sites). ExtendedAwaySessionDetected fires only on the Away→Present
+                // RETURN transition, so the user IS present here; gating it on !IsUserPresent would break
+                // legitimate return-time recovery. Any open popup it force-closes resolves to AutoDismissed
+                // (Layer B), so it never fabricates a skip.
                 _logger.LogInformation($"⚡ Extended away session detected: {e.TotalAwayTime.TotalMinutes:F1} minutes away - initiating smart session reset");
 
                 var reason = $"Extended away ({e.TotalAwayTime.TotalMinutes:F0}min) - fresh session";

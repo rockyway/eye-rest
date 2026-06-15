@@ -16,6 +16,12 @@ namespace EyeRest.Services
     {
         private readonly ILogger<MacOSUserPresenceService> _logger;
         private readonly IConfigurationService _configurationService;
+
+        // Source of "seconds since last input". Production uses the native HID-system reading;
+        // tests inject a deterministic provider so the polling state machine can be exercised
+        // without the (macOS-only) CGEventSource P/Invoke.
+        private readonly Func<TimeSpan> _idleTimeProvider;
+
         private Timer? _pollingTimer;
         private ITimerService? _timerService;
         private bool _disposed;
@@ -34,10 +40,14 @@ namespace EyeRest.Services
         private static readonly TimeSpan ExtendedAwayThreshold = TimeSpan.FromMinutes(30);
         private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(30);
 
-        public MacOSUserPresenceService(ILogger<MacOSUserPresenceService> logger, IConfigurationService configurationService)
+        public MacOSUserPresenceService(
+            ILogger<MacOSUserPresenceService> logger,
+            IConfigurationService configurationService,
+            Func<TimeSpan>? idleTimeProvider = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+            _idleTimeProvider = idleTimeProvider ?? GetSystemIdleTime;
             _configurationService.ConfigurationChanged += OnConfigurationChanged;
         }
 
@@ -61,7 +71,7 @@ namespace EyeRest.Services
         public event EventHandler<ExtendedAwayEventArgs>? ExtendedAwaySessionDetected;
 
         public bool IsUserPresent => _currentState == UserPresenceState.Present;
-        public TimeSpan IdleTime => GetSystemIdleTime();
+        public TimeSpan IdleTime => _idleTimeProvider();
         public UserPresenceState CurrentState => _currentState;
         public TimeSpan TotalAwayTime => _totalAwayTime;
 
@@ -106,11 +116,18 @@ namespace EyeRest.Services
             return _lastAwayDuration;
         }
 
-        private void PollUserPresence(object? state)
+        private void PollUserPresence(object? state) => EvaluatePresence();
+
+        /// <summary>
+        /// Reads the current idle time and raises presence-change events when the user crosses
+        /// the idle / away thresholds. Invoked by the polling timer; <c>internal</c> so tests can
+        /// drive it deterministically with an injected idle provider.
+        /// </summary>
+        internal void EvaluatePresence()
         {
             try
             {
-                var idleTime = GetSystemIdleTime();
+                var idleTime = _idleTimeProvider();
                 var previousState = _currentState;
                 UserPresenceState newState;
 
@@ -186,16 +203,22 @@ namespace EyeRest.Services
             }
         }
 
+        // Event-source state queried for idle time. MUST be the HID-system source (hardware
+        // input only). The combined-session source is reset by non-HID session events — notably
+        // NotificationCenter display-wakes — which produced phantom "user returned" events while
+        // the user was physically away (root-caused 2026-06-02 via pmset DisplayWake correlation).
+        internal const int IdleEventSourceStateId = CoreGraphics.kCGEventSourceStateHIDSystemState;
+
         /// <summary>
-        /// Gets the system idle time using CGEventSourceSecondsSinceLastEventType.
-        /// Returns how long since the last keyboard or mouse event.
+        /// Gets the system idle time using CGEventSourceSecondsSinceLastEventType against the
+        /// HID-system event source. Returns how long since the last physical keyboard/mouse/trackpad event.
         /// </summary>
         private static TimeSpan GetSystemIdleTime()
         {
             try
             {
                 var seconds = CoreGraphics.CGEventSourceSecondsSinceLastEventType(
-                    CoreGraphics.kCGEventSourceStateCombinedSessionState,
+                    IdleEventSourceStateId,
                     CoreGraphics.kCGAnyInputEventType);
 
                 return TimeSpan.FromSeconds(seconds);
