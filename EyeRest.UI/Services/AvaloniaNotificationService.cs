@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -195,6 +196,14 @@ namespace EyeRest.Services
 
                     myPopup.Show();
 
+                    // Keep the popup above any dim overlays (Windows z-order; no-op
+                    // elsewhere). Overlays are only shown when EyeRest.OverlayEnabled,
+                    // but re-asserting topmost is harmless when there are none.
+                    RaisePopupAboveOverlays(myPopup);
+                    var eyeRestPopupRef = myPopup;
+                    Dispatcher.UIThread.Post(() => RaisePopupAboveOverlays(eyeRestPopupRef),
+                        DispatcherPriority.Background);
+
                     // BL-002 M5: fire the EyeRest START channel audio after the popup is shown.
                     FireChannelAudio(AudioChannel.EyeRestStart, c => c.EyeRest.StartAudio);
 
@@ -353,6 +362,12 @@ namespace EyeRest.Services
                         testPopup.PositionOnScreen(PopupPlacement.Center);
                         testPopup.Show();
 
+                        // Keep the test popup above the dim overlays (Windows z-order).
+                        RaisePopupAboveOverlays(testPopup);
+                        var testPopupRef = testPopup;
+                        Dispatcher.UIThread.Post(() => RaisePopupAboveOverlays(testPopupRef),
+                            DispatcherPriority.Background);
+
                         if (testPopup.PopupContent is BreakPopup breakPopup)
                         {
                             breakPopup.SetConfiguration(
@@ -441,6 +456,14 @@ namespace EyeRest.Services
                     };
 
                     myPopup.Show();
+
+                    // Keep the popup above the just-shown dim overlays (Windows z-order;
+                    // no-op elsewhere). Raise again at Background priority so it wins after
+                    // the deferred size-driven reposition settles.
+                    RaisePopupAboveOverlays(myPopup);
+                    var breakPopupRef = myPopup;
+                    Dispatcher.UIThread.Post(() => RaisePopupAboveOverlays(breakPopupRef),
+                        DispatcherPriority.Background);
 
                     // BL-002 M5: fire the Break START channel audio after the popup is shown.
                     FireChannelAudio(AudioChannel.BreakStart, c => c.Break.StartAudio);
@@ -641,6 +664,42 @@ namespace EyeRest.Services
             };
 
             return overlay;
+        }
+
+        // Win32 z-order control: raise a popup above the dim overlays on Windows.
+        private static readonly IntPtr HWND_TOPMOST = new(-1);
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOACTIVATE = 0x0010;
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+            int X, int Y, int cx, int cy, uint uFlags);
+
+        /// <summary>
+        /// Re-asserts the popup to the top of the topmost z-order band on Windows so the
+        /// full-screen dim overlays (also topmost, shown just before the popup) never sit
+        /// above it. This is the Windows analogue of the macOS NSFloatingWindowLevel lift
+        /// in <c>PopupWindow.ApplyShowState</c>; without it the popup itself appears dimmed.
+        /// SWP_NOACTIVATE preserves the popup's no-focus-stealing behavior. No-op off Windows.
+        /// </summary>
+        private void RaisePopupAboveOverlays(PopupWindow? popup)
+        {
+            if (popup == null || !OperatingSystem.IsWindows())
+                return;
+
+            try
+            {
+                var handle = popup.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                if (handle != IntPtr.Zero)
+                    SetWindowPos(handle, HWND_TOPMOST, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to raise popup above dim overlays");
+            }
         }
 
         /// <summary>
