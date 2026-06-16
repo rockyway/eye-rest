@@ -24,9 +24,21 @@ namespace EyeRest.Services
     internal sealed class WindowsWavePlayer : IDisposable
     {
         private readonly ILogger _logger;
-        private readonly object _paInitLock = new();
+        // Static: PortAudio.Initialize/Terminate are PROCESS-GLOBAL and not thread-safe,
+        // so the lock must serialize them across every instance, not per-instance.
+        private static readonly object _paInitLock = new();
         private bool _paInitialized;
         private volatile bool _disposed;
+
+        // Number of Play() calls currently touching native PortAudio. Dispose() skips
+        // Terminate() while any are in flight so it can never pull the native context out
+        // from under an active stream callback (that would be a native access violation).
+        private int _activePlaybacks;
+
+        // Reused across stream callbacks to pad trailing silence without allocating on the
+        // real-time audio thread (allocation there can trigger a GC pause → audio dropout).
+        // Only ever touched from one callback at a time (playback is serialized upstream).
+        private float[] _silenceBuffer = Array.Empty<float>();
 
         public WindowsWavePlayer(ILogger logger) => _logger = logger;
 
@@ -42,6 +54,9 @@ namespace EyeRest.Services
 
             var (samples, sampleRate, channels) = DecodeWav(filePath);
 
+            // Register before initializing/opening native resources so Dispose() observes us
+            // and skips Terminate() for the whole duration of this call (see Dispose()).
+            Interlocked.Increment(ref _activePlaybacks);
             try
             {
                 EnsurePortAudioInitialized();
@@ -54,6 +69,10 @@ namespace EyeRest.Services
             {
                 throw;
             }
+            catch (ObjectDisposedException)
+            {
+                // Disposed mid-call (app shutting down): abort quietly, no fallback sound.
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "PortAudio WAV playback failed — falling back to winmm SoundPlayer");
@@ -63,6 +82,10 @@ namespace EyeRest.Services
                 ct.ThrowIfCancellationRequested();
                 player.PlaySync();
             }
+            finally
+            {
+                Interlocked.Decrement(ref _activePlaybacks);
+            }
         }
 
         #region PortAudio Playback
@@ -71,6 +94,8 @@ namespace EyeRest.Services
         {
             lock (_paInitLock)
             {
+                if (_disposed)
+                    throw new ObjectDisposedException(nameof(WindowsWavePlayer));
                 if (_paInitialized) return;
                 PortAudio.Initialize();
                 _paInitialized = true;
@@ -89,7 +114,9 @@ namespace EyeRest.Services
                 {
                     var hostIdx = Pa_HostApiTypeIdToHostApiIndex((int)hostType);
                     if (hostIdx < 0) continue;
-                    var info = Marshal.PtrToStructure<PaHostApiInfo>(Pa_GetHostApiInfo(hostIdx));
+                    var infoPtr = Pa_GetHostApiInfo(hostIdx);
+                    if (infoPtr == IntPtr.Zero) continue; // host not available
+                    var info = Marshal.PtrToStructure<PaHostApiInfo>(infoPtr);
                     if (info.defaultOutputDevice >= 0) return info.defaultOutputDevice;
                 }
                 catch (Exception ex)
@@ -124,8 +151,13 @@ namespace EyeRest.Services
                 if (toCopy > 0) Marshal.Copy(samples, pos, output, toCopy);
                 if (toCopy < floatsRequested)
                 {
-                    var silence = new float[floatsRequested - toCopy];
-                    Marshal.Copy(silence, 0, output + toCopy * sizeof(float), silence.Length);
+                    // Pad with silence from a reused buffer — never allocate on the audio
+                    // thread. It grows at most once per stream (frame size is stable), so
+                    // there is no per-callback GC pressure.
+                    var needed = floatsRequested - toCopy;
+                    if (_silenceBuffer.Length < needed)
+                        _silenceBuffer = new float[needed];
+                    Marshal.Copy(_silenceBuffer, 0, output + toCopy * sizeof(float), needed);
                 }
                 pos += toCopy;
                 return pos >= samples.Length ? StreamCallbackResult.Complete : StreamCallbackResult.Continue;
@@ -211,6 +243,8 @@ namespace EyeRest.Services
         /// (a real WAV often has LIST/INFO or fact chunks before <c>data</c>, so the data
         /// chunk is NOT at a fixed offset). Supports PCM 8/16/24/32-bit and 32-bit IEEE
         /// float, any channel count / sample rate (including WAVE_FORMAT_EXTENSIBLE).
+        /// All multi-byte reads assume little-endian, which is safe: this is a
+        /// net8.0-windows assembly and every Windows architecture (x86/x64/ARM64) is LE.
         /// </summary>
         private static (float[] samples, int sampleRate, int channels) DecodeWav(string path)
         {
@@ -333,12 +367,17 @@ namespace EyeRest.Services
 
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
-
             lock (_paInitLock)
             {
-                if (_paInitialized)
+                if (_disposed) return;
+                // Set disposed under the lock so any Play() blocked on EnsurePortAudioInitialized
+                // wakes up and bails out instead of opening a new stream.
+                _disposed = true;
+
+                // Only terminate when no playback is touching the native context. If one is in
+                // flight (app closing mid-sound), skip Terminate and let process exit reclaim the
+                // native session — terminating under an active stream callback would crash natively.
+                if (_paInitialized && Volatile.Read(ref _activePlaybacks) == 0)
                 {
                     _paInitialized = false;
                     try { PortAudio.Terminate(); } catch { /* ref may already be drained */ }

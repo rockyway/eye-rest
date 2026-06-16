@@ -12,7 +12,7 @@ using Microsoft.Win32; // For Registry access
 
 namespace EyeRest.Services
 {
-    public class AudioService : AudioServiceBase
+    public class AudioService : AudioServiceBase, IDisposable
     {
         // Windows API for playing system sounds
         [DllImport("user32.dll", SetLastError = true)]
