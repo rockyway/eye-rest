@@ -38,15 +38,17 @@
                     Background="{DynamicResource TitleBarBackground}"
                     PointerPressed="TitleBar_PointerPressed">
                 <Grid>
-                    <!-- Left: Hamburger menu (Windows only) -->
+                    <!-- Left: Hamburger menu (Windows + Linux; macOS uses the app menu) -->
                     <Button Classes="CaptionBtn"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             Margin="0,-1,0,0"
                             Height="40"
                             ToolTip.Tip="Menu"
-                            IsVisible="{OnPlatform False, Windows=True}">
-                        <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                            IsVisible="{OnPlatform False, Windows=True, Linux=True}">
+                        <TextBlock Text="{OnPlatform '&#xE700;', Linux='☰'}"
+                                   FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
+                                   FontSize="14" />
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedLeft">
                                 <MenuItem Header="About Blink Twice EyeRest" Click="AboutMenuItem_Click" />
@@ -67,19 +69,23 @@
                                    VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <!-- Right: Window control buttons (Windows only) -->
+                    <!-- Right: Window control buttons (Windows + Linux; macOS has traffic lights) -->
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
                                 Margin="0,-1,0,0"
-                                IsVisible="{OnPlatform False, Windows=True}">
+                                IsVisible="{OnPlatform False, Windows=True, Linux=True}">
                         <Button Classes="CaptionBtn" Click="MinimizeButton_Click"
                                 ToolTip.Tip="Minimize" Height="40">
-                            <TextBlock Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                            <TextBlock Text="{OnPlatform '&#xE921;', Linux='–'}"
+                                       FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
+                                       FontSize="{OnPlatform 10, Linux=15}" />
                         </Button>
                         <Button Classes="CaptionBtn CaptionCloseBtn" Click="CloseButton_Click"
                                 ToolTip.Tip="Close" Height="40">
-                            <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                            <TextBlock Text="{OnPlatform '&#xE8BB;', Linux='×'}"
+                                       FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
+                                       FontSize="{OnPlatform 10, Linux=15}" />
                         </Button>
                     </StackPanel>
                 </Grid>

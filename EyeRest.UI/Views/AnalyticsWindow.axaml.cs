@@ -11,11 +11,17 @@ namespace EyeRest.UI.Views
         {
             InitializeComponent();
 
-            // On Windows and Linux, hide system chrome since we have custom caption buttons.
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                || RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            // On Windows, hide system chrome since we have custom caption buttons.
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
+            }
+            // On Linux, X11 WMs don't honor ExtendClientAreaToDecorationsHint and stack
+            // a duplicate title bar — drop server-side decorations; the custom title bar
+            // provides drag, minimize, and close.
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                SystemDecorations = SystemDecorations.None;
             }
         }
 
