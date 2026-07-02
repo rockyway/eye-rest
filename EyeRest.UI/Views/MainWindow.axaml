@@ -141,12 +141,9 @@
                                 <!-- Two timer cards side by side -->
                                 <Grid ColumnDefinitions="*,8,*">
 
-                                    <!-- Eye Rest Timer Card (clickable → navigates to Eye Rest config tab) -->
-                                    <Button Grid.Column="0"
-                                            Command="{Binding NavigateToConfigurationTabCommand}"
-                                            CommandParameter="0"
+                                    <!-- Eye Rest Timer Card (display-only) -->
+                                    <ContentControl Grid.Column="0"
                                             Background="Transparent" BorderThickness="0" Padding="0"
-                                            Cursor="Hand"
                                             HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding EyeRestTimerTooltip}">
                                         <Border Classes="TimerMiniCard">
@@ -178,14 +175,11 @@
                                                            HorizontalAlignment="Center" />
                                             </StackPanel>
                                         </Border>
-                                    </Button>
+                                    </ContentControl>
 
-                                    <!-- Break Timer Card (clickable → navigates to Break config tab) -->
-                                    <Button Grid.Column="2"
-                                            Command="{Binding NavigateToConfigurationTabCommand}"
-                                            CommandParameter="1"
+                                    <!-- Break Timer Card (display-only) -->
+                                    <ContentControl Grid.Column="2"
                                             Background="Transparent" BorderThickness="0" Padding="0"
-                                            Cursor="Hand"
                                             HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding BreakTimerTooltip}">
                                         <Border Classes="TimerMiniCard">
@@ -217,7 +211,7 @@
                                                            HorizontalAlignment="Center" />
                                             </StackPanel>
                                         </Border>
-                                    </Button>
+                                    </ContentControl>
 
                                 </Grid>
                             </StackPanel>

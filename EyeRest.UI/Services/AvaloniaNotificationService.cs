@@ -677,24 +677,53 @@ namespace EyeRest.Services
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
             int X, int Y, int cx, int cy, uint uFlags);
 
+        // X11 z-order control: raise a popup above the dim overlays on Linux. Both the
+        // popup and the overlays carry _NET_WM_STATE_ABOVE (Topmost), so raising within
+        // that layer puts the popup on top. Bound to the runtime soname so no -dev
+        // package is needed.
+        [DllImport("libX11.so.6")]
+        private static extern IntPtr XOpenDisplay(string? display);
+
+        [DllImport("libX11.so.6")]
+        private static extern int XRaiseWindow(IntPtr display, IntPtr window);
+
+        [DllImport("libX11.so.6")]
+        private static extern int XCloseDisplay(IntPtr display);
+
         /// <summary>
-        /// Re-asserts the popup to the top of the topmost z-order band on Windows so the
-        /// full-screen dim overlays (also topmost, shown just before the popup) never sit
-        /// above it. This is the Windows analogue of the macOS NSFloatingWindowLevel lift
-        /// in <c>PopupWindow.ApplyShowState</c>; without it the popup itself appears dimmed.
-        /// SWP_NOACTIVATE preserves the popup's no-focus-stealing behavior. No-op off Windows.
+        /// Re-asserts the popup to the top of the topmost z-order band so the full-screen
+        /// dim overlays (also topmost, shown just before the popup) never sit above it.
+        /// Windows: SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE). Linux/X11: XRaiseWindow.
+        /// This is the analogue of the macOS NSFloatingWindowLevel lift in
+        /// <c>PopupWindow.ApplyShowState</c>; without it the popup itself appears dimmed.
+        /// Neither path steals focus. No-op on macOS.
         /// </summary>
         private void RaisePopupAboveOverlays(PopupWindow? popup)
         {
-            if (popup == null || !OperatingSystem.IsWindows())
+            if (popup == null || !(OperatingSystem.IsWindows() || OperatingSystem.IsLinux()))
                 return;
 
             try
             {
                 var handle = popup.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-                if (handle != IntPtr.Zero)
+                if (handle == IntPtr.Zero)
+                    return;
+
+                if (OperatingSystem.IsWindows())
+                {
                     SetWindowPos(handle, HWND_TOPMOST, 0, 0, 0, 0,
                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+                else
+                {
+                    // The Avalonia X11 platform handle is the X window id.
+                    var display = XOpenDisplay(null);
+                    if (display != IntPtr.Zero)
+                    {
+                        try { XRaiseWindow(display, handle); }
+                        finally { XCloseDisplay(display); } // XCloseDisplay flushes the request
+                    }
+                }
             }
             catch (Exception ex)
             {
