@@ -77,7 +77,7 @@ VPK_ARGS=(
     -p "$PUBLISH_DIR"
     -e BlinkTwiceEyeRest
     -o "$RELEASES_DIR"
-    --category Utility
+    --categories Utility
 )
 
 # Add icon if available (PNG required for the AppImage / .desktop entry)
