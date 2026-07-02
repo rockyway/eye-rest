@@ -45,9 +45,10 @@ public partial class MainWindow : Window
         Icon = new WindowIcon(AssetLoader.Open(
             new Uri($"avares://BlinkTwiceEyeRest/Assets/{iconAsset}")));
 
-        // On Windows, hide system chrome since we have custom caption buttons.
+        // On Windows and Linux, hide system chrome since we have custom caption buttons.
         // macOS keeps PreferSystemChrome for native traffic-light buttons.
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            || RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
         }

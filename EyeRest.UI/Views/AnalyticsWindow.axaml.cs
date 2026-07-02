@@ -11,8 +11,9 @@ namespace EyeRest.UI.Views
         {
             InitializeComponent();
 
-            // On Windows, hide system chrome since we have custom caption buttons.
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            // On Windows and Linux, hide system chrome since we have custom caption buttons.
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                || RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
             }

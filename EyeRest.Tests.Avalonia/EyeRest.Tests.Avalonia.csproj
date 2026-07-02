@@ -32,6 +32,9 @@
          Referenced for MacOSUserPresenceService idle-detection regression tests; the native
          CGEventSource P/Invoke is never executed in tests (idle source is injected). -->
     <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
+    <!-- Linux platform project is also plain net8.0. Referenced for LinuxUserPresenceService
+         state-machine tests; the X11 P/Invoke is never executed (idle source is injected). -->
+    <ProjectReference Include="..\EyeRest.Platform.Linux\EyeRest.Platform.Linux.csproj" />
   </ItemGroup>
 
 </Project>

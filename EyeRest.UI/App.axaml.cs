@@ -156,6 +156,8 @@ public partial class App : Application
             EyeRest.Platform.Windows.WindowsServiceCollectionExtensions.AddWindowsPlatformServices(services);
 #elif PLATFORM_MACOS
             EyeRest.Platform.macOS.MacOSServiceCollectionExtensions.AddMacOSPlatformServices(services);
+#elif PLATFORM_LINUX
+            EyeRest.Platform.Linux.LinuxServiceCollectionExtensions.AddLinuxPlatformServices(services);
 #endif
 
             // Core services
