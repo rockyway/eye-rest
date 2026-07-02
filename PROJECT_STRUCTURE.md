@@ -6,8 +6,8 @@
 | **Framework** | .NET 8.0 (LTS) |
 | **UI Framework** | Avalonia 11.3.0 (cross-platform) |
 | **Architecture** | MVVM + Service-Oriented with Platform Abstraction |
-| **Solution** | `EyeRest.sln` — 6 projects |
-| **Last Updated** | 2026-02-25 |
+| **Solution** | `EyeRest.sln` — 7 projects |
+| **Last Updated** | 2026-07-02 |
 
 ---
 
@@ -21,6 +21,7 @@
    - [EyeRest.Core](#eyerestcore)
    - [EyeRest.Platform.Windows](#eyerestplatformwindows)
    - [EyeRest.Platform.macOS](#eyerestplatformmacos)
+   - [EyeRest.Platform.Linux](#eyerestplatformlinux)
    - [EyeRest.UI](#eyerestui)
    - [EyeRest.Tests.Avalonia](#eyeresttestsavalonia)
 5. [Technology Stack](#technology-stack)
@@ -96,6 +97,11 @@ eye-rest/
 │   │                                           Foundation, IOKit, ObjCRuntime,
 │   │                                           UserNotifications, Security
 │   └── Services/                     (12 files) Audio, tray, presence, timers, DI extension
+│
+├── EyeRest.Platform.Linux/          [Linux-specific implementations]
+│   ├── Interop/                      (2 files) X11/XScreenSaver P/Invoke (idle detection)
+│   └── Services/                     (13 files) Audio (paplay/canberra), tray, presence,
+│                                                timers, XDG autostart, DI extension
 │
 ├── EyeRest.UI/                       [Cross-platform Avalonia UI entry point]
 │   ├── Assets/                       App icon, macOS icon
@@ -293,6 +299,36 @@ macOS-specific implementations using native P/Invoke into AppKit, CoreGraphics, 
 
 ---
 
+### EyeRest.Platform.Linux
+
+> **Target:** `net8.0` | **Type:** Class Library | **Dependencies:** Abstractions, Core
+
+Linux-specific implementations targeting X11 desktops (verified on Linux Mint / Cinnamon). Avalonia-free, mirroring the macOS project structure.
+
+**Interop (2 files):** `X11Interop.cs` / `X11IdleProbe.cs` — libX11/libXss P/Invoke (MIT-SCREEN-SAVER idle time), bound to runtime sonames so no -dev packages are required. Degrades to "always present" off-X11.
+
+**Services (13 files):**
+
+| Service | Notes |
+|---------|-------|
+| `LinuxAudioService` + `LinuxSoundPlayer` | paplay/aplay for WAV & custom files; canberra/freedesktop theme sounds as channel defaults |
+| `LinuxSystemTrayService` | Event router (visual icon is Avalonia TrayIcon); balloon tips via notify-send |
+| `LinuxStartupManager` | XDG autostart `.desktop` at `~/.config/autostart/`, dev-build guard |
+| `LinuxUserPresenceService` | Same idle/away state machine as macOS; X11 idle probe, injectable test seam |
+| `LinuxScreenDimmingService` | No-op (`IsSupported=false`); break dimming is Avalonia overlays |
+| `LinuxPauseReminderService` | Hourly reminders + 8h auto-resume; notify-send notifications |
+| `LinuxSecureStorageService` | 0600 JSON store at `~/.config/EyeRest/secure-storage.json` |
+| `LinuxTimerFactory` / `LinuxTimer` | System.Threading.Timer (same as macOS) |
+| `LinuxScreenOverlayService` | Minimal stub (overlays rendered by Avalonia layer) |
+| `LinuxAppLifecycleService` | Minimal; sleep/wake recovery rides on presence idle detection |
+| `LinuxNotifications` | Shared notify-send helper |
+
+**DI Registration:** `LinuxServiceCollectionExtensions.cs` — `AddLinuxPlatformServices()`. `IDispatcherService` is not registered (inherits cross-platform `AvaloniaDispatcherService`, same as Windows).
+
+**Linux-specific UI behavior (in EyeRest.UI):** `SystemDecorations=None` + custom title bar (X11 WMs don't honor ExtendClientArea hints); popups raised above dim overlays via EWMH `_NET_RESTACK_WINDOW`; single instance via file lock (named mutexes are login-session-scoped on Linux).
+
+---
+
 ### EyeRest.UI
 
 > **Target:** `net8.0` | **Type:** WinExe (Avalonia) | **Dependencies:** Abstractions, Core, Platform.Windows or Platform.macOS
@@ -382,7 +418,7 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 7. **Multi-Monitor Support** — Popup positioning and screen overlay across all monitors during breaks.
 8. **Audio Notifications** — 5-level audio cascade with custom sound file support.
 9. **Configuration Management** — 3 JSON config files, atomic writes, 1.5s debounced saves.
-10. **Cross-Platform** — Windows + macOS (native P/Invoke via AppKit/IOKit).
+10. **Cross-Platform** — Windows + macOS (native P/Invoke via AppKit/IOKit) + Linux/X11 (libXss idle, XDG autostart, paplay audio).
 11. **macOS .app Bundle** — Code-signed with hardened runtime, generated via `scripts/bundle-macos.sh`.
 12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
 13. **Buy Me a Coffee Workflow** — License key validation with DPAPI (Windows) / Keychain (macOS) secure storage, usage-based prompts, and inline banner UI.
@@ -456,10 +492,12 @@ EyeRest.Core                      ──► Abstractions
          │
 EyeRest.Platform.Windows          ──► Abstractions + Core
 EyeRest.Platform.macOS             ──► Abstractions + Core
+EyeRest.Platform.Linux             ──► Abstractions + Core
          ▲
          │
 EyeRest.UI                        ──► Abstractions + Core + Platform.Windows (Win)
                                                            / Platform.macOS (macOS)
+                                                           / Platform.Linux (Linux)
 
 EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 ```
@@ -544,6 +582,7 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 
 | Date | Change |
 |------|--------|
+| 2026-07-02 | Added EyeRest.Platform.Linux (7th project): full Linux/X11 support — X11 idle detection, paplay/canberra audio, XDG autostart, notify-send, EWMH popup restack, file-lock single instance |
 | 2026-02-25 | Added MSIX packaging for Microsoft Store distribution, build-msix.ps1 script, MSIX-aware StartupManager and toast notifications, 22 visual assets, version metadata |
 | 2026-02-25 | Routed support link through eyerest.net website instead of direct checkout |
 | 2026-02-25 | Added Buy Me a Coffee workflow with license key validation, secure storage (DPAPI/Keychain), supporter UI views, React marketing frontend, updated test suite to 86 tests |

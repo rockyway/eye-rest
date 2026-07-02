@@ -30,7 +30,7 @@
                 <Grid ColumnDefinitions="Auto,*,Auto">
                     <!-- macOS traffic lights space -->
                     <Border Grid.Column="0" Width="78"
-                            IsVisible="{OnPlatform True, Windows=False}" />
+                            IsVisible="{OnPlatform False, macOS=True}" />
 
                     <!-- Title -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal"
@@ -42,20 +42,22 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}" />
                     </StackPanel>
 
-                    <!-- Windows caption buttons -->
+                    <!-- Windows/Linux caption buttons -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal"
-                                IsVisible="{OnPlatform False, Windows=True}">
+                                IsVisible="{OnPlatform False, Windows=True, Linux=True}">
                         <Button Classes="CaptionBtn" Click="MinimizeButton_Click"
-                                Content="&#xE921;" FontFamily="Segoe MDL2 Assets"
+                                Content="{OnPlatform '&#xE921;', Linux='–'}"
+                                FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
                                 Width="46" Height="40" Background="Transparent"
                                 Foreground="{DynamicResource TextSecondaryBrush}"
-                                FontSize="10" VerticalContentAlignment="Center"
+                                FontSize="{OnPlatform 10, Linux=15}" VerticalContentAlignment="Center"
                                 HorizontalContentAlignment="Center" />
                         <Button Classes="CaptionBtn" Click="CloseButton_Click"
-                                Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets"
+                                Content="{OnPlatform '&#xE8BB;', Linux='×'}"
+                                FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
                                 Width="46" Height="40" Background="Transparent"
                                 Foreground="{DynamicResource TextSecondaryBrush}"
-                                FontSize="10" VerticalContentAlignment="Center"
+                                FontSize="{OnPlatform 10, Linux=15}" VerticalContentAlignment="Center"
                                 HorizontalContentAlignment="Center" />
                     </StackPanel>
                 </Grid>

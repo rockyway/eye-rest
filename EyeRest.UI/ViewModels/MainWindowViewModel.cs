@@ -269,16 +269,6 @@ namespace EyeRest.UI.ViewModels
             // Mode toggle command
             ToggleConfigurationModeCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(() => IsConfigurationMode = !IsConfigurationMode);
 
-            // Navigate to specific config tab from simple view
-            NavigateToConfigurationTabCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(param =>
-            {
-                if (param is string tabStr && int.TryParse(tabStr, out var tabIndex))
-                {
-                    SelectedTabIndex = tabIndex;
-                    IsConfigurationMode = true;
-                }
-            });
-
             // Analytics period selector command
             SetAnalyticsPeriodCommand = new EyeRest.ViewModels.CrossPlatformRelayCommand(param =>
             {
@@ -1322,7 +1312,6 @@ namespace EyeRest.UI.ViewModels
 
         // Mode toggle command
         public ICommand ToggleConfigurationModeCommand { get; }
-        public ICommand NavigateToConfigurationTabCommand { get; }
 
         // Donation commands
         public ICommand OpenDonationLinkCommand { get; }
