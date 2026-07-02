@@ -117,6 +117,18 @@ function collectFiles(version) {
     files.push({ path: winExe, name: "BlinkTwiceEyeRest.exe", type: "application/octet-stream" });
   }
 
+  // Linux AppImage — emitted by publish-velopack-linux.sh into releases/.
+  // The public R2 object name stays unversioned so download URLs are stable.
+  const releasesDir = join(PROJECT_ROOT, "releases");
+  const linuxCandidates = [
+    join(releasesDir, `BlinkTwiceEyeRest-${version}-linux-x64.AppImage`),
+    join(releasesDir, "BlinkTwiceEyeRest-linux-x64.AppImage"),
+  ];
+  const linuxAppImage = linuxCandidates.find(existsSync);
+  if (linuxAppImage) {
+    files.push({ path: linuxAppImage, name: "BlinkTwiceEyeRest-linux-x64.AppImage", type: "application/octet-stream" });
+  }
+
   return files;
 }
 
