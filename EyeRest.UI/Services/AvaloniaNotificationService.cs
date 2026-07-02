@@ -679,8 +679,11 @@ namespace EyeRest.Services
 
         // X11 z-order control: raise a popup above the dim overlays on Linux. Both the
         // popup and the overlays carry _NET_WM_STATE_ABOVE (Topmost), so raising within
-        // that layer puts the popup on top. Bound to the runtime soname so no -dev
-        // package is needed.
+        // that layer puts the popup on top. Plain XRaiseWindow is unreliable: Mutter-family
+        // WMs (GNOME, Cinnamon's Muffin) apply focus-stealing prevention to client raise
+        // requests and may ignore them. The EWMH _NET_RESTACK_WINDOW client message with
+        // source indication 2 ("pager/direct user action") is honored unconditionally.
+        // Bound to the runtime soname so no -dev package is needed.
         [DllImport("libX11.so.6")]
         private static extern IntPtr XOpenDisplay(string? display);
 
@@ -690,19 +693,66 @@ namespace EyeRest.Services
         [DllImport("libX11.so.6")]
         private static extern int XCloseDisplay(IntPtr display);
 
+        [DllImport("libX11.so.6")]
+        private static extern IntPtr XDefaultRootWindow(IntPtr display);
+
+        [DllImport("libX11.so.6", CharSet = CharSet.Ansi)]
+        private static extern IntPtr XInternAtom(IntPtr display, string atomName, bool onlyIfExists);
+
+        [DllImport("libX11.so.6")]
+        private static extern int XSendEvent(IntPtr display, IntPtr window, bool propagate,
+            IntPtr eventMask, ref XClientMessageEvent evt);
+
+        private const int ClientMessage = 33;
+        private const long SubstructureNotifyMask = 1L << 19;
+        private const long SubstructureRedirectMask = 1L << 20;
+
+        // Matches the C XClientMessageEvent layout on LP64; Size pads it to the full
+        // 192-byte XEvent union that XSendEvent copies from.
+        [StructLayout(LayoutKind.Sequential, Size = 192)]
+        private struct XClientMessageEvent
+        {
+            public int type;
+            public IntPtr serial;
+            public int send_event;
+            public IntPtr display;
+            public IntPtr window;
+            public IntPtr message_type;
+            public int format;
+            public IntPtr l0;
+            public IntPtr l1;
+            public IntPtr l2;
+            public IntPtr l3;
+            public IntPtr l4;
+        }
+
         /// <summary>
         /// Re-asserts the popup to the top of the topmost z-order band so the full-screen
         /// dim overlays (also topmost, shown just before the popup) never sit above it.
-        /// Windows: SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE). Linux/X11: XRaiseWindow.
-        /// This is the analogue of the macOS NSFloatingWindowLevel lift in
-        /// <c>PopupWindow.ApplyShowState</c>; without it the popup itself appears dimmed.
-        /// Neither path steals focus. No-op on macOS.
+        /// Windows: SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE). Linux/X11: EWMH
+        /// _NET_RESTACK_WINDOW (pager source). This is the analogue of the macOS
+        /// NSFloatingWindowLevel lift in <c>PopupWindow.ApplyShowState</c>; without it the
+        /// popup itself appears dimmed. Neither path steals focus. No-op on macOS.
+        /// On Linux the raise is re-asserted after a short delay as well — the WM decides
+        /// stacking when the window is actually mapped, which can happen after the
+        /// immediate raise (pooled popup shells remap asynchronously).
         /// </summary>
         private void RaisePopupAboveOverlays(PopupWindow? popup)
         {
             if (popup == null || !(OperatingSystem.IsWindows() || OperatingSystem.IsLinux()))
                 return;
 
+            RaisePopupAboveOverlaysCore(popup);
+
+            if (OperatingSystem.IsLinux())
+            {
+                DispatcherTimer.RunOnce(() => RaisePopupAboveOverlaysCore(popup),
+                    TimeSpan.FromMilliseconds(300));
+            }
+        }
+
+        private void RaisePopupAboveOverlaysCore(PopupWindow popup)
+        {
             try
             {
                 var handle = popup.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
@@ -718,10 +768,31 @@ namespace EyeRest.Services
                 {
                     // The Avalonia X11 platform handle is the X window id.
                     var display = XOpenDisplay(null);
-                    if (display != IntPtr.Zero)
+                    if (display == IntPtr.Zero)
+                        return;
+
+                    try
                     {
-                        try { XRaiseWindow(display, handle); }
-                        finally { XCloseDisplay(display); } // XCloseDisplay flushes the request
+                        XRaiseWindow(display, handle);
+
+                        // EWMH restack: window to top of its layer, as a user/pager action
+                        // so Mutter/Muffin's focus-stealing prevention doesn't discard it.
+                        var evt = new XClientMessageEvent
+                        {
+                            type = ClientMessage,
+                            window = handle,
+                            message_type = XInternAtom(display, "_NET_RESTACK_WINDOW", false),
+                            format = 32,
+                            l0 = new IntPtr(2), // source indication: pager / direct user action
+                            l1 = IntPtr.Zero,   // sibling: none
+                            l2 = IntPtr.Zero,   // detail: Above
+                        };
+                        XSendEvent(display, XDefaultRootWindow(display), false,
+                            new IntPtr(SubstructureRedirectMask | SubstructureNotifyMask), ref evt);
+                    }
+                    finally
+                    {
+                        XCloseDisplay(display); // XCloseDisplay flushes the requests
                     }
                 }
             }
