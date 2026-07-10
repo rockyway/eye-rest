@@ -7,7 +7,7 @@
 | **UI Framework** | Avalonia 11.3.0 (cross-platform) |
 | **Architecture** | MVVM + Service-Oriented with Platform Abstraction |
 | **Solution** | `EyeRest.sln` — 7 projects |
-| **Last Updated** | 2026-07-02 |
+| **Last Updated** | 2026-07-10 |
 
 ---
 
@@ -47,7 +47,7 @@
 | Image assets (`.png`) | 21 |
 | Scripts (`.sh`, `.py`, `.ps1`) | 3 |
 | MSIX visual assets (`.png`) | 22 |
-| Total tests | 118 (Avalonia) |
+| Total tests | 234 (Avalonia) |
 
 ---
 
@@ -113,9 +113,9 @@ eye-rest/
 │   ├── ViewModels/                   (2 files) MainWindowViewModel, AnalyticsDashboardViewModel
 │   └── Views/                        (24 files) 12 .axaml + 12 .axaml.cs
 │
-├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 86 tests, 10 files]
+├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 234 tests]
 │   ├── Fakes/                        (3 files)
-│   ├── Services/                     (6 files) Configuration service tests, TimerService smart resume tests, DonationService tests
+│   ├── Services/                     (7 files) Configuration, TimerService smart resume + break-toggle tests, DonationService tests
 │   └── ViewModels/                   (1 file) MainWindowViewModelTests (26 tests)
 │
 ├── docs/                             [Documentation]
@@ -154,7 +154,7 @@ The foundational layer. Contains only interfaces and data models with zero exter
 |-------|---------|
 | `AppConfiguration` | Root configuration object (also contains `ThemeMode` enum) |
 | `EyeRestSettings` | Eye rest timer intervals |
-| `BreakSettings` | Break timer intervals |
+| `BreakSettings` | Break timer intervals + `Enabled` toggle (eye-rest-only mode) |
 | `AudioSettings` | Sound preferences and levels |
 | `ApplicationSettings` | General app behavior |
 | `UserPresenceSettings` | Idle detection thresholds |
@@ -211,7 +211,7 @@ Platform-agnostic business logic. Contains all timer logic, configuration manage
 | Service | Interface | Purpose |
 |---------|-----------|---------|
 | `ApplicationOrchestrator` | `IApplicationOrchestrator` | Central coordinator — wires all services, manages lifecycle |
-| `TimerService` (8 partials) | `ITimerService` | Dual timers (eye rest 20min/20sec + break 55min/5min), warnings, pause/resume, smart pause, recovery |
+| `TimerService` (8 partials) | `ITimerService` | Dual timers (eye rest 20min/20sec + break 55min/5min), warnings, pause/resume, smart pause, recovery, break enable/disable gating (eye-rest-only mode) |
 | `ConfigurationService` | `IConfigurationService` | JSON persistence, atomic writes with retry |
 | `TimerConfigurationService` | `ITimerConfigurationService` | Timer-specific config at `timer-config.json` |
 | `UIConfigurationService` | `IUIConfigurationService` | UI-specific config at `ui-config.json` |
@@ -377,11 +377,11 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 
 ### EyeRest.Tests.Avalonia
 
-> **Target:** `net8.0` | **Type:** Test | **Tests:** 86 across 10 files
+> **Target:** `net8.0` | **Type:** Test | **Tests:** 234
 
 | Category | Files | Description |
 |----------|-------|-------------|
-| Services | 6 | Configuration service tests, TimerService smart resume tests, DonationService tests |
+| Services | 7 | Configuration, TimerService smart resume + break-toggle (eye-rest-only mode) tests, DonationService tests |
 | ViewModels | 1 | MainWindowViewModelTests (26 tests) |
 | Fakes | 3 | FakeDispatcherService, FakeTimer, FakeTimerFactory |
 
@@ -409,7 +409,7 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 
 ## Key Features
 
-1. **Dual Timer System** — Eye rest (20min interval / 20sec popup) + Break (55min interval / 5min popup), fully configurable.
+1. **Dual Timer System** — Eye rest (20min interval / 20sec popup) + Break (55min interval / 5min popup), fully configurable. The break timer can be disabled (`BreakSettings.Enabled = false`, "eye-rest-only mode") while manual "Break Now" stays available; every automatic break path is gated via `IsBreakEnabled` / `StartBreakTimerIfEnabled`.
 2. **Warning System** — Pre-notification countdowns (15s for eye rest, 30s for break) with fallback guard timers.
 3. **Smart Pause** — Auto-pause on idle / screen lock / user away; auto-resume on return.
 4. **Session Reset** — Extended away detection (>30min) triggers full session reset.
@@ -508,7 +508,7 @@ EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 
 | Aspect | Details |
 |--------|---------|
-| **Total tests** | 86 (Avalonia) |
+| **Total tests** | 234 (Avalonia) |
 | **Primary framework** | xUnit 2.6.1 |
 | **Mocking** | Moq 4.20.69 |
 | **Naming convention** | `MethodName_StateUnderTest_ExpectedBehavior` |
@@ -582,6 +582,7 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 
 | Date | Change |
 |------|--------|
+| 2026-07-10 | Added break-timer enable/disable toggle ("eye-rest-only mode"): `BreakSettings.Enabled`, `IsBreakEnabled`/`StartBreakTimerIfEnabled` gate across all automatic break paths (tick, warning, recovery, resume, coordination, coalesce, fallback, health monitor), live toggle in `UpdateConfiguration`, MainWindow "Automatic Breaks" switch + "Off" status; manual "Break Now" preserved. Test suite grew to 234 (scoped non-parallel `[Collection]` for TimerService static-state classes) |
 | 2026-07-02 | Added EyeRest.Platform.Linux (7th project): full Linux/X11 support — X11 idle detection, paplay/canberra audio, XDG autostart, notify-send, EWMH popup restack, file-lock single instance |
 | 2026-02-25 | Added MSIX packaging for Microsoft Store distribution, build-msix.ps1 script, MSIX-aware StartupManager and toast notifications, 22 visual assets, version metadata |
 | 2026-02-25 | Routed support link through eyerest.net website instead of direct checkout |
