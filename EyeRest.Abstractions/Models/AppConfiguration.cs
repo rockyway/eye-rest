@@ -44,6 +44,9 @@ namespace EyeRest.Models
 
     public class BreakSettings
     {
+        // When false, the automatic break timer is disabled (eye-rest-only mode).
+        // Manual "Break Now" still works. See TimerService break-enable gating.
+        public bool Enabled { get; set; } = true;
         public int IntervalMinutes { get; set; } = 55;  // FIXED: Correct PRD default (55 minutes)
         public int DurationMinutes { get; set; } = 5;   // FIXED: Correct PRD default (5 minutes)
         public AudioChannelConfig StartAudio { get; set; } = new();

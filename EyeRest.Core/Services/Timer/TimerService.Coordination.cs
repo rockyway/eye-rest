@@ -47,6 +47,9 @@ namespace EyeRest.Services
         /// </summary>
         private bool ShouldCoalesceEyeRestIntoBreak()
         {
+            // Eye-rest-only mode: breaks are off, so there is never a break to coalesce into.
+            if (!IsBreakEnabled) return false;
+
             // Break must be live-ticking. If it's paused or disabled, no collision risk.
             if (_breakTimer?.IsEnabled != true) return false;
 
@@ -200,7 +203,7 @@ namespace EyeRest.Services
                 {
                     _breakInterval = _breakRemainingTime;
                     _breakTimer!.Interval = _breakRemainingTime;
-                    _breakTimer!.Start();
+                    StartBreakTimerIfEnabled();
                     _breakStartTime = _clock.Now;
                     _logger.LogInformation($"🔄 Break timer resumed with {_breakRemainingTime.TotalMinutes:F1} minutes remaining");
                 }
@@ -210,7 +213,7 @@ namespace EyeRest.Services
                     var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
                     _breakInterval = interval;
                     _breakTimer!.Interval = _breakInterval;
-                    _breakTimer!.Start();
+                    StartBreakTimerIfEnabled();
                     _breakStartTime = _clock.Now;
 
                     if (isReduced)

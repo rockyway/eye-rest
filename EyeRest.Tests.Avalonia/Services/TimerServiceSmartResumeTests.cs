@@ -22,6 +22,7 @@ namespace EyeRest.Tests.Avalonia.Services
     /// - Rate-limited overdue logging (prevents log flooding)
     /// - Recovery paths resetting start times (prevents post-recovery overdue loops)
     /// </summary>
+    [Collection(TimerServiceStaticStateCollection.Name)]
     public class TimerServiceSmartResumeTests : IDisposable
     {
         private readonly FakeTimerFactory _fakeTimerFactory;

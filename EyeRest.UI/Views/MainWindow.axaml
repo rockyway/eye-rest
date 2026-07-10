@@ -903,8 +903,30 @@
                             <!-- ============================================ -->
                             <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=1}">
 
+                                <!-- Automatic Breaks master toggle -->
+                                <Border Classes="ToggleCard" Margin="0,0,0,16">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Border Grid.Column="0" Width="36" Height="36"
+                                                CornerRadius="10"
+                                                Background="{DynamicResource ToggleCardIconBackground}"
+                                                VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource ClockIcon}" Width="18" Height="18"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Automatic Breaks" FontSize="15" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding BreakEnabled, Converter={StaticResource BoolToTextConverter}}"
+                                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{Binding BreakEnabled}"
+                                                      VerticalAlignment="Center"
+                                                      OnContent="" OffContent="" />
+                                    </Grid>
+                                </Border>
+
                                 <!-- Work Interval + Break Duration Card -->
-                                <Border Classes="GlassCard">
+                                <Border Classes="GlassCard" IsEnabled="{Binding BreakEnabled}">
                                     <StackPanel Spacing="20">
                                         <!-- Work Interval -->
                                         <Grid ColumnDefinitions="*,Auto">
@@ -961,7 +983,7 @@
                                 </Border>
 
                                 <!-- Toggle Cards: Warning + Confirmation -->
-                                <Grid ColumnDefinitions="*,*" Margin="0,0,0,16">
+                                <Grid ColumnDefinitions="*,*" Margin="0,0,0,16" IsEnabled="{Binding BreakEnabled}">
                                     <Border Grid.Column="0" Classes="ToggleCard" Margin="0,0,8,0">
                                         <Grid ColumnDefinitions="Auto,*,Auto">
                                             <Border Grid.Column="0" Width="36" Height="36"
@@ -1005,7 +1027,7 @@
                                 </Grid>
 
                                 <!-- Overlay + Warning Time + Reset Card -->
-                                <Border Classes="GlassCard">
+                                <Border Classes="GlassCard" IsEnabled="{Binding BreakEnabled}">
                                     <StackPanel Spacing="16">
                                         <!-- Overlay Opacity -->
                                         <Grid ColumnDefinitions="*,Auto">

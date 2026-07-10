@@ -24,6 +24,7 @@ namespace EyeRest.Services
                 
                 // Load configuration
                 _configuration = await _configurationService.LoadConfigurationAsync();
+                _isBreakEnabled = _configuration.Break.Enabled; // publish the gate for background readers
                 _logger.LogInformation("Configuration loaded - Eye rest: {EyeRestInterval} min/{EyeRestDuration} sec, Break: {BreakInterval} min/{BreakDuration} min",
                     _configuration.EyeRest.IntervalMinutes,
                     _configuration.EyeRest.DurationSeconds,
@@ -72,7 +73,7 @@ namespace EyeRest.Services
                 
                 // Start timers (start times already set above)
                 _eyeRestTimer.Start();
-                _breakTimer.Start();
+                StartBreakTimerIfEnabled();
                 
                 // Start health monitor
                 _healthMonitorTimer?.Start();
@@ -223,8 +224,8 @@ namespace EyeRest.Services
                     // Clear any remaining time
                     _breakRemainingTime = TimeSpan.Zero;
 
-                    // Start if not paused
-                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
+                    // Start if not paused and breaks are enabled (eye-rest-only mode keeps it stopped)
+                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && IsBreakEnabled)
                     {
                         _breakTimer.Start();
                         _breakStartTime = _clock.Now;
@@ -322,8 +323,8 @@ namespace EyeRest.Services
                     _breakInterval = interval;
                     _breakTimer.Interval = _breakInterval;
 
-                    // Only start if not paused
-                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && !_breakTimerPausedForEyeRest)
+                    // Only start if not paused and breaks are enabled (eye-rest-only mode keeps it stopped)
+                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && !_breakTimerPausedForEyeRest && IsBreakEnabled)
                     {
                         _breakTimer.Start();
                         _breakStartTime = _clock.Now;

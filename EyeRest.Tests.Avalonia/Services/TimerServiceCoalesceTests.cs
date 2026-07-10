@@ -15,6 +15,7 @@ namespace EyeRest.Tests.Avalonia.Services
     /// the eye-rest occupancy window (warning + duration + buffer), the eye-rest tick
     /// should be skipped so the break fires alone instead of producing back-to-back popups.
     /// </summary>
+    [Collection(TimerServiceStaticStateCollection.Name)]
     public class TimerServiceCoalesceTests : IDisposable
     {
         private readonly FakeTimerFactory _fakeTimerFactory = new();

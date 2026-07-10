@@ -93,7 +93,7 @@ namespace EyeRest.Services
                     _breakTimerStartTime = _clock.Now;
 
                     _eyeRestTimer?.Start();
-                    _breakTimer?.Start();
+                    StartBreakTimerIfEnabled();
                     UpdateHeartbeatFromOperation("ManualResume");
 
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.Manual);
@@ -364,7 +364,7 @@ namespace EyeRest.Services
                     if (!deferTimerStart)
                     {
                         _eyeRestTimer?.Start();
-                        _breakTimer?.Start();
+                        StartBreakTimerIfEnabled();
                         UpdateHeartbeatFromOperation("SmartResume");
 
                         _logger.LogInformation($"🧠 Smart resume conditions - Timers started: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
@@ -689,7 +689,7 @@ namespace EyeRest.Services
                 if (_breakTimer != null)
                 {
                     _breakTimer.Interval = _breakInterval;
-                    _breakTimer.Start();
+                    StartBreakTimerIfEnabled();
                 }
                 else
                 {
@@ -854,7 +854,7 @@ namespace EyeRest.Services
                     _breakStartTime = _clock.Now;
                     _breakTimerStartTime = _clock.Now;
                     _eyeRestTimer?.Start();
-                    _breakTimer?.Start();
+                    StartBreakTimerIfEnabled();
                     UpdateHeartbeatFromOperation("ManualPauseAutoResume");
 
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.AutoResumeAfterDuration);
