@@ -27,7 +27,15 @@ namespace EyeRest.Services
 
         // Configuration
         private AppConfiguration _configuration;
-        
+
+        /// <summary>
+        /// Gate for the automatic break flow. When false (Break.Enabled = false in settings),
+        /// the app runs in eye-rest-only mode: the break timer is not started and every
+        /// automatic break entry point (tick, warning, automatic TriggerBreak) is suppressed.
+        /// Manual "Break Now" (BreakTriggerSource.Manual) bypasses this gate.
+        /// </summary>
+        private bool IsBreakEnabled => _configuration?.Break?.Enabled ?? true;
+
         // CRITICAL FIX: Track startup completion to prevent recovery interference
         private bool _hasCompletedInitialStartup = false;
 
@@ -89,16 +97,58 @@ namespace EyeRest.Services
         public void UpdateConfiguration(AppConfiguration config)
         {
             if (config == null) return;
+            var wasBreakEnabled = IsBreakEnabled;
             _configuration = config;
-            _logger.LogInformation("⚙️ Timer configuration updated - Eye rest: {EyeRestInterval}min/{EyeRestDuration}sec, Break: {BreakInterval}min/{BreakDuration}min",
+            var isBreakEnabled = config.Break.Enabled;
+            _logger.LogInformation("⚙️ Timer configuration updated - Eye rest: {EyeRestInterval}min/{EyeRestDuration}sec, Break: {BreakInterval}min/{BreakDuration}min (BreakEnabled={BreakEnabled})",
                 config.EyeRest.IntervalMinutes, config.EyeRest.DurationSeconds,
-                config.Break.IntervalMinutes, config.Break.DurationMinutes);
+                config.Break.IntervalMinutes, config.Break.DurationMinutes, isBreakEnabled);
 
-            // Apply new intervals to running timers immediately
+            // Apply new intervals to running timers immediately (only touches timers whose
+            // interval actually changed — toggling Break.Enabled leaves the interval unchanged).
             if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
             {
                 ApplyUpdatedIntervalsToRunningTimers();
             }
+
+            // Handle a live break-enable toggle so the change takes effect without a restart.
+            if (wasBreakEnabled != isBreakEnabled)
+            {
+                if (!isBreakEnabled)
+                {
+                    DisableBreakTimerLive();
+                }
+                else if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
+                {
+                    // Re-enabled while active — arm a fresh break interval.
+                    _ = ResetBreakTimer();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Live-disables the automatic break flow: stops the break timer and any in-flight
+        /// break warning/fallback/delay timers, and clears pending break-warning state so a
+        /// stale break-priority flag can't block eye-rest reminders. An already-visible break
+        /// popup is left alone; the gate prevents any further automatic breaks.
+        /// </summary>
+        private void DisableBreakTimerLive()
+        {
+            _breakTimer?.Stop();
+            _breakWarningTimer?.Stop();
+            _breakWarningFallbackTimer?.Stop();
+
+            if (_breakDelayTimer != null)
+            {
+                _breakDelayTimer.Stop();
+            }
+            IsBreakDelayed = false;
+
+            // Clear break-warning processing flags so eye-rest isn't held off by a stale
+            // break-priority state after the break flow is switched off mid-countdown.
+            ClearBreakWarningProcessingFlag();
+
+            _logger.LogInformation("☕ Break timer disabled live — stopped break + warning timers (eye-rest-only mode)");
         }
 
         /// <summary>

@@ -47,6 +47,7 @@ namespace EyeRest.UI.ViewModels
         private PopupPosition _eyeRestPopupPosition = PopupPosition.TopRight;
 
         // Break Settings
+        private bool _breakEnabled = true;
         private int _breakIntervalMinutes = 55;
         private int _breakDurationMinutes = 5;
         private bool _breakWarningEnabled = true;
@@ -433,6 +434,28 @@ namespace EyeRest.UI.ViewModels
         };
 
         // Break Properties
+
+        /// <summary>
+        /// When false, the automatic break timer is disabled (eye-rest-only mode).
+        /// Manual "Break Now" still works — see <see cref="CanTriggerImmediateBreak"/>.
+        /// </summary>
+        public bool BreakEnabled
+        {
+            get => _breakEnabled;
+            set
+            {
+                if (SetProperty(ref _breakEnabled, value))
+                {
+                    OnPropertyChanged(nameof(BreakTimerTooltip));
+                    if (!_isLoadingConfiguration)
+                    {
+                        _pendingTimerChanges.Add(nameof(BreakEnabled));
+                        DebouncedSaveTimerSetting();
+                    }
+                }
+            }
+        }
+
         public int BreakIntervalMinutes
         {
             get => _breakIntervalMinutes;
@@ -972,6 +995,10 @@ namespace EyeRest.UI.ViewModels
         {
             get
             {
+                if (!_breakEnabled)
+                {
+                    return "Automatic breaks are off — eye-rest reminders only.\nUse \"Break Now\" for a manual break.";
+                }
                 var interval = _configuration?.Break?.IntervalMinutes ?? 55;
                 var warnSec = _configuration?.Break?.WarningSeconds ?? 30;
                 var warnOn = _configuration?.Break?.WarningEnabled ?? true;
@@ -1396,6 +1423,7 @@ namespace EyeRest.UI.ViewModels
             EyeRestPopupPosition = _configuration.EyeRest.PopupPosition;
 
             // Break
+            BreakEnabled = _configuration.Break.Enabled;
             BreakIntervalMinutes = _configuration.Break.IntervalMinutes;
             BreakDurationMinutes = _configuration.Break.DurationMinutes;
             BreakWarningEnabled = _configuration.Break.WarningEnabled;
@@ -1963,6 +1991,16 @@ namespace EyeRest.UI.ViewModels
                         BreakProgressPercent = breakTotalSec > 0
                             ? Math.Clamp(breakElapsed / breakTotalSec * 100.0, 0, 100)
                             : 0;
+
+                        // Eye-rest-only mode: the break timer isn't running, so don't show a
+                        // phantom countdown that never fires. Eye rest display stays live.
+                        if (!_breakEnabled)
+                        {
+                            BreakCountdownText = "Off";
+                            BreakProgressPercent = 0;
+                            TimeUntilNextBreak = "Automatic breaks off";
+                            DualCountdownText = $"Next eye rest: {FormatTimeSpan(eyeRestTime)} | Breaks off";
+                        }
                     }
                 }
                 else
@@ -3033,6 +3071,8 @@ namespace EyeRest.UI.ViewModels
                         config.EyeRest.OverlayOpacityPercent = EyeRestOverlayOpacityPercent;
                     if (changed.Contains(nameof(EyeRestPopupPosition)))
                         config.EyeRest.PopupPosition = EyeRestPopupPosition;
+                    if (changed.Contains(nameof(BreakEnabled)))
+                        config.Break.Enabled = BreakEnabled;
                     if (changed.Contains(nameof(BreakIntervalMinutes)))
                         config.Break.IntervalMinutes = BreakIntervalMinutes;
                     if (changed.Contains(nameof(BreakDurationMinutes)))

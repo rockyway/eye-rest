@@ -201,6 +201,15 @@ namespace EyeRest.Services
         {
             try
             {
+                // Eye-rest-only mode: break timer disabled in settings. Stop the timer so a
+                // stray restart (recovery/resume paths) can't keep firing, and do nothing.
+                if (!IsBreakEnabled)
+                {
+                    _logger.LogDebug("☕ TIMER EVENT: Break tick ignored — break timer disabled in settings");
+                    _breakTimer?.Stop();
+                    return;
+                }
+
                 var now = _clock.Now;
                 _logger.LogInformation($"☕ TIMER EVENT: Break timer tick fired at {now:HH:mm:ss.fff}");
                 
@@ -585,6 +594,14 @@ namespace EyeRest.Services
         {
             try
             {
+                // Eye-rest-only mode: suppress automatic breaks, but always honor a manual
+                // "Break Now" request (BreakTriggerSource.Manual) regardless of this setting.
+                if (source == BreakTriggerSource.Automatic && !IsBreakEnabled)
+                {
+                    _logger.LogInformation("☕ Automatic break suppressed — break timer disabled in settings (eye-rest-only mode)");
+                    return;
+                }
+
                 // Guard: Don't show break popup if timers were paused during the warning countdown.
                 // Manual triggers explicitly bypass this guard since the user has requested the break.
                 bool ignorePauseGuard = source == BreakTriggerSource.Manual;
@@ -985,6 +1002,15 @@ namespace EyeRest.Services
 
         private void StartBreakWarningTimerInternal()
         {
+            // Eye-rest-only mode: suppress the automatic break warning. This is the single
+            // convergence point for every automatic break-warning start (tick, recovery,
+            // overdue, post-delay), so gating here blocks all automatic break flows.
+            if (!IsBreakEnabled)
+            {
+                _logger.LogInformation("⚠️ Break warning suppressed — break timer disabled in settings (eye-rest-only mode)");
+                return;
+            }
+
             // CRITICAL FIX: Prevent duplicate warning timer starts that cause infinite loops and UI desync
             if (_breakWarningTimer?.IsEnabled == true)
             {

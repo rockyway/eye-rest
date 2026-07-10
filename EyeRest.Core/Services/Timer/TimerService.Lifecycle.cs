@@ -72,7 +72,14 @@ namespace EyeRest.Services
                 
                 // Start timers (start times already set above)
                 _eyeRestTimer.Start();
-                _breakTimer.Start();
+                if (IsBreakEnabled)
+                {
+                    _breakTimer.Start();
+                }
+                else
+                {
+                    _logger.LogInformation("☕ Break timer NOT started — disabled in settings (eye-rest-only mode)");
+                }
                 
                 // Start health monitor
                 _healthMonitorTimer?.Start();
@@ -223,8 +230,8 @@ namespace EyeRest.Services
                     // Clear any remaining time
                     _breakRemainingTime = TimeSpan.Zero;
 
-                    // Start if not paused
-                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
+                    // Start if not paused and breaks are enabled (eye-rest-only mode keeps it stopped)
+                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && IsBreakEnabled)
                     {
                         _breakTimer.Start();
                         _breakStartTime = _clock.Now;
@@ -322,8 +329,8 @@ namespace EyeRest.Services
                     _breakInterval = interval;
                     _breakTimer.Interval = _breakInterval;
 
-                    // Only start if not paused
-                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && !_breakTimerPausedForEyeRest)
+                    // Only start if not paused and breaks are enabled (eye-rest-only mode keeps it stopped)
+                    if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused && !_breakTimerPausedForEyeRest && IsBreakEnabled)
                     {
                         _breakTimer.Start();
                         _breakStartTime = _clock.Now;
