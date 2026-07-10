@@ -449,6 +449,9 @@ namespace EyeRest.UI.ViewModels
                     OnPropertyChanged(nameof(BreakTimerTooltip));
                     if (!_isLoadingConfiguration)
                     {
+                        // Refresh the status card immediately so it flips to/from "Off" now
+                        // instead of waiting for the next periodic countdown tick.
+                        UpdateCountdown();
                         _pendingTimerChanges.Add(nameof(BreakEnabled));
                         DebouncedSaveTimerSetting();
                     }
@@ -1991,16 +1994,17 @@ namespace EyeRest.UI.ViewModels
                         BreakProgressPercent = breakTotalSec > 0
                             ? Math.Clamp(breakElapsed / breakTotalSec * 100.0, 0, 100)
                             : 0;
+                    }
 
-                        // Eye-rest-only mode: the break timer isn't running, so don't show a
-                        // phantom countdown that never fires. Eye rest display stays live.
-                        if (!_breakEnabled)
-                        {
-                            BreakCountdownText = "Off";
-                            BreakProgressPercent = 0;
-                            TimeUntilNextBreak = "Automatic breaks off";
-                            DualCountdownText = $"Next eye rest: {FormatTimeSpan(eyeRestTime)} | Breaks off";
-                        }
+                    // Eye-rest-only mode: the break timer isn't running in ANY running state
+                    // (active or paused), so present "Off" instead of a phantom countdown or a
+                    // "Paused" label. Eye-rest display (set above) stays live/accurate.
+                    if (!_breakEnabled)
+                    {
+                        BreakCountdownText = "Off";
+                        BreakProgressPercent = 0;
+                        TimeUntilNextBreak = "Automatic breaks off";
+                        DualCountdownText = $"{TimeUntilNextEyeRest} | Breaks off";
                     }
                 }
                 else

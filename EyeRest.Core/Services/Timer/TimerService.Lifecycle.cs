@@ -24,6 +24,7 @@ namespace EyeRest.Services
                 
                 // Load configuration
                 _configuration = await _configurationService.LoadConfigurationAsync();
+                _isBreakEnabled = _configuration.Break.Enabled; // publish the gate for background readers
                 _logger.LogInformation("Configuration loaded - Eye rest: {EyeRestInterval} min/{EyeRestDuration} sec, Break: {BreakInterval} min/{BreakDuration} min",
                     _configuration.EyeRest.IntervalMinutes,
                     _configuration.EyeRest.DurationSeconds,
@@ -72,14 +73,7 @@ namespace EyeRest.Services
                 
                 // Start timers (start times already set above)
                 _eyeRestTimer.Start();
-                if (IsBreakEnabled)
-                {
-                    _breakTimer.Start();
-                }
-                else
-                {
-                    _logger.LogInformation("☕ Break timer NOT started — disabled in settings (eye-rest-only mode)");
-                }
+                StartBreakTimerIfEnabled();
                 
                 // Start health monitor
                 _healthMonitorTimer?.Start();

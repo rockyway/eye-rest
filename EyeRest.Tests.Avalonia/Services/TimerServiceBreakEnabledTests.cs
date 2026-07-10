@@ -13,6 +13,7 @@ namespace EyeRest.Tests.Avalonia.Services
     /// Tests for eye-rest-only mode: when <see cref="BreakSettings.Enabled"/> is false the
     /// automatic break flow is suppressed while manual "Break Now" keeps working.
     /// </summary>
+    [Collection(TimerServiceStaticStateCollection.Name)]
     public class TimerServiceBreakEnabledTests : IDisposable
     {
         private readonly FakeTimerFactory _fakeTimerFactory = new();
@@ -193,6 +194,86 @@ namespace EyeRest.Tests.Avalonia.Services
             _timerService.UpdateConfiguration(CloneWithBreakEnabled(true));
 
             Assert.True(BreakTimer.IsEnabled);
+        }
+
+        [Fact]
+        public async Task DisableWhileBreakWarningActive_ResumesEyeRestTimer()
+        {
+            // H2 regression: a break warning pauses the eye-rest timer; disabling breaks
+            // mid-warning must re-arm eye-rest rather than leave it paused forever.
+            await _timerService.StartAsync();
+            var eyeRestTimer = _fakeTimerFactory.GetCreatedTimers()[0];
+            Assert.True(eyeRestTimer.IsEnabled);
+
+            // Start a break warning — SmartPauseEyeRestTimerForBreak stops the eye-rest timer.
+            _timerService.StartBreakWarningTimer();
+            Assert.False(eyeRestTimer.IsEnabled);
+
+            // Disable breaks during the warning countdown.
+            _timerService.UpdateConfiguration(CloneWithBreakEnabled(false));
+
+            Assert.True(eyeRestTimer.IsEnabled);
+            Assert.False(GetPrivateField<bool>("_eyeRestTimerPausedForBreak"));
+        }
+
+        [Fact]
+        public async Task OnBreakTimerTick_WhenDisabled_SelfStopsAndDoesNotWarn()
+        {
+            // A stray restart of the break timer in eye-rest-only mode must be neutralized:
+            // the gated tick fires nothing and stops the timer.
+            _config.Break.Enabled = false;
+            await _timerService.StartAsync();
+            BreakTimer.Start(); // simulate a stray restart from some resume/recovery path
+            Assert.True(BreakTimer.IsEnabled);
+
+            TimerEventArgs? warned = null;
+            _timerService.BreakWarning += (_, e) => warned = e;
+
+            BreakTimer.FireTick();
+
+            Assert.Null(warned);
+            Assert.False(BreakTimer.IsEnabled);
+        }
+
+        [Fact]
+        public async Task DisableLive_ThenManualBreak_StillFiresBreakDue()
+        {
+            await _timerService.StartAsync();
+            _timerService.UpdateConfiguration(CloneWithBreakEnabled(false));
+
+            TimerEventArgs? captured = null;
+            _timerService.BreakDue += (_, e) => captured = e;
+
+            ResetGlobalProcessingFlags();
+            await _timerService.TriggerImmediateBreakAsync();
+
+            Assert.NotNull(captured);
+            Assert.Equal(BreakTriggerSource.Manual, captured!.Source);
+        }
+
+        [Fact]
+        public async Task ReEnableWhilePaused_DoesNotStartBreakTimerButSeedsRemaining()
+        {
+            // agy H#3 regression: re-enabling while paused must NOT start the break timer, and
+            // must seed a full remaining interval so resume doesn't fire an instant break
+            // (disable had left _breakRemainingTime == 0).
+            _config.Break.Enabled = false;
+            await _timerService.StartAsync();
+            await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(30), "Meeting");
+            Assert.True(_timerService.IsManuallyPaused);
+
+            _timerService.UpdateConfiguration(CloneWithBreakEnabled(true));
+
+            Assert.False(BreakTimer.IsEnabled);
+            Assert.True(GetPrivateField<TimeSpan>("_breakRemainingTime") > TimeSpan.Zero);
+        }
+
+        private T GetPrivateField<T>(string name)
+        {
+            var f = typeof(TimerService).GetField(name,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(f);
+            return (T)f!.GetValue(_timerService)!;
         }
 
         private AppConfiguration CloneWithBreakEnabled(bool enabled)

@@ -344,7 +344,7 @@ namespace EyeRest.Services
                 try
                 {
                     _breakTimer?.Stop();
-                    _breakTimer?.Start();
+                    StartBreakTimerIfEnabled();
                     _logger.LogInformation("☕ TIMER EVENT: Break timer recovered successfully");
                 }
                 catch (Exception recoveryEx)

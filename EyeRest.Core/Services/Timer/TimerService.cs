@@ -29,12 +29,38 @@ namespace EyeRest.Services
         private AppConfiguration _configuration;
 
         /// <summary>
-        /// Gate for the automatic break flow. When false (Break.Enabled = false in settings),
-        /// the app runs in eye-rest-only mode: the break timer is not started and every
-        /// automatic break entry point (tick, warning, automatic TriggerBreak) is suppressed.
-        /// Manual "Break Now" (BreakTriggerSource.Manual) bypasses this gate.
+        /// Volatile snapshot of Break.Enabled, published from StartAsync/UpdateConfiguration.
+        /// Read by timer/health-monitor/recovery paths on background threads, so it must be
+        /// visible immediately across threads rather than chasing the mutable _configuration
+        /// object graph (which UpdateConfiguration reassigns). Mirrors the volatile-presence
+        /// hardening used for the other cross-thread flags.
         /// </summary>
-        private bool IsBreakEnabled => _configuration?.Break?.Enabled ?? true;
+        private volatile bool _isBreakEnabled = true;
+
+        /// <summary>
+        /// Gate for the automatic break flow. When false (Break.Enabled = false in settings),
+        /// the app runs in eye-rest-only mode: the break timer is never started and every
+        /// automatic break entry point (tick, warning, automatic TriggerBreak, and the
+        /// recovery/resume/coordination restart paths) is suppressed. Manual "Break Now"
+        /// (BreakTriggerSource.Manual) bypasses this gate.
+        /// </summary>
+        private bool IsBreakEnabled => _isBreakEnabled;
+
+        /// <summary>
+        /// Starts the break timer only when automatic breaks are enabled. Centralizes the
+        /// "break timer never runs in eye-rest-only mode" invariant so every recovery, resume,
+        /// and coordination path can call this instead of _breakTimer.Start() directly and the
+        /// invariant holds structurally rather than relying on the gated tick to self-correct.
+        /// </summary>
+        private void StartBreakTimerIfEnabled()
+        {
+            if (!IsBreakEnabled)
+            {
+                _logger.LogDebug("☕ Break timer start skipped — disabled in settings (eye-rest-only mode)");
+                return;
+            }
+            _breakTimer?.Start();
+        }
 
         // CRITICAL FIX: Track startup completion to prevent recovery interference
         private bool _hasCompletedInitialStartup = false;
@@ -100,6 +126,7 @@ namespace EyeRest.Services
             var wasBreakEnabled = IsBreakEnabled;
             _configuration = config;
             var isBreakEnabled = config.Break.Enabled;
+            _isBreakEnabled = isBreakEnabled; // publish the gate for background readers
             _logger.LogInformation("⚙️ Timer configuration updated - Eye rest: {EyeRestInterval}min/{EyeRestDuration}sec, Break: {BreakInterval}min/{BreakDuration}min (BreakEnabled={BreakEnabled})",
                 config.EyeRest.IntervalMinutes, config.EyeRest.DurationSeconds,
                 config.Break.IntervalMinutes, config.Break.DurationMinutes, isBreakEnabled);
@@ -120,8 +147,20 @@ namespace EyeRest.Services
                 }
                 else if (IsRunning && !IsPaused && !IsSmartPaused && !IsManuallyPaused)
                 {
-                    // Re-enabled while active — arm a fresh break interval.
-                    _ = ResetBreakTimer();
+                    // Re-enabled while active — arm a fresh break interval. ResetBreakTimer is
+                    // effectively synchronous (no real awaits), but guard against an unobserved
+                    // task exception since it rethrows on failure and we don't await it here.
+                    _ = ResetBreakTimer().ContinueWith(
+                        t => _logger.LogError(t.Exception, "Error re-arming break timer after live enable"),
+                        TaskContinuationOptions.OnlyOnFaulted);
+                }
+                else if (IsRunning)
+                {
+                    // Re-enabled while paused/smart-paused — don't start now, but seed a full
+                    // remaining interval so the resume path doesn't fire an immediate break
+                    // (it would otherwise see the _breakRemainingTime = 0 left by disable).
+                    var (interval, _, _, _, _) = CalculateBreakTimerInterval();
+                    _breakRemainingTime = interval;
                 }
             }
         }
@@ -144,11 +183,37 @@ namespace EyeRest.Services
             }
             IsBreakDelayed = false;
 
+            // If we're cancelling an in-flight break warning, close its popup so it doesn't
+            // linger with a frozen countdown.
+            if (_isBreakWarningProcessing || _isAnyBreakWarningProcessing)
+            {
+                _notificationService?.HideAllNotifications();
+            }
+
             // Clear break-warning processing flags so eye-rest isn't held off by a stale
             // break-priority state after the break flow is switched off mid-countdown.
             ClearBreakWarningProcessingFlag();
 
-            _logger.LogInformation("☕ Break timer disabled live — stopped break + warning timers (eye-rest-only mode)");
+            // CRITICAL: a break warning pauses the eye-rest timer via SmartPauseEyeRestTimerForBreak
+            // and only the break-completion flow resumes it. Aborting the warning here would leave
+            // eye-rest paused forever, so unwind that pause now that break state is cleared.
+            if (_eyeRestTimerPausedForBreak)
+            {
+                if (!IsPaused && !IsSmartPaused && !IsManuallyPaused)
+                {
+                    // Service active — re-arm eye-rest immediately (clears the flag + restarts).
+                    SmartResumeEyeRestTimerAfterBreak();
+                }
+                else
+                {
+                    // Service paused — don't start now (user is away/paused), but clear the flag
+                    // so the eventual resume path arms eye-rest normally instead of treating it
+                    // as still paused-for-a-break that will never complete.
+                    _eyeRestTimerPausedForBreak = false;
+                }
+            }
+
+            _logger.LogInformation("☕ Break timer disabled live — stopped break + warning timers, resumed eye-rest (eye-rest-only mode)");
         }
 
         /// <summary>
@@ -188,7 +253,7 @@ namespace EyeRest.Services
                         oldEyeRestInterval.TotalMinutes, newEyeRestInterval.TotalMinutes, remaining.TotalMinutes);
                 }
 
-                if (newBreakInterval != oldBreakInterval && _breakTimer != null && !_breakTimerPausedForEyeRest && !_isBreakNotificationActive)
+                if (newBreakInterval != oldBreakInterval && _breakTimer != null && !_breakTimerPausedForEyeRest && !_isBreakNotificationActive && IsBreakEnabled)
                 {
                     _breakInterval = newBreakInterval;
                     var elapsed = _clock.Now - _breakStartTime;
@@ -201,7 +266,7 @@ namespace EyeRest.Services
 
                     _breakTimer.Stop();
                     _breakTimer.Interval = remaining;
-                    _breakTimer.Start();
+                    StartBreakTimerIfEnabled();
                     _breakStartTime = _clock.Now - elapsed;
 
                     _logger.LogInformation("⚙️ Break timer live-updated: {Old:F1}m → {New:F1}m (remaining: {Remaining:F1}m)",

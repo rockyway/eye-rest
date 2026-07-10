@@ -13,6 +13,7 @@ namespace EyeRest.Tests.Avalonia.Services
     /// Tests for the manual "Break Now" trigger path:
     /// <see cref="ITimerService.TriggerImmediateBreakAsync"/>.
     /// </summary>
+    [Collection(TimerServiceStaticStateCollection.Name)]
     public class TimerServiceImmediateBreakTests : IDisposable
     {
         private readonly FakeTimerFactory _fakeTimerFactory = new();
