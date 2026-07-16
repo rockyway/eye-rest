@@ -69,12 +69,44 @@ namespace EyeRest.UI.Views
             // rendered size settles so the popup is placed for its ACTUAL size — fixes the popup
             // clipping off-screen / leaving a gap when shown across differently-sized monitors.
             SizeChanged += OnContentSizeSettled;
+
+            // A DPI/scaling change (popup dragged to a monitor with different DPI, or a pooled
+            // shell last sized on another monitor re-shown here) leaves the content's DIP size
+            // unchanged, so SizeChanged does NOT fire and SizeToContent never recomputes the
+            // window's PHYSICAL size for the new scaling. The stale physical frame then clips the
+            // content (target DPI higher) or leaves a gap (lower). Re-fit to content on scaling
+            // change so the window resizes for the monitor it is actually on.
+            ScalingChanged += OnScalingChanged;
         }
 
         private void OnContentSizeSettled(object? sender, SizeChangedEventArgs e)
         {
             if (_positioned)
                 RepositionWithActualSize(_currentPlacement);
+        }
+
+        private void OnScalingChanged(object? sender, EventArgs e)
+        {
+            if (_positioned)
+                RefitToContentAndReposition();
+        }
+
+        /// <summary>
+        /// Forces the window to re-run SizeToContent against the CURRENT render scaling, then
+        /// repositions. A pure DPI change keeps the content's DIP DesiredSize constant, so
+        /// SizeToContent does not re-fire on its own; toggling it back to WidthAndHeight schedules
+        /// a fresh measure/arrange that resizes the physical window for the current monitor's DPI.
+        /// Without this the popup shows clipped (or gapped) after crossing a DPI boundary.
+        /// </summary>
+        private void RefitToContentAndReposition()
+        {
+            SizeToContent = SizeToContent.Manual;
+            SizeToContent = SizeToContent.WidthAndHeight;
+            InvalidateMeasure();
+
+            // DesiredSize (DIP) is scaling-independent, so positioning is correct immediately even
+            // before the resize lands; OnContentSizeSettled re-runs if the resize changes DIP size.
+            RepositionWithActualSize(_currentPlacement);
         }
 
         public void SetPopupContent(Control content, double width, double height)
@@ -197,7 +229,10 @@ namespace EyeRest.UI.Views
             // leaves a gap on the right edge).
             if (_pendingPlacement.HasValue)
             {
-                RepositionWithActualSize(_pendingPlacement.Value);
+                // Re-fit to content for the CURRENT scaling first: a pooled shell last sized on a
+                // different-DPI monitor carries a stale physical size that would clip/gap the
+                // content here, and a pure DPI change fires no SizeChanged to correct it.
+                RefitToContentAndReposition();
                 _pendingPlacement = null;
 
                 // Belt-and-suspenders: DesiredSize may not be measured yet here (e.g. a pooled
