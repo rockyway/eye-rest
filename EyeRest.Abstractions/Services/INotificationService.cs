@@ -6,7 +6,9 @@ namespace EyeRest.Services
     public interface INotificationService
     {
         Task ShowEyeRestWarningAsync(TimeSpan timeUntilBreak);
-        Task ShowEyeRestReminderAsync(TimeSpan duration);
+        /// <summary>Shows the eye-rest popup. Returns true only if it ran to genuine completion;
+        /// false if it was force-closed/dismissed by the system (so callers don't record a fake completion).</summary>
+        Task<bool> ShowEyeRestReminderAsync(TimeSpan duration);
         Task ShowBreakWarningAsync(TimeSpan timeUntilBreak);
         Task<BreakAction> ShowBreakReminderAsync(TimeSpan duration, IProgress<double> progress, int consecutiveDelayCount = 0, int maxDelays = 0);
         Task HideAllNotifications();
@@ -41,6 +43,7 @@ namespace EyeRest.Services
         DelayFiveMinutes,
         Skipped,
         ConfirmedAfterCompletion,  // User confirmed after break completion (when RequireConfirmationAfterBreak is enabled)
-        CompletedWithoutConfirmation  // Break auto-completed due to timeout without user confirmation
+        CompletedWithoutConfirmation,  // Break auto-completed due to timeout without user confirmation
+        AutoDismissed  // Popup closed by the system (force-close on session reset / away / app shutdown) — NOT a user action; must not be recorded as a skip
     }
 }

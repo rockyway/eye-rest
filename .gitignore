@@ -84,3 +84,6 @@ master-agent.md
 # Code signing secrets (Azure Trusted Signing credentials)
 signing/.env
 signing/metadata.json
+
+# Local scratch / secret files (never commit)
+temp-keys.txt

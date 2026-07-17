@@ -12,7 +12,7 @@ using Microsoft.Win32; // For Registry access
 
 namespace EyeRest.Services
 {
-    public class AudioService : AudioServiceBase
+    public class AudioService : AudioServiceBase, IDisposable
     {
         // Windows API for playing system sounds
         [DllImport("user32.dll", SetLastError = true)]
@@ -28,6 +28,12 @@ namespace EyeRest.Services
         private readonly object _soundLock = new object(); // Prevent concurrent sound playback
         private bool _isPlayingSound = false; // Track if sound is currently playing
         private readonly Queue<string> _soundQueue = new Queue<string>(); // Queue for multiple sound requests
+
+        // BL-002: PortAudio-backed WAV playback. winmm PlaySound (System.Media.SoundPlayer)
+        // distorts the bundled break WAVs on some Windows audio endpoints; PortAudio's
+        // MME/DirectSound streams play the same data cleanly. SoundPlayer is retained as a
+        // last-resort fallback inside the player.
+        private readonly WindowsWavePlayer _wavePlayer;
 
         // 🔍 ULTRATHINK: Cycle tracking for diagnostics
         private static int _startSoundCycleCount = 0;
@@ -54,6 +60,7 @@ namespace EyeRest.Services
         {
             _logger = logger;
             _configurationService = configurationService;
+            _wavePlayer = new WindowsWavePlayer(logger);
             _configuration = new AppConfiguration(); // Will be loaded
             
             // Subscribe to configuration changes
@@ -636,27 +643,14 @@ namespace EyeRest.Services
             }
         }
 
-        // BL-002 M2: WAV file playback via System.Media.SoundPlayer. SoundPlayer is
-        // synchronous, so Task.Run honors the async/cancellable contract. Disposal in
-        // finally guards every code path — success, exception, and OperationCanceledException.
+        // BL-002 M2: WAV file playback. Routed through WindowsWavePlayer (PortAudio
+        // MME/DirectSound) because winmm PlaySound (System.Media.SoundPlayer) distorts
+        // the same PCM on some Windows endpoints; the player falls back to SoundPlayer
+        // internally if no PortAudio stream can be opened. The play call is synchronous,
+        // so Task.Run honors the async/cancellable contract.
         protected override Task PlayFileAsync(string filePath, CancellationToken ct)
         {
-            return Task.Run(() =>
-            {
-                ct.ThrowIfCancellationRequested();
-                System.Media.SoundPlayer? player = null;
-                try
-                {
-                    player = new System.Media.SoundPlayer(filePath);
-                    player.Load();
-                    ct.ThrowIfCancellationRequested();
-                    player.PlaySync();
-                }
-                finally
-                {
-                    player?.Dispose();
-                }
-            }, ct);
+            return Task.Run(() => _wavePlayer.Play(filePath, ct), ct);
         }
 
         private void PlayCustomSound(string soundPath)
@@ -832,6 +826,7 @@ namespace EyeRest.Services
         public void Dispose()
         {
             _configurationService.ConfigurationChanged -= OnConfigurationChanged;
+            _wavePlayer.Dispose();
         }
     }
 }

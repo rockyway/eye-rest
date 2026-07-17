@@ -51,6 +51,14 @@ public partial class MainWindow : Window
         {
             ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
         }
+        // On Linux, X11 window managers (e.g. Cinnamon's Muffin) don't honor
+        // ExtendClientAreaToDecorationsHint and stack their own title bar above the
+        // custom one — drop server-side decorations entirely; the custom title bar
+        // provides drag, minimize, and close.
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            SystemDecorations = SystemDecorations.None;
+        }
 
         // Start countdown update timer (1-second interval, same as WPF version)
         _countdownTimer = new DispatcherTimer

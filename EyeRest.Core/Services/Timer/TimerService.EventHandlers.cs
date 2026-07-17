@@ -57,6 +57,16 @@ namespace EyeRest.Services
 
                     if (likelySystemWake)
                     {
+                        // 2026-06-03: a wake/overdue tick while the user is still away must NOT
+                        // start a fresh session — that re-arms timers and (via the popup force-close)
+                        // fabricates "Break skipped" rows for an absent user. Suppress until return.
+                        if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                        {
+                            _logger.LogWarning("⏰ Wake heuristic fired but user still away — suppressing eye-rest session reset");
+                            _lastEyeRestTick = now;
+                            return;
+                        }
+
                         _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
                         _logger.LogWarning($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
 
@@ -105,6 +115,14 @@ namespace EyeRest.Services
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
+                    // 2026-06-03: same presence gate as the wake heuristic above. (_lastEyeRestTick was
+                    // already updated earlier this tick, so — unlike the wake-heuristic gate — we don't re-set it here.)
+                    if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                    {
+                        _logger.LogWarning("⏰ Clock-jump detected but user still away — suppressing eye-rest session reset");
+                        return;
+                    }
+
                     _logger.LogWarning($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
                     _logger.LogWarning($"⏰ System likely woke from sleep - initiating smart session reset");
 
@@ -183,6 +201,15 @@ namespace EyeRest.Services
         {
             try
             {
+                // Eye-rest-only mode: break timer disabled in settings. Stop the timer so a
+                // stray restart (recovery/resume paths) can't keep firing, and do nothing.
+                if (!IsBreakEnabled)
+                {
+                    _logger.LogDebug("☕ TIMER EVENT: Break tick ignored — break timer disabled in settings");
+                    _breakTimer?.Stop();
+                    return;
+                }
+
                 var now = _clock.Now;
                 _logger.LogInformation($"☕ TIMER EVENT: Break timer tick fired at {now:HH:mm:ss.fff}");
                 
@@ -222,6 +249,14 @@ namespace EyeRest.Services
 
                     if (likelySystemWake)
                     {
+                        // 2026-06-03: suppress the fresh-session reset while the user is still away.
+                        if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                        {
+                            _logger.LogWarning("⏰ Wake heuristic fired but user still away — suppressing break session reset");
+                            _lastBreakTick = now;
+                            return;
+                        }
+
                         _logger.LogWarning($"⏰ SYSTEM WAKE DETECTED: {wakeReason}");
                         _logger.LogWarning($"⏰ System likely woke from sleep/hibernation - initiating smart session reset");
 
@@ -268,6 +303,14 @@ namespace EyeRest.Services
                 // If elapsed > 2x expected interval, system likely slept
                 if (elapsed > TimeSpan.FromMinutes(expectedInterval.TotalMinutes * 2.0))
                 {
+                    // 2026-06-03: same presence gate as the wake heuristic above. (_lastBreakTick was
+                    // already updated earlier this tick, so — unlike the wake-heuristic gate — we don't re-set it here.)
+                    if (_userPresenceService != null && !_userPresenceService.IsUserPresent)
+                    {
+                        _logger.LogWarning("⏰ Clock-jump detected but user still away — suppressing break session reset");
+                        return;
+                    }
+
                     _logger.LogWarning($"⏰ CLOCK JUMP DETECTED: Elapsed {elapsed.TotalMinutes:F1}min > 2x expected {expectedInterval.TotalMinutes:F1}min");
                     _logger.LogWarning($"⏰ System likely woke from sleep - initiating smart session reset");
 
@@ -301,7 +344,7 @@ namespace EyeRest.Services
                 try
                 {
                     _breakTimer?.Stop();
-                    _breakTimer?.Start();
+                    StartBreakTimerIfEnabled();
                     _logger.LogInformation("☕ TIMER EVENT: Break timer recovered successfully");
                 }
                 catch (Exception recoveryEx)
@@ -551,6 +594,14 @@ namespace EyeRest.Services
         {
             try
             {
+                // Eye-rest-only mode: suppress automatic breaks, but always honor a manual
+                // "Break Now" request (BreakTriggerSource.Manual) regardless of this setting.
+                if (source == BreakTriggerSource.Automatic && !IsBreakEnabled)
+                {
+                    _logger.LogInformation("☕ Automatic break suppressed — break timer disabled in settings (eye-rest-only mode)");
+                    return;
+                }
+
                 // Guard: Don't show break popup if timers were paused during the warning countdown.
                 // Manual triggers explicitly bypass this guard since the user has requested the break.
                 bool ignorePauseGuard = source == BreakTriggerSource.Manual;
@@ -951,6 +1002,15 @@ namespace EyeRest.Services
 
         private void StartBreakWarningTimerInternal()
         {
+            // Eye-rest-only mode: suppress the automatic break warning. This is the single
+            // convergence point for every automatic break-warning start (tick, recovery,
+            // overdue, post-delay), so gating here blocks all automatic break flows.
+            if (!IsBreakEnabled)
+            {
+                _logger.LogInformation("⚠️ Break warning suppressed — break timer disabled in settings (eye-rest-only mode)");
+                return;
+            }
+
             // CRITICAL FIX: Prevent duplicate warning timer starts that cause infinite loops and UI desync
             if (_breakWarningTimer?.IsEnabled == true)
             {

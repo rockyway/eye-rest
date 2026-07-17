@@ -38,6 +38,8 @@ namespace EyeRest.Platform.macOS.Services
 
         private IntPtr _activityToken = IntPtr.Zero;
         private IntPtr _observerInstance = IntPtr.Zero;
+        private IntPtr _memoryPressureSource = IntPtr.Zero;
+        private System.Threading.Timer? _heartbeatTimer;
         private bool _started;
         private bool _disposed;
 
@@ -86,6 +88,39 @@ namespace EyeRest.Platform.macOS.Services
                 _logger.LogError(ex, "🛡️ Failed to register NSWorkspace observers — wake-from-sleep won't trigger session reset");
             }
 
+            try
+            {
+                unsafe
+                {
+                    _memoryPressureSource = MacOSMemoryPressureInterop.Start(&OnMemoryPressureStatic);
+                }
+                if (_memoryPressureSource != IntPtr.Zero)
+                    _logger.LogInformation("🧠 MEMORY PRESSURE: dispatch source registered (warn/critical)");
+                else
+                    _logger.LogWarning("🧠 MEMORY PRESSURE: failed to register dispatch source — proactive trim disabled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "🧠 MEMORY PRESSURE: failed to register dispatch source");
+            }
+
+            try
+            {
+                MacOSWatchdog.Install(_logger);
+                MacOSWatchdog.WriteHeartbeat(); // initial beat before the first timer tick
+                // Heartbeat runs on a threadpool timer — independent of the UI run loop and the
+                // managed timer service, so it keeps beating right up until the OS suspends the
+                // whole process, which is exactly when the external watchdog must take over.
+                _heartbeatTimer = new System.Threading.Timer(
+                    _ => MacOSWatchdog.WriteHeartbeat(), null,
+                    TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+                _logger.LogInformation("🐕 Heartbeat started (30s interval) + watchdog agent ensured");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "🐕 Failed to start heartbeat / install watchdog");
+            }
+
             return Task.CompletedTask;
         }
 
@@ -108,6 +143,19 @@ namespace EyeRest.Platform.macOS.Services
                     _activityToken = IntPtr.Zero;
                     _logger.LogInformation("🛡️ APP NAP OPT-OUT: Activity token released");
                 }
+
+                if (_memoryPressureSource != IntPtr.Zero)
+                {
+                    MacOSMemoryPressureInterop.Stop(_memoryPressureSource);
+                    _memoryPressureSource = IntPtr.Zero;
+                }
+
+                _heartbeatTimer?.Dispose();
+                _heartbeatTimer = null;
+                // Clean shutdown: remove the heartbeat so the watchdog treats a future
+                // absence-of-process as a deliberate quit (it gates restart on the process
+                // still existing), not a freeze.
+                MacOSWatchdog.DeleteHeartbeat();
             }
             catch (Exception ex)
             {
@@ -144,14 +192,52 @@ namespace EyeRest.Platform.macOS.Services
 
         private void OnDidWake()
         {
+            // Refresh the heartbeat IMMEDIATELY on wake. The heartbeat timer is frozen during
+            // sleep, so its mtime is stale until the next 30s tick; without this, the external
+            // watchdog can mistake a just-resumed (healthy) app for a frozen one and kill+relaunch
+            // it (docs/plan/009 review B2).
+            MacOSWatchdog.WriteHeartbeat();
             _logger.LogWarning("🌅 SYSTEM WAKE: NSWorkspaceDidWakeNotification received — notifying subscribers");
             SystemAwoke?.Invoke();
         }
 
         private void OnWillSleep()
         {
+            // Drop the heartbeat before sleeping so a stale file can't look like a freeze while
+            // asleep — the watchdog skips when no heartbeat exists, and OnDidWake re-creates it on
+            // resume (docs/plan/009 review B2).
+            MacOSWatchdog.DeleteHeartbeat();
             _logger.LogInformation("🌙 SYSTEM SLEEP: NSWorkspaceWillSleepNotification received — notifying subscribers");
             SystemWillSleep?.Invoke();
+        }
+
+        // ----- Memory-pressure bridge (called from a background dispatch queue) -----
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static void OnMemoryPressureStatic(IntPtr context)
+        {
+            try { _current?.OnMemoryPressure(); }
+            catch { /* swallow — must never throw across the dispatch boundary */ }
+        }
+
+        private void OnMemoryPressure()
+        {
+            // Runs on a background dispatch queue, not the UI thread (Serilog is thread-safe).
+            // Snapshot the handle: StopAsync may zero it concurrently and we must never act on a
+            // released source.
+            var source = _memoryPressureSource;
+            if (source == IntPtr.Zero) return;
+
+            uint level = MacOSMemoryPressureInterop.GetLevel(source);
+            bool critical = (level & MacOSMemoryPressureInterop.DISPATCH_MEMORYPRESSURE_CRITICAL) != 0;
+
+            _logger.LogWarning("🧠 MEMORY PRESSURE: level={Level}{Critical} — proactively trimming (non-blocking GC)",
+                level, critical ? " [CRITICAL]" : " [WARN]");
+
+            // Be a good memory citizen so macOS is less likely to suspend us. Non-blocking and
+            // non-compacting: this runs on a background dispatch queue and must never stop-the-world
+            // the UI thread (that was the failure mode the original blocking GC.Collect risked).
+            GC.Collect(critical ? 2 : 1, GCCollectionMode.Optimized, blocking: false, compacting: false);
         }
     }
 }

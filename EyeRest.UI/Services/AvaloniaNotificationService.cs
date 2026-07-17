@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -88,6 +89,7 @@ namespace EyeRest.Services
         {
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -97,6 +99,7 @@ namespace EyeRest.Services
                     IsEyeRestWarningActive = true;
                     CloseCurrentPopup(); // Close any existing popup first
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestWarningPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
 
@@ -135,15 +138,15 @@ namespace EyeRest.Services
             // Close only OUR popup (not a newer one that replaced it)
             Dispatcher.UIThread.Post(() =>
             {
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
                 IsEyeRestWarningActive = false;
             });
         }
 
-        public async Task ShowEyeRestReminderAsync(TimeSpan duration)
+        public async Task<bool> ShowEyeRestReminderAsync(TimeSpan duration)
         {
             _isTestMode = false;
-            await ShowEyeRestReminderInternalAsync(duration);
+            return await ShowEyeRestReminderInternalAsync(duration);
         }
 
         public async Task ShowEyeRestReminderTestAsync(TimeSpan duration)
@@ -152,13 +155,14 @@ namespace EyeRest.Services
             await ShowEyeRestReminderInternalAsync(duration);
         }
 
-        private async Task ShowEyeRestReminderInternalAsync(TimeSpan duration)
+        private async Task<bool> ShowEyeRestReminderInternalAsync(TimeSpan duration)
         {
             // Load config OFF the UI thread first (mirrors BreakInternal).
             var config = await _configurationService.LoadConfigurationAsync();
 
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -175,6 +179,7 @@ namespace EyeRest.Services
                         ShowDimOverlays(config.EyeRest.OverlayOpacityPercent);
 
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(MapPlacement(config.EyeRest.PopupPosition));
 
@@ -190,6 +195,14 @@ namespace EyeRest.Services
                     };
 
                     myPopup.Show();
+
+                    // Keep the popup above any dim overlays (Windows z-order; no-op
+                    // elsewhere). Overlays are only shown when EyeRest.OverlayEnabled,
+                    // but re-asserting topmost is harmless when there are none.
+                    RaisePopupAboveOverlays(myPopup);
+                    var eyeRestPopupRef = myPopup;
+                    Dispatcher.UIThread.Post(() => RaisePopupAboveOverlays(eyeRestPopupRef),
+                        DispatcherPriority.Background);
 
                     // BL-002 M5: fire the EyeRest START channel audio after the popup is shown.
                     FireChannelAudio(AudioChannel.EyeRestStart, c => c.EyeRest.StartAudio);
@@ -220,8 +233,15 @@ namespace EyeRest.Services
                 // on the captured config value would leak overlay windows if the user
                 // toggled OverlayEnabled off during the popup's lifetime.
                 HideDimOverlays();
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
             });
+
+            // Genuine completion (EyeRestPopup.Completed → tcs(true)) vs. system force-close
+            // (Closed → tcs(false)) vs. abnormal timeout (tcs not completed → treat as not-completed).
+            // Callers gate "Eye rest completed" analytics on this so a force-closed/abandoned popup
+            // never fabricates a completion (2026-06-03; replaces the presence-gate defeated by the
+            // presence-flip ordering race in MacOSUserPresenceService).
+            return tcs.Task.IsCompletedSuccessfully && tcs.Task.Result;
         }
 
         private PopupPlacement MapPlacement(PopupPosition position) => position switch
@@ -260,6 +280,7 @@ namespace EyeRest.Services
         {
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -269,12 +290,13 @@ namespace EyeRest.Services
                     IsBreakWarningActive = true;
                     CloseCurrentPopup();
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakWarningPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
 
                     // Symmetric defence; deferred via Dispatcher.Post for the same reason
                     // documented in ShowBreakReminderInternalAsync — the factory's
-                    // Completed → popup.Close() handler fires myPopup.Closed synchronously
+                    // Completed → popup.ReleaseToPool(lease) handler fires myPopup.Closed synchronously
                     // before the inner Completed handler can resolve with `true`.
                     myPopup.Closed += (_, _) =>
                         Dispatcher.UIThread.Post(
@@ -311,7 +333,7 @@ namespace EyeRest.Services
 
             Dispatcher.UIThread.Post(() =>
             {
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
                 IsBreakWarningActive = false;
             });
         }
@@ -332,6 +354,7 @@ namespace EyeRest.Services
                 var config = await _configurationService.LoadConfigurationAsync();
                 var tcs = new TaskCompletionSource<BreakAction>();
                 PopupWindow? testPopup = null;
+                long testLease = 0;
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -342,8 +365,15 @@ namespace EyeRest.Services
                         ShowDimOverlays(config.Break.OverlayOpacityPercent);
 
                         testPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                        testLease = testPopup.Lease;
                         testPopup.PositionOnScreen(PopupPlacement.Center);
                         testPopup.Show();
+
+                        // Keep the test popup above the dim overlays (Windows z-order).
+                        RaisePopupAboveOverlays(testPopup);
+                        var testPopupRef = testPopup;
+                        Dispatcher.UIThread.Post(() => RaisePopupAboveOverlays(testPopupRef),
+                            DispatcherPriority.Background);
 
                         if (testPopup.PopupContent is BreakPopup breakPopup)
                         {
@@ -371,7 +401,7 @@ namespace EyeRest.Services
                 Dispatcher.UIThread.Post(() =>
                 {
                     HideDimOverlays();
-                    try { testPopup?.Close(); } catch { }
+                    try { testPopup?.ReleaseToPool(testLease); } catch { }
                 });
 
                 return result;
@@ -389,6 +419,7 @@ namespace EyeRest.Services
 
             var tcs = new TaskCompletionSource<BreakAction>();
             PopupWindow? myPopup = null;
+            long myLease = 0;
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -401,32 +432,45 @@ namespace EyeRest.Services
                     ShowDimOverlays(config.Break.OverlayOpacityPercent);
 
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                    myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.Center);
 
                     // Safety net: any close path that does NOT go through ActionSelected
-                    // (X-button, app shutdown, etc.) must resolve the awaiting task as Skipped
-                    // so the orchestrator can run SmartSessionResetAsync and clear
-                    // _isBreakNotificationActive.
+                    // (system force-close on session reset / away, app shutdown, etc.) must still
+                    // resolve the awaiting task so the orchestrator can clean up. It resolves to
+                    // AutoDismissed — NOT Skipped — because a system/programmatic close is not a
+                    // user action and must never be recorded as "Break skipped by user".
+                    // (2026-06-03 fix: force-closing an abandoned overnight popup was fabricating
+                    // BreakSkipped analytics rows. A real Skip click goes through ActionSelected
+                    // → BreakAction.Skipped below and still records correctly.)
                     //
                     // CRITICAL (2026-04-28 regression): the resolution must be DEFERRED via
                     // Dispatcher.Post. The factory's ActionSelected handler (registered first)
-                    // calls popup.Close() synchronously, which fires myPopup.Closed inside the
+                    // calls popup.ReleaseToPool(lease) synchronously, which fires myPopup.Closed inside the
                     // multicast-delegate chain BEFORE the inner ActionSelected handler that
                     // resolves with the user's actual action runs. Direct resolution here
-                    // races and wins, converting "Delay 5 Minutes" into "Skipped".
+                    // races and wins, converting "Delay 5 Minutes" into AutoDismissed.
                     // Background priority defers until the synchronous ActionSelected chain
                     // completes — by then tcs is already resolved with the user's action and
-                    // this Skipped TrySetResult is a no-op. For pure X-close paths (no
-                    // ActionSelected fires), the deferred Skipped wins as intended.
+                    // this AutoDismissed TrySetResult is a no-op. For pure force-close paths (no
+                    // ActionSelected fires), the deferred AutoDismissed wins as intended.
                     myPopup.Closed += (_, _) =>
                     {
                         Dispatcher.UIThread.Post(
-                            () => tcs.TrySetResult(BreakAction.Skipped),
+                            () => tcs.TrySetResult(BreakAction.AutoDismissed),
                             DispatcherPriority.Background);
                     };
 
                     myPopup.Show();
+
+                    // Keep the popup above the just-shown dim overlays (Windows z-order;
+                    // no-op elsewhere). Raise again at Background priority so it wins after
+                    // the deferred size-driven reposition settles.
+                    RaisePopupAboveOverlays(myPopup);
+                    var breakPopupRef = myPopup;
+                    Dispatcher.UIThread.Post(() => RaisePopupAboveOverlays(breakPopupRef),
+                        DispatcherPriority.Background);
 
                     // BL-002 M5: fire the Break START channel audio after the popup is shown.
                     FireChannelAudio(AudioChannel.BreakStart, c => c.Break.StartAudio);
@@ -467,7 +511,7 @@ namespace EyeRest.Services
             Dispatcher.UIThread.Post(() =>
             {
                 HideDimOverlays();
-                CloseSpecificPopup(myPopup);
+                CloseSpecificPopup(myPopup, myLease);
                 IsBreakActive = false;
             });
 
@@ -532,58 +576,66 @@ namespace EyeRest.Services
 
         #region Screen Dimming Overlays
 
+        // Pool of reusable dim-overlay windows (one per screen). Windows are created once and
+        // reused across cycles — Show()/Hide() rather than new/Close() — to avoid leaking
+        // Avalonia.Controls.Window + their visual trees (and the backing NSWindow Mach ports)
+        // on every break/eye-rest cycle. Confirmed leak: see docs/plan/008. The pool size
+        // tracks the current screen count and is therefore bounded.
+
         /// <summary>
-        /// Creates semi-transparent dark overlay windows on all screens for break dimming.
+        /// Shows semi-transparent dark overlay windows on all screens for break dimming,
+        /// reusing pooled windows to avoid per-cycle allocation.
         /// </summary>
         private void ShowDimOverlays(int opacityPercent = 50)
         {
             try
             {
-                HideDimOverlays(); // Clean up any existing overlays
-
                 var app = Application.Current;
                 if (app?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
                     return;
 
-                var opacity = opacityPercent / 100.0;
-
                 var screens = desktop.MainWindow?.Screens.All;
                 if (screens == null || screens.Count == 0)
-                    return;
-
-                foreach (var screen in screens)
                 {
-                    var overlay = new Window
-                    {
-                        SystemDecorations = SystemDecorations.None,
-                        Background = new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0)),
-                        Topmost = true,
-                        ShowInTaskbar = false,
-                        CanResize = false,
-                        ShowActivated = false,
-                        Width = screen.Bounds.Width / screen.Scaling,
-                        Height = screen.Bounds.Height / screen.Scaling,
-                        Position = new PixelPoint(screen.Bounds.X, screen.Bounds.Y),
-                        TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent },
-                    };
+                    HideDimOverlays();
+                    return;
+                }
 
-                    // Click on overlay removes dim from that screen (don't block user)
-                    overlay.PointerPressed += (s, e) =>
-                    {
-                        if (s is Window overlayWin)
-                        {
-                            _overlayWindows.Remove(overlayWin);
-                            try { overlayWin.Close(); } catch { }
-                            _logger.LogInformation("User clicked dim overlay - removed from screen");
-                        }
-                    };
+                var opacity = opacityPercent / 100.0;
+                var brush = new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0));
+                int screenCount = screens.Count; // stable snapshot for trim + show
 
+                // Trim the pool if the screen count decreased since last time.
+                while (_overlayWindows.Count > screenCount)
+                {
+                    var extra = _overlayWindows[_overlayWindows.Count - 1];
+                    _overlayWindows.RemoveAt(_overlayWindows.Count - 1);
+                    try { extra.Close(); } catch { /* best effort */ }
+                }
+
+                for (int i = 0; i < screenCount; i++)
+                {
+                    var screen = screens[i];
+                    Window overlay;
+                    if (i < _overlayWindows.Count)
+                    {
+                        overlay = _overlayWindows[i]; // reuse pooled window
+                    }
+                    else
+                    {
+                        overlay = CreateOverlayWindow();
+                        _overlayWindows.Add(overlay);
+                    }
+
+                    overlay.Background = brush;
+                    overlay.Width = screen.Bounds.Width / screen.Scaling;
+                    overlay.Height = screen.Bounds.Height / screen.Scaling;
+                    overlay.Position = new PixelPoint(screen.Bounds.X, screen.Bounds.Y);
                     overlay.Show();
-                    _overlayWindows.Add(overlay);
                 }
 
                 _logger.LogInformation("Showed {Count} dim overlay(s) at {Opacity}% opacity",
-                    _overlayWindows.Count, opacityPercent);
+                    screenCount, opacityPercent);
             }
             catch (Exception ex)
             {
@@ -592,7 +644,173 @@ namespace EyeRest.Services
         }
 
         /// <summary>
-        /// Closes all dim overlay windows.
+        /// Creates a single reusable overlay window. Called once per pool slot; the window is
+        /// then reused (Show/Hide) for the lifetime of the service.
+        /// </summary>
+        private Window CreateOverlayWindow()
+        {
+            var overlay = new Window
+            {
+                SystemDecorations = SystemDecorations.None,
+                Topmost = true,
+                ShowInTaskbar = false,
+                CanResize = false,
+                ShowActivated = false,
+                TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent },
+            };
+
+            // Click on overlay hides the dim on that screen (don't block the user). The window
+            // stays in the pool (Hide, not Close) so it can be reused on the next cycle.
+            overlay.PointerPressed += (s, e) =>
+            {
+                if (s is Window overlayWin)
+                {
+                    try { overlayWin.Hide(); } catch { /* best effort */ }
+                    _logger.LogInformation("User clicked dim overlay - hidden for this screen");
+                }
+            };
+
+            return overlay;
+        }
+
+        // Win32 z-order control: raise a popup above the dim overlays on Windows.
+        private static readonly IntPtr HWND_TOPMOST = new(-1);
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOACTIVATE = 0x0010;
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+            int X, int Y, int cx, int cy, uint uFlags);
+
+        // X11 z-order control: raise a popup above the dim overlays on Linux. Both the
+        // popup and the overlays carry _NET_WM_STATE_ABOVE (Topmost), so raising within
+        // that layer puts the popup on top. Plain XRaiseWindow is unreliable: Mutter-family
+        // WMs (GNOME, Cinnamon's Muffin) apply focus-stealing prevention to client raise
+        // requests and may ignore them. The EWMH _NET_RESTACK_WINDOW client message with
+        // source indication 2 ("pager/direct user action") is honored unconditionally.
+        // Bound to the runtime soname so no -dev package is needed.
+        [DllImport("libX11.so.6")]
+        private static extern IntPtr XOpenDisplay(string? display);
+
+        [DllImport("libX11.so.6")]
+        private static extern int XRaiseWindow(IntPtr display, IntPtr window);
+
+        [DllImport("libX11.so.6")]
+        private static extern int XCloseDisplay(IntPtr display);
+
+        [DllImport("libX11.so.6")]
+        private static extern IntPtr XDefaultRootWindow(IntPtr display);
+
+        [DllImport("libX11.so.6", CharSet = CharSet.Ansi)]
+        private static extern IntPtr XInternAtom(IntPtr display, string atomName, bool onlyIfExists);
+
+        [DllImport("libX11.so.6")]
+        private static extern int XSendEvent(IntPtr display, IntPtr window, bool propagate,
+            IntPtr eventMask, ref XClientMessageEvent evt);
+
+        private const int ClientMessage = 33;
+        private const long SubstructureNotifyMask = 1L << 19;
+        private const long SubstructureRedirectMask = 1L << 20;
+
+        // Matches the C XClientMessageEvent layout on LP64; Size pads it to the full
+        // 192-byte XEvent union that XSendEvent copies from.
+        [StructLayout(LayoutKind.Sequential, Size = 192)]
+        private struct XClientMessageEvent
+        {
+            public int type;
+            public IntPtr serial;
+            public int send_event;
+            public IntPtr display;
+            public IntPtr window;
+            public IntPtr message_type;
+            public int format;
+            public IntPtr l0;
+            public IntPtr l1;
+            public IntPtr l2;
+            public IntPtr l3;
+            public IntPtr l4;
+        }
+
+        /// <summary>
+        /// Re-asserts the popup to the top of the topmost z-order band so the full-screen
+        /// dim overlays (also topmost, shown just before the popup) never sit above it.
+        /// Windows: SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE). Linux/X11: EWMH
+        /// _NET_RESTACK_WINDOW (pager source). This is the analogue of the macOS
+        /// NSFloatingWindowLevel lift in <c>PopupWindow.ApplyShowState</c>; without it the
+        /// popup itself appears dimmed. Neither path steals focus. No-op on macOS.
+        /// On Linux the raise is re-asserted after a short delay as well — the WM decides
+        /// stacking when the window is actually mapped, which can happen after the
+        /// immediate raise (pooled popup shells remap asynchronously).
+        /// </summary>
+        private void RaisePopupAboveOverlays(PopupWindow? popup)
+        {
+            if (popup == null || !(OperatingSystem.IsWindows() || OperatingSystem.IsLinux()))
+                return;
+
+            RaisePopupAboveOverlaysCore(popup);
+
+            if (OperatingSystem.IsLinux())
+            {
+                DispatcherTimer.RunOnce(() => RaisePopupAboveOverlaysCore(popup),
+                    TimeSpan.FromMilliseconds(300));
+            }
+        }
+
+        private void RaisePopupAboveOverlaysCore(PopupWindow popup)
+        {
+            try
+            {
+                var handle = popup.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                if (handle == IntPtr.Zero)
+                    return;
+
+                if (OperatingSystem.IsWindows())
+                {
+                    SetWindowPos(handle, HWND_TOPMOST, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+                else
+                {
+                    // The Avalonia X11 platform handle is the X window id.
+                    var display = XOpenDisplay(null);
+                    if (display == IntPtr.Zero)
+                        return;
+
+                    try
+                    {
+                        XRaiseWindow(display, handle);
+
+                        // EWMH restack: window to top of its layer, as a user/pager action
+                        // so Mutter/Muffin's focus-stealing prevention doesn't discard it.
+                        var evt = new XClientMessageEvent
+                        {
+                            type = ClientMessage,
+                            window = handle,
+                            message_type = XInternAtom(display, "_NET_RESTACK_WINDOW", false),
+                            format = 32,
+                            l0 = new IntPtr(2), // source indication: pager / direct user action
+                            l1 = IntPtr.Zero,   // sibling: none
+                            l2 = IntPtr.Zero,   // detail: Above
+                        };
+                        XSendEvent(display, XDefaultRootWindow(display), false,
+                            new IntPtr(SubstructureRedirectMask | SubstructureNotifyMask), ref evt);
+                    }
+                    finally
+                    {
+                        XCloseDisplay(display); // XCloseDisplay flushes the requests
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to raise popup above dim overlays");
+            }
+        }
+
+        /// <summary>
+        /// Hides all dim overlay windows, keeping them pooled for reuse.
         /// </summary>
         private void HideDimOverlays()
         {
@@ -600,14 +818,13 @@ namespace EyeRest.Services
             {
                 try
                 {
-                    overlay.Close();
+                    overlay.Hide();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error closing dim overlay");
+                    _logger.LogWarning(ex, "Error hiding dim overlay");
                 }
             }
-            _overlayWindows.Clear();
         }
 
         #endregion
@@ -623,11 +840,11 @@ namespace EyeRest.Services
                 {
                     try
                     {
-                        _currentPopup.Close();
+                        _currentPopup.ReleaseToPool(_currentPopup.Lease);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Error closing popup");
+                        _logger.LogWarning(ex, "Error releasing popup");
                     }
                     _currentPopup = null;
                 }
@@ -638,22 +855,26 @@ namespace EyeRest.Services
         /// Closes a specific popup only if it's still the current one.
         /// Prevents the race where a warning cleanup closes a newer reminder popup.
         /// </summary>
-        private void CloseSpecificPopup(PopupWindow? popup)
+        private void CloseSpecificPopup(PopupWindow? popup, long lease)
         {
             if (popup == null) return;
             lock (_lockObject)
             {
                 try
                 {
-                    popup.Close();
+                    popup.ReleaseToPool(lease);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error closing specific popup");
+                    _logger.LogWarning(ex, "Error releasing specific popup");
                 }
 
-                // Only clear _currentPopup if it's still pointing to this popup
-                if (_currentPopup == popup)
+                // Only clear _currentPopup if this is still the SAME rental (object AND lease).
+                // Shells are pooled, so a stale deferred close from a prior cycle can reference a
+                // shell that has since been re-rented as the current popup — releasing it no-ops
+                // on the lease, but the untrack below must NOT fire for that re-rented popup or it
+                // orphans a visible popup (docs/plan/009 review finding B1).
+                if (_currentPopup == popup && popup.Lease == lease)
                     _currentPopup = null;
             }
         }

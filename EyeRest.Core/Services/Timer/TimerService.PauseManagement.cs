@@ -93,7 +93,7 @@ namespace EyeRest.Services
                     _breakTimerStartTime = _clock.Now;
 
                     _eyeRestTimer?.Start();
-                    _breakTimer?.Start();
+                    StartBreakTimerIfEnabled();
                     UpdateHeartbeatFromOperation("ManualResume");
 
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.Manual);
@@ -112,7 +112,22 @@ namespace EyeRest.Services
             }
         }
         
-        public async Task SmartPauseAsync(string reason)
+        // String overload: infers the genuine-absence flag from the reason text via the centralized
+        // classifier. The authoritative caller (ApplicationOrchestrator.OnUserPresenceChanged) should
+        // prefer the (reason, genuineAbsence) overload so the decision isn't coupled to prose.
+        public Task SmartPauseAsync(string reason)
+            => SmartPauseAsync(reason, ReasonIndicatesGenuineAbsence(reason));
+
+        /// <summary>
+        /// Single source of truth for classifying a free-form pause reason as genuine user absence
+        /// (idle/away/system-sleep) vs. an attended pause. Centralized so it isn't duplicated inline.
+        /// </summary>
+        private static bool ReasonIndicatesGenuineAbsence(string reason) =>
+            reason.Contains("idle", StringComparison.OrdinalIgnoreCase) ||
+            reason.Contains("away", StringComparison.OrdinalIgnoreCase) ||
+            reason.Contains("sleep", StringComparison.OrdinalIgnoreCase);
+
+        public async Task SmartPauseAsync(string reason, bool genuineAbsence)
         {
             if (!IsRunning)
             {
@@ -126,15 +141,25 @@ namespace EyeRest.Services
                 return;
             }
 
-            // CRITICAL FIX (2026-04-28): If a popup is on screen, the user is presumed to
-            // already be resting/taking a break — pausing the timer service here just
-            // creates state-management churn for the corresponding SmartResume. (See the
-            // 09:51:35 incident where the resume path then started timers prematurely.)
-            // Let the popup run to completion; the popup-completion handler will leave
-            // timers in a clean state.
-            if (_isEyeRestNotificationActive || _isBreakNotificationActive)
+            // CRITICAL FIX (2026-04-28): If a popup is on screen AND the user is still attending
+            // it, the user is presumed to already be resting/taking a break — pausing here just
+            // creates state-management churn for the corresponding SmartResume. (See the 09:51:35
+            // incident where the resume path then started timers prematurely.)
+            //
+            // CRITICAL FIX (2026-06-03): BUT when the user goes genuinely Idle/Away/SystemSleep
+            // (the reason carries "User idle"/"User away"/"User systemsleep" from
+            // ApplicationOrchestrator.OnUserPresenceChanged), the popup is ABANDONED, not attended.
+            // Skipping the pause then left both DispatcherTimers running for the entire absence;
+            // the overdue ticks tripped the "system wake" heuristic which force-closed the popup
+            // and recorded a fabricated "Break skipped by user" — repeating all night. For genuine
+            // absence we MUST proceed to pause (Stop both timers, disarm the wake heuristic). The
+            // popup is left on screen; SmartResumeAsync's deferral (deferTimerStart when a popup is
+            // active) keeps the resume path clean, and the popup-completion / extended-away reset
+            // handles the popup on return. `genuineAbsence` is passed explicitly by the presence
+            // handler (robust) or inferred from the reason text by the string overload (fallback).
+            if ((_isEyeRestNotificationActive || _isBreakNotificationActive) && !genuineAbsence)
             {
-                _logger.LogInformation("🧠 Skipping smart pause — popup active (EyeRestActive={EyeRest}, BreakActive={Break}). Reason was: {Reason}",
+                _logger.LogInformation("🧠 Skipping smart pause — popup active & user attended (EyeRestActive={EyeRest}, BreakActive={Break}). Reason was: {Reason}",
                     _isEyeRestNotificationActive, _isBreakNotificationActive, reason);
                 await Task.CompletedTask;
                 return;
@@ -339,7 +364,7 @@ namespace EyeRest.Services
                     if (!deferTimerStart)
                     {
                         _eyeRestTimer?.Start();
-                        _breakTimer?.Start();
+                        StartBreakTimerIfEnabled();
                         UpdateHeartbeatFromOperation("SmartResume");
 
                         _logger.LogInformation($"🧠 Smart resume conditions - Timers started: EyeRest={_eyeRestTimer?.IsEnabled}, Break={_breakTimer?.IsEnabled}");
@@ -664,7 +689,7 @@ namespace EyeRest.Services
                 if (_breakTimer != null)
                 {
                     _breakTimer.Interval = _breakInterval;
-                    _breakTimer.Start();
+                    StartBreakTimerIfEnabled();
                 }
                 else
                 {
@@ -829,7 +854,7 @@ namespace EyeRest.Services
                     _breakStartTime = _clock.Now;
                     _breakTimerStartTime = _clock.Now;
                     _eyeRestTimer?.Start();
-                    _breakTimer?.Start();
+                    StartBreakTimerIfEnabled();
                     UpdateHeartbeatFromOperation("ManualPauseAutoResume");
 
                     await _analyticsService.RecordResumeEventAsync(ResumeReason.AutoResumeAfterDuration);

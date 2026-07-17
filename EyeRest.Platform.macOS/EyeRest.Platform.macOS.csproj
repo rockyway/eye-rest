@@ -17,4 +17,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
   </ItemGroup>
 
+  <!-- Expose internal seams (idle-source constant, EvaluatePresence) to the test suite. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="EyeRest.Tests.Avalonia" />
+  </ItemGroup>
+
 </Project>

@@ -20,6 +20,9 @@
     <PackageReference Include="System.Drawing.Common" Version="8.0.8" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <!-- BL-002: notification WAVs play through PortAudio (MME/DirectSound) instead of
+         winmm PlaySound, which distorts on some endpoints. See WindowsWavePlayer. -->
+    <PackageReference Include="PortAudioSharp2" Version="1.0.6" />
   </ItemGroup>
 
 </Project>

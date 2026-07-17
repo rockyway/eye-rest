@@ -52,6 +52,10 @@
     <DefineConstants>$(DefineConstants);PLATFORM_MACOS</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('linux')) OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux')))">
+    <DefineConstants>$(DefineConstants);PLATFORM_LINUX</DefineConstants>
+  </PropertyGroup>
+
   <!-- When publishing/building with -r win-* -->
   <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
     <ProjectReference Include="..\EyeRest.Platform.Windows\EyeRest.Platform.Windows.csproj" />
@@ -62,6 +66,11 @@
     <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
   </ItemGroup>
 
+  <!-- When publishing/building with -r linux-* -->
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux'))">
+    <ProjectReference Include="..\EyeRest.Platform.Linux\EyeRest.Platform.Linux.csproj" />
+  </ItemGroup>
+
   <!-- Fallback: no RID specified — detect host OS (dev inner-loop) -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">
     <ProjectReference Include="..\EyeRest.Platform.Windows\EyeRest.Platform.Windows.csproj" />
@@ -69,6 +78,10 @@
 
   <ItemGroup Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX'))">
     <ProjectReference Include="..\EyeRest.Platform.macOS\EyeRest.Platform.macOS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))">
+    <ProjectReference Include="..\EyeRest.Platform.Linux\EyeRest.Platform.Linux.csproj" />
   </ItemGroup>
 
   <!-- App icon PNGs as Avalonia resources -->

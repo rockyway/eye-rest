@@ -6,8 +6,8 @@
 | **Framework** | .NET 8.0 (LTS) |
 | **UI Framework** | Avalonia 11.3.0 (cross-platform) |
 | **Architecture** | MVVM + Service-Oriented with Platform Abstraction |
-| **Solution** | `EyeRest.sln` — 6 projects |
-| **Last Updated** | 2026-02-25 |
+| **Solution** | `EyeRest.sln` — 7 projects |
+| **Last Updated** | 2026-07-10 |
 
 ---
 
@@ -21,6 +21,7 @@
    - [EyeRest.Core](#eyerestcore)
    - [EyeRest.Platform.Windows](#eyerestplatformwindows)
    - [EyeRest.Platform.macOS](#eyerestplatformmacos)
+   - [EyeRest.Platform.Linux](#eyerestplatformlinux)
    - [EyeRest.UI](#eyerestui)
    - [EyeRest.Tests.Avalonia](#eyeresttestsavalonia)
 5. [Technology Stack](#technology-stack)
@@ -46,7 +47,7 @@
 | Image assets (`.png`) | 21 |
 | Scripts (`.sh`, `.py`, `.ps1`) | 3 |
 | MSIX visual assets (`.png`) | 22 |
-| Total tests | 118 (Avalonia) |
+| Total tests | 234 (Avalonia) |
 
 ---
 
@@ -97,6 +98,11 @@ eye-rest/
 │   │                                           UserNotifications, Security
 │   └── Services/                     (12 files) Audio, tray, presence, timers, DI extension
 │
+├── EyeRest.Platform.Linux/          [Linux-specific implementations]
+│   ├── Interop/                      (2 files) X11/XScreenSaver P/Invoke (idle detection)
+│   └── Services/                     (13 files) Audio (paplay/canberra), tray, presence,
+│                                                timers, XDG autostart, DI extension
+│
 ├── EyeRest.UI/                       [Cross-platform Avalonia UI entry point]
 │   ├── Assets/                       App icon, macOS icon
 │   │   └── TrayIcons/               (18 PNGs) 9 states x 2 sizes (1x + @2x)
@@ -107,9 +113,9 @@ eye-rest/
 │   ├── ViewModels/                   (2 files) MainWindowViewModel, AnalyticsDashboardViewModel
 │   └── Views/                        (24 files) 12 .axaml + 12 .axaml.cs
 │
-├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 86 tests, 10 files]
+├── EyeRest.Tests.Avalonia/          [Avalonia test suite — 234 tests]
 │   ├── Fakes/                        (3 files)
-│   ├── Services/                     (6 files) Configuration service tests, TimerService smart resume tests, DonationService tests
+│   ├── Services/                     (7 files) Configuration, TimerService smart resume + break-toggle tests, DonationService tests
 │   └── ViewModels/                   (1 file) MainWindowViewModelTests (26 tests)
 │
 ├── docs/                             [Documentation]
@@ -148,7 +154,7 @@ The foundational layer. Contains only interfaces and data models with zero exter
 |-------|---------|
 | `AppConfiguration` | Root configuration object (also contains `ThemeMode` enum) |
 | `EyeRestSettings` | Eye rest timer intervals |
-| `BreakSettings` | Break timer intervals |
+| `BreakSettings` | Break timer intervals + `Enabled` toggle (eye-rest-only mode) |
 | `AudioSettings` | Sound preferences and levels |
 | `ApplicationSettings` | General app behavior |
 | `UserPresenceSettings` | Idle detection thresholds |
@@ -205,7 +211,7 @@ Platform-agnostic business logic. Contains all timer logic, configuration manage
 | Service | Interface | Purpose |
 |---------|-----------|---------|
 | `ApplicationOrchestrator` | `IApplicationOrchestrator` | Central coordinator — wires all services, manages lifecycle |
-| `TimerService` (8 partials) | `ITimerService` | Dual timers (eye rest 20min/20sec + break 55min/5min), warnings, pause/resume, smart pause, recovery |
+| `TimerService` (8 partials) | `ITimerService` | Dual timers (eye rest 20min/20sec + break 55min/5min), warnings, pause/resume, smart pause, recovery, break enable/disable gating (eye-rest-only mode) |
 | `ConfigurationService` | `IConfigurationService` | JSON persistence, atomic writes with retry |
 | `TimerConfigurationService` | `ITimerConfigurationService` | Timer-specific config at `timer-config.json` |
 | `UIConfigurationService` | `IUIConfigurationService` | UI-specific config at `ui-config.json` |
@@ -293,6 +299,36 @@ macOS-specific implementations using native P/Invoke into AppKit, CoreGraphics, 
 
 ---
 
+### EyeRest.Platform.Linux
+
+> **Target:** `net8.0` | **Type:** Class Library | **Dependencies:** Abstractions, Core
+
+Linux-specific implementations targeting X11 desktops (verified on Linux Mint / Cinnamon). Avalonia-free, mirroring the macOS project structure.
+
+**Interop (2 files):** `X11Interop.cs` / `X11IdleProbe.cs` — libX11/libXss P/Invoke (MIT-SCREEN-SAVER idle time), bound to runtime sonames so no -dev packages are required. Degrades to "always present" off-X11.
+
+**Services (13 files):**
+
+| Service | Notes |
+|---------|-------|
+| `LinuxAudioService` + `LinuxSoundPlayer` | paplay/aplay for WAV & custom files; canberra/freedesktop theme sounds as channel defaults |
+| `LinuxSystemTrayService` | Event router (visual icon is Avalonia TrayIcon); balloon tips via notify-send |
+| `LinuxStartupManager` | XDG autostart `.desktop` at `~/.config/autostart/`, dev-build guard |
+| `LinuxUserPresenceService` | Same idle/away state machine as macOS; X11 idle probe, injectable test seam |
+| `LinuxScreenDimmingService` | No-op (`IsSupported=false`); break dimming is Avalonia overlays |
+| `LinuxPauseReminderService` | Hourly reminders + 8h auto-resume; notify-send notifications |
+| `LinuxSecureStorageService` | 0600 JSON store at `~/.config/EyeRest/secure-storage.json` |
+| `LinuxTimerFactory` / `LinuxTimer` | System.Threading.Timer (same as macOS) |
+| `LinuxScreenOverlayService` | Minimal stub (overlays rendered by Avalonia layer) |
+| `LinuxAppLifecycleService` | Minimal; sleep/wake recovery rides on presence idle detection |
+| `LinuxNotifications` | Shared notify-send helper |
+
+**DI Registration:** `LinuxServiceCollectionExtensions.cs` — `AddLinuxPlatformServices()`. `IDispatcherService` is not registered (inherits cross-platform `AvaloniaDispatcherService`, same as Windows).
+
+**Linux-specific UI behavior (in EyeRest.UI):** `SystemDecorations=None` + custom title bar (X11 WMs don't honor ExtendClientArea hints); popups raised above dim overlays via EWMH `_NET_RESTACK_WINDOW`; single instance via file lock (named mutexes are login-session-scoped on Linux).
+
+---
+
 ### EyeRest.UI
 
 > **Target:** `net8.0` | **Type:** WinExe (Avalonia) | **Dependencies:** Abstractions, Core, Platform.Windows or Platform.macOS
@@ -341,11 +377,11 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 
 ### EyeRest.Tests.Avalonia
 
-> **Target:** `net8.0` | **Type:** Test | **Tests:** 86 across 10 files
+> **Target:** `net8.0` | **Type:** Test | **Tests:** 234
 
 | Category | Files | Description |
 |----------|-------|-------------|
-| Services | 6 | Configuration service tests, TimerService smart resume tests, DonationService tests |
+| Services | 7 | Configuration, TimerService smart resume + break-toggle (eye-rest-only mode) tests, DonationService tests |
 | ViewModels | 1 | MainWindowViewModelTests (26 tests) |
 | Fakes | 3 | FakeDispatcherService, FakeTimer, FakeTimerFactory |
 
@@ -373,7 +409,7 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 
 ## Key Features
 
-1. **Dual Timer System** — Eye rest (20min interval / 20sec popup) + Break (55min interval / 5min popup), fully configurable.
+1. **Dual Timer System** — Eye rest (20min interval / 20sec popup) + Break (55min interval / 5min popup), fully configurable. The break timer can be disabled (`BreakSettings.Enabled = false`, "eye-rest-only mode") while manual "Break Now" stays available; every automatic break path is gated via `IsBreakEnabled` / `StartBreakTimerIfEnabled`.
 2. **Warning System** — Pre-notification countdowns (15s for eye rest, 30s for break) with fallback guard timers.
 3. **Smart Pause** — Auto-pause on idle / screen lock / user away; auto-resume on return.
 4. **Session Reset** — Extended away detection (>30min) triggers full session reset.
@@ -382,7 +418,7 @@ The cross-platform Avalonia UI entry point. Contains all views, view models, con
 7. **Multi-Monitor Support** — Popup positioning and screen overlay across all monitors during breaks.
 8. **Audio Notifications** — 5-level audio cascade with custom sound file support.
 9. **Configuration Management** — 3 JSON config files, atomic writes, 1.5s debounced saves.
-10. **Cross-Platform** — Windows + macOS (native P/Invoke via AppKit/IOKit).
+10. **Cross-Platform** — Windows + macOS (native P/Invoke via AppKit/IOKit) + Linux/X11 (libXss idle, XDG autostart, paplay audio).
 11. **macOS .app Bundle** — Code-signed with hardened runtime, generated via `scripts/bundle-macos.sh`.
 12. **Theming** — Light and dark themes with glass card aesthetic and mesh gradients.
 13. **Buy Me a Coffee Workflow** — License key validation with DPAPI (Windows) / Keychain (macOS) secure storage, usage-based prompts, and inline banner UI.
@@ -456,10 +492,12 @@ EyeRest.Core                      ──► Abstractions
          │
 EyeRest.Platform.Windows          ──► Abstractions + Core
 EyeRest.Platform.macOS             ──► Abstractions + Core
+EyeRest.Platform.Linux             ──► Abstractions + Core
          ▲
          │
 EyeRest.UI                        ──► Abstractions + Core + Platform.Windows (Win)
                                                            / Platform.macOS (macOS)
+                                                           / Platform.Linux (Linux)
 
 EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 ```
@@ -470,7 +508,7 @@ EyeRest.Tests.Avalonia             ──► EyeRest.UI + Core + Abstractions
 
 | Aspect | Details |
 |--------|---------|
-| **Total tests** | 86 (Avalonia) |
+| **Total tests** | 234 (Avalonia) |
 | **Primary framework** | xUnit 2.6.1 |
 | **Mocking** | Moq 4.20.69 |
 | **Naming convention** | `MethodName_StateUnderTest_ExpectedBehavior` |
@@ -544,6 +582,8 @@ Three JSON configuration files stored under `%APPDATA%\EyeRest\` (Windows) or `~
 
 | Date | Change |
 |------|--------|
+| 2026-07-10 | Added break-timer enable/disable toggle ("eye-rest-only mode"): `BreakSettings.Enabled`, `IsBreakEnabled`/`StartBreakTimerIfEnabled` gate across all automatic break paths (tick, warning, recovery, resume, coordination, coalesce, fallback, health monitor), live toggle in `UpdateConfiguration`, MainWindow "Automatic Breaks" switch + "Off" status; manual "Break Now" preserved. Test suite grew to 234 (scoped non-parallel `[Collection]` for TimerService static-state classes) |
+| 2026-07-02 | Added EyeRest.Platform.Linux (7th project): full Linux/X11 support — X11 idle detection, paplay/canberra audio, XDG autostart, notify-send, EWMH popup restack, file-lock single instance |
 | 2026-02-25 | Added MSIX packaging for Microsoft Store distribution, build-msix.ps1 script, MSIX-aware StartupManager and toast notifications, 22 visual assets, version metadata |
 | 2026-02-25 | Routed support link through eyerest.net website instead of direct checkout |
 | 2026-02-25 | Added Buy Me a Coffee workflow with license key validation, secure storage (DPAPI/Keychain), supporter UI views, React marketing frontend, updated test suite to 86 tests |

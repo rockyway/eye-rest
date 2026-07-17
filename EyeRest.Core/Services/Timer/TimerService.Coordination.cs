@@ -47,6 +47,9 @@ namespace EyeRest.Services
         /// </summary>
         private bool ShouldCoalesceEyeRestIntoBreak()
         {
+            // Eye-rest-only mode: breaks are off, so there is never a break to coalesce into.
+            if (!IsBreakEnabled) return false;
+
             // Break must be live-ticking. If it's paused or disabled, no collision risk.
             if (_breakTimer?.IsEnabled != true) return false;
 
@@ -182,6 +185,16 @@ namespace EyeRest.Services
         {
             if (_breakTimerPausedForEyeRest && !_isEyeRestNotificationActive)
             {
+                // 2026-06-03 (codex review): never re-arm the break timer while the service is
+                // paused/away — an eye-rest popup completing during an absence must not restart
+                // timers for an absent user. Mirror RestartEyeRestTimerAfterCompletion's guard and
+                // KEEP _breakTimerPausedForEyeRest set so SmartResumeAsync / session reset restores it.
+                if (IsPaused || IsManuallyPaused || IsSmartPaused)
+                {
+                    _logger.LogInformation("🔄 Smart coordination: deferring break-timer resume after eye rest — service is paused (resume/session-reset will restore it)");
+                    return;
+                }
+
                 _logger.LogInformation("🔄 Smart coordination: Resuming break timer after eye rest completion");
                 _breakTimerPausedForEyeRest = false;
 
@@ -190,7 +203,7 @@ namespace EyeRest.Services
                 {
                     _breakInterval = _breakRemainingTime;
                     _breakTimer!.Interval = _breakRemainingTime;
-                    _breakTimer!.Start();
+                    StartBreakTimerIfEnabled();
                     _breakStartTime = _clock.Now;
                     _logger.LogInformation($"🔄 Break timer resumed with {_breakRemainingTime.TotalMinutes:F1} minutes remaining");
                 }
@@ -200,7 +213,7 @@ namespace EyeRest.Services
                     var (interval, totalMinutes, warningSeconds, warningEnabled, isReduced) = CalculateBreakTimerInterval();
                     _breakInterval = interval;
                     _breakTimer!.Interval = _breakInterval;
-                    _breakTimer!.Start();
+                    StartBreakTimerIfEnabled();
                     _breakStartTime = _clock.Now;
 
                     if (isReduced)

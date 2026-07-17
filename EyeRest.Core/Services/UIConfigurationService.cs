@@ -13,6 +13,15 @@ namespace EyeRest.Services
         private readonly string _configFilePath;
         private UIConfiguration? _currentConfiguration;
 
+        // Cached, immutable serializer options — a per-call `new JsonSerializerOptions`
+        // rebuilds reflection-emit accessors on every load/save, a confirmed managed leak
+        // (see docs/plan/008). Create once, reuse.
+        private static readonly JsonSerializerOptions s_jsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        };
+
         public event EventHandler<UIConfigurationChangedEventArgs>? ConfigurationChanged;
 
         public UIConfigurationService(ILogger<UIConfigurationService> logger)
@@ -43,13 +52,7 @@ namespace EyeRest.Services
 
                 using (var stream = File.OpenRead(_configFilePath))
                 {
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                        WriteIndented = true
-                    };
-
-                    var configuration = await JsonSerializer.DeserializeAsync<UIConfiguration>(stream, options);
+                    var configuration = await JsonSerializer.DeserializeAsync<UIConfiguration>(stream, s_jsonOptions);
 
                     if (configuration == null)
                     {
@@ -77,16 +80,10 @@ namespace EyeRest.Services
             try
             {
                 var validatedConfig = ValidateConfiguration(config);
-                
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                };
 
                 using (var stream = File.Create(_configFilePath))
                 {
-                    await JsonSerializer.SerializeAsync(stream, validatedConfig, options);
+                    await JsonSerializer.SerializeAsync(stream, validatedConfig, s_jsonOptions);
                 }
 
                 var oldConfig = _currentConfiguration;

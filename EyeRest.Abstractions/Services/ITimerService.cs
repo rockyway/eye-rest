@@ -30,6 +30,11 @@ namespace EyeRest.Services
         Task PauseAsync();
         Task ResumeAsync();
         Task SmartPauseAsync(string reason);
+        /// <summary>Smart-pause with an explicit genuine-absence signal. When true, the pause runs
+        /// even if a popup is active (the user has left an abandoned popup); when false it stays a
+        /// no-op while a popup is attended. Prefer this over the string overload, which infers the
+        /// flag from the reason text.</summary>
+        Task SmartPauseAsync(string reason, bool genuineAbsence);
         Task SmartResumeAsync();
         Task SmartResumeAsync(string reason);
         Task SmartSessionResetAsync(string reason); // NEW: Reset timers for fresh working session

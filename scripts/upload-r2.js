@@ -37,10 +37,15 @@ function parseSizeString(sizeStr) {
 }
 
 function readVersion() {
+  // Explicit arg wins. The csproj carries no <Version> — it is supplied via -p:Version at
+  // publish time (see Directory.Build.props), so the csproj read is only a legacy fallback.
+  const argVersion = process.argv[2];
+  if (argVersion) return argVersion.replace(/^v/, "");
+
   const content = readFileSync(CSPROJ, "utf8");
   const match = content.match(/<Version>([^<]+)<\/Version>/);
   if (!match) {
-    console.error("ERROR: Could not read <Version> from", CSPROJ);
+    console.error(`ERROR: no <Version> in ${CSPROJ} — pass it explicitly: bun scripts/upload-r2.js 1.6.0`);
     process.exit(1);
   }
   return match[1];
@@ -82,6 +87,23 @@ function collectFiles(version) {
   const files = [];
   const distDir = join(PROJECT_ROOT, "dist");
   const publishDir = join(PROJECT_ROOT, "publish");
+  const velopackDir = join(PROJECT_ROOT, "releases");
+
+  // ── Velopack artifacts (releases/) — the CURRENT pipeline ──────────────────
+  // These are byte-identical to the GitHub release assets and are mirrored under the SAME
+  // names, so dl.eyerest.net/latest/<asset> is a drop-in fallback for
+  // github.com/rockyway/eye-rest/releases/latest/download/<asset> for users who can't reach
+  // GitHub. Only the three assets the download page offers are mirrored — the bucket has a
+  // 9.5 GB cap and every file is written twice (v{version}/ and latest/).
+  const velopackMirror = [
+    { file: "EyeRest-win-Setup.exe", type: "application/octet-stream" },
+    { file: "EyeRest-osx-Portable.zip", type: "application/zip" },
+    { file: "EyeRest.AppImage", type: "application/octet-stream" },
+  ];
+  for (const { file, type } of velopackMirror) {
+    const p = join(velopackDir, file);
+    if (existsSync(p)) files.push({ path: p, name: file, type });
+  }
 
   // macOS zip — publish-release.sh emits a versioned name in dist/.
   // Fall back to legacy unversioned names in dist/ then publish/.
@@ -115,6 +137,18 @@ function collectFiles(version) {
   );
   if (existsSync(winExe)) {
     files.push({ path: winExe, name: "BlinkTwiceEyeRest.exe", type: "application/octet-stream" });
+  }
+
+  // Linux AppImage — emitted by publish-velopack-linux.sh into releases/.
+  // The public R2 object name stays unversioned so download URLs are stable.
+  const releasesDir = join(PROJECT_ROOT, "releases");
+  const linuxCandidates = [
+    join(releasesDir, `BlinkTwiceEyeRest-${version}-linux-x64.AppImage`),
+    join(releasesDir, "BlinkTwiceEyeRest-linux-x64.AppImage"),
+  ];
+  const linuxAppImage = linuxCandidates.find(existsSync);
+  if (linuxAppImage) {
+    files.push({ path: linuxAppImage, name: "BlinkTwiceEyeRest-linux-x64.AppImage", type: "application/octet-stream" });
   }
 
   return files;

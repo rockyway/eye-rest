@@ -66,6 +66,28 @@ This will:
 2. Patch `Info.plist` with version
 3. `vpk pack` — creates Velopack release artifacts in `releases/`
 
+### Linux (AppImage)
+
+```bash
+# From project root, run ON Linux (native):
+./scripts/publish-velopack-linux.sh 1.5.0
+```
+
+This will:
+1. `dotnet publish` — self-contained, linux-x64
+2. `vpk pack` — builds an **AppImage** on the `linux` channel in `releases/`
+
+Linux has **no OS-level code signing** (no notarization/SmartScreen equivalent) — trust comes
+from the channel, so there is nothing to sign here. Integrity is via the Velopack feed's
+SHA256. The `UpdateService` `GithubSource` auto-selects the `linux` channel, so installed
+AppImage users get delta auto-updates with no app-code changes. See
+`docs/plan/011-v1.5.0-all-os-release.md` for the full all-OS runbook and the Flathub
+(Phase 2) plan.
+
+> ⚠️ **Pin `vpk` to the `Velopack` NuGet version** in `EyeRest.UI.csproj` (currently
+> `0.0.1298`): `dotnet tool install -g vpk --version 0.0.1298`. A mismatched vpk produces a
+> feed the installed app can't read, silently breaking auto-update.
+
 ---
 
 ## Uploading to GitHub Releases

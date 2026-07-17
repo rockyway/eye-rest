@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Automation.Peers;
 using Avalonia.Input;
 using Avalonia.Platform;
 using EyeRest.UI.Helpers;
@@ -29,14 +32,81 @@ namespace EyeRest.UI.Views
         private PopupPlacement? _pendingPlacement;
         private PopupPlacement _currentPlacement = PopupPlacement.TopRight;
 
+        // True between PositionOnScreen() and ReleaseToPool(): gates the SizeChanged-driven
+        // reposition so a pooled, hidden shell doesn't reposition on stray size events.
+        private bool _positioned;
+
         /// <summary>
         /// Tracks how many popup windows are currently open.
         /// </summary>
         private static int _activePopupCount;
 
+        /// <summary>
+        /// Pool of reusable shells. Avalonia.Native pins each shown Window forever via its
+        /// accessibility peer (see docs/plan/009); reusing shells makes that peer created once
+        /// per shell instead of leaked per cycle. Bounded — at most a couple of shells are ever
+        /// live. All access is on the UI thread.
+        /// </summary>
+        private static readonly Stack<PopupWindow> s_pool = new();
+        private const int MaxPoolSize = 4;
+        private static long s_leaseCounter;
+
+        // Generation token: a deferred close from a prior cycle must not release a shell that
+        // has since been re-rented for a new popup. Each Rent() assigns a fresh lease; release
+        // only acts when the caller's captured lease still matches.
+        private long _lease;
+        private bool _released = true; // a shell not currently rented is "released"
+
+        /// <summary>The lease of the current rental. Capture this when scheduling a deferred close.</summary>
+        public long Lease => _lease;
+
         public PopupWindow()
         {
             InitializeComponent();
+
+            // SizeToContent resizes the window AFTER OnOpened, and on a pooled shell reused for
+            // new content FrameSize is stale until that resize lands. Reposition whenever the
+            // rendered size settles so the popup is placed for its ACTUAL size — fixes the popup
+            // clipping off-screen / leaving a gap when shown across differently-sized monitors.
+            SizeChanged += OnContentSizeSettled;
+
+            // A DPI/scaling change (popup dragged to a monitor with different DPI, or a pooled
+            // shell last sized on another monitor re-shown here) leaves the content's DIP size
+            // unchanged, so SizeChanged does NOT fire and SizeToContent never recomputes the
+            // window's PHYSICAL size for the new scaling. The stale physical frame then clips the
+            // content (target DPI higher) or leaves a gap (lower). Re-fit to content on scaling
+            // change so the window resizes for the monitor it is actually on.
+            ScalingChanged += OnScalingChanged;
+        }
+
+        private void OnContentSizeSettled(object? sender, SizeChangedEventArgs e)
+        {
+            if (_positioned)
+                RepositionWithActualSize(_currentPlacement);
+        }
+
+        private void OnScalingChanged(object? sender, EventArgs e)
+        {
+            if (_positioned)
+                RefitToContentAndReposition();
+        }
+
+        /// <summary>
+        /// Forces the window to re-run SizeToContent against the CURRENT render scaling, then
+        /// repositions. A pure DPI change keeps the content's DIP DesiredSize constant, so
+        /// SizeToContent does not re-fire on its own; toggling it back to WidthAndHeight schedules
+        /// a fresh measure/arrange that resizes the physical window for the current monitor's DPI.
+        /// Without this the popup shows clipped (or gapped) after crossing a DPI boundary.
+        /// </summary>
+        private void RefitToContentAndReposition()
+        {
+            SizeToContent = SizeToContent.Manual;
+            SizeToContent = SizeToContent.WidthAndHeight;
+            InvalidateMeasure();
+
+            // DesiredSize (DIP) is scaling-independent, so positioning is correct immediately even
+            // before the resize lands; OnContentSizeSettled re-runs if the resize changes DIP size.
+            RepositionWithActualSize(_currentPlacement);
         }
 
         public void SetPopupContent(Control content, double width, double height)
@@ -64,6 +134,28 @@ namespace EyeRest.UI.Views
             base.Show();
         }
 
+        // Suppress the macOS accessibility automation peers for this transient popup's CONTENT.
+        // Avalonia.Native pins every control's automation peer with a strong native (MicroComShadow)
+        // GC handle that is never released on close — a per-cycle leak confirmed by gcroot (the
+        // content UserControl's UserControlAutomationPeer; see docs/plan/009). Returning null is
+        // UNSAFE (AvnWindow dereferences the root peer). Instead we hand the window a childless
+        // peer, so the native side never enumerates/materializes the content controls' peers.
+        // Tradeoff: these transient reminder popups are not exposed to screen readers (the main
+        // settings window keeps its accessibility).
+        protected override AutomationPeer OnCreateAutomationPeer()
+            // Only suppress on macOS, where the AvnAutomationPeer/MicroComShadow strong-handle
+            // leak lives. On Windows the Win32 backend has no such leak, so keep full popup
+            // accessibility there.
+            => OperatingSystem.IsMacOS()
+                ? new ChildlessAutomationPeer(this)
+                : base.OnCreateAutomationPeer();
+
+        private sealed class ChildlessAutomationPeer : NoneAutomationPeer
+        {
+            public ChildlessAutomationPeer(Control owner) : base(owner) { }
+            protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => Array.Empty<AutomationPeer>();
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
@@ -71,17 +163,83 @@ namespace EyeRest.UI.Views
             Closed?.Invoke(this, e);
         }
 
+        /// <summary>
+        /// Rents a shell from the pool (or creates one) with a fresh lease. The returned shell
+        /// has no content and no Closed subscribers. Caller must SetPopupContent + Show.
+        /// UI-thread only.
+        /// </summary>
+        public static PopupWindow Rent()
+        {
+            var w = s_pool.Count > 0 ? s_pool.Pop() : new PopupWindow();
+            w._lease = ++s_leaseCounter;
+            w._released = false;
+            return w;
+        }
+
+        /// <summary>
+        /// "Soft close": hide the shell and return it to the pool for reuse instead of destroying
+        /// it (real Close() leaks the native accessibility peer on macOS — docs/plan/009). No-op
+        /// if already released this cycle, or if <paramref name="expectedLease"/> is stale (the
+        /// shell was re-rented). Raises <see cref="Closed"/> exactly once per lease, then clears subscribers
+        /// + content so the pooled shell retains nothing. UI-thread only.
+        /// </summary>
+        public void ReleaseToPool(long expectedLease)
+        {
+            if (_released || _lease != expectedLease) return;
+            _released = true;
+            _positioned = false; // stop SizeChanged-driven repositioning while pooled/hidden
+
+            try { base.Hide(); } catch { /* best effort */ }
+            _activePopupCount = Math.Max(0, _activePopupCount - 1);
+
+            // Snapshot + clear subscribers BEFORE invoking so a re-entrant release sees none,
+            // and clear per-cycle references so the pooled shell retains nothing.
+            var handlers = Closed;
+            Closed = null;
+            ContentArea.Content = null; // release the heavy content visual tree
+            PopupContent = null;
+            _pendingPlacement = null;
+            DataContext = null;
+
+            try { handlers?.Invoke(this, EventArgs.Empty); }
+            finally
+            {
+                if (s_pool.Count < MaxPoolSize)
+                    s_pool.Push(this);
+            }
+        }
+
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
+            // OnOpened re-fires on every Show() (including pooled reuse) in Avalonia 11.3 — so
+            // this is the single per-show setup path.
+            ApplyShowState();
+        }
 
+        /// <summary>
+        /// Applies per-show window state: reposition using the actual rendered size, raise to the
+        /// floating window level (macOS) and take focus. Idempotent; safe to call on every show
+        /// (first open and pooled reuse).
+        /// </summary>
+        private void ApplyShowState()
+        {
             // Reposition using actual rendered size (SizeToContent makes the window
             // smaller than the hint, so initial positioning from PositionOnScreen
             // leaves a gap on the right edge).
-            if (_pendingPlacement.HasValue && FrameSize.HasValue)
+            if (_pendingPlacement.HasValue)
             {
-                RepositionWithActualSize(_pendingPlacement.Value);
+                // Re-fit to content for the CURRENT scaling first: a pooled shell last sized on a
+                // different-DPI monitor carries a stale physical size that would clip/gap the
+                // content here, and a pure DPI change fires no SizeChanged to correct it.
+                RefitToContentAndReposition();
                 _pendingPlacement = null;
+
+                // Belt-and-suspenders: DesiredSize may not be measured yet here (e.g. a pooled
+                // shell whose new content hasn't laid out), making the call above a no-op. Post a
+                // deferred reposition so placement is finalised after layout even in the edge case
+                // where no SizeChanged follows (new content whose size matches the pooled shell's).
+                Reposition();
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -92,29 +250,39 @@ namespace EyeRest.UI.Views
                 // the main UI while a popup was showing.
                 MacOSNativeWindowHelper.SetWindowLevel(this, 3); // NSFloatingWindowLevel
 
-                // Bring popup to front of its level and give it keyboard focus.
-                // orderFront: does NOT activate the app, so the main window stays
-                // exactly where it was — no jumping in front of other apps.
-                MacOSNativeWindowHelper.OrderFront(this);
-                MacOSNativeWindowHelper.MakeKeyWindow(this);
+                // Surface the popup above other apps WITHOUT stealing focus. We deliberately
+                // do NOT call makeKeyWindow/Focus(): this app runs as an Accessory app, so
+                // making an inactive app's window key forces AppKit to activate us — yanking
+                // the user's keyboard focus out of whatever they were typing in (the reported
+                // bug). orderFrontRegardless raises the floating-level window above other apps
+                // while leaving focus exactly where it was.
+                MacOSNativeWindowHelper.OrderFrontRegardless(this);
             }
-            else
-            {
-                Activate();
-            }
+            // Windows/Linux: Topmost="True" + ShowActivated="False" (PopupWindow.axaml) already
+            // raise the popup above other windows without taking focus. We deliberately do NOT
+            // call Activate()/Focus() here — either would steal the foreground app's focus.
 
-            Focus();
+            // Stay focusable so the user can click the popup to engage keyboard handlers
+            // (e.g. Esc-to-dismiss), but never grab focus programmatically on show.
             Focusable = true;
         }
 
         private void RepositionWithActualSize(PopupPlacement placement)
         {
             var screen = GetScreenWithCursor();
-            if (screen == null || !FrameSize.HasValue) return;
+            if (screen == null) return;
+
+            // Use DesiredSize (the measured content size), NOT FrameSize/ClientSize. On a pooled
+            // shell reused for new content, FrameSize/ClientSize intermittently report the PREVIOUS
+            // popup's size (stale) — confirmed via diagnostics — which mis-positions the popup so it
+            // clips off-screen or leaves a gap. DesiredSize stays correct across pooled reuse and the
+            // full→compact transition.
+            var size = DesiredSize;
+            if (size.Width <= 0 || size.Height <= 0) return;
 
             var scaling = screen.Scaling;
-            var actualWidth = (int)(FrameSize.Value.Width * scaling);
-            var actualHeight = (int)(FrameSize.Value.Height * scaling);
+            var actualWidth = (int)(size.Width * scaling);
+            var actualHeight = (int)(size.Height * scaling);
 
             Position = ComputePosition(placement, screen.WorkingArea, scaling, actualWidth, actualHeight);
         }
@@ -192,17 +360,16 @@ namespace EyeRest.UI.Views
         public void Reposition()
         {
             // Post to ensure SizeToContent has finished resizing the window
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                if (FrameSize.HasValue)
-                    RepositionWithActualSize(_currentPlacement);
-            }, Avalonia.Threading.DispatcherPriority.Render);
+            Avalonia.Threading.Dispatcher.UIThread.Post(
+                () => RepositionWithActualSize(_currentPlacement),
+                Avalonia.Threading.DispatcherPriority.Render);
         }
 
         public void PositionOnScreen(PopupPlacement placement = PopupPlacement.TopRight)
         {
             _pendingPlacement = placement;
             _currentPlacement = placement;
+            _positioned = true;
             var screen = GetScreenWithCursor();
             if (screen == null)
                 return;

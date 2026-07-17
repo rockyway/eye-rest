@@ -16,6 +16,13 @@ namespace EyeRest.UI.Views
             {
                 ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
             }
+            // On Linux, X11 WMs don't honor ExtendClientAreaToDecorationsHint and stack
+            // a duplicate title bar — drop server-side decorations; the custom title bar
+            // provides drag, minimize, and close.
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                SystemDecorations = SystemDecorations.None;
+            }
         }
 
         public AnalyticsWindow(AnalyticsDashboardViewModel viewModel) : this()

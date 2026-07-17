@@ -38,15 +38,17 @@
                     Background="{DynamicResource TitleBarBackground}"
                     PointerPressed="TitleBar_PointerPressed">
                 <Grid>
-                    <!-- Left: Hamburger menu (Windows only) -->
+                    <!-- Left: Hamburger menu (Windows + Linux; macOS uses the app menu) -->
                     <Button Classes="CaptionBtn"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             Margin="0,-1,0,0"
                             Height="40"
                             ToolTip.Tip="Menu"
-                            IsVisible="{OnPlatform False, Windows=True}">
-                        <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                            IsVisible="{OnPlatform False, Windows=True, Linux=True}">
+                        <TextBlock Text="{OnPlatform '&#xE700;', Linux='☰'}"
+                                   FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
+                                   FontSize="14" />
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedLeft">
                                 <MenuItem Header="About Blink Twice EyeRest" Click="AboutMenuItem_Click" />
@@ -67,19 +69,23 @@
                                    VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <!-- Right: Window control buttons (Windows only) -->
+                    <!-- Right: Window control buttons (Windows + Linux; macOS has traffic lights) -->
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
                                 Margin="0,-1,0,0"
-                                IsVisible="{OnPlatform False, Windows=True}">
+                                IsVisible="{OnPlatform False, Windows=True, Linux=True}">
                         <Button Classes="CaptionBtn" Click="MinimizeButton_Click"
                                 ToolTip.Tip="Minimize" Height="40">
-                            <TextBlock Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                            <TextBlock Text="{OnPlatform '&#xE921;', Linux='–'}"
+                                       FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
+                                       FontSize="{OnPlatform 10, Linux=15}" />
                         </Button>
                         <Button Classes="CaptionBtn CaptionCloseBtn" Click="CloseButton_Click"
                                 ToolTip.Tip="Close" Height="40">
-                            <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                            <TextBlock Text="{OnPlatform '&#xE8BB;', Linux='×'}"
+                                       FontFamily="{OnPlatform 'Segoe MDL2 Assets', Linux='Inter'}"
+                                       FontSize="{OnPlatform 10, Linux=15}" />
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -135,12 +141,9 @@
                                 <!-- Two timer cards side by side -->
                                 <Grid ColumnDefinitions="*,8,*">
 
-                                    <!-- Eye Rest Timer Card (clickable → navigates to Eye Rest config tab) -->
-                                    <Button Grid.Column="0"
-                                            Command="{Binding NavigateToConfigurationTabCommand}"
-                                            CommandParameter="0"
+                                    <!-- Eye Rest Timer Card (display-only) -->
+                                    <ContentControl Grid.Column="0"
                                             Background="Transparent" BorderThickness="0" Padding="0"
-                                            Cursor="Hand"
                                             HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding EyeRestTimerTooltip}">
                                         <Border Classes="TimerMiniCard">
@@ -172,14 +175,11 @@
                                                            HorizontalAlignment="Center" />
                                             </StackPanel>
                                         </Border>
-                                    </Button>
+                                    </ContentControl>
 
-                                    <!-- Break Timer Card (clickable → navigates to Break config tab) -->
-                                    <Button Grid.Column="2"
-                                            Command="{Binding NavigateToConfigurationTabCommand}"
-                                            CommandParameter="1"
+                                    <!-- Break Timer Card (display-only) -->
+                                    <ContentControl Grid.Column="2"
                                             Background="Transparent" BorderThickness="0" Padding="0"
-                                            Cursor="Hand"
                                             HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding BreakTimerTooltip}">
                                         <Border Classes="TimerMiniCard">
@@ -211,7 +211,7 @@
                                                            HorizontalAlignment="Center" />
                                             </StackPanel>
                                         </Border>
-                                    </Button>
+                                    </ContentControl>
 
                                 </Grid>
                             </StackPanel>
@@ -903,8 +903,30 @@
                             <!-- ============================================ -->
                             <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource EqualityConverter}, ConverterParameter=1}">
 
+                                <!-- Automatic Breaks master toggle -->
+                                <Border Classes="ToggleCard" Margin="0,0,0,16">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Border Grid.Column="0" Width="36" Height="36"
+                                                CornerRadius="10"
+                                                Background="{DynamicResource ToggleCardIconBackground}"
+                                                VerticalAlignment="Center">
+                                            <PathIcon Data="{StaticResource ClockIcon}" Width="18" Height="18"
+                                                      Foreground="{DynamicResource ToggleCardIconColor}" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Automatic Breaks" FontSize="15" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding BreakEnabled, Converter={StaticResource BoolToTextConverter}}"
+                                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{Binding BreakEnabled}"
+                                                      VerticalAlignment="Center"
+                                                      OnContent="" OffContent="" />
+                                    </Grid>
+                                </Border>
+
                                 <!-- Work Interval + Break Duration Card -->
-                                <Border Classes="GlassCard">
+                                <Border Classes="GlassCard" IsEnabled="{Binding BreakEnabled}">
                                     <StackPanel Spacing="20">
                                         <!-- Work Interval -->
                                         <Grid ColumnDefinitions="*,Auto">
@@ -961,7 +983,7 @@
                                 </Border>
 
                                 <!-- Toggle Cards: Warning + Confirmation -->
-                                <Grid ColumnDefinitions="*,*" Margin="0,0,0,16">
+                                <Grid ColumnDefinitions="*,*" Margin="0,0,0,16" IsEnabled="{Binding BreakEnabled}">
                                     <Border Grid.Column="0" Classes="ToggleCard" Margin="0,0,8,0">
                                         <Grid ColumnDefinitions="Auto,*,Auto">
                                             <Border Grid.Column="0" Width="36" Height="36"
@@ -1005,7 +1027,7 @@
                                 </Grid>
 
                                 <!-- Overlay + Warning Time + Reset Card -->
-                                <Border Classes="GlassCard">
+                                <Border Classes="GlassCard" IsEnabled="{Binding BreakEnabled}">
                                     <StackPanel Spacing="16">
                                         <!-- Overlay Opacity -->
                                         <Grid ColumnDefinitions="*,Auto">

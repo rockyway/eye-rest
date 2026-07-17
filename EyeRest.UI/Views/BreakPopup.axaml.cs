@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using EyeRest.Services;
+using EyeRest.UI.Helpers;
 
 namespace EyeRest.UI.Views
 {
@@ -415,17 +416,31 @@ namespace EyeRest.UI.Views
                 ConfirmationButton.IsVisible = true;
                 ReturnInstructionText.IsVisible = true;
 
-                // Force parent window to foreground when showing confirmation
+                // Re-surface the popup above other windows WITHOUT stealing focus.
+                // (Previously this called window.Activate() + ConfirmationButton.Focus(),
+                // which yanked the user's keyboard focus out of their active app — the
+                // reported bug.) Topmost re-asserts z-order; on macOS the popup sits at
+                // NSFloatingWindowLevel, so orderFrontRegardless re-raises it above other
+                // apps without activating us.
                 var topLevel = TopLevel.GetTopLevel(this);
                 if (topLevel is Window window)
                 {
-                    Debug.WriteLine("BreakPopup: Activating parent window");
-                    window.Activate();
-                    window.Topmost = true;
+                    Debug.WriteLine("BreakPopup: Re-surfacing parent window (focus-safe)");
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        window.Topmost = true;
+                        MacOSNativeWindowHelper.OrderFrontRegardless(window);
+                    }
+                    else
+                    {
+                        // Windows/Linux: the shell is already Topmost (PopupWindow.axaml), so a plain
+                        // Topmost=true is a no-op and wouldn't re-raise. Toggle it so Avalonia re-applies
+                        // HWND_TOPMOST (SetWindowPos with SWP_NOACTIVATE) — a real raise above other
+                        // top-level windows WITHOUT activating us or stealing focus.
+                        window.Topmost = false;
+                        window.Topmost = true;
+                    }
                 }
-
-                // Also ensure the confirmation button itself can receive focus
-                ConfirmationButton.Focus();
 
                 Debug.WriteLine("BreakPopup: Confirmation visibility ensured");
             }
@@ -443,34 +458,12 @@ namespace EyeRest.UI.Views
             StopForwardTimer();
 
             _waitingForConfirmation = false;  // Clear flag to allow window to close
-            _forceClose = true;  // Force the window to close when user confirms
+            _forceClose = true;               // CanClose() now returns true
 
-            // Directly close the parent window to ensure it actually closes
-            var topLevel = TopLevel.GetTopLevel(this);
-            if (topLevel is Window window)
-            {
-                Debug.WriteLine("BreakPopup: Directly closing parent window");
-                try
-                {
-                    // Fire the event first to notify listeners
-                    ActionSelected?.Invoke(this, BreakAction.ConfirmedAfterCompletion);
-
-                    // Then immediately close the window
-                    window.Close();
-                    Debug.WriteLine("BreakPopup: Parent window Close() called");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"BreakPopup: Error closing parent window: {ex.Message}");
-                    // Still fire the event even if close fails
-                    ActionSelected?.Invoke(this, BreakAction.ConfirmedAfterCompletion);
-                }
-            }
-            else
-            {
-                Debug.WriteLine("BreakPopup: No parent window found, just firing event");
-                ActionSelected?.Invoke(this, BreakAction.ConfirmedAfterCompletion);
-            }
+            // Fire the action; the popup factory's ActionSelected handler releases the pooled
+            // shell (ReleaseToPool). Do NOT call window.Close() here — that would destroy a shell
+            // the factory just returned to the pool and crash the next reuse (docs/plan/009 B1).
+            ActionSelected?.Invoke(this, BreakAction.ConfirmedAfterCompletion);
         }
 
         // Method to check if popup can be closed
