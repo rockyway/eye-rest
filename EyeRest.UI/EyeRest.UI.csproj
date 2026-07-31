@@ -116,4 +116,9 @@
     </Content>
   </ItemGroup>
 
+  <!-- Expose internal seams (popup shell-pool selection) to the test suite. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="EyeRest.Tests.Avalonia" />
+  </ItemGroup>
+
 </Project>

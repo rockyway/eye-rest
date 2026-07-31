@@ -51,6 +51,12 @@ namespace EyeRest.UI.Views
         private const int MaxPoolSize = 4;
         private static long s_leaseCounter;
 
+        /// <summary>
+        /// Scalings closer than this count as the same monitor scale. Windows scale factors step
+        /// in 25% increments, so anything well below 0.25 separates them safely.
+        /// </summary>
+        private const double ScalingEpsilon = 0.01;
+
         // Generation token: a deferred close from a prior cycle must not release a shell that
         // has since been re-rented for a new popup. Each Rent() assigns a fresh lease; release
         // only acts when the caller's captured lease still matches.
@@ -170,10 +176,95 @@ namespace EyeRest.UI.Views
         /// </summary>
         public static PopupWindow Rent()
         {
-            var w = s_pool.Count > 0 ? s_pool.Pop() : new PopupWindow();
+            var w = TakeShellForScaling(GetCursorMonitorScaling()) ?? new PopupWindow();
             w._lease = ++s_leaseCounter;
             w._released = false;
             return w;
+        }
+
+        /// <summary>
+        /// Pops a pooled shell that is safe to show at <paramref name="targetScaling"/>, or null
+        /// when the pool holds none and the caller must build a fresh shell.
+        ///
+        /// Avalonia establishes a window's RenderScaling when the native window is created and on
+        /// WM_DPICHANGED — which Windows does NOT deliver to a hidden window that is moved and then
+        /// re-shown. The Win32 Position setter also updates the scaling silently, without raising
+        /// ScalingChanged. A shell rented from a different-DPI monitor therefore keeps a STALE
+        /// RenderScaling and renders its content at one scale inside a frame sized for another,
+        /// clipping the content on the right and bottom. Measured on a 100%/150%/175% setup: a
+        /// pooled shell re-shown across scales rendered a 200x120 DIP marker at 338x166px inside a
+        /// 360x276px frame, while a freshly built shell on the same monitor rendered it at exactly
+        /// 300x180px. Refusing the mismatched shell keeps pooling (which exists to contain the
+        /// macOS automation-peer leak, docs/plan/009) for every same-scale reuse.
+        /// </summary>
+        private static PopupWindow? TakeShellForScaling(double? targetScaling)
+        {
+            // Scaling unknown (non-Windows, or the DPI query failed): keep plain reuse.
+            if (targetScaling is not double target)
+                return s_pool.Count > 0 ? s_pool.Pop() : null;
+
+            return TakeMatching(s_pool, static w => w.RenderScaling, target, MaxPoolSize);
+        }
+
+        /// <summary>
+        /// Pops the first pooled item whose scaling matches <paramref name="target"/>, returning any
+        /// item examined and rejected to the pool so it stays available for its own monitor.
+        /// Order is preserved. Internal for testing.
+        /// </summary>
+        internal static T? TakeMatching<T>(Stack<T> pool, Func<T, double> scalingOf, double target, int maxPoolSize)
+            where T : class
+        {
+            T? match = null;
+            var skipped = new List<T>(pool.Count);
+
+            while (pool.Count > 0)
+            {
+                var candidate = pool.Pop();
+                if (Math.Abs(scalingOf(candidate) - target) < ScalingEpsilon)
+                {
+                    match = candidate;
+                    break;
+                }
+                skipped.Add(candidate);
+            }
+
+            // Push back in reverse pop order so the pool keeps its original ordering.
+            for (var i = skipped.Count - 1; i >= 0; i--)
+            {
+                if (pool.Count < maxPoolSize)
+                    pool.Push(skipped[i]);
+            }
+
+            return match;
+        }
+
+        /// <summary>
+        /// Scaling of the monitor under the cursor — the monitor the popup is about to be shown on
+        /// (see <see cref="PositionOnScreen"/>, which places the popup there). Returns null when it
+        /// cannot be determined, in which case the caller keeps the previous unconditional reuse.
+        /// </summary>
+        private static double? GetCursorMonitorScaling()
+        {
+            if (!OperatingSystem.IsWindows())
+                return null;
+
+            try
+            {
+                if (!GetCursorPos(out var cursorPos))
+                    return null;
+
+                var monitor = MonitorFromPoint(cursorPos, MONITOR_DEFAULTTONEAREST);
+                if (monitor == IntPtr.Zero)
+                    return null;
+
+                return GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0
+                    ? dpiX / 96.0
+                    : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -476,6 +567,15 @@ namespace EyeRest.UI.Views
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetCursorPos(out POINT lpPoint);
+
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+        private const int MDT_EFFECTIVE_DPI = 0;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+        [DllImport("shcore.dll")]
+        private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 
         private Screen? GetScreenWithCursorWindows()
         {
