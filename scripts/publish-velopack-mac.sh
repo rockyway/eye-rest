@@ -27,7 +27,11 @@ if [ -d "/opt/homebrew/Cellar/dotnet@9" ]; then
     DOTNET9_DIR="$(ls -d /opt/homebrew/Cellar/dotnet@9/*/libexec 2>/dev/null | head -1)"
     if [ -n "$DOTNET9_DIR" ]; then
         # A real net9 runtime: use it and drop the roll-forward for vpk only.
-        VPK_DOTNET_ENV=(env "DOTNET_ROOT=$DOTNET9_DIR" "PATH=$DOTNET9_DIR:$PATH" "DOTNET_ROLL_FORWARD=Disable")
+        # NOLOGO/first-run-experience off: this SDK may never have been used before, and its
+        # welcome banner pollutes the build log.
+        VPK_DOTNET_ENV=(env "DOTNET_ROOT=$DOTNET9_DIR" "PATH=$DOTNET9_DIR:$PATH" \
+                        "DOTNET_ROLL_FORWARD=Disable" "DOTNET_NOLOGO=1" \
+                        "DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1")
     fi
 fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -109,12 +113,15 @@ fi
 # dotnet tool. eye-rest must use the vpk matching its Velopack NuGet or auto-update silently
 # breaks, while other projects on the same machine need other versions -- and there is only one
 # global slot. Running from PROJECT_ROOT is what lets the manifest resolve.
-dotnet tool restore --tool-manifest "$PROJECT_ROOT/.config/dotnet-tools.json"
 if [ ${#VPK_DOTNET_ENV[@]} -gt 0 ]; then
     echo "    vpk runtime  : ${DOTNET9_DIR} (real .NET 9)"
 else
     echo "    vpk runtime  : roll-forward (no .NET 9 found) -- see docs/troubleshooting/010"
 fi
+# The restore MUST run under the same SDK that will run the tool: each dotnet install has its own
+# tool store, so restoring with the system SDK leaves the .NET 9 one reporting
+# 'Run "dotnet tool restore" to make the "vpk" command available.'
+(cd "$PROJECT_ROOT" && "${VPK_DOTNET_ENV[@]}" dotnet tool restore --tool-manifest "$PROJECT_ROOT/.config/dotnet-tools.json")
 (cd "$PROJECT_ROOT" && "${VPK_DOTNET_ENV[@]}" dotnet vpk "${VPK_ARGS[@]}")
 
 # Summary
