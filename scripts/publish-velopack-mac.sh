@@ -60,6 +60,11 @@ RELEASES_DIR="$PROJECT_ROOT/releases"
 # Optional signing (set env vars to enable)
 SIGN_APP="${SIGNING_IDENTITY:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
+# Signs the .pkg installer. This is a DIFFERENT certificate from SIGNING_IDENTITY: the .app needs
+# "Developer ID Application", the .pkg needs "Developer ID Installer". Without it vpk still emits
+# a .pkg, but an unsigned one -- `spctl` reports "no usable signature" and Gatekeeper blocks it on
+# any other Mac, which is why earlier releases shipped the Portable zip only.
+SIGN_INSTALLER="${INSTALLER_SIGNING_IDENTITY:-}"
 
 echo "=== Blink Twice EyeRest Velopack Publish (macOS) ==="
 echo "  Version:  $VERSION"
@@ -109,8 +114,18 @@ fi
 if [ -n "$SIGN_APP" ]; then
     VPK_ARGS+=(--signAppIdentity "$SIGN_APP")
 fi
+if [ -n "$SIGN_INSTALLER" ]; then
+    VPK_ARGS+=(--signInstallIdentity "$SIGN_INSTALLER")
+fi
 if [ -n "$NOTARY_PROFILE" ]; then
     VPK_ARGS+=(--notaryProfile "$NOTARY_PROFILE")
+fi
+
+# Signing the app but not the installer produces a .pkg that Gatekeeper rejects on every machine
+# except this one. Fail loudly rather than silently shipping it (vpk only logs a warning).
+if [ -n "$SIGN_APP" ] && [ -z "$SIGN_INSTALLER" ]; then
+    echo "    WARNING: INSTALLER_SIGNING_IDENTITY is unset - the .pkg will be UNSIGNED." >&2
+    echo "             Set it to 'Developer ID Installer: ...' or exclude the .pkg at upload." >&2
 fi
 
 # vpk comes from THIS repo's local tool manifest (.config/dotnet-tools.json), not the global
