@@ -93,10 +93,13 @@ function collectFiles(version) {
   // These are byte-identical to the GitHub release assets and are mirrored under the SAME
   // names, so dl.eyerest.net/latest/<asset> is a drop-in fallback for
   // github.com/rockyway/eye-rest/releases/latest/download/<asset> for users who can't reach
-  // GitHub. Only the three assets the download page offers are mirrored — the bucket has a
+  // GitHub. Only the assets the download page offers are mirrored — the bucket has a
   // 9.5 GB cap and every file is written twice (v{version}/ and latest/).
   const velopackMirror = [
     { file: "EyeRest-win-Setup.exe", type: "application/octet-stream" },
+    // Signed + notarized installer, the primary macOS download since v1.6.1. The Portable zip
+    // stays mirrored as the drag-and-drop alternative.
+    { file: "EyeRest-osx-Setup.pkg", type: "application/octet-stream" },
     { file: "EyeRest-osx-Portable.zip", type: "application/zip" },
     { file: "EyeRest.AppImage", type: "application/octet-stream" },
   ];
