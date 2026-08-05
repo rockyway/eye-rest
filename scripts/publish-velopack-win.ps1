@@ -112,9 +112,23 @@ if ($AzureTrustedSignFile -ne "") {
     Write-Host '         or pass -AzureTrustedSignFile or -SignParams'
 }
 
-$vpkPath = Join-Path $env:USERPROFILE ".dotnet\tools\vpk.exe"
-if (-not (Test-Path $vpkPath)) { $vpkPath = "vpk" }
-& $vpkPath @VpkArgs
+# vpk comes from THIS repo's local tool manifest (.config\dotnet-tools.json), not the global
+# dotnet tool. eye-rest must use the vpk matching its Velopack NuGet or auto-update silently
+# breaks, while other projects on the same machine need other versions -- and there is only one
+# global slot. Running from $SolutionRoot is what lets the manifest resolve.
+$env:DOTNET_ROLL_FORWARD = "LatestMajor"   # vpk targets an SDK that may not be installed here
+dotnet tool restore --tool-manifest "$SolutionRoot\.config\dotnet-tools.json"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "dotnet tool restore failed - cannot resolve the pinned vpk"
+    exit 1
+}
+
+Push-Location $SolutionRoot
+try {
+    & dotnet vpk @VpkArgs
+} finally {
+    Pop-Location
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Error "vpk pack failed"
     exit 1

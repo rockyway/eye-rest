@@ -86,7 +86,12 @@ if [ -n "$NOTARY_PROFILE" ]; then
     VPK_ARGS+=(--notaryProfile "$NOTARY_PROFILE")
 fi
 
-vpk "${VPK_ARGS[@]}"
+# vpk comes from THIS repo's local tool manifest (.config/dotnet-tools.json), not the global
+# dotnet tool. eye-rest must use the vpk matching its Velopack NuGet or auto-update silently
+# breaks, while other projects on the same machine need other versions -- and there is only one
+# global slot. Running from PROJECT_ROOT is what lets the manifest resolve.
+dotnet tool restore --tool-manifest "$PROJECT_ROOT/.config/dotnet-tools.json"
+(cd "$PROJECT_ROOT" && dotnet vpk "${VPK_ARGS[@]}")
 
 # Summary
 echo ""

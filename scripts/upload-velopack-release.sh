@@ -33,7 +33,12 @@ echo "  Repo:    $REPO_URL"
 
 : "${GITHUB_TOKEN:?Set GITHUB_TOKEN env var (PAT with contents:write)}"
 
-vpk upload github \
+# vpk comes from THIS repo's local tool manifest (.config/dotnet-tools.json), not the global
+# dotnet tool -- see the publish scripts for why. Running from PROJECT_ROOT resolves it.
+dotnet tool restore --tool-manifest "$PROJECT_ROOT/.config/dotnet-tools.json"
+cd "$PROJECT_ROOT"
+
+dotnet vpk upload github \
     --repoUrl "$REPO_URL" \
     --tag "v$VERSION" \
     --releaseName "Blink Twice EyeRest $VERSION" \
