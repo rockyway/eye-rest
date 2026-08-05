@@ -2,7 +2,9 @@
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
-[Rr]eleases/
+# Anchored to the repo root: this is the Velopack artifact output dir. Unanchored it also
+# matched docs/releases/, which silently kept every release NOTE out of version control.
+/[Rr]eleases/
 x64/
 x86/
 [Ww][Ii][Nn]32/
