@@ -49,8 +49,11 @@ this is a maintenance update with no behaviour changes.
 ## Install & Update
 
 - **New install:** download for your platform from the release assets below — Windows
-  (`EyeRest-win-Setup.exe`), macOS (`EyeRest-osx-Portable.zip`), Linux (`EyeRest.AppImage`) — or
+  (`EyeRest-win-Setup.exe`), macOS (`EyeRest-osx-Setup.pkg`), Linux (`EyeRest.AppImage`) — or
   from https://eyerest.net.
+- **macOS now has a proper signed installer.** `EyeRest-osx-Setup.pkg` is signed and notarised by
+  Apple, so it installs without Gatekeeper warnings — just double-click it. The drag-and-drop
+  `EyeRest-osx-Portable.zip` is still there if you prefer it.
 - **Existing users:** the app updates itself — open **About → Check for Updates**, or it updates
   silently on next launch.
 
