@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Avalonia;
+using Avalonia.Win32;
 
 namespace EyeRest.UI;
 
@@ -103,6 +104,28 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // Windows: force software rendering. UsePlatformDetect() otherwise picks a
+            // GPU path (Skia over ANGLE/D3D or WGL) whose render surface is invalidated by a
+            // sleep/resume GPU device reset — and, less often, by a cross-adapter/DPI move.
+            // Avalonia has no hook to detect that and recreate the surface, so it keeps
+            // presenting into a dead one: DWM-drawn chrome survives while everything the app
+            // paints itself goes fully transparent, silently, with no exception logged.
+            // Every EyeRest window is SystemDecorations="None" / TransparencyLevelHint="Transparent"
+            // with the visible UI painted by inner Borders, so the failure takes the whole
+            // window with it — and this app is expected to sit in the tray across many
+            // sleep/wake cycles, which is exactly the trigger.
+            //
+            // Listing hardware modes first with Software as a fallback does NOT help: the
+            // fallback list only decides what is chosen at startup, and Avalonia still cannot
+            // recover a surface invalidated later at runtime. Only unconditional Software
+            // removes the failure mode. The cost is acceptable here — the UI is flat borders,
+            // linear gradients and text, with no blur, box-shadow or opacity-mask anywhere.
+            // No-op on macOS/Linux, which read their own platform options.
+            // See docs/troubleshooting/008-window-transparent-after-sleep-wake.md
+            .With(new Win32PlatformOptions
+            {
+                RenderingMode = new[] { Win32RenderingMode.Software }
+            })
             .WithInterFont()
             .LogToTrace();
 
