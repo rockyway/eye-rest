@@ -9,8 +9,27 @@ set -euo pipefail
 # Example: ./publish-velopack-mac.sh 1.0.3    # explicit override
 # ──────────────────────────────────────────────
 
-# Allow vpk (net9 tool) to run on .NET 10 without needing .NET 9 installed
+# Applies to `dotnet publish` below, which builds net8.0 with whatever SDK is installed.
 export DOTNET_ROLL_FORWARD=LatestMajor
+
+# vpk is a net9 tool and gets its own runtime, resolved just before it runs (see VPK_DOTNET_ENV
+# at the pack step). Do NOT export DOTNET_ROOT here: it would also redirect `dotnet publish`
+# onto a different SDK and change how the shipped binary is built.
+#
+# Why this matters: on this build host (macOS 26.5.2, runtimes 8 + 10, NO 9) vpk running under
+# LatestMajor was SIGKILLed 6 times at varying stages -- post-process, notarize, codesign -- with
+# no crash report, no jetsam entry, gigabytes free and a fresh reboot. notarytool then aborted on
+# EPIPE writing into the dead process's pipe, which made it look like a notarization fault.
+# rephlo-desktop builds reliably on this same Mac because it runs vpk on the Homebrew .NET 9.
+# See docs/troubleshooting/010.
+VPK_DOTNET_ENV=()
+if [ -d "/opt/homebrew/Cellar/dotnet@9" ]; then
+    DOTNET9_DIR="$(ls -d /opt/homebrew/Cellar/dotnet@9/*/libexec 2>/dev/null | head -1)"
+    if [ -n "$DOTNET9_DIR" ]; then
+        # A real net9 runtime: use it and drop the roll-forward for vpk only.
+        VPK_DOTNET_ENV=(env "DOTNET_ROOT=$DOTNET9_DIR" "PATH=$DOTNET9_DIR:$PATH" "DOTNET_ROLL_FORWARD=Disable")
+    fi
+fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
@@ -91,7 +110,12 @@ fi
 # breaks, while other projects on the same machine need other versions -- and there is only one
 # global slot. Running from PROJECT_ROOT is what lets the manifest resolve.
 dotnet tool restore --tool-manifest "$PROJECT_ROOT/.config/dotnet-tools.json"
-(cd "$PROJECT_ROOT" && dotnet vpk "${VPK_ARGS[@]}")
+if [ ${#VPK_DOTNET_ENV[@]} -gt 0 ]; then
+    echo "    vpk runtime  : ${DOTNET9_DIR} (real .NET 9)"
+else
+    echo "    vpk runtime  : roll-forward (no .NET 9 found) -- see docs/troubleshooting/010"
+fi
+(cd "$PROJECT_ROOT" && "${VPK_DOTNET_ENV[@]}" dotnet vpk "${VPK_ARGS[@]}")
 
 # Summary
 echo ""
