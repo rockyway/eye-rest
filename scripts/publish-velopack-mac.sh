@@ -29,8 +29,12 @@ if [ -d "/opt/homebrew/Cellar/dotnet@9" ]; then
         # A real net9 runtime: use it and drop the roll-forward for vpk only.
         # NOLOGO/first-run-experience off: this SDK may never have been used before, and its
         # welcome banner pollutes the build log.
+        # LatestPatch, not Disable: vpk asks for 9.0.0 and Homebrew ships 9.0.13, so disabling
+        # roll-forward entirely fails with "You must install or update .NET to run this
+        # application". LatestPatch keeps it inside major 9 -- which is the whole point -- while
+        # still allowing the patch bump.
         VPK_DOTNET_ENV=(env "DOTNET_ROOT=$DOTNET9_DIR" "PATH=$DOTNET9_DIR:$PATH" \
-                        "DOTNET_ROLL_FORWARD=Disable" "DOTNET_NOLOGO=1" \
+                        "DOTNET_ROLL_FORWARD=LatestPatch" "DOTNET_NOLOGO=1" \
                         "DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1")
     fi
 fi
