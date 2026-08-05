@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -334,6 +335,55 @@ public partial class MainWindow : Window
     {
         DimOverlay.IsVisible = false;
         Background = _savedBackground ?? Brushes.Transparent;
+    }
+
+    private TaskCompletionSource<bool>? _confirmCompletion;
+
+    /// <summary>
+    /// Shows the in-window confirmation prompt and completes with the user's answer. Replaces the
+    /// former top-level ConfirmDialog window, whose separate HWND inherited the primary monitor's
+    /// render scale and rendered unusable on a mixed-DPI setup — see docs/troubleshooting/009.
+    /// The prompt carries its own dim, so callers must not also use ShowDimOverlay.
+    /// </summary>
+    public Task<bool> ShowConfirmAsync(string message)
+    {
+        // Both call sites are buttons inside this window, so a prompt should never already be
+        // open — but never leave an earlier caller awaiting a task that can no longer complete.
+        _confirmCompletion?.TrySetResult(false);
+
+        ConfirmMessageText.Text = message;
+        _confirmCompletion = new TaskCompletionSource<bool>();
+        ConfirmOverlay.IsVisible = true;
+        ConfirmYesButton.Focus();
+        return _confirmCompletion.Task;
+    }
+
+    private void CompleteConfirm(bool result)
+    {
+        if (_confirmCompletion is null)
+            return;
+
+        ConfirmOverlay.IsVisible = false;
+        var completion = _confirmCompletion;
+        _confirmCompletion = null;
+        completion.TrySetResult(result);
+    }
+
+    private void ConfirmYes_Click(object? sender, RoutedEventArgs e) => CompleteConfirm(true);
+
+    private void ConfirmNo_Click(object? sender, RoutedEventArgs e) => CompleteConfirm(false);
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        // Preserves the ESC-to-cancel behaviour the ConfirmDialog window had.
+        if (e.Key == Key.Escape && _confirmCompletion is not null)
+        {
+            CompleteConfirm(false);
+            e.Handled = true;
+            return;
+        }
+
+        base.OnKeyDown(e);
     }
 
     protected override void OnClosed(EventArgs e)

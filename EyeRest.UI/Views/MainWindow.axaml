@@ -1916,6 +1916,96 @@
                     IsVisible="False"
                     IsHitTestVisible="False" />
 
+            <!-- In-window confirmation prompt. Replaces the former top-level ConfirmDialog
+                 window: Win32 creates that window's HWND on the PRIMARY monitor and only then
+                 centres it on the owner, and Avalonia never rebuilds the render surface for the
+                 new monitor's scale (the Position setter updates scaling silently, so
+                 ScalingChanged never fires). On a mixed-DPI setup the card therefore painted at
+                 the primary's scale inside a frame sized for the owner's, putting the Yes/No
+                 buttons outside the frame entirely — the prompt could not be accepted at all.
+                 An overlay has no HWND of its own, so it always paints at this window's own,
+                 always-correct scale. See docs/troubleshooting/009. -->
+            <Border Name="ConfirmOverlay"
+                    Grid.RowSpan="2"
+                    Background="#BF000000"
+                    IsVisible="False">
+                <!-- Mesh gradient clipped to card shape -->
+                <Border Background="{DynamicResource MeshGradientBrush}"
+                        CornerRadius="20"
+                        ClipToBounds="True"
+                        MaxWidth="420"
+                        Margin="16"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <!-- Glass overlay fills entire card -->
+                    <Border Background="{DynamicResource GlassCardBackground}"
+                            BorderBrush="{DynamicResource GlassCardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="20"
+                            Padding="28,24">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="16">
+                            <!-- Icon Circle -->
+                            <Border Width="48" Height="48"
+                                    CornerRadius="24"
+                                    Background="{DynamicResource WarningIconCircle}"
+                                    HorizontalAlignment="Center">
+                                <PathIcon Data="{DynamicResource QuestionIcon}"
+                                          Width="24" Height="24"
+                                          Foreground="{DynamicResource WarningBrush}" />
+                            </Border>
+
+                            <!-- Message -->
+                            <TextBlock Name="ConfirmMessageText"
+                                       Text="Are you sure?"
+                                       FontSize="15"
+                                       TextWrapping="Wrap"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       MaxWidth="340" />
+
+                            <!-- Buttons -->
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="12">
+                                <Button Name="ConfirmYesButton"
+                                        Classes="GradientStart"
+                                        Width="110"
+                                        Cursor="Hand"
+                                        Click="ConfirmYes_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="{DynamicResource CheckCircleIcon}"
+                                                  Width="14" Height="14" />
+                                        <TextBlock Text="Yes"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Name="ConfirmNoButton"
+                                        Classes="ActionBtn"
+                                        Width="110"
+                                        Cursor="Hand"
+                                        Click="ConfirmNo_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <PathIcon Data="{DynamicResource CloseIcon}"
+                                                  Width="12" Height="12" />
+                                        <TextBlock Text="No"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- Hint -->
+                            <TextBlock Text="Press ESC to cancel"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource ContentSubtitleText}"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Border>
+            </Border>
+
         </Grid>
     </Border>
 </Window>

@@ -3287,31 +3287,22 @@ namespace EyeRest.UI.ViewModels
 
         private static async Task<bool> ShowConfirmationDialogAsync(string title, string message)
         {
-            var topLevel = GetTopLevel();
-            if (topLevel is not Avalonia.Controls.Window parentWindow)
+            if (GetTopLevel() is not Views.MainWindow mainWindow)
                 return true; // If no window, proceed without confirmation
 
-            var dialog = new Views.ConfirmDialog(title, message);
-            var mainWindow = parentWindow as Views.MainWindow;
-
-            if (mainWindow != null && mainWindow.IsHiddenToTray)
+            // The prompt is rendered inside MainWindow (see MainWindow.ShowConfirmAsync), so the
+            // window has to be on screen for the user to answer it. Both callers are buttons in
+            // this window, so it already is — but a prompt behind a hidden window would hang the
+            // await forever, so surface it rather than rely on that.
+            if (mainWindow.IsHiddenToTray || !mainWindow.IsVisible)
             {
-                await dialog.ShowDialog<object?>(null!);
-            }
-            else
-            {
-                mainWindow?.ShowDimOverlay();
-                try
-                {
-                    await dialog.ShowDialog(parentWindow);
-                }
-                finally
-                {
-                    mainWindow?.HideDimOverlay();
-                }
+                mainWindow.Show();
+                mainWindow.Activate();
+                mainWindow.IsHiddenToTray = false;
             }
 
-            return dialog.DialogResult;
+            // The overlay carries its own dim, so no ShowDimOverlay/HideDimOverlay pairing here.
+            return await mainWindow.ShowConfirmAsync(message);
         }
 
         #endregion
