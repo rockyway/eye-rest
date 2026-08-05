@@ -41,13 +41,8 @@ change applies to only one.
 
 ## Platforms in this release
 
-Every fix above is **Windows-only**, so this is a Windows and Linux update:
-
-- **Windows** — updates to 1.6.1 with all the fixes above.
-- **Linux** — updates to 1.6.1 (no behaviour changes; rebuilt from the same source).
-- **macOS** — **stays on 1.6.0.** Nothing in this release affects macOS, so there is nothing to
-  update to. The macOS download below is the current 1.6.0 build and Check for Updates will
-  correctly report that you are already up to date.
+All three platforms update to 1.6.1. The fixes above are **Windows-only**, so on macOS and Linux
+this is a maintenance update with no behaviour changes.
 
 ---
 
