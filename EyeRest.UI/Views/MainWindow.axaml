@@ -840,6 +840,20 @@
                                             </Border>
                                         </Grid>
 
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
+                                                    Background="{DynamicResource ToggleCardIconBackground}">
+                                                <PathIcon Data="{StaticResource VisibilityIcon}" Width="16" Height="16"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="Compact Mode" Margin="12,0,0,0"
+                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding EyeRestCompactMode}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+
                                         <!-- Popup Position -->
                                         <StackPanel Spacing="2">
                                             <TextBlock Text="Popup Position" FontSize="14" FontWeight="SemiBold" />
@@ -1029,8 +1043,37 @@
                                 <!-- Overlay + Warning Time + Reset Card -->
                                 <Border Classes="GlassCard" IsEnabled="{Binding BreakEnabled}">
                                     <StackPanel Spacing="16">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
+                                                    Background="{DynamicResource ToggleCardIconBackground}">
+                                                <PathIcon Data="{StaticResource VisibilityIcon}" Width="16" Height="16"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="Show Overlay" Margin="12,0,0,0"
+                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding BreakOverlayEnabled}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
+                                                    Background="{DynamicResource ToggleCardIconBackground}">
+                                                <PathIcon Data="{StaticResource VisibilityIcon}" Width="16" Height="16"
+                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="Compact Mode" Margin="12,0,0,0"
+                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <ToggleSwitch Grid.Column="2"
+                                                          IsChecked="{Binding BreakCompactMode}"
+                                                          VerticalAlignment="Center"
+                                                          OnContent="" OffContent="" />
+                                        </Grid>
+
                                         <!-- Overlay Opacity -->
-                                        <Grid ColumnDefinitions="*,Auto">
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              IsEnabled="{Binding BreakOverlayEnabled}">
                                             <StackPanel Grid.Column="0" Spacing="2">
                                                 <TextBlock Text="Overlay Opacity" FontSize="14" FontWeight="SemiBold" />
                                                 <Slider Minimum="0" Maximum="100"

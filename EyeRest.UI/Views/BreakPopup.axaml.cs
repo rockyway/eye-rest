@@ -26,6 +26,23 @@ namespace EyeRest.UI.Views
 
         public event EventHandler<BreakAction>? ActionSelected;
 
+        private const double CompactScale = 0.6;
+
+        /// <summary>
+        /// Shrinks the whole popup (layout included) so it is less intrusive while working.
+        /// Call before the popup is shown; safe to call once per instance.
+        /// </summary>
+        public void ApplyCompactMode()
+        {
+            if (Content is not Control inner || inner.Parent is LayoutTransformControl) return;
+            Content = null;
+            Content = new LayoutTransformControl
+            {
+                LayoutTransform = new ScaleTransform(CompactScale, CompactScale),
+                Child = inner
+            };
+        }
+
         /// <summary>
         /// Fired the instant the break countdown reaches zero — i.e. when the
         /// popup transitions to the green "Break Complete" state. Distinct from
