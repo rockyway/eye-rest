@@ -43,6 +43,9 @@ namespace EyeRest.UI.ViewModels
         private bool _eyeRestWarningEnabled = true;
         private int _eyeRestWarningSeconds = 15;
         private bool _eyeRestOverlayEnabled = true;
+        private bool _eyeRestCompactMode;
+        private bool _breakOverlayEnabled = true;
+        private bool _breakCompactMode;
         private int _eyeRestOverlayOpacityPercent = 50;
         private PopupPosition _eyeRestPopupPosition = PopupPosition.TopRight;
 
@@ -400,6 +403,19 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
+        public bool EyeRestCompactMode
+        {
+            get => _eyeRestCompactMode;
+            set
+            {
+                if (SetProperty(ref _eyeRestCompactMode, value) && !_isLoadingConfiguration)
+                {
+                    _pendingTimerChanges.Add(nameof(EyeRestCompactMode));
+                    DebouncedSaveTimerSetting();
+                }
+            }
+        }
+
         public int EyeRestOverlayOpacityPercent
         {
             get => _eyeRestOverlayOpacityPercent;
@@ -506,6 +522,32 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _breakWarningSeconds, value) && !_isLoadingConfiguration)
                 {
                     _pendingTimerChanges.Add(nameof(BreakWarningSeconds));
+                    DebouncedSaveTimerSetting();
+                }
+            }
+        }
+
+        public bool BreakOverlayEnabled
+        {
+            get => _breakOverlayEnabled;
+            set
+            {
+                if (SetProperty(ref _breakOverlayEnabled, value) && !_isLoadingConfiguration)
+                {
+                    _pendingTimerChanges.Add(nameof(BreakOverlayEnabled));
+                    DebouncedSaveTimerSetting();
+                }
+            }
+        }
+
+        public bool BreakCompactMode
+        {
+            get => _breakCompactMode;
+            set
+            {
+                if (SetProperty(ref _breakCompactMode, value) && !_isLoadingConfiguration)
+                {
+                    _pendingTimerChanges.Add(nameof(BreakCompactMode));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -1424,6 +1466,9 @@ namespace EyeRest.UI.ViewModels
             EyeRestOverlayEnabled = _configuration.EyeRest.OverlayEnabled;
             EyeRestOverlayOpacityPercent = _configuration.EyeRest.OverlayOpacityPercent;
             EyeRestPopupPosition = _configuration.EyeRest.PopupPosition;
+            EyeRestCompactMode = _configuration.EyeRest.CompactMode;
+            BreakOverlayEnabled = _configuration.Break.OverlayEnabled;
+            BreakCompactMode = _configuration.Break.CompactMode;
 
             // Break
             BreakEnabled = _configuration.Break.Enabled;
@@ -3075,6 +3120,12 @@ namespace EyeRest.UI.ViewModels
                         config.EyeRest.OverlayOpacityPercent = EyeRestOverlayOpacityPercent;
                     if (changed.Contains(nameof(EyeRestPopupPosition)))
                         config.EyeRest.PopupPosition = EyeRestPopupPosition;
+                    if (changed.Contains(nameof(EyeRestCompactMode)))
+                        config.EyeRest.CompactMode = EyeRestCompactMode;
+                    if (changed.Contains(nameof(BreakOverlayEnabled)))
+                        config.Break.OverlayEnabled = BreakOverlayEnabled;
+                    if (changed.Contains(nameof(BreakCompactMode)))
+                        config.Break.CompactMode = BreakCompactMode;
                     if (changed.Contains(nameof(BreakEnabled)))
                         config.Break.Enabled = BreakEnabled;
                     if (changed.Contains(nameof(BreakIntervalMinutes)))

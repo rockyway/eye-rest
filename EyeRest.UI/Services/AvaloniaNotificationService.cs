@@ -179,6 +179,8 @@ namespace EyeRest.Services
                         ShowDimOverlays(config.EyeRest.OverlayOpacityPercent);
 
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestPopup();
+                    if (config.EyeRest.CompactMode && myPopup.PopupContent is EyeRestPopup compactEyeRest)
+                        compactEyeRest.ApplyCompactMode();
                     myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(MapPlacement(config.EyeRest.PopupPosition));
@@ -362,9 +364,12 @@ namespace EyeRest.Services
                     {
                         _logger.LogInformation("TEST MODE: Showing isolated break reminder popup for {Duration}", duration);
 
-                        ShowDimOverlays(config.Break.OverlayOpacityPercent);
+                        if (config.Break.OverlayEnabled)
+                            ShowDimOverlays(config.Break.OverlayOpacityPercent);
 
                         testPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                        if (config.Break.CompactMode && testPopup.PopupContent is BreakPopup compactTestBreak)
+                            compactTestBreak.ApplyCompactMode();
                         testLease = testPopup.Lease;
                         testPopup.PositionOnScreen(PopupPlacement.Center);
                         testPopup.Show();
@@ -429,9 +434,12 @@ namespace EyeRest.Services
                     IsBreakActive = true;
 
                     CloseCurrentPopup();
-                    ShowDimOverlays(config.Break.OverlayOpacityPercent);
+                    if (config.Break.OverlayEnabled)
+                        ShowDimOverlays(config.Break.OverlayOpacityPercent);
 
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakPopup();
+                    if (config.Break.CompactMode && myPopup.PopupContent is BreakPopup compactBreak)
+                        compactBreak.ApplyCompactMode();
                     myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.Center);

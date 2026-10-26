@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 
 namespace EyeRest.UI.Views
@@ -15,6 +16,23 @@ namespace EyeRest.UI.Views
         private Window? _parentWindow;
 
         public event EventHandler? Completed;
+
+        private const double CompactScale = 0.6;
+
+        /// <summary>
+        /// Shrinks the whole popup (layout included) so it is less intrusive while working.
+        /// Call before the popup is shown; safe to call once per instance.
+        /// </summary>
+        public void ApplyCompactMode()
+        {
+            if (Content is not Control inner || inner.Parent is LayoutTransformControl) return;
+            Content = null;
+            Content = new LayoutTransformControl
+            {
+                LayoutTransform = new ScaleTransform(CompactScale, CompactScale),
+                Child = inner
+            };
+        }
 
         public EyeRestPopup()
         {
