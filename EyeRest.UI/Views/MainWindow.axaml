@@ -840,19 +840,18 @@
                                             </Border>
                                         </Grid>
 
-                                        <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
-                                                    Background="{DynamicResource ToggleCardIconBackground}">
-                                                <PathIcon Data="{StaticResource VisibilityIcon}" Width="16" Height="16"
-                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
-                                            </Border>
-                                            <TextBlock Grid.Column="1" Text="Compact Mode" Margin="12,0,0,0"
-                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                            <ToggleSwitch Grid.Column="2"
-                                                          IsChecked="{Binding EyeRestCompactMode}"
-                                                          VerticalAlignment="Center"
-                                                          OnContent="" OffContent="" />
-                                        </Grid>
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="Popup Size" FontSize="14" FontWeight="SemiBold" />
+                                            <ComboBox ItemsSource="{Binding PopupDisplayModeOptions}"
+                                                      SelectedItem="{Binding EyeRestDisplayMode}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={x:Static converters:PopupDisplayModeToLabelConverter.Instance}}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
 
                                         <!-- Popup Position -->
                                         <StackPanel Spacing="2">
@@ -1057,19 +1056,18 @@
                                                           OnContent="" OffContent="" />
                                         </Grid>
 
-                                        <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
-                                                    Background="{DynamicResource ToggleCardIconBackground}">
-                                                <PathIcon Data="{StaticResource VisibilityIcon}" Width="16" Height="16"
-                                                          Foreground="{DynamicResource ToggleCardIconColor}" />
-                                            </Border>
-                                            <TextBlock Grid.Column="1" Text="Compact Mode" Margin="12,0,0,0"
-                                                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                            <ToggleSwitch Grid.Column="2"
-                                                          IsChecked="{Binding BreakCompactMode}"
-                                                          VerticalAlignment="Center"
-                                                          OnContent="" OffContent="" />
-                                        </Grid>
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="Popup Size" FontSize="14" FontWeight="SemiBold" />
+                                            <ComboBox ItemsSource="{Binding PopupDisplayModeOptions}"
+                                                      SelectedItem="{Binding BreakDisplayMode}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={x:Static converters:PopupDisplayModeToLabelConverter.Instance}}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
 
                                         <!-- Overlay Opacity -->
                                         <Grid ColumnDefinitions="*,Auto"

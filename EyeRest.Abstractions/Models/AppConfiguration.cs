@@ -41,8 +41,8 @@ namespace EyeRest.Models
         // Default TopRight preserves the previously hardcoded placement.
         public PopupPosition PopupPosition { get; set; } = PopupPosition.TopRight;
 
-        // Smaller, less intrusive reminder popup.
-        public bool CompactMode { get; set; } = false;
+        // Standard / Compact / Minimal (small notification-style) reminder popup.
+        public PopupDisplayMode DisplayMode { get; set; } = PopupDisplayMode.Standard;
     }
 
     public class BreakSettings
@@ -58,7 +58,7 @@ namespace EyeRest.Models
         public int WarningSeconds { get; set; } = 30;
         public bool OverlayEnabled { get; set; } = true; // When false, the break popup shows without dimming the screen
         public int OverlayOpacityPercent { get; set; } = 50; // Screen overlay opacity (0-100%)
-        public bool CompactMode { get; set; } = false; // Smaller, less intrusive break popup
+        public PopupDisplayMode DisplayMode { get; set; } = PopupDisplayMode.Standard; // Standard / Compact / Minimal break popup
         public bool RequireConfirmationAfterBreak { get; set; } = true; // Keep popup open until user confirms completion
         public bool ResetTimersOnBreakConfirmation { get; set; } = true; // Start fresh session after break confirmation
         public int MaxBreakDelayCount { get; set; } = 3; // Maximum consecutive delays before break is forced (0 = unlimited)

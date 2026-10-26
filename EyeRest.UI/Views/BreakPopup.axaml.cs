@@ -26,31 +26,18 @@ namespace EyeRest.UI.Views
 
         public event EventHandler<BreakAction>? ActionSelected;
 
-        private const double CompactScale = 0.6;
+        private bool _isMinimal;
 
         /// <summary>
-        /// Shrinks the whole popup (layout included) so it is less intrusive while working.
-        /// Call before the popup is shown; safe to call once per instance.
+        /// Switches the popup between Standard / Compact / Minimal layouts (style classes on the root).
+        /// Call before the popup is shown.
         /// </summary>
-        public void ApplyCompactMode()
+        public void ApplyDisplayMode(EyeRest.Models.PopupDisplayMode mode)
         {
-            if (Content is not Control inner || inner.Parent is LayoutTransformControl) return;
-            Content = null;
-            Content = new LayoutTransformControl
-            {
-                LayoutTransform = new ScaleTransform(CompactScale, CompactScale),
-                Child = inner
-            };
+            _isMinimal = mode == EyeRest.Models.PopupDisplayMode.Minimal;
+            Root.Classes.Set("compact", mode == EyeRest.Models.PopupDisplayMode.Compact);
+            Root.Classes.Set("minimal", _isMinimal);
         }
-
-        /// <summary>
-        /// Fired the instant the break countdown reaches zero — i.e. when the
-        /// popup transitions to the green "Break Complete" state. Distinct from
-        /// the popup-close path and from <see cref="ActionSelected"/> so callers
-        /// can react to the natural-end moment (e.g. play BreakEnd audio) without
-        /// waiting for the user to click Done / Skip / X-close.
-        /// </summary>
-        public event EventHandler? CountdownCompleted;
 
         public BreakPopup()
         {
@@ -235,7 +222,7 @@ namespace EyeRest.UI.Views
                 // Show confirmation button and wait for user to click it
                 _waitingForConfirmation = true;
                 ConfirmationButton.IsVisible = true;
-                ReturnInstructionText.IsVisible = true;
+                ReturnInstructionText.IsVisible = !_isMinimal;
 
                 Debug.WriteLine("BreakPopup: RequireConfirmationAfterBreak enabled - showing confirmation UI and waiting for user to click");
                 Debug.WriteLine("BreakPopup: _waitingForConfirmation=true - popup MUST NOT AUTO-CLOSE");
@@ -431,7 +418,7 @@ namespace EyeRest.UI.Views
 
                 // Make sure UI elements are visible
                 ConfirmationButton.IsVisible = true;
-                ReturnInstructionText.IsVisible = true;
+                ReturnInstructionText.IsVisible = !_isMinimal;
 
                 // Re-surface the popup above other windows WITHOUT stealing focus.
                 // (Previously this called window.Activate() + ConfirmationButton.Focus(),

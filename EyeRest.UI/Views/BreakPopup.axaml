@@ -1,9 +1,50 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.BreakPopup">
-    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+    <UserControl.Styles>
+        <Style Selector="Border#OuterBorder"><Setter Property="Width" Value="580" /><Setter Property="Height" Value="640" /></Style>
+
+        <!-- Compact: smaller digits/icon/type, auto height, no extras -->
+        <Style Selector="Grid.compact Border#OuterBorder"><Setter Property="Width" Value="400" /><Setter Property="Height" Value="NaN" /><Setter Property="Padding" Value="18" /><Setter Property="CornerRadius" Value="18" /></Style>
+        <Style Selector="Grid.compact Border#Card"><Setter Property="CornerRadius" Value="18" /></Style>
+        <Style Selector="Grid.compact Grid#Hero"><Setter Property="Margin" Value="0,0,0,10" /></Style>
+        <Style Selector="Grid.compact TextBlock#MinutesDisplay"><Setter Property="FontSize" Value="52" /></Style>
+        <Style Selector="Grid.compact TextBlock#SecondsDisplay"><Setter Property="FontSize" Value="52" /></Style>
+        <Style Selector="Grid.compact StackPanel#MinutesBox"><Setter Property="Margin" Value="0,0,10,0" /></Style>
+        <Style Selector="Grid.compact StackPanel#SecondsBox"><Setter Property="Margin" Value="10,0,0,0" /></Style>
+        <Style Selector="Grid.compact Panel#IconPanel"><Setter Property="Width" Value="48" /><Setter Property="Height" Value="48" /><Setter Property="Margin" Value="10,0" /></Style>
+        <Style Selector="Grid.compact Border#IconOuter"><Setter Property="Width" Value="48" /><Setter Property="Height" Value="48" /><Setter Property="CornerRadius" Value="24" /></Style>
+        <Style Selector="Grid.compact Border#IconInner"><Setter Property="Width" Value="40" /><Setter Property="Height" Value="40" /><Setter Property="CornerRadius" Value="20" /></Style>
+        <Style Selector="Grid.compact PathIcon#IconGlyph"><Setter Property="Width" Value="20" /><Setter Property="Height" Value="20" /></Style>
+        <Style Selector="Grid.compact TextBlock#MainMessageText"><Setter Property="FontSize" Value="18" /><Setter Property="Margin" Value="0,0,0,6" /></Style>
+        <Style Selector="Grid.compact TextBlock#InstructionText"><Setter Property="FontSize" Value="12" /><Setter Property="Margin" Value="0,0,0,4" /></Style>
+        <Style Selector="Grid.compact ProgressBar#ProgressBar"><Setter Property="Width" Value="340" /><Setter Property="Height" Value="6" /><Setter Property="Margin" Value="0,8" /></Style>
+        <Style Selector="Grid.compact TextBlock#TimeRemainingText"><Setter Property="FontSize" Value="12" /><Setter Property="Margin" Value="0,0,0,8" /></Style>
+        <Style Selector="Grid.compact StackPanel#Extras"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.compact StackPanel#Hints"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.compact StackPanel#ActionButtonsPanel Button"><Setter Property="Padding" Value="10,5" /><Setter Property="FontSize" Value="12" /></Style>
+        <Style Selector="Grid.compact Button#ConfirmationButton"><Setter Property="Padding" Value="14,8" /><Setter Property="FontSize" Value="13" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
+        <Style Selector="Grid.compact TextBlock#ReturnInstructionText"><Setter Property="FontSize" Value="11" /></Style>
+
+        <!-- Minimal: small notification (title, time, thin bar, small actions) -->
+        <Style Selector="Grid.minimal Border#OuterBorder"><Setter Property="Width" Value="320" /><Setter Property="Height" Value="NaN" /><Setter Property="Padding" Value="14,12" /><Setter Property="CornerRadius" Value="12" /></Style>
+        <Style Selector="Grid.minimal Border#Card"><Setter Property="CornerRadius" Value="12" /></Style>
+        <Style Selector="Grid.minimal StackPanel#Content"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+        <Style Selector="Grid.minimal Grid#Hero"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal TextBlock#MainMessageText"><Setter Property="FontSize" Value="14" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="TextAlignment" Value="Left" /><Setter Property="Margin" Value="0,0,0,2" /></Style>
+        <Style Selector="Grid.minimal TextBlock#InstructionText"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal ProgressBar#ProgressBar"><Setter Property="Width" Value="NaN" /><Setter Property="Height" Value="3" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Margin" Value="0,6" /></Style>
+        <Style Selector="Grid.minimal TextBlock#TimeRemainingText"><Setter Property="FontSize" Value="11" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Margin" Value="0,0,0,6" /></Style>
+        <Style Selector="Grid.minimal StackPanel#Extras"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal StackPanel#Hints"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal StackPanel#ActionButtonsPanel"><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Spacing" Value="6" /></Style>
+        <Style Selector="Grid.minimal StackPanel#ActionButtonsPanel Button"><Setter Property="Padding" Value="8,4" /><Setter Property="FontSize" Value="11" /></Style>
+        <Style Selector="Grid.minimal Button#ConfirmationButton"><Setter Property="Padding" Value="10,5" /><Setter Property="FontSize" Value="12" /><Setter Property="Margin" Value="0,4,0,0" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
+        <Style Selector="Grid.minimal TextBlock#ReturnInstructionText"><Setter Property="FontSize" Value="10" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="TextAlignment" Value="Left" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
+    </UserControl.Styles>
+    <Grid Name="Root" HorizontalAlignment="Center" VerticalAlignment="Center">
         <!-- Single card: mesh gradient clipped to rounded border -->
-        <Border Background="{DynamicResource MeshGradientBrush}"
+        <Border Name="Card" Background="{DynamicResource MeshGradientBrush}"
                 CornerRadius="24"
                 ClipToBounds="True"
                 Padding="0">
@@ -16,12 +57,10 @@
                     BorderThickness="1"
                     CornerRadius="24"
                     ClipToBounds="True"
-                    Padding="24"
-                    Width="580"
-                    Height="640">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    Padding="24">
+                <StackPanel Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <!-- Enhanced Timer Display with Minutes and Seconds around Eye Icon -->
-                    <Grid Margin="0,0,0,24" HorizontalAlignment="Center">
+                    <Grid Name="Hero" Margin="0,0,0,24" HorizontalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
@@ -29,7 +68,7 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Minutes Display (Left) -->
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                        <StackPanel Name="MinutesBox" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
                             <TextBlock Name="MinutesDisplay"
                                        Classes="MonoDigits"
                                        Text="5"
@@ -46,16 +85,16 @@
 
                         <!-- Break Icon (Center) - Glass circle -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <Panel Width="100" Height="100" Margin="20,0">
-                                <Border Width="100" Height="100"
+                            <Panel Name="IconPanel" Width="100" Height="100" Margin="20,0">
+                                <Border Name="IconOuter" Width="100" Height="100"
                                         CornerRadius="50"
                                         Background="{DynamicResource CompletionIconCircle}" />
-                                <Border Width="90" Height="90"
+                                <Border Name="IconInner" Width="90" Height="90"
                                         CornerRadius="45"
                                         Background="{DynamicResource GlassCardBackground}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
-                                    <PathIcon Data="{DynamicResource EyeIcon}"
+                                    <PathIcon Name="IconGlyph" Data="{DynamicResource EyeIcon}"
                                               Width="40" Height="40"
                                               Foreground="{DynamicResource AccentBrush}" />
                                 </Border>
@@ -63,7 +102,7 @@
                         </StackPanel>
 
                         <!-- Seconds Display (Right) -->
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0,0,0">
+                        <StackPanel Name="SecondsBox" Grid.Column="2" VerticalAlignment="Center" Margin="20,0,0,0">
                             <TextBlock Name="SecondsDisplay"
                                        Classes="MonoDigits"
                                        Text="00"
@@ -91,7 +130,7 @@
                                Margin="0,0,0,12"/>
 
                     <!-- Instructions -->
-                    <TextBlock Text="Stand up, stretch, and move around to stay healthy"
+                    <TextBlock Name="InstructionText" Text="Stand up, stretch, and move around to stay healthy"
                                FontSize="16"
                                Foreground="{DynamicResource ContentSubtitleText}"
                                HorizontalAlignment="Center"
@@ -130,6 +169,7 @@
                                Margin="0,0,0,12"/>
 
                     <!-- Stretching Resources -->
+                    <StackPanel Name="Extras">
                     <TextBlock Text="Stretching Resources:"
                                FontSize="14"
                                FontWeight="SemiBold"
@@ -152,6 +192,7 @@
                                            VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
+                    </StackPanel>
                     </StackPanel>
 
                     <!-- Action Buttons -->
@@ -253,7 +294,7 @@
                                IsVisible="False"/>
 
                     <!-- Drag and close instructions -->
-                    <StackPanel HorizontalAlignment="Center"
+                    <StackPanel Name="Hints" HorizontalAlignment="Center"
                                 Margin="0,8,0,0">
                         <TextBlock Text="Drag window to move"
                                    FontSize="12"

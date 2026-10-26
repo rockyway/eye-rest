@@ -1,45 +1,71 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.EyeRestPopup">
-    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+    <UserControl.Styles>
+        <!-- Compact: same content, smaller icon/type/bar -->
+        <Style Selector="Grid.compact Border#Glass"><Setter Property="Padding" Value="22,16" /></Style>
+        <Style Selector="Grid.compact StackPanel#Content"><Setter Property="Spacing" Value="8" /></Style>
+        <Style Selector="Grid.compact Panel#IconPanel"><Setter Property="Width" Value="52" /><Setter Property="Height" Value="52" /><Setter Property="Margin" Value="0" /></Style>
+        <Style Selector="Grid.compact Border#IconOuter"><Setter Property="Width" Value="52" /><Setter Property="Height" Value="52" /><Setter Property="CornerRadius" Value="26" /></Style>
+        <Style Selector="Grid.compact Border#IconInner"><Setter Property="Width" Value="44" /><Setter Property="Height" Value="44" /><Setter Property="CornerRadius" Value="22" /></Style>
+        <Style Selector="Grid.compact PathIcon#IconGlyph"><Setter Property="Width" Value="22" /><Setter Property="Height" Value="22" /></Style>
+        <Style Selector="Grid.compact TextBlock#TitleText"><Setter Property="FontSize" Value="16" /></Style>
+        <Style Selector="Grid.compact TextBlock#InstructionText"><Setter Property="FontSize" Value="12" /><Setter Property="MaxWidth" Value="230" /></Style>
+        <Style Selector="Grid.compact ProgressBar#ProgressBar"><Setter Property="Width" Value="230" /><Setter Property="Height" Value="5" /></Style>
+        <Style Selector="Grid.compact TextBlock#TimeRemainingText"><Setter Property="FontSize" Value="12" /></Style>
+        <Style Selector="Grid.compact TextBlock#SkipHint"><Setter Property="IsVisible" Value="False" /></Style>
+
+        <!-- Minimal: small notification, title + time + thin bar -->
+        <Style Selector="Grid.minimal Border#Glass"><Setter Property="Padding" Value="14,10" /><Setter Property="CornerRadius" Value="12" /></Style>
+        <Style Selector="Grid.minimal Border#Card"><Setter Property="CornerRadius" Value="12" /></Style>
+        <Style Selector="Grid.minimal StackPanel#Content"><Setter Property="Spacing" Value="5" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+        <Style Selector="Grid.minimal Panel#IconPanel"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal TextBlock#TitleText"><Setter Property="FontSize" Value="13" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Margin" Value="0,0,24,0" /></Style>
+        <Style Selector="Grid.minimal TextBlock#InstructionText"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal ProgressBar#ProgressBar"><Setter Property="Width" Value="NaN" /><Setter Property="Height" Value="3" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+        <Style Selector="Grid.minimal TextBlock#TimeRemainingText"><Setter Property="FontSize" Value="11" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
+        <Style Selector="Grid.minimal TextBlock#SkipHint"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal Button#CloseButton"><Setter Property="Margin" Value="0,-6,-8,0" /></Style>
+    </UserControl.Styles>
+    <Grid Name="Root" HorizontalAlignment="Center" VerticalAlignment="Center">
         <!-- Single card: mesh gradient clipped to rounded border -->
-        <Border Background="{DynamicResource MeshGradientBrush}"
+        <Border Name="Card" Background="{DynamicResource MeshGradientBrush}"
                 CornerRadius="20"
                 ClipToBounds="True"
                 Padding="0">
             <!-- Glass overlay -->
-            <Border Background="{DynamicResource GlassCardBackground}"
+            <Border Name="Glass" Background="{DynamicResource GlassCardBackground}"
                     BorderBrush="{DynamicResource GlassCardBorder}"
                     BorderThickness="1"
                     CornerRadius="20"
                     Padding="40,30">
                 <Grid>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                    <StackPanel Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Spacing="16">
                         <!-- Nested Glass Circles with Eye Icon -->
-                        <Panel Width="100" Height="100" HorizontalAlignment="Center" Margin="0,0,0,10">
-                            <Border Width="100" Height="100"
+                        <Panel Name="IconPanel" Width="100" Height="100" HorizontalAlignment="Center" Margin="0,0,0,10">
+                            <Border Name="IconOuter" Width="100" Height="100"
                                     CornerRadius="50"
                                     Background="{DynamicResource EyeRestIconCircle}" />
-                            <Border Width="90" Height="90"
+                            <Border Name="IconInner" Width="90" Height="90"
                                     CornerRadius="45"
                                     Background="{DynamicResource GlassCardBackground}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center">
-                                <PathIcon Data="{DynamicResource EyeIcon}"
+                                <PathIcon Name="IconGlyph" Data="{DynamicResource EyeIcon}"
                                           Width="40" Height="40"
                                           Foreground="{DynamicResource NavButtonActiveText}" />
                             </Border>
                         </Panel>
 
                         <!-- Title -->
-                        <TextBlock Text="Time for an Eye Rest!"
+                        <TextBlock Name="TitleText" Text="Time for an Eye Rest!"
                                    FontSize="24"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center" />
 
                         <!-- Instructions -->
-                        <TextBlock FontSize="16"
+                        <TextBlock Name="InstructionText" FontSize="16"
                                    Foreground="{DynamicResource ContentSubtitleText}"
                                    HorizontalAlignment="Center"
                                    TextWrapping="Wrap"
@@ -71,7 +97,7 @@
                                    HorizontalAlignment="Center" />
 
                         <!-- Skip hint -->
-                        <TextBlock Text="Press ESC to skip"
+                        <TextBlock Name="SkipHint" Text="Press ESC to skip"
                                    FontSize="12"
                                    Foreground="{DynamicResource ContentSubtitleText}"
                                    HorizontalAlignment="Center" />
