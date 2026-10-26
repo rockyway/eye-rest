@@ -30,6 +30,18 @@ namespace EyeRest.UI.Views
 
         public event EventHandler? Completed;
 
+        private EyeRest.Models.PopupDisplayMode _displayMode = EyeRest.Models.PopupDisplayMode.Standard;
+
+        /// <summary>
+        /// Standard: full card, shrinking to the strip after 30s. Compact: smaller full card (still
+        /// shrinks to the strip). Minimal: the strip from the start. Call before StartCountdown.
+        /// </summary>
+        public void ApplyDisplayMode(EyeRest.Models.PopupDisplayMode mode)
+        {
+            _displayMode = mode;
+            Root.Classes.Set("compact", mode == EyeRest.Models.PopupDisplayMode.Compact);
+        }
+
         public BreakWarningPopup()
         {
             InitializeComponent();
@@ -77,6 +89,15 @@ namespace EyeRest.UI.Views
             FullLayout.Opacity = 1;
             CompactLayout.IsVisible = false;
             CompactLayout.Opacity = 0;
+
+            if (_displayMode == EyeRest.Models.PopupDisplayMode.Minimal)
+            {
+                // Minimal: show the small strip right away and never swap to the full card.
+                _isCompact = true;
+                FullLayout.IsVisible = false;
+                CompactLayout.IsVisible = true;
+                CompactLayout.Opacity = 1;
+            }
 
             UpdateDisplay(timeUntilBreak);
             ProgressBar.Value = 100;

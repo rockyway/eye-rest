@@ -1,34 +1,46 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.BreakWarningPopup">
-    <Grid>
+        <UserControl.Styles>
+        <!-- Compact: smaller version of the full warning card -->
+        <Style Selector="Grid.compact Border#FullGlass"><Setter Property="Padding" Value="18,14" /><Setter Property="CornerRadius" Value="14" /></Style>
+        <Style Selector="Grid.compact Border#FullCard"><Setter Property="CornerRadius" Value="14" /></Style>
+        <Style Selector="Grid.compact StackPanel#FullContent"><Setter Property="Spacing" Value="6" /></Style>
+        <Style Selector="Grid.compact Border#FullIcon"><Setter Property="Width" Value="36" /><Setter Property="Height" Value="36" /><Setter Property="CornerRadius" Value="18" /></Style>
+        <Style Selector="Grid.compact PathIcon#FullIconGlyph"><Setter Property="Width" Value="18" /><Setter Property="Height" Value="18" /></Style>
+        <Style Selector="Grid.compact TextBlock#FullTitle"><Setter Property="FontSize" Value="14" /></Style>
+        <Style Selector="Grid.compact TextBlock#CountdownText"><Setter Property="FontSize" Value="20" /></Style>
+        <Style Selector="Grid.compact ProgressBar#ProgressBar"><Setter Property="Width" Value="150" /><Setter Property="Height" Value="4" /></Style>
+        <Style Selector="Grid.compact TextBlock#FullHint"><Setter Property="IsVisible" Value="False" /></Style>
+    </UserControl.Styles>
+    <Grid Name="Root">
         <!-- ===== FULL LAYOUT (shown initially) ===== -->
         <Border Name="FullLayout"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
                 IsVisible="True">
-            <Border Background="{DynamicResource MeshGradientBrush}"
+            <Border Name="FullCard" Background="{DynamicResource MeshGradientBrush}"
                     CornerRadius="20"
                     ClipToBounds="True"
                     Padding="0">
-                <Border Background="{DynamicResource GlassCardBackground}"
+                <Border Name="FullGlass" Background="{DynamicResource GlassCardBackground}"
                         BorderBrush="{DynamicResource GlassCardBorder}"
                         BorderThickness="1"
                         CornerRadius="20"
                         Padding="28,24">
                     <Grid>
-                        <StackPanel HorizontalAlignment="Center" Spacing="12">
+                        <StackPanel Name="FullContent" HorizontalAlignment="Center" Spacing="12">
                             <!-- Icon Circle -->
-                            <Border Width="56" Height="56"
+                            <Border Name="FullIcon" Width="56" Height="56"
                                     CornerRadius="28"
                                     Background="{DynamicResource BreakIconCircle}"
                                     HorizontalAlignment="Center">
-                                <PathIcon Data="{DynamicResource ClockIcon}"
+                                <PathIcon Name="FullIconGlyph" Data="{DynamicResource ClockIcon}"
                                           Width="28" Height="28"
                                           Foreground="{DynamicResource WarningBrush}" />
                             </Border>
 
                             <!-- Title -->
-                            <TextBlock Text="Break Starting Soon"
+                            <TextBlock Name="FullTitle" Text="Break Starting Soon"
                                        FontSize="18"
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center" />
@@ -55,7 +67,7 @@
                                          HorizontalAlignment="Center" />
 
                             <!-- Hint -->
-                            <TextBlock Text="Press ESC to dismiss"
+                            <TextBlock Name="FullHint" Text="Press ESC to dismiss"
                                        FontSize="11"
                                        Foreground="{DynamicResource ContentSubtitleText}"
                                        HorizontalAlignment="Center" />

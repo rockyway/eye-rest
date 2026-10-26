@@ -87,6 +87,9 @@ namespace EyeRest.Services
 
         private async Task ShowEyeRestWarningInternalAsync(TimeSpan timeUntilBreak)
         {
+            // Load config OFF the UI thread first (mirrors the reminder popups).
+            var warningConfig = await _configurationService.LoadConfigurationAsync();
+
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
             long myLease = 0;
@@ -99,6 +102,8 @@ namespace EyeRest.Services
                     IsEyeRestWarningActive = true;
                     CloseCurrentPopup(); // Close any existing popup first
                     myPopup = (PopupWindow)_popupWindowFactory.CreateEyeRestWarningPopup();
+                    if (myPopup.PopupContent is EyeRestWarningPopup displayEyeRestWarning)
+                        displayEyeRestWarning.ApplyDisplayMode(warningConfig.EyeRest.DisplayMode);
                     myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
@@ -280,6 +285,9 @@ namespace EyeRest.Services
 
         private async Task ShowBreakWarningInternalAsync(TimeSpan timeUntilBreak)
         {
+            // Load config OFF the UI thread first (mirrors the reminder popups).
+            var warningConfig = await _configurationService.LoadConfigurationAsync();
+
             var tcs = new TaskCompletionSource<bool>();
             PopupWindow? myPopup = null;
             long myLease = 0;
@@ -292,6 +300,8 @@ namespace EyeRest.Services
                     IsBreakWarningActive = true;
                     CloseCurrentPopup();
                     myPopup = (PopupWindow)_popupWindowFactory.CreateBreakWarningPopup();
+                    if (myPopup.PopupContent is BreakWarningPopup displayBreakWarning)
+                        displayBreakWarning.ApplyDisplayMode(warningConfig.Break.DisplayMode);
                     myLease = myPopup.Lease;
                     _currentPopup = myPopup;
                     myPopup.PositionOnScreen(PopupPlacement.TopRight);
