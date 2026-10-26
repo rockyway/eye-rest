@@ -26,6 +26,15 @@ namespace EyeRest.UI.Views
 
         public event EventHandler<BreakAction>? ActionSelected;
 
+        /// <summary>
+        /// Fired the instant the break countdown reaches zero — i.e. when the
+        /// popup transitions to the green "Break Complete" state. Distinct from
+        /// the popup-close path and from <see cref="ActionSelected"/> so callers
+        /// can react to the natural-end moment (e.g. play BreakEnd audio) without
+        /// waiting for the user to click Done / Skip / X-close.
+        /// </summary>
+        public event EventHandler? CountdownCompleted;
+
         private bool _isMinimal;
 
         /// <summary>

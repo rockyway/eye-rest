@@ -2,9 +2,22 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EyeRest.UI.Views.EyeRestPopup">
     <UserControl.Styles>
+        <!-- Base (Standard) values live here, not as local attributes, so mode styles can override them -->
+        <Style Selector="Border#Glass"><Setter Property="CornerRadius" Value="20" /><Setter Property="Padding" Value="40,30" /></Style>
+        <Style Selector="StackPanel#ContentStack"><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Spacing" Value="16" /></Style>
+        <Style Selector="Panel#IconPanel"><Setter Property="Height" Value="100" /><Setter Property="Margin" Value="0,0,0,10" /><Setter Property="Width" Value="100" /></Style>
+        <Style Selector="Border#IconOuter"><Setter Property="CornerRadius" Value="50" /><Setter Property="Height" Value="100" /><Setter Property="Width" Value="100" /></Style>
+        <Style Selector="Border#IconInner"><Setter Property="CornerRadius" Value="45" /><Setter Property="Height" Value="90" /><Setter Property="Width" Value="90" /></Style>
+        <Style Selector="PathIcon#IconGlyph"><Setter Property="Height" Value="40" /><Setter Property="Width" Value="40" /></Style>
+        <Style Selector="TextBlock#TitleText"><Setter Property="FontSize" Value="24" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
+        <Style Selector="TextBlock#InstructionText"><Setter Property="FontSize" Value="16" /><Setter Property="MaxWidth" Value="300" /></Style>
+        <Style Selector="ProgressBar#ProgressBar"><Setter Property="Height" Value="8" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Width" Value="300" /></Style>
+        <Style Selector="TextBlock#TimeRemainingText"><Setter Property="FontSize" Value="14" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
+        <Style Selector="Border#Card"><Setter Property="CornerRadius" Value="20" /></Style>
+        <Style Selector="Button#CloseButton"><Setter Property="Margin" Value="0,-4,-4,0" /></Style>
         <!-- Compact: same content, smaller icon/type/bar -->
         <Style Selector="Grid.compact Border#Glass"><Setter Property="Padding" Value="22,16" /></Style>
-        <Style Selector="Grid.compact StackPanel#Content"><Setter Property="Spacing" Value="8" /></Style>
+        <Style Selector="Grid.compact StackPanel#ContentStack"><Setter Property="Spacing" Value="8" /></Style>
         <Style Selector="Grid.compact Panel#IconPanel"><Setter Property="Width" Value="52" /><Setter Property="Height" Value="52" /><Setter Property="Margin" Value="0" /></Style>
         <Style Selector="Grid.compact Border#IconOuter"><Setter Property="Width" Value="52" /><Setter Property="Height" Value="52" /><Setter Property="CornerRadius" Value="26" /></Style>
         <Style Selector="Grid.compact Border#IconInner"><Setter Property="Width" Value="44" /><Setter Property="Height" Value="44" /><Setter Property="CornerRadius" Value="22" /></Style>
@@ -18,7 +31,7 @@
         <!-- Minimal: small notification, title + time + thin bar -->
         <Style Selector="Grid.minimal Border#Glass"><Setter Property="Padding" Value="14,10" /><Setter Property="CornerRadius" Value="12" /></Style>
         <Style Selector="Grid.minimal Border#Card"><Setter Property="CornerRadius" Value="12" /></Style>
-        <Style Selector="Grid.minimal StackPanel#Content"><Setter Property="Spacing" Value="5" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+        <Style Selector="Grid.minimal StackPanel#ContentStack"><Setter Property="Spacing" Value="5" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
         <Style Selector="Grid.minimal Panel#IconPanel"><Setter Property="IsVisible" Value="False" /></Style>
         <Style Selector="Grid.minimal TextBlock#TitleText"><Setter Property="FontSize" Value="13" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Margin" Value="0,0,24,0" /></Style>
         <Style Selector="Grid.minimal TextBlock#InstructionText"><Setter Property="IsVisible" Value="False" /></Style>
@@ -30,47 +43,47 @@
     <Grid Name="Root" HorizontalAlignment="Center" VerticalAlignment="Center">
         <!-- Single card: mesh gradient clipped to rounded border -->
         <Border Name="Card" Background="{DynamicResource MeshGradientBrush}"
-                CornerRadius="20"
+               
                 ClipToBounds="True"
                 Padding="0">
             <!-- Glass overlay -->
             <Border Name="Glass" Background="{DynamicResource GlassCardBackground}"
                     BorderBrush="{DynamicResource GlassCardBorder}"
                     BorderThickness="1"
-                    CornerRadius="20"
-                    Padding="40,30">
+                   
+                   >
                 <Grid>
-                    <StackPanel Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Spacing="16">
+                    <StackPanel Name="ContentStack" VerticalAlignment="Center"
+                               >
                         <!-- Nested Glass Circles with Eye Icon -->
-                        <Panel Name="IconPanel" Width="100" Height="100" HorizontalAlignment="Center" Margin="0,0,0,10">
-                            <Border Name="IconOuter" Width="100" Height="100"
-                                    CornerRadius="50"
+                        <Panel Name="IconPanel" HorizontalAlignment="Center">
+                            <Border Name="IconOuter"
+                                   
                                     Background="{DynamicResource EyeRestIconCircle}" />
-                            <Border Name="IconInner" Width="90" Height="90"
-                                    CornerRadius="45"
+                            <Border Name="IconInner"
+                                   
                                     Background="{DynamicResource GlassCardBackground}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center">
                                 <PathIcon Name="IconGlyph" Data="{DynamicResource EyeIcon}"
-                                          Width="40" Height="40"
+                                         
                                           Foreground="{DynamicResource NavButtonActiveText}" />
                             </Border>
                         </Panel>
 
                         <!-- Title -->
                         <TextBlock Name="TitleText" Text="Time for an Eye Rest!"
-                                   FontSize="24"
+                                  
                                    FontWeight="Bold"
-                                   HorizontalAlignment="Center" />
+                                   />
 
                         <!-- Instructions -->
-                        <TextBlock Name="InstructionText" FontSize="16"
+                        <TextBlock Name="InstructionText"
                                    Foreground="{DynamicResource ContentSubtitleText}"
                                    HorizontalAlignment="Center"
                                    TextWrapping="Wrap"
                                    TextAlignment="Center"
-                                   MaxWidth="300">
+                                  >
                             <Run Text="Please look at something " />
                             <Run Text="20ft (~6m)" Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" />
                             <Run Text=" away to rest your eyes" />
@@ -78,23 +91,23 @@
 
                         <!-- Progress Bar -->
                         <ProgressBar Name="ProgressBar"
-                                     Width="300"
-                                     Height="8"
+                                    
+                                    
                                      Minimum="0"
                                      Maximum="100"
                                      Value="0"
                                      IsIndeterminate="False"
                                      Foreground="{DynamicResource AccentBrush}"
                                      Background="{DynamicResource GlassPanelBackground}"
-                                     HorizontalAlignment="Center" />
+                                     />
 
                         <!-- Time Remaining -->
                         <TextBlock Name="TimeRemainingText"
                                    Classes="MonoDigits"
                                    Text="20 seconds remaining"
-                                   FontSize="14"
+                                  
                                    Foreground="{DynamicResource ContentSubtitleText}"
-                                   HorizontalAlignment="Center" />
+                                   />
 
                         <!-- Skip hint -->
                         <TextBlock Name="SkipHint" Text="Press ESC to skip"
@@ -108,7 +121,7 @@
                             Classes="PopupCloseBtn"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Top"
-                            Margin="0,-4,-4,0"
+                           
                             ToolTip.Tip="Skip eye rest (ESC)">
                         <PathIcon Data="{DynamicResource CloseIcon}"
                                   Width="12" Height="12" />
