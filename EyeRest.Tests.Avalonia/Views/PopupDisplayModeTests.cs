@@ -90,5 +90,36 @@ namespace EyeRest.Tests.Avalonia.Views
             cmp.Height.Should().BeLessThan(std.Height);
             min.Height.Should().BeLessThan(cmp.Height);
         }
+
+        [AvaloniaTheory]
+        [InlineData(PopupDisplayMode.Compact, 400)]
+        [InlineData(PopupDisplayMode.Minimal, 320)]
+        public void BreakPopup_ActionButtons_FitOnOneRowInsideCard(PopupDisplayMode mode, double cardWidth)
+        {
+            var b = new BreakPopup();
+            b.ApplyDisplayMode(mode);
+            var w = new Window { Content = b, SizeToContent = SizeToContent.WidthAndHeight };
+            w.Show();
+            b.Measure(Size.Infinity);
+            b.Arrange(new Rect(b.DesiredSize));
+
+            var card = b.FindControl<Border>("OuterBorder")!;
+            var panel = b.FindControl<WrapPanel>("ActionButtonsPanel")!;
+            var skip = b.FindControl<Button>("SkipButton")!;
+
+            card.Bounds.Width.Should().BeApproximately(cardWidth, 1);
+            // Inner content width = card width minus horizontal padding and border.
+            var inner = cardWidth - card.Padding.Left - card.Padding.Right - 2;
+            // Nothing may be clipped: every button stays inside the card's content box (the row wraps if needed).
+            var left = card.Padding.Left + 1;
+            foreach (var btn in panel.Children)
+            {
+                var origin = btn.TranslatePoint(new Point(0, 0), card)!.Value;
+                (origin.X + btn.Bounds.Width).Should().BeLessThanOrEqualTo(cardWidth - card.Padding.Right - 1, "action buttons must not be clipped");
+                origin.X.Should().BeGreaterThanOrEqualTo(left - 1 - 6);
+            }
+            panel.Bounds.Right.Should().BeLessThanOrEqualTo(card.Bounds.Width, "action row must stay inside the card");
+            w.Close();
+        }
     }
 }

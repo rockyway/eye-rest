@@ -21,7 +21,8 @@
         <Style Selector="Button#ConfirmationButton"><Setter Property="FontSize" Value="16" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Margin" Value="0,15,0,0" /><Setter Property="Padding" Value="20,12" /></Style>
         <Style Selector="TextBlock#ReturnInstructionText"><Setter Property="FontSize" Value="14" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Margin" Value="0,10,0,0" /><Setter Property="TextAlignment" Value="Center" /></Style>
         <Style Selector="StackPanel#ContentStack"><Setter Property="HorizontalAlignment" Value="Center" /></Style>
-        <Style Selector="StackPanel#ActionButtonsPanel"><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Spacing" Value="8" /></Style>
+        <Style Selector="WrapPanel#ActionButtonsPanel"><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Margin" Value="0,0,0,8" /></Style>
+        <Style Selector="WrapPanel#ActionButtonsPanel Button"><Setter Property="Padding" Value="15,8" /><Setter Property="Margin" Value="4,3" /></Style>
         <Style Selector="Border#OuterBorder"><Setter Property="Width" Value="580" /><Setter Property="Height" Value="640" /></Style>
 
         <!-- Compact: smaller digits/icon/type, auto height, no extras -->
@@ -42,8 +43,10 @@
         <Style Selector="Grid.compact TextBlock#TimeRemainingText"><Setter Property="FontSize" Value="12" /><Setter Property="Margin" Value="0,0,0,8" /></Style>
         <Style Selector="Grid.compact StackPanel#Extras"><Setter Property="IsVisible" Value="False" /></Style>
         <Style Selector="Grid.compact StackPanel#Hints"><Setter Property="IsVisible" Value="False" /></Style>
-        <Style Selector="Grid.compact StackPanel#ActionButtonsPanel Button"><Setter Property="Padding" Value="10,5" /><Setter Property="FontSize" Value="12" /></Style>
-        <Style Selector="Grid.compact Button#ConfirmationButton"><Setter Property="Padding" Value="14,8" /><Setter Property="FontSize" Value="13" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
+        <Style Selector="Grid.compact WrapPanel#ActionButtonsPanel Button"><Setter Property="Height" Value="30" /><Setter Property="Padding" Value="9,0" /><Setter Property="Margin" Value="3,2" /><Setter Property="FontSize" Value="12" /></Style>
+        <Style Selector="Grid.compact WrapPanel#ActionButtonsPanel Button PathIcon"><Setter Property="Width" Value="11" /><Setter Property="Height" Value="11" /></Style>
+        <Style Selector="Grid.compact WrapPanel#ActionButtonsPanel Button StackPanel"><Setter Property="Spacing" Value="4" /></Style>
+        <Style Selector="Grid.compact Button#ConfirmationButton"><Setter Property="Height" Value="34" /><Setter Property="Padding" Value="14,0" /><Setter Property="FontSize" Value="13" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
         <Style Selector="Grid.compact TextBlock#ReturnInstructionText"><Setter Property="FontSize" Value="11" /></Style>
 
         <!-- Minimal: small notification (title, time, thin bar, small actions) -->
@@ -57,9 +60,11 @@
         <Style Selector="Grid.minimal TextBlock#TimeRemainingText"><Setter Property="FontSize" Value="11" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Margin" Value="0,0,0,6" /></Style>
         <Style Selector="Grid.minimal StackPanel#Extras"><Setter Property="IsVisible" Value="False" /></Style>
         <Style Selector="Grid.minimal StackPanel#Hints"><Setter Property="IsVisible" Value="False" /></Style>
-        <Style Selector="Grid.minimal StackPanel#ActionButtonsPanel"><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Spacing" Value="6" /></Style>
-        <Style Selector="Grid.minimal StackPanel#ActionButtonsPanel Button"><Setter Property="Padding" Value="8,4" /><Setter Property="FontSize" Value="11" /></Style>
-        <Style Selector="Grid.minimal Button#ConfirmationButton"><Setter Property="Padding" Value="10,5" /><Setter Property="FontSize" Value="12" /><Setter Property="Margin" Value="0,4,0,0" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
+        <Style Selector="Grid.minimal WrapPanel#ActionButtonsPanel"><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Margin" Value="-2,0,0,0" /></Style>
+        <Style Selector="Grid.minimal WrapPanel#ActionButtonsPanel Button"><Setter Property="Height" Value="26" /><Setter Property="Padding" Value="7,0" /><Setter Property="Margin" Value="2" /><Setter Property="FontSize" Value="11" /></Style>
+        <Style Selector="Grid.minimal WrapPanel#ActionButtonsPanel Button PathIcon"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="Grid.minimal WrapPanel#ActionButtonsPanel Button StackPanel"><Setter Property="Spacing" Value="3" /></Style>
+        <Style Selector="Grid.minimal Button#ConfirmationButton"><Setter Property="Height" Value="28" /><Setter Property="Padding" Value="10,0" /><Setter Property="FontSize" Value="12" /><Setter Property="Margin" Value="0,4,0,0" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
         <Style Selector="Grid.minimal TextBlock#ReturnInstructionText"><Setter Property="FontSize" Value="10" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="TextAlignment" Value="Left" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
     </UserControl.Styles>
     <Grid Name="Root" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -216,14 +221,9 @@
                     </StackPanel>
 
                     <!-- Action Buttons -->
-                    <StackPanel Name="ActionButtonsPanel"
-                                Orientation="Horizontal"
-                               
-                                Margin="0,0,0,8"
-                               >
+                    <WrapPanel Name="ActionButtonsPanel" Orientation="Horizontal">
                         <Button Name="DelayOneMinuteButton"
                                 Classes="GradientPause"
-                                Padding="15,8"
                                 Cursor="Hand"
                                 ToolTip.ShowOnDisabled="True">
                             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -248,7 +248,6 @@
 
                         <Button Name="DelayFiveMinutesButton"
                                 Classes="GradientPause"
-                                Padding="15,8"
                                 Cursor="Hand"
                                 ToolTip.ShowOnDisabled="True">
                             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -273,7 +272,6 @@
 
                         <Button Name="SkipButton"
                                 Classes="GradientStop"
-                                Padding="15,8"
                                 Cursor="Hand">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <PathIcon Data="{DynamicResource CloseIcon}"
@@ -282,7 +280,7 @@
                                            VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                    </StackPanel>
+                    </WrapPanel>
 
                     <!-- Confirmation Button (Hidden by default, shown when break completes) -->
                     <Button Name="ConfirmationButton"
