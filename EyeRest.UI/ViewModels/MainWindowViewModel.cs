@@ -43,9 +43,9 @@ namespace EyeRest.UI.ViewModels
         private bool _eyeRestWarningEnabled = true;
         private int _eyeRestWarningSeconds = 15;
         private bool _eyeRestOverlayEnabled = true;
-        private bool _eyeRestCompactMode;
+        private PopupDisplayMode _eyeRestDisplayMode;
         private bool _breakOverlayEnabled = true;
-        private bool _breakCompactMode;
+        private PopupDisplayMode _breakDisplayMode;
         private int _eyeRestOverlayOpacityPercent = 50;
         private PopupPosition _eyeRestPopupPosition = PopupPosition.TopRight;
 
@@ -403,14 +403,14 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
-        public bool EyeRestCompactMode
+        public PopupDisplayMode EyeRestDisplayMode
         {
-            get => _eyeRestCompactMode;
+            get => _eyeRestDisplayMode;
             set
             {
-                if (SetProperty(ref _eyeRestCompactMode, value) && !_isLoadingConfiguration)
+                if (SetProperty(ref _eyeRestDisplayMode, value) && !_isLoadingConfiguration)
                 {
-                    _pendingTimerChanges.Add(nameof(EyeRestCompactMode));
+                    _pendingTimerChanges.Add(nameof(EyeRestDisplayMode));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -441,6 +441,11 @@ namespace EyeRest.UI.ViewModels
                 }
             }
         }
+
+        public IReadOnlyList<PopupDisplayMode> PopupDisplayModeOptions { get; } = new[]
+        {
+            PopupDisplayMode.Standard, PopupDisplayMode.Compact, PopupDisplayMode.Minimal,
+        };
 
         public IReadOnlyList<PopupPosition> PopupPositionOptions { get; } = new[]
         {
@@ -540,14 +545,14 @@ namespace EyeRest.UI.ViewModels
             }
         }
 
-        public bool BreakCompactMode
+        public PopupDisplayMode BreakDisplayMode
         {
-            get => _breakCompactMode;
+            get => _breakDisplayMode;
             set
             {
-                if (SetProperty(ref _breakCompactMode, value) && !_isLoadingConfiguration)
+                if (SetProperty(ref _breakDisplayMode, value) && !_isLoadingConfiguration)
                 {
-                    _pendingTimerChanges.Add(nameof(BreakCompactMode));
+                    _pendingTimerChanges.Add(nameof(BreakDisplayMode));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -1466,9 +1471,9 @@ namespace EyeRest.UI.ViewModels
             EyeRestOverlayEnabled = _configuration.EyeRest.OverlayEnabled;
             EyeRestOverlayOpacityPercent = _configuration.EyeRest.OverlayOpacityPercent;
             EyeRestPopupPosition = _configuration.EyeRest.PopupPosition;
-            EyeRestCompactMode = _configuration.EyeRest.CompactMode;
+            EyeRestDisplayMode = _configuration.EyeRest.DisplayMode;
             BreakOverlayEnabled = _configuration.Break.OverlayEnabled;
-            BreakCompactMode = _configuration.Break.CompactMode;
+            BreakDisplayMode = _configuration.Break.DisplayMode;
 
             // Break
             BreakEnabled = _configuration.Break.Enabled;
@@ -3120,12 +3125,12 @@ namespace EyeRest.UI.ViewModels
                         config.EyeRest.OverlayOpacityPercent = EyeRestOverlayOpacityPercent;
                     if (changed.Contains(nameof(EyeRestPopupPosition)))
                         config.EyeRest.PopupPosition = EyeRestPopupPosition;
-                    if (changed.Contains(nameof(EyeRestCompactMode)))
-                        config.EyeRest.CompactMode = EyeRestCompactMode;
+                    if (changed.Contains(nameof(EyeRestDisplayMode)))
+                        config.EyeRest.DisplayMode = EyeRestDisplayMode;
                     if (changed.Contains(nameof(BreakOverlayEnabled)))
                         config.Break.OverlayEnabled = BreakOverlayEnabled;
-                    if (changed.Contains(nameof(BreakCompactMode)))
-                        config.Break.CompactMode = BreakCompactMode;
+                    if (changed.Contains(nameof(BreakDisplayMode)))
+                        config.Break.DisplayMode = BreakDisplayMode;
                     if (changed.Contains(nameof(BreakEnabled)))
                         config.Break.Enabled = BreakEnabled;
                     if (changed.Contains(nameof(BreakIntervalMinutes)))
