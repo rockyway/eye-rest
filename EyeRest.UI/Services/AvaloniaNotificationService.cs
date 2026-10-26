@@ -304,7 +304,7 @@ namespace EyeRest.Services
                         displayBreakWarning.ApplyDisplayMode(warningConfig.Break.DisplayMode);
                     myLease = myPopup.Lease;
                     _currentPopup = myPopup;
-                    myPopup.PositionOnScreen(PopupPlacement.TopRight);
+                    myPopup.PositionOnScreen(MapPlacement(warningConfig.Break.PopupPosition));
 
                     // Symmetric defence; deferred via Dispatcher.Post for the same reason
                     // documented in ShowBreakReminderInternalAsync — the factory's
