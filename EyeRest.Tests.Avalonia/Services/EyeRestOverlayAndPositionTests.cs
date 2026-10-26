@@ -24,6 +24,21 @@ namespace EyeRest.Tests.Avalonia.Services
         }
 
         [Fact]
+        public void BreakSettings_PopupPosition_DefaultsToCenter()
+        {
+            Assert.Equal(PopupPosition.Center, new BreakSettings().PopupPosition);
+        }
+
+        [Fact]
+        public void BreakSettings_PopupPosition_RoundTripsThroughJson()
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(new BreakSettings { PopupPosition = PopupPosition.BottomLeft });
+            var back = System.Text.Json.JsonSerializer.Deserialize<BreakSettings>(json)!;
+
+            Assert.Equal(PopupPosition.BottomLeft, back.PopupPosition);
+        }
+
+        [Fact]
         public void EyeRestSettings_PreservesExistingDefaults()
         {
             // Sanity check that adding new fields didn't disturb existing defaults.

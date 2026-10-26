@@ -381,7 +381,7 @@ namespace EyeRest.Services
                         if (testPopup.PopupContent is BreakPopup displayTestBreak)
                             displayTestBreak.ApplyDisplayMode(config.Break.DisplayMode);
                         testLease = testPopup.Lease;
-                        testPopup.PositionOnScreen(PopupPlacement.Center);
+                        testPopup.PositionOnScreen(MapPlacement(config.Break.PopupPosition));
                         testPopup.Show();
 
                         // Keep the test popup above the dim overlays (Windows z-order).
@@ -452,7 +452,7 @@ namespace EyeRest.Services
                         displayBreak.ApplyDisplayMode(config.Break.DisplayMode);
                     myLease = myPopup.Lease;
                     _currentPopup = myPopup;
-                    myPopup.PositionOnScreen(PopupPlacement.Center);
+                    myPopup.PositionOnScreen(MapPlacement(config.Break.PopupPosition));
 
                     // Safety net: any close path that does NOT go through ActionSelected
                     // (system force-close on session reset / away, app shutdown, etc.) must still

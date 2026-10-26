@@ -1069,6 +1069,20 @@
                                             </ComboBox>
                                         </StackPanel>
 
+                                        <!-- Popup Position -->
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="Popup Position" FontSize="14" FontWeight="SemiBold" />
+                                            <ComboBox ItemsSource="{Binding PopupPositionOptions}"
+                                                      SelectedItem="{Binding BreakPopupPosition}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={x:Static converters:PopupPositionToLabelConverter.Instance}}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+
                                         <!-- Overlay Opacity -->
                                         <Grid ColumnDefinitions="*,Auto"
                                               IsEnabled="{Binding BreakOverlayEnabled}">

@@ -46,6 +46,7 @@ namespace EyeRest.UI.ViewModels
         private PopupDisplayMode _eyeRestDisplayMode;
         private bool _breakOverlayEnabled = true;
         private PopupDisplayMode _breakDisplayMode;
+        private PopupPosition _breakPopupPosition = PopupPosition.Center;
         private int _eyeRestOverlayOpacityPercent = 50;
         private PopupPosition _eyeRestPopupPosition = PopupPosition.TopRight;
 
@@ -553,6 +554,19 @@ namespace EyeRest.UI.ViewModels
                 if (SetProperty(ref _breakDisplayMode, value) && !_isLoadingConfiguration)
                 {
                     _pendingTimerChanges.Add(nameof(BreakDisplayMode));
+                    DebouncedSaveTimerSetting();
+                }
+            }
+        }
+
+        public PopupPosition BreakPopupPosition
+        {
+            get => _breakPopupPosition;
+            set
+            {
+                if (SetProperty(ref _breakPopupPosition, value) && !_isLoadingConfiguration)
+                {
+                    _pendingTimerChanges.Add(nameof(BreakPopupPosition));
                     DebouncedSaveTimerSetting();
                 }
             }
@@ -1474,6 +1488,7 @@ namespace EyeRest.UI.ViewModels
             EyeRestDisplayMode = _configuration.EyeRest.DisplayMode;
             BreakOverlayEnabled = _configuration.Break.OverlayEnabled;
             BreakDisplayMode = _configuration.Break.DisplayMode;
+            BreakPopupPosition = _configuration.Break.PopupPosition;
 
             // Break
             BreakEnabled = _configuration.Break.Enabled;
@@ -3131,6 +3146,8 @@ namespace EyeRest.UI.ViewModels
                         config.Break.OverlayEnabled = BreakOverlayEnabled;
                     if (changed.Contains(nameof(BreakDisplayMode)))
                         config.Break.DisplayMode = BreakDisplayMode;
+                    if (changed.Contains(nameof(BreakPopupPosition)))
+                        config.Break.PopupPosition = BreakPopupPosition;
                     if (changed.Contains(nameof(BreakEnabled)))
                         config.Break.Enabled = BreakEnabled;
                     if (changed.Contains(nameof(BreakIntervalMinutes)))
