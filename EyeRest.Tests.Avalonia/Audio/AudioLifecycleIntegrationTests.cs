@@ -68,10 +68,13 @@ public class AudioLifecycleIntegrationTests
         }
         // After 50 cancels, the semaphore should still be acquirable — one final
         // clean call must complete (else it deadlocks and Timeout fires).
+        // Under a loaded thread pool a Task.Delay(5) can overshoot the 100 ms play, so an earlier
+        // "cancelled" call may legitimately finish. Count only the final clean call.
+        var playsBefore = s.SuccessfulPlays;
         s.SetFastMode();
         await s.PlayChannelAsync(AudioChannel.BreakStart,
             new AudioChannelConfig { Source = AudioChannelSource.Default });
-        s.SuccessfulPlays.Should().Be(1, "the post-cancel clean play must complete");
+        (s.SuccessfulPlays - playsBefore).Should().Be(1, "the post-cancel clean play must complete");
     }
 }
 

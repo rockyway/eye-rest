@@ -88,6 +88,12 @@ namespace EyeRest.Models
         public ThemeMode ThemeMode { get; set; } = ThemeMode.Auto;
 
         /// <summary>
+        /// The app version whose "What's new" popup the user last saw (or that was current at
+        /// first install). Null on a fresh install. Drives the show-once rule.
+        /// </summary>
+        public string? LastSeenVersion { get; set; }
+
+        /// <summary>
         /// Legacy property for backward compatibility with existing config files.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore]

@@ -8,6 +8,14 @@ change applies to only one.
 
 ---
 
+## Highlights
+
+- [Windows] **Windows no longer turn invisible after your PC wakes up** — reminders and the settings window now always draw after sleep.
+- [Windows] **Reminder popups fit on mixed-scaling monitors** — popups are always sized for the display they appear on.
+- [Windows] **The exit confirmation is usable again** — Yes and No are always clickable. ESC still cancels.
+
+---
+
 ## Fixes & Improvements
 
 ### 🖥 Windows: windows no longer turn invisible after your PC wakes up

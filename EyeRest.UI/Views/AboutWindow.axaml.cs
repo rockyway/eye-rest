@@ -30,6 +30,42 @@ public partial class AboutWindow : Window
         _donationService = App.Services?.GetService<IDonationService>();
         _updateService = App.Services?.GetService<IUpdateService>();
         UpdateDonationSections();
+        ReflectPendingUpdate();
+    }
+
+    /// <summary>
+    /// When a background check already found an update, the button opens the changelog window
+    /// (confirm first) instead of downloading straight away.
+    /// </summary>
+    private void ReflectPendingUpdate()
+    {
+        var pending = _updateService?.PendingUpdate;
+        if (pending == null) return;
+
+        UpdateButtonText.Text = $"Update to {pending.TargetVersion}";
+        UpdateStatusText.Text = "New version available.";
+        CheckForUpdatesButton.Click -= OnCheckForUpdatesClick;
+        CheckForUpdatesButton.Click += OnOpenUpdateWindowClick;
+    }
+
+    private void OnOpenUpdateWindowClick(object? sender, RoutedEventArgs e)
+    {
+        (Avalonia.Application.Current as App)?.ShowUpdateWindow();
+        Close();
+    }
+
+    private void OnWhatsNewClick(object? sender, PointerPressedEventArgs e)
+    {
+        var current = _updateService?.CurrentVersion ?? ResolveDisplayVersion();
+        var releases = EyeRest.UI.Services.ChangelogProvider.GetReleasesBetween(null, current);
+        // The latest release only: this link answers "what changed in the version I'm running".
+        if (releases.Count > 1) releases = releases.GetRange(0, 1);
+        if (releases.Count == 0)
+        {
+            UpdateStatusText.Text = "No highlights are bundled for this version.";
+            return;
+        }
+        (Avalonia.Application.Current as App)?.ShowWhatsNewWindow(releases, current);
     }
 
     /// <summary>
@@ -88,28 +124,9 @@ public partial class AboutWindow : Window
                 return;
             }
 
-            // Phase 2: Download
-            UpdateButtonText.Text = "Downloading...";
-            UpdateStatusText.Text = $"Downloading v{updateInfo.TargetVersion}...";
-
-            var progress = new Progress<int>(percent =>
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    UpdateStatusText.Text = $"Downloading v{updateInfo.TargetVersion}... {percent}%";
-                });
-            });
-
-            await _updateService.DownloadUpdateAsync(progress);
-
-            // Phase 3: Offer restart
-            UpdateButtonText.Text = "Restart to Update";
-            UpdateStatusText.Text = $"v{updateInfo.TargetVersion} is ready. Click to restart.";
-            CheckForUpdatesButton.IsEnabled = true;
-
-            // Rewire button to apply update
-            CheckForUpdatesButton.Click -= OnCheckForUpdatesClick;
-            CheckForUpdatesButton.Click += OnApplyUpdateClick;
+            // Show the changelog and let the user confirm before anything downloads.
+            (Avalonia.Application.Current as App)?.ShowUpdateWindow();
+            Close();
         }
         catch (Exception)
         {
@@ -117,11 +134,6 @@ public partial class AboutWindow : Window
             UpdateStatusText.Text = "Update failed. Please try again later.";
             CheckForUpdatesButton.IsEnabled = true;
         }
-    }
-
-    private void OnApplyUpdateClick(object? sender, RoutedEventArgs e)
-    {
-        _updateService?.ApplyUpdateAndRestart();
     }
 
     private void OnDonateClick(object? sender, RoutedEventArgs e)

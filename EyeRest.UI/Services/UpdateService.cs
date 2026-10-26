@@ -39,6 +39,8 @@ public class UpdateService : IUpdateService
             IsUpdateSupported, CurrentVersion);
     }
 
+    public AppUpdateInfo? PendingUpdate { get; private set; }
+
     public bool IsUpdateSupported
     {
         get
@@ -97,8 +99,12 @@ public class UpdateService : IUpdateService
             var result = new AppUpdateInfo
             {
                 TargetVersion = updateInfo.TargetFullRelease.Version.ToString(),
-                IsDownloaded = false
+                IsDownloaded = false,
+                ReleaseNotesMarkdown = updateInfo.TargetFullRelease.NotesMarkdown ?? string.Empty
             };
+            if (PendingUpdate?.TargetVersion == result.TargetVersion)
+                result.IsDownloaded = PendingUpdate.IsDownloaded;
+            PendingUpdate = result;
 
             _logger.LogInformation("Update available: {Version}", result.TargetVersion);
             UpdateAvailable?.Invoke(this, result);
@@ -137,6 +143,7 @@ public class UpdateService : IUpdateService
                 _latestUpdateInfo,
                 p => progress?.Report(p));
 
+            if (PendingUpdate != null) PendingUpdate.IsDownloaded = true;
             _logger.LogInformation("Update downloaded successfully");
         }
         catch (Exception ex)

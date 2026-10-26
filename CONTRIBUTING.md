@@ -57,3 +57,18 @@ Open an issue on GitHub with:
 - Expected vs actual behavior
 - OS and .NET version
 - Relevant log entries (from `%APPDATA%\EyeRest\logs\` or `~/.config/EyeRest/logs/`)
+
+## Release notes and the in-app changelog
+
+Every release needs `docs/releases/release-notes-vX.Y.Z.md` with a `## Highlights` section
+(3 to 5 one-line entries). The app shows these in two popups: before an update (the publish scripts
+pass the file to `vpk pack --releaseNotes`) and once after updating (the file is embedded in the app).
+
+```
+## Highlights
+
+- **Headline** — one-line detail.
+- [Windows] **Headline** — one-line detail for a single OS.
+```
+
+The section ends at the next `##` heading or `---`.

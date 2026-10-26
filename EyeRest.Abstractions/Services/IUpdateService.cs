@@ -10,6 +10,12 @@ namespace EyeRest.Services
     {
         public string TargetVersion { get; set; } = string.Empty;
         public bool IsDownloaded { get; set; }
+
+        /// <summary>
+        /// Release notes markdown for the target version, as packed by vpk (--releaseNotes).
+        /// Empty when the feed carries none.
+        /// </summary>
+        public string ReleaseNotesMarkdown { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -27,6 +33,12 @@ namespace EyeRest.Services
         /// The current application version string.
         /// </summary>
         string CurrentVersion { get; }
+
+        /// <summary>
+        /// The update found by the last successful check, or null when none is known.
+        /// IsDownloaded flips to true once DownloadUpdateAsync completes.
+        /// </summary>
+        AppUpdateInfo? PendingUpdate { get; }
 
         /// <summary>
         /// Checks GitHub Releases for a newer version.

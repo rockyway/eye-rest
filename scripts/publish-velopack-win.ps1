@@ -98,6 +98,14 @@ $VpkArgs = @(
     "-o",  $ReleasesDir
 )
 
+# Release notes shown in the in-app "Update available" popup (Highlights section is parsed from this file).
+$NotesFile = Join-Path $SolutionRoot "docs\releases\release-notes-v$Version.md"
+if (Test-Path $NotesFile) {
+    $VpkArgs += "--releaseNotes", $NotesFile
+} else {
+    Write-Warning "$NotesFile not found - the update popup will have no changelog."
+}
+
 if ($AzureTrustedSignFile -ne "") {
     Write-Host "    Signing mode : Azure Trusted Signing (immediate SmartScreen trust)" -ForegroundColor Green
     Write-Host "    Sign scope   : All unsigned binaries (runtime DLLs already vendor-signed)"

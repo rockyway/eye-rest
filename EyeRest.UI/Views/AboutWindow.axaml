@@ -3,7 +3,7 @@
         x:Class="EyeRest.UI.Views.AboutWindow"
         Title="About Blink Twice EyeRest"
         Width="360"
-        Height="490"
+        Height="515"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         SystemDecorations="None"
@@ -93,6 +93,14 @@
                                    MaxWidth="260"
                                    Foreground="{DynamicResource ContentSubtitleText}" />
                     </StackPanel>
+
+                    <TextBlock Text="What's new in this version"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Cursor="Hand"
+                               Foreground="{DynamicResource AccentBrush}"
+                               TextDecorations="Underline"
+                               PointerPressed="OnWhatsNewClick" />
 
                     <!-- Buy Me a Coffee Section (shown when not a supporter) -->
                     <StackPanel x:Name="DonateSection" Spacing="6" Margin="0,4,0,4">

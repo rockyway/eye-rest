@@ -1,0 +1,112 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="EyeRest.UI.Views.ChangelogWindow"
+        Title="Blink Twice EyeRest"
+        Width="400"
+        SizeToContent="Height"
+        MaxHeight="620"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        ExtendClientAreaToDecorationsHint="False"
+        Icon="avares://BlinkTwiceEyeRest/Assets/taskbar-icon.png">
+
+    <Border Background="{DynamicResource MeshGradientBrush}"
+            CornerRadius="24"
+            ClipToBounds="True"
+            PointerPressed="OnDragMove">
+        <Border Background="{DynamicResource GlassCardBackground}"
+                BorderBrush="{DynamicResource GlassCardBorder}"
+                BorderThickness="1"
+                CornerRadius="24"
+                Padding="24,22,24,20">
+            <Grid>
+                <StackPanel Spacing="12">
+
+                    <StackPanel x:Name="HeaderPanel" Orientation="Horizontal" Spacing="12" Margin="0,0,28,0">
+                        <Image Source="avares://BlinkTwiceEyeRest/Assets/app-icon.png"
+                               x:Name="HeaderIcon" Width="44" Height="44" VerticalAlignment="Center"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="TitleText"
+                                       FontSize="17" FontWeight="Bold"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource NavButtonActiveText}"/>
+                            <TextBlock x:Name="SubtitleText"
+                                       FontSize="12.5"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource ContentSubtitleText}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 1.6.0 -> 1.6.1 -->
+                    <StackPanel x:Name="VersionRow" Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Name="FromVersionText" FontSize="12.5"
+                                   Foreground="{DynamicResource ContentSubtitleText}"/>
+                        <TextBlock x:Name="ArrowText" Text="→" FontSize="12.5"
+                                   Foreground="{DynamicResource ContentSubtitleText}"/>
+                        <Border CornerRadius="10" Padding="9,2"
+                                Background="{DynamicResource GlassCardHoverBackground}">
+                            <TextBlock x:Name="ToVersionText" FontSize="12.5" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Changelog entries -->
+                    <Border x:Name="NotesBorder"
+                            Background="{DynamicResource GlassCardHoverBackground}"
+                            CornerRadius="14" Padding="14,12">
+                        <ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="EntriesPanel" Spacing="12" Margin="0,0,6,0"/>
+                        </ScrollViewer>
+                    </Border>
+
+                    <TextBlock x:Name="FullNotesLink"
+                               FontSize="12.5"
+                               Cursor="Hand"
+                               Foreground="{DynamicResource AccentBrush}"
+                               TextDecorations="Underline"
+                               PointerPressed="OnFullNotesClick"/>
+
+                    <!-- Download progress -->
+                    <StackPanel x:Name="ProgressPanel" Spacing="6" IsVisible="False">
+                        <ProgressBar x:Name="DownloadBar" Minimum="0" Maximum="100" Height="8"/>
+                        <TextBlock x:Name="ProgressText" FontSize="12"
+                                   Foreground="{DynamicResource ContentSubtitleText}"/>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="*,8,1.5*" Margin="0,2,0,0">
+                        <Button x:Name="SecondaryButton" Grid.Column="0"
+                                Classes="ActionBtn"
+                                HorizontalAlignment="Stretch"
+                                Click="OnSecondaryClick"
+                                Cursor="Hand">
+                            <TextBlock x:Name="SecondaryButtonText" FontSize="13" HorizontalAlignment="Center"/>
+                        </Button>
+                        <Button x:Name="PrimaryButton" Grid.Column="2"
+                                Classes="ActionBtnPrimary"
+                                HorizontalAlignment="Stretch"
+                                Click="OnPrimaryClick"
+                                Cursor="Hand">
+                            <TextBlock x:Name="PrimaryButtonText" FontSize="13" HorizontalAlignment="Center"/>
+                        </Button>
+                    </Grid>
+
+                    <TextBlock x:Name="FootnoteText"
+                               FontSize="11.5" TextWrapping="Wrap"
+                               Foreground="{DynamicResource ContentSubtitleText}"/>
+                </StackPanel>
+
+                <Button Classes="PopupCloseBtn"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,-6,-8,0"
+                        Click="OnCloseClick"
+                        ToolTip.Tip="Close">
+                    <PathIcon Data="{DynamicResource CloseIcon}" Width="12" Height="12" />
+                </Button>
+            </Grid>
+        </Border>
+    </Border>
+</Window>

@@ -105,6 +105,14 @@ VPK_ARGS=(
     -o "$RELEASES_DIR"
 )
 
+# Release notes shown in the in-app "Update available" popup (Highlights section is parsed from this file).
+NOTES_FILE="$PROJECT_ROOT/docs/releases/release-notes-v${VERSION}.md"
+if [ -f "$NOTES_FILE" ]; then
+    VPK_ARGS+=(--releaseNotes "$NOTES_FILE")
+else
+    echo "    WARNING: $NOTES_FILE not found - the update popup will have no changelog." >&2
+fi
+
 # Add icon if available
 if [ -f "$UI_PROJECT/Assets/AppIcon.icns" ]; then
     VPK_ARGS+=(--icon "$UI_PROJECT/Assets/AppIcon.icns")

@@ -263,13 +263,13 @@ public partial class App : Application
             systemTrayService.TimerDetailsUpdated += (eyeRest, breakTime, status) =>
                 Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateTrayTimerMenuItem(eyeRest, breakTime, status));
 
-            // Open About window when user clicks the update balloon notification
+            // Open the changelog/confirm window when user clicks the update balloon notification
             systemTrayService.BalloonTipClicked += (_, _) =>
             {
                 if (_updateNotificationPending)
                 {
                     _updateNotificationPending = false;
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow());
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowUpdateWindow());
                 }
             };
 
@@ -281,6 +281,7 @@ public partial class App : Application
             logger.LogInformation("Application orchestrator initialized - timers are running");
 
             CheckForUpdatesInBackground();
+            ShowWhatsNewAfterUpdateInBackground();
         }
         catch (Exception ex)
         {
@@ -318,7 +319,7 @@ public partial class App : Application
                         var trayService = Services?.GetService<ISystemTrayService>();
                         trayService?.ShowBalloonTip(
                             "Update Available",
-                            $"Blink Twice EyeRest v{version} is ready to download. Click here to update.");
+                            $"Blink Twice EyeRest v{version} is ready. Click to see what's new.");
 
                         return; // Stop checking — user has been notified
                     }
@@ -562,6 +563,105 @@ public partial class App : Application
         }
     }
 
+    private Views.ChangelogWindow? _changelogWindow;
+
+    /// <summary>
+    /// Opens the pre-update changelog window (confirm, download, restart) for the update the
+    /// last check found. Reuses the open window instead of stacking a second one.
+    /// </summary>
+    public void ShowUpdateWindow()
+    {
+        var updateService = Services?.GetService<IUpdateService>();
+        var pending = updateService?.PendingUpdate;
+        if (updateService == null || pending == null) return;
+
+        if (_changelogWindow != null)
+        {
+            _changelogWindow.Activate();
+            return;
+        }
+
+        var window = new Views.ChangelogWindow();
+        window.ShowUpdate(updateService, pending, downloaded =>
+        {
+            // The user hid the window mid-download; tell them it finished.
+            _updateNotificationPending = true;
+            Services?.GetService<ISystemTrayService>()?.ShowBalloonTip(
+                "Update ready",
+                $"Blink Twice EyeRest v{downloaded.TargetVersion} is downloaded. Click to restart.");
+        });
+        window.Closed += (_, _) => _changelogWindow = null;
+        _changelogWindow = window;
+        window.Show();
+        window.Activate();
+    }
+
+    /// <summary>
+    /// After an update, shows the "What's new" popup once. The running version is saved before the
+    /// popup opens, so a crash cannot make it appear twice. Waits for any break/eye-rest popup or
+    /// meeting to finish first.
+    /// </summary>
+    private void ShowWhatsNewAfterUpdateInBackground()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var updateService = Services?.GetService<IUpdateService>();
+                var configService = Services?.GetService<IConfigurationService>();
+                if (updateService == null || configService == null) return;
+
+                var current = updateService.CurrentVersion;
+                var config = await configService.LoadConfigurationAsync();
+                var decision = WhatsNewPolicy.Decide(config.Application.LastSeenVersion, current);
+                if (decision == WhatsNewDecision.None) return;
+
+                var lastSeen = config.Application.LastSeenVersion;
+                var releases = decision == WhatsNewDecision.Show
+                    ? EyeRest.UI.Services.ChangelogProvider.GetReleasesBetween(lastSeen, current)
+                    : new List<EyeRest.Models.ChangelogRelease>();
+
+                if (releases.Count == 0)
+                {
+                    // Fresh install, downgrade, or a release without highlights: record and stay quiet.
+                    await configService.UpdateConfigurationAsync(c => c.Application.LastSeenVersion = current);
+                    return;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                while (Services != null && !IsExiting && IsUserBusy())
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+                if (IsExiting) return;
+
+                await configService.UpdateConfigurationAsync(c => c.Application.LastSeenVersion = current);
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowWhatsNewWindow(releases, current));
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "What's new popup skipped (non-critical)");
+            }
+        });
+    }
+
+    /// <summary>True while a reminder popup is on screen or a meeting is in progress.</summary>
+    private bool IsUserBusy()
+    {
+        var notifications = Services?.GetService<INotificationService>();
+        if (notifications != null && notifications.IsAnyPopupActive) return true;
+
+        var meetings = Services?.GetService<IMeetingDetectionManager>();
+        return meetings?.GetStatus().IsMeetingActive == true;
+    }
+
+    /// <summary>Opens the post-update "What's new" window (also used by the About link).</summary>
+    public void ShowWhatsNewWindow(IReadOnlyList<EyeRest.Models.ChangelogRelease> releases, string version)
+    {
+        var window = new Views.ChangelogWindow();
+        window.ShowWhatsNew(releases, version);
+        window.Show();
+        window.Activate();
+    }
+
     /// <summary>
     /// Shows the About window. When the main window is hidden to tray, opens About
     /// as a standalone window to avoid ShowDialog pulling the hidden owner back into
@@ -602,7 +702,7 @@ public partial class App : Application
                         if (_updateNotificationPending)
                         {
                             _updateNotificationPending = false;
-                            ShowAboutWindow();
+                            ShowUpdateWindow();
                         }
                     });
                 }

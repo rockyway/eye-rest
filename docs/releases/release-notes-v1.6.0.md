@@ -8,6 +8,13 @@ change applies to only one.
 
 ---
 
+## Highlights
+
+- **Automatic Breaks are now optional** — turn the longer break reminder off and keep only the 20-20-20 eye rests.
+- **Popups fit on multi-monitor setups** — reminder popups resize correctly for whichever display they appear on.
+
+---
+
 ## What's New
 
 ### ⏱ Automatic Breaks — now optional

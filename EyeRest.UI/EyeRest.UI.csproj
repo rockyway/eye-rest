@@ -86,6 +86,9 @@
 
   <!-- App icon PNGs as Avalonia resources -->
   <ItemGroup>
+    <!-- Release notes ship inside the app so the "What's new" popup works offline and in Store builds.
+         Highlights are parsed from the "## Highlights" section of each file. -->
+    <EmbeddedResource Include="..\docs\releases\release-notes-v*.md" LogicalName="ReleaseNotes.%(Filename)%(Extension)" />
     <AvaloniaResource Include="Assets\app-icon.png" />
     <AvaloniaResource Include="Assets\taskbar-icon.png" />
   </ItemGroup>
