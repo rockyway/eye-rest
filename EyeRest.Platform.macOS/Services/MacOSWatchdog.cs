@@ -21,7 +21,7 @@ namespace EyeRest.Platform.macOS.Services
         // MUST stay in sync with EyeRest.UI.csproj <AssemblyName> (ProcessMatch) and the .app
         // bundle name in scripts/bundle-macos.sh (AppDisplayName). A rename breaks the watchdog
         // silently — this repo has renamed once already (commit ce42d68).
-        private const string AppDisplayName = "Blink Twice EyeRest";
+        private const string AppDisplayName = "EyeRest Blink Twice";
         private const string ProcessMatch = "BlinkTwiceEyeRest";
         private const int HeartbeatStaleSeconds = 180; // 6 missed 30s beats → frozen
 
@@ -105,7 +105,7 @@ namespace EyeRest.Platform.macOS.Services
         private static string GenerateScript() =>
             $$"""
             #!/bin/bash
-            # Blink Twice EyeRest watchdog — restarts the app only if it is RUNNING but FROZEN
+            # EyeRest Blink Twice watchdog — restarts the app only if it is RUNNING but FROZEN
             # (heartbeat stale). Does nothing if the app was quit cleanly. Generated and kept up
             # to date by the app itself; see docs/plan/008. Do not edit by hand.
             set -u

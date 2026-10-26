@@ -128,7 +128,7 @@ public partial class ChangelogWindow : Window
         {
             case UpdateStep.Available:
                 TitleText.Text = "Update available";
-                SubtitleText.Text = "Blink Twice EyeRest";
+                SubtitleText.Text = "EyeRest Blink Twice";
                 SecondaryButtonText.Text = "Remind me later";
                 PrimaryButtonText.Text = "Download & install";
                 FootnoteText.Text = "Your timers pause only while the app restarts.";

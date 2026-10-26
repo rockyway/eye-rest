@@ -41,7 +41,7 @@ cd "$PROJECT_ROOT"
 dotnet vpk upload github \
     --repoUrl "$REPO_URL" \
     --tag "v$VERSION" \
-    --releaseName "Blink Twice EyeRest $VERSION" \
+    --releaseName "EyeRest Blink Twice $VERSION" \
     --publish \
     --token "$GITHUB_TOKEN" \
     --outputDir "$RELEASES_DIR"

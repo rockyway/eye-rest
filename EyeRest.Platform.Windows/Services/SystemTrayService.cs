@@ -10,7 +10,7 @@ namespace EyeRest.Services
     {
         // Single source of truth for the app brand shown in tray text/tooltips.
         // Keep all tray-facing brand strings pointing here so they cannot drift.
-        private const string BrandName = "Blink Twice EyeRest";
+        private const string BrandName = "EyeRest Blink Twice";
 
         private readonly ILogger<SystemTrayService> _logger;
         private readonly IconService _iconService;

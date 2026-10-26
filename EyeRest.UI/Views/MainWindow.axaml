@@ -51,7 +51,7 @@
                                    FontSize="14" />
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                                <MenuItem Header="About Blink Twice EyeRest" Click="AboutMenuItem_Click" />
+                                <MenuItem Header="About EyeRest Blink Twice" Click="AboutMenuItem_Click" />
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
@@ -62,7 +62,7 @@
                                 VerticalAlignment="Center">
                         <Image Source="avares://BlinkTwiceEyeRest/Assets/TrayIcons/tray_active.png"
                                Width="18" Height="18" />
-                        <TextBlock Text="Blink Twice EyeRest"
+                        <TextBlock Text="EyeRest Blink Twice"
                                    FontSize="15"
                                    FontWeight="SemiBold"
                                    Margin="8,0,0,0"

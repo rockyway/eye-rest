@@ -319,7 +319,7 @@ public partial class App : Application
                         var trayService = Services?.GetService<ISystemTrayService>();
                         trayService?.ShowBalloonTip(
                             "Update Available",
-                            $"Blink Twice EyeRest v{version} is ready. Click to see what's new.");
+                            $"EyeRest Blink Twice v{version} is ready. Click to see what's new.");
 
                         return; // Stop checking — user has been notified
                     }
@@ -364,7 +364,7 @@ public partial class App : Application
 
             trayMenu.Add(new NativeMenuItemSeparator());
 
-            trayMenu.Add(new NativeMenuItem("Show Blink Twice EyeRest")
+            trayMenu.Add(new NativeMenuItem("Show EyeRest Blink Twice")
             {
                 Command = new RelayCommand(() =>
                 {
@@ -394,13 +394,13 @@ public partial class App : Application
 
             trayMenu.Add(new NativeMenuItemSeparator());
 
-            trayMenu.Add(new NativeMenuItem("About Blink Twice EyeRest")
+            trayMenu.Add(new NativeMenuItem("About EyeRest Blink Twice")
             {
                 Command = new RelayCommand(() =>
                     Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowAboutWindow()))
             });
 
-            trayMenu.Add(new NativeMenuItem("Quit Blink Twice EyeRest")
+            trayMenu.Add(new NativeMenuItem("Quit EyeRest Blink Twice")
             {
                 Command = new RelayCommand(() =>
                 {
@@ -415,7 +415,7 @@ public partial class App : Application
             {
                 Icon = new WindowIcon(AssetLoader.Open(
                     GetTrayIconUri(TrayIconState.Active))),
-                ToolTipText = "Blink Twice EyeRest",
+                ToolTipText = "EyeRest Blink Twice",
                 Menu = trayMenu,
                 IsVisible = true
             };
@@ -588,7 +588,7 @@ public partial class App : Application
             _updateNotificationPending = true;
             Services?.GetService<ISystemTrayService>()?.ShowBalloonTip(
                 "Update ready",
-                $"Blink Twice EyeRest v{downloaded.TargetVersion} is downloaded. Click to restart.");
+                $"EyeRest Blink Twice v{downloaded.TargetVersion} is downloaded. Click to restart.");
         });
         window.Closed += (_, _) => _changelogWindow = null;
         _changelogWindow = window;

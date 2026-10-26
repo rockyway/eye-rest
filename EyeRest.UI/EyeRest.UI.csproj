@@ -13,7 +13,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>..\Resources\app.ico</ApplicationIcon>
     <AssemblyName>BlinkTwiceEyeRest</AssemblyName>
-    <AssemblyTitle>Blink Twice EyeRest</AssemblyTitle>
+    <AssemblyTitle>EyeRest Blink Twice</AssemblyTitle>
     <AssemblyDescription>Cross-platform eye rest reminder</AssemblyDescription>
   </PropertyGroup>
 

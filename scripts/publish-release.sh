@@ -52,7 +52,7 @@ if [ "$NOTARIZE" = "1" ] && [ "$ALLOW_UNNOTARIZED" != "1" ]; then
 fi
 
 echo "╔══════════════════════════════════════╗"
-echo "║  Blink Twice EyeRest Release v${VERSION}  "
+echo "║  EyeRest Blink Twice Release v${VERSION}  "
 echo "╚══════════════════════════════════════╝"
 echo ""
 
@@ -115,7 +115,7 @@ echo "[6/7] Creating zip archives..."
 rm -f "$DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip"
 rm -f "$DIST_DIR/BlinkTwiceEyeRest-v${VERSION}-windows-x64-portable.zip"
 
-(cd "$DIST_DIR" && zip -r -y -q "BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip" "Blink Twice EyeRest.app")
+(cd "$DIST_DIR" && zip -r -y -q "BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip" "EyeRest Blink Twice.app")
 echo "  ✓ BlinkTwiceEyeRest-v${VERSION}-macOS-arm64.zip"
 
 if [ -d "$DIST_DIR/win-x64" ]; then

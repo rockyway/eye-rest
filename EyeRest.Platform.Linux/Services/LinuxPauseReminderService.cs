@@ -164,7 +164,7 @@ namespace EyeRest.Services
         public Task ShowPauseReminderToastAsync(TimeSpan pauseDuration, string reason)
         {
             LinuxNotifications.Send(_logger,
-                "Blink Twice EyeRest - Timers Paused",
+                "EyeRest Blink Twice - Timers Paused",
                 $"Timers have been paused for {FormatDuration(pauseDuration)}. Reason: {reason}");
 
             return Task.CompletedTask;
@@ -173,7 +173,7 @@ namespace EyeRest.Services
         public Task ShowRecoveryNotificationAsync(string recoveryType, string details)
         {
             LinuxNotifications.Send(_logger,
-                $"Blink Twice EyeRest - {recoveryType}",
+                $"EyeRest Blink Twice - {recoveryType}",
                 details);
 
             return Task.CompletedTask;

@@ -22,6 +22,6 @@ Write-Host "Certificate trusted." -ForegroundColor Green
 # Install the MSIX
 Write-Host "Installing MSIX package..." -ForegroundColor Cyan
 Add-AppxPackage -Path $msixPath
-Write-Host "`nBlink Twice EyeRest installed successfully!" -ForegroundColor Green
+Write-Host "`nEyeRest Blink Twice installed successfully!" -ForegroundColor Green
 Write-Host "You can find it in the Start Menu." -ForegroundColor Green
 Read-Host "`nPress Enter to close"

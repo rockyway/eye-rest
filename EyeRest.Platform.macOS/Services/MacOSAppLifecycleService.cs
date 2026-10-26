@@ -64,7 +64,7 @@ namespace EyeRest.Platform.macOS.Services
             try
             {
                 _activityToken = MacOSAppLifecycleInterop.BeginActivity(
-                    "Blink Twice EyeRest must run scheduled break reminders on time.");
+                    "EyeRest Blink Twice must run scheduled break reminders on time.");
                 _logger.LogInformation("🛡️ APP NAP OPT-OUT: NSProcessInfo activity token acquired (token=0x{Token:X})",
                     _activityToken.ToInt64());
             }

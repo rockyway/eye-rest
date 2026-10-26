@@ -47,7 +47,7 @@ CONFIGURATION="${CONFIGURATION:-Release}"
 PUBLISH_DIR="$PROJECT_ROOT/publish/velopack-linux"
 RELEASES_DIR="$PROJECT_ROOT/releases"
 
-echo "=== Blink Twice EyeRest Velopack Publish (Linux) ==="
+echo "=== EyeRest Blink Twice Velopack Publish (Linux) ==="
 echo "  Version:  $VERSION"
 echo "  RID:      $RID"
 echo ""

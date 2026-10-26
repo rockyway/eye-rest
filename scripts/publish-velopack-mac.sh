@@ -66,7 +66,7 @@ NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 # any other Mac, which is why earlier releases shipped the Portable zip only.
 SIGN_INSTALLER="${INSTALLER_SIGNING_IDENTITY:-}"
 
-echo "=== Blink Twice EyeRest Velopack Publish (macOS) ==="
+echo "=== EyeRest Blink Twice Velopack Publish (macOS) ==="
 echo "  Version:  $VERSION"
 echo "  RID:      $RID"
 echo ""

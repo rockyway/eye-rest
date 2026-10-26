@@ -11,7 +11,7 @@ namespace EyeRest.Services
     /// </summary>
     internal static class LinuxNotifications
     {
-        private const string AppName = "Blink Twice EyeRest";
+        private const string AppName = "EyeRest Blink Twice";
 
         internal static void Send(ILogger logger, string title, string body)
         {

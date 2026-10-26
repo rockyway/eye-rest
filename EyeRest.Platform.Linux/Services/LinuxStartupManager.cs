@@ -119,7 +119,7 @@ namespace EyeRest.Services
             return $"""
                 [Desktop Entry]
                 Type=Application
-                Name=Blink Twice EyeRest
+                Name=EyeRest Blink Twice
                 Comment=Automated eye rest and break reminders
                 Exec={exec}
                 Terminal=false
