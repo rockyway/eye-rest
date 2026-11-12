@@ -1,0 +1,16 @@
+What's new in 1.7.0
+
+Smaller reminder popups
+Settings now offers Standard, Compact and Minimal popup sizes. The choice applies to the eye rest popup, the break popup and both warnings, and the countdown and buttons stay fully visible at every size.
+
+Break popup position
+The break popup has a new Popup Position setting, set to Center by default. The break warning follows it, so the warning and the break appear in the same place.
+
+Break overlay switch
+You can turn off the dimmed background behind the break popup and keep the reminder itself.
+
+Changelog when you update
+Before an update installs, the app lists what's new. After the update, it shows the same list once.
+
+New name
+The app is now called EyeRest Blink Twice. Your settings and data are unchanged.
