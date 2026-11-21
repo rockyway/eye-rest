@@ -33,9 +33,14 @@ namespace EyeRest.Services
                 
                 _eyeRestTimer?.Stop();
                 _breakTimer?.Stop();
-                
+
+                // Same reason as SmartPauseAsync: the paused time must not count toward the
+                // wake-detection gap, or the first tick after resume is mistaken for a wake.
+                _lastEyeRestTick = DateTime.MinValue;
+                _lastBreakTick = DateTime.MinValue;
+
                 await _analyticsService.RecordPauseEventAsync(EyeRest.Services.PauseReason.Manual);
-                
+
                 _logger.LogInformation("Timer service paused successfully");
             }
             catch (Exception ex)
@@ -764,6 +769,13 @@ namespace EyeRest.Services
                 _eyeRestWarningFallbackTimer = null;
                 _breakWarningFallbackTimer?.Stop();
                 _breakWarningFallbackTimer = null;
+
+                // Same reason as SmartPauseAsync: without this, the first eye-rest tick after a
+                // 30-min timed pause saw a ~50-min gap since the last tick, was read as a system
+                // wake, and reset the cycle instead of warning — so the first reminder after the
+                // pause came ~40 min later instead of ~20 (seen in production analytics).
+                _lastEyeRestTick = DateTime.MinValue;
+                _lastBreakTick = DateTime.MinValue;
 
                 // Clear notification and processing states
                 _isEyeRestNotificationActive = false;
