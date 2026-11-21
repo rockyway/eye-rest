@@ -189,5 +189,41 @@ namespace EyeRest.Tests.Avalonia.Services
             var p = PopupWindow.ComputePosition(PopupPlacement.TopLeft, WorkArea, scaling: 2.0, W, H);
             Assert.Equal(new PixelPoint(16, 16), p);
         }
+
+        // -------- ClampIntoWorkArea (popup sinking under the taskbar) --------
+
+        [Fact]
+        public void ClampIntoWorkArea_WindowOverlappingTaskbar_IsPulledUpAboveIt()
+        {
+            // Work area ends at 1032 (taskbar below). Window placed for a 300px height but really
+            // 450px tall (stale DPI scaling) → bottom at 1174, under the taskbar.
+            var window = new PixelRect(1512, 724, W, 450);
+            var p = PopupWindow.ClampIntoWorkArea(window, new PixelRect(0, 0, 1920, 1032), Margin);
+            Assert.Equal(new PixelPoint(1512, 1032 - 450 - Margin), p);
+        }
+
+        [Fact]
+        public void ClampIntoWorkArea_WindowAlreadyInside_IsUnchanged()
+        {
+            var window = new PixelRect(100, 100, W, H);
+            Assert.Equal(new PixelPoint(100, 100), PopupWindow.ClampIntoWorkArea(window, WorkArea, Margin));
+        }
+
+        [Fact]
+        public void ClampIntoWorkArea_HonorsMonitorOffsetAndNegativeCoordinates()
+        {
+            // Monitor left of primary at (-1920, 32); window spills past its right/bottom edges.
+            var work = new PixelRect(-1920, 32, 1920, 1152);
+            var window = new PixelRect(-300, 1000, W, H);
+            var p = PopupWindow.ClampIntoWorkArea(window, work, 0);
+            Assert.Equal(new PixelPoint(-W, 32 + 1152 - H), p);
+        }
+
+        [Fact]
+        public void ClampIntoWorkArea_WindowLargerThanWorkArea_AlignsTopLeft()
+        {
+            var window = new PixelRect(50, 50, 3000, 2000);
+            Assert.Equal(new PixelPoint(0, 0), PopupWindow.ClampIntoWorkArea(window, WorkArea, 0));
+        }
     }
 }

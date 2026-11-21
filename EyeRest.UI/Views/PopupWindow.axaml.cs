@@ -36,6 +36,18 @@ namespace EyeRest.UI.Views
         // reposition so a pooled, hidden shell doesn't reposition on stray size events.
         private bool _positioned;
 
+        // The screen PositionOnScreen() chose. Later repositions (content resize, DPI refit) stay
+        // on THIS monitor instead of re-reading the cursor's monitor: re-reading it moved the popup
+        // to wherever the mouse happened to be, with a scaling the window had not adopted yet.
+        private PixelRect? _targetScreenBounds;
+
+        // Set once the user drags the popup. From then on the user owns the position: no snapping
+        // back to the configured corner, only a clamp that keeps it inside the work area.
+        private bool _userMoved;
+
+        // True while the Win32 modal move loop runs inside BeginMoveDrag.
+        private bool _dragging;
+
         /// <summary>
         /// Tracks how many popup windows are currently open.
         /// </summary>
@@ -87,14 +99,41 @@ namespace EyeRest.UI.Views
 
         private void OnContentSizeSettled(object? sender, SizeChangedEventArgs e)
         {
-            if (_positioned)
-                RepositionWithActualSize(_currentPlacement);
+            if (!_positioned) return;
+
+            if (_userMoved)
+            {
+                // Never move the window under the user's cursor mid-drag; once dropped, only
+                // nudge it back inside the work area if the new size pushed it out.
+                if (!_dragging) PostKeepInsideWorkArea();
+                return;
+            }
+
+            RepositionWithActualSize(_currentPlacement);
         }
 
         private void OnScalingChanged(object? sender, EventArgs e)
         {
-            if (_positioned)
-                RefitToContentAndReposition();
+            if (!_positioned) return;
+
+            if (_userMoved)
+            {
+                // Dragged across a DPI boundary: Windows already moved the window under the cursor
+                // (WM_DPICHANGED suggested rect). Re-fit the physical size for the new DPI but do
+                // NOT snap to the configured corner. Snapping here is what made the popup jump
+                // away from the mouse while dragging between monitors.
+                RefitToContent();
+                return;
+            }
+
+            RefitToContentAndReposition();
+        }
+
+        private void RefitToContent()
+        {
+            SizeToContent = SizeToContent.Manual;
+            SizeToContent = SizeToContent.WidthAndHeight;
+            InvalidateMeasure();
         }
 
         /// <summary>
@@ -106,9 +145,7 @@ namespace EyeRest.UI.Views
         /// </summary>
         private void RefitToContentAndReposition()
         {
-            SizeToContent = SizeToContent.Manual;
-            SizeToContent = SizeToContent.WidthAndHeight;
-            InvalidateMeasure();
+            RefitToContent();
 
             // DesiredSize (DIP) is scaling-independent, so positioning is correct immediately even
             // before the resize lands; OnContentSizeSettled re-runs if the resize changes DIP size.
@@ -279,6 +316,9 @@ namespace EyeRest.UI.Views
             if (_released || _lease != expectedLease) return;
             _released = true;
             _positioned = false; // stop SizeChanged-driven repositioning while pooled/hidden
+            _userMoved = false;
+            _dragging = false;
+            _targetScreenBounds = null;
 
             try { base.Hide(); } catch { /* best effort */ }
             _activePopupCount = Math.Max(0, _activePopupCount - 1);
@@ -360,7 +400,7 @@ namespace EyeRest.UI.Views
 
         private void RepositionWithActualSize(PopupPlacement placement)
         {
-            var screen = GetScreenWithCursor();
+            var screen = GetTargetScreen();
             if (screen == null) return;
 
             // Use DesiredSize (the measured content size), NOT FrameSize/ClientSize. On a pooled
@@ -376,6 +416,80 @@ namespace EyeRest.UI.Views
             var actualHeight = (int)(size.Height * scaling);
 
             Position = ComputePosition(placement, screen.WorkingArea, scaling, actualWidth, actualHeight);
+
+            // The math above assumes the window's physical size is DesiredSize * screen scaling.
+            // When the window's RenderScaling lags the monitor's (Win32 changes it silently on a
+            // cross-monitor move), the real frame is taller and the bottom edge sinks under the
+            // taskbar. Check the real window rect once layout settles and pull it back inside.
+            PostKeepInsideWorkArea();
+        }
+
+        /// <summary>The monitor chosen by PositionOnScreen, if it still exists; else the cursor's.</summary>
+        private Screen? GetTargetScreen()
+        {
+            if (_targetScreenBounds is PixelRect bounds)
+            {
+                foreach (var s in Screens.All)
+                {
+                    if (s.Bounds == bounds)
+                        return s;
+                }
+            }
+            return GetScreenWithCursor();
+        }
+
+        private void PostKeepInsideWorkArea()
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(
+                KeepInsideWorkArea,
+                Avalonia.Threading.DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// Reads the REAL window rectangle (physical pixels, Windows only) and moves the window
+        /// the minimum distance needed to sit fully inside its monitor's work area.
+        /// </summary>
+        private void KeepInsideWorkArea()
+        {
+            if (!_positioned || _dragging || !base.IsVisible || !OperatingSystem.IsWindows())
+                return;
+
+            try
+            {
+                var hwnd = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r))
+                    return;
+
+                var screen = _userMoved ? Screens.ScreenFromWindow(this) : GetTargetScreen();
+                if (screen == null) return;
+
+                var window = new PixelRect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
+                var marginPx = _userMoved ? 0 : (int)(8 * screen.Scaling);
+                var clamped = ClampIntoWorkArea(window, screen.WorkingArea, marginPx);
+                if (clamped.X != r.Left || clamped.Y != r.Top)
+                    Position = clamped;
+            }
+            catch
+            {
+                // Best effort: a failed check leaves the computed position in place.
+            }
+        }
+
+        /// <summary>
+        /// Returns the top-left that keeps <paramref name="window"/> inside <paramref name="workArea"/>
+        /// (inset by <paramref name="marginPx"/>), moving it as little as possible. A window larger
+        /// than the work area is aligned to the work area's top-left. Internal for testing.
+        /// </summary>
+        internal static PixelPoint ClampIntoWorkArea(PixelRect window, PixelRect workArea, int marginPx)
+        {
+            var minX = workArea.X + marginPx;
+            var minY = workArea.Y + marginPx;
+            var maxX = workArea.Right - marginPx - window.Width;
+            var maxY = workArea.Bottom - marginPx - window.Height;
+
+            var x = Math.Max(minX, Math.Min(window.X, maxX));
+            var y = Math.Max(minY, Math.Min(window.Y, maxY));
+            return new PixelPoint(x, y);
         }
 
         public static PixelPoint ComputePosition(
@@ -436,7 +550,18 @@ namespace EyeRest.UI.Views
                         return; // Don't drag — let the control handle the click
                     source = source.Parent as Avalonia.Controls.Control;
                 }
-                BeginMoveDrag(e);
+                // The user now owns the position (see _userMoved). On Windows BeginMoveDrag runs
+                // the modal move loop synchronously, so _dragging covers the whole drag there.
+                _userMoved = true;
+                _dragging = true;
+                try
+                {
+                    BeginMoveDrag(e);
+                }
+                finally
+                {
+                    _dragging = false;
+                }
             }
         }
 
@@ -452,7 +577,13 @@ namespace EyeRest.UI.Views
         {
             // Post to ensure SizeToContent has finished resizing the window
             Avalonia.Threading.Dispatcher.UIThread.Post(
-                () => RepositionWithActualSize(_currentPlacement),
+                () =>
+                {
+                    if (_userMoved)
+                        KeepInsideWorkArea();
+                    else
+                        RepositionWithActualSize(_currentPlacement);
+                },
                 Avalonia.Threading.DispatcherPriority.Render);
         }
 
@@ -461,7 +592,9 @@ namespace EyeRest.UI.Views
             _pendingPlacement = placement;
             _currentPlacement = placement;
             _positioned = true;
+            _userMoved = false;
             var screen = GetScreenWithCursor();
+            _targetScreenBounds = screen?.Bounds;
             if (screen == null)
                 return;
 
@@ -570,6 +703,19 @@ namespace EyeRest.UI.Views
 
         private const uint MONITOR_DEFAULTTONEAREST = 2;
         private const int MDT_EFFECTIVE_DPI = 0;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
