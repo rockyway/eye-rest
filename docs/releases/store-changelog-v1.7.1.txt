@@ -1,5 +1,8 @@
 What's new in 1.7.1
 
+Reminders on time after a pause
+After a 30 or 60 minute pause, the first eye rest reminder now comes 20 minutes after the pause ends instead of about 40.
+
 Popups stay above the taskbar
 A popup set to Bottom Right or Bottom Center no longer sinks behind the taskbar on setups with monitors at different scaling.
 

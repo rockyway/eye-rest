@@ -3,18 +3,33 @@
 > Released: November 2026
 > Builds on **v1.7.0** — https://github.com/rockyway/eye-rest/releases/tag/v1.7.0
 
-A small fix release for Windows. macOS and Linux are rebuilt at the same version and behave as before.
+A fix release. The pause fix applies to Windows, macOS and Linux; the two popup fixes are Windows only.
 
 ---
 
 ## Highlights
 
+- **Reminders come back on time after a pause** — after a 30 or 60 minute pause, the first eye rest reminder now arrives 20 minutes after the pause ends, not 40.
 - [Windows] **Popups stay above the taskbar** — a popup set to Bottom Right or Bottom Center no longer sinks behind it.
 - [Windows] **Dragging a popup between monitors works** — it stays under your cursor when the two monitors use different scaling.
 
 ---
 
 ## What changed
+
+### First reminder after a pause came 20 minutes late
+
+When a 30 or 60 minute pause ended, the timers did resume on time, but the first eye rest
+reminder skipped a cycle and arrived about 40 minutes later instead of 20. The app checks how
+long it has been since the last reminder to notice when your PC wakes from sleep, and it was
+counting the pause as part of that gap. It decided the PC had just woken up and restarted the
+countdown. Pausing now resets that check, so the first reminder comes one normal interval after
+the pause ends. The same applies when you pause and press Resume yourself.
+
+### Logs kept for 14 days
+
+The app's log files now cover the last 14 days instead of the last day. If something goes wrong
+and you report it a few days later, the logs still show what happened.
 
 ### Popup sinking under the taskbar
 
