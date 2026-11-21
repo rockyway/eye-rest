@@ -156,6 +156,64 @@ namespace EyeRest.Tests.Avalonia.Services
             Assert.True(_timerService.IsRunning);
         }
 
+        #region Timed (meeting) pause — first reminder after auto-resume
+
+        // Production analytics (Jun–Nov 2026): after a 30-min timed pause, the first eye-rest
+        // warning came ~39.5 min after the auto-resume instead of ~20. The first post-resume tick
+        // saw (time before pause + 30 + 20) min since the last tick, the wake heuristic read that
+        // as a system wake, and it reset the cycle instead of warning.
+        [Theory]
+        [InlineData(30)]
+        [InlineData(60)]
+        public async Task TimedPause_AfterAutoResume_FirstEyeRestTickStartsWarning(int pauseMinutes)
+        {
+            await StartServiceAsync();
+            var eyeRestTimer = _fakeTimerFactory.GetCreatedTimers()[EyeRestTimerIndex];
+
+            // A normal tick happened 10 minutes before the pause.
+            SetPrivateField("_lastEyeRestTick", _fakeClock.Now);
+            _fakeClock.Advance(TimeSpan.FromMinutes(10));
+
+            await _timerService.PauseForDurationAsync(TimeSpan.FromMinutes(pauseMinutes), "Manual meeting pause");
+            var pauseTimer = Assert.IsType<FakeTimer>(GetPrivateField<EyeRest.Services.Abstractions.ITimer>("_manualPauseTimer"));
+
+            _fakeClock.Advance(TimeSpan.FromMinutes(pauseMinutes));
+            pauseTimer.FireTick();
+            Assert.False(_timerService.IsManuallyPaused);
+            Assert.True(eyeRestTimer.IsEnabled);
+
+            // One full eye-rest cycle after the resume, the timer fires.
+            _fakeClock.Advance(eyeRestTimer.Interval);
+            eyeRestTimer.FireTick();
+
+            var warningTimer = GetPrivateField<EyeRest.Services.Abstractions.ITimer>("_eyeRestWarningTimer");
+            Assert.True(warningTimer?.IsEnabled == true,
+                "First eye-rest tick after a timed pause must start the warning, not be treated as a system wake");
+        }
+
+        [Fact]
+        public async Task ManualPause_ThenResume_FirstEyeRestTickStartsWarning()
+        {
+            await StartServiceAsync();
+            var eyeRestTimer = _fakeTimerFactory.GetCreatedTimers()[EyeRestTimerIndex];
+
+            SetPrivateField("_lastEyeRestTick", _fakeClock.Now);
+            _fakeClock.Advance(TimeSpan.FromMinutes(10));
+
+            await _timerService.PauseAsync();
+            _fakeClock.Advance(TimeSpan.FromMinutes(45));
+            await _timerService.ResumeAsync();
+
+            _fakeClock.Advance(eyeRestTimer.Interval);
+            eyeRestTimer.FireTick();
+
+            var warningTimer = GetPrivateField<EyeRest.Services.Abstractions.ITimer>("_eyeRestWarningTimer");
+            Assert.True(warningTimer?.IsEnabled == true,
+                "First eye-rest tick after a manual pause must start the warning, not be treated as a system wake");
+        }
+
+        #endregion
+
         #region Smart Resume After Idle — Timer Reset Tests
 
         [Fact]

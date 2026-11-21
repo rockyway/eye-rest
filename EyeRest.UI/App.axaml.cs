@@ -107,6 +107,12 @@ public partial class App : Application
             var logPath = System.IO.Path.Combine(logsDirectory, "eyerest-.log");
             var statsLogPath = System.IO.Path.Combine(logsDirectory, "eyerest-stats-.log");
 
+            // Keep 14 days of hourly logs so problems reported days later (e.g. a pause that
+            // didn't resume) can still be traced. The file-count cap is one file per hour for
+            // 14 days; if size-based rolls produce extra files, the oldest go first.
+            var logRetention = TimeSpan.FromDays(14);
+            var logRetainedFileCount = (int)logRetention.TotalHours;
+
             static bool IsPerformanceStats(LogEvent logEvent)
             {
                 return logEvent.Properties.TryGetValue("SourceContext", out var sourceContext)
@@ -124,7 +130,8 @@ public partial class App : Application
                     .WriteTo.File(
                         statsLogPath,
                         rollingInterval: Serilog.RollingInterval.Hour,
-                        retainedFileCountLimit: 24,
+                        retainedFileCountLimit: logRetainedFileCount,
+                        retainedFileTimeLimit: logRetention,
                         rollOnFileSizeLimit: true,
                         fileSizeLimitBytes: 5 * 1024 * 1024))
                 .WriteTo.Logger(mainLogger => mainLogger
@@ -132,7 +139,8 @@ public partial class App : Application
                     .WriteTo.File(
                         logPath,
                         rollingInterval: Serilog.RollingInterval.Hour,
-                        retainedFileCountLimit: 24,
+                        retainedFileCountLimit: logRetainedFileCount,
+                        retainedFileTimeLimit: logRetention,
                         rollOnFileSizeLimit: true,
                         fileSizeLimitBytes: 5 * 1024 * 1024));
         });
